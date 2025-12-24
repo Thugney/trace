@@ -1,0 +1,159 @@
+import express from 'express';
+import db from '../database/init';
+
+const router = express.Router();
+
+// Get all profiles
+router.get('/', (req, res) => {
+  try {
+    const profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
+    res.json(profiles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single profile
+router.get('/:id', (req, res) => {
+  try {
+    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(req.params.id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    res.json(profile);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create profile
+router.post('/', (req, res) => {
+  try {
+    const { name, type, age, gender, avatar, settings } = req.body;
+
+    if (!name || !type) {
+      return res.status(400).json({ error: 'Name and type are required' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO profiles (name, type, age, gender, avatar, settings)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, JSON.stringify(settings || {}));
+
+    const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(newProfile);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update profile
+router.put('/:id', (req, res) => {
+  try {
+    const { name, age, gender, avatar, settings } = req.body;
+    const { id } = req.params;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name);
+    }
+    if (age !== undefined) {
+      updates.push('age = ?');
+      values.push(age);
+    }
+    if (gender !== undefined) {
+      updates.push('gender = ?');
+      values.push(gender);
+    }
+    if (avatar !== undefined) {
+      updates.push('avatar = ?');
+      values.push(avatar);
+    }
+    if (settings !== undefined) {
+      updates.push('settings = ?');
+      values.push(JSON.stringify(settings));
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    db.prepare(`
+      UPDATE profiles
+      SET ${updates.join(', ')}
+      WHERE id = ?
+    `).run(...values);
+
+    const updatedProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    res.json(updatedProfile);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete profile
+router.delete('/:id', (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM profiles WHERE id = ?').run(req.params.id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    res.json({ message: 'Profile deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get profile statistics
+router.get('/:id/stats', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get task stats for kids
+    const taskStats = db.prepare(`
+      SELECT
+        COUNT(*) as total_tasks,
+        SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_tasks,
+        SUM(CASE WHEN completed = 0 AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
+      FROM tasks
+      WHERE profile_id = ?
+    `).get(id);
+
+    // Get progress stats
+    const progressStats = db.prepare(`
+      SELECT
+        total_points,
+        total_stars,
+        level
+      FROM progress
+      WHERE profile_id = ?
+      ORDER BY logged_at DESC
+      LIMIT 1
+    `).get(id);
+
+    // Get diet stats
+    const dietStats = db.prepare(`
+      SELECT
+        COUNT(*) as meals_logged,
+        SUM(calories_consumed) as total_calories,
+        DATE(logged_at) as log_date
+      FROM meal_logs
+      WHERE profile_id = ? AND DATE(logged_at) = DATE('now')
+      GROUP BY DATE(logged_at)
+    `).get(id);
+
+    res.json({
+      tasks: taskStats || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
+      progress: progressStats || { total_points: 0, total_stars: 0, level: 1 },
+      diet: dietStats || { meals_logged: 0, total_calories: 0 }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
