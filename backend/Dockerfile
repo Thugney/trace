@@ -20,5 +20,5 @@ RUN npm prune --production
 # Expose port
 EXPOSE 3001
 
-# Initialize database and start server
-CMD ["sh", "-c", "npm run db:init && npm start"]
+# Start server (database init happens automatically in index.ts)
+CMD ["npm", "start"]
