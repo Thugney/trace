@@ -15,26 +15,33 @@ export default function Layout({ children }: LayoutProps) {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard', showForKids: true, showForTeachers: false, showForAdmin: true },
-    { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false, showForTeachers: false, showForAdmin: true },
-    { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true, showForTeachers: false, showForAdmin: true },
-    { path: '/school', icon: GraduationCap, label: 'School', showForKids: true, showForTeachers: true, showForAdmin: true },
-    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true, showForTeachers: false, showForAdmin: true },
-    { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true, showForTeachers: false, showForAdmin: true },
-    { path: '/admin', icon: Shield, label: 'Admin Panel', showForKids: false, showForTeachers: false, showForAdmin: true },
-    { path: '/settings', icon: Settings, label: 'Settings', showForKids: false, showForTeachers: false, showForAdmin: true }
+    { path: '/', icon: Home, label: 'Dashboard', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
+    { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false, showForTeachers: false, showForParents: true, showForAdmin: true },
+    { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
+    { path: '/school', icon: GraduationCap, label: 'School', showForKids: true, showForTeachers: true, showForParents: true, showForAdmin: true },
+    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
+    { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true, showForTeachers: false, showForParents: false, showForAdmin: false },
+    { path: '/admin', icon: Shield, label: 'Admin Panel', showForKids: false, showForTeachers: false, showForParents: false, showForAdmin: true },
+    { path: '/settings', icon: Settings, label: 'Settings', showForKids: false, showForTeachers: false, showForParents: true, showForAdmin: true }
   ];
 
   const isTeacher = currentProfile?.type === 'teacher';
   const isAdmin = currentProfile?.type === 'admin';
+  const hasAIAccess = currentProfile?.ai_enabled === 1;
 
-  const visibleNavItems = isAdmin
+  // Filter navigation items based on role
+  let visibleNavItems = isAdmin
     ? navItems.filter(item => item.showForAdmin)
     : isTeacher
     ? navItems.filter(item => item.showForTeachers)
     : isParent
-    ? navItems
+    ? navItems.filter(item => item.showForParents)
     : navItems.filter(item => item.showForKids);
+
+  // Further filter AI Assistant based on ai_enabled flag for children
+  if (currentProfile?.type === 'child' && !hasAIAccess) {
+    visibleNavItems = visibleNavItems.filter(item => item.path !== '/ai');
+  }
 
   const getThemeClass = () => {
     if (!currentProfile || currentProfile.type === 'parent') return '';

@@ -147,13 +147,17 @@ function AppRoutes() {
           }
         />
 
-        {/* AI - Only parent, admin, child */}
+        {/* AI - Only children with ai_enabled=1 (admin controls access) */}
         <Route
           path="/ai"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
-              <AIAssistant />
-            </ProtectedRoute>
+            currentProfile?.type === 'child' && currentProfile?.ai_enabled !== 1 ? (
+              <Navigate to="/" replace />
+            ) : (
+              <ProtectedRoute allowedRoles={['child']}>
+                <AIAssistant />
+              </ProtectedRoute>
+            )
           }
         />
 

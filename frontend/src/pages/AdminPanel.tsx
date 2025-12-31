@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
-import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby, Bot } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function AdminPanel() {
@@ -138,6 +138,18 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Failed to delete profile:', error);
       alert('Failed to delete profile. Please try again.');
+    }
+  };
+
+  const handleToggleAI = async (profile: Profile) => {
+    try {
+      const newAiEnabled = profile.ai_enabled === 1 ? 0 : 1;
+      await profilesAPI.update(profile.id, { ai_enabled: newAiEnabled });
+      await loadAllProfiles();
+      await refreshProfiles();
+    } catch (error) {
+      console.error('Failed to toggle AI access:', error);
+      alert('Failed to update AI access. Please try again.');
     }
   };
 
@@ -423,6 +435,7 @@ export default function AdminPanel() {
                     profile={profile}
                     onEdit={startEdit}
                     onDelete={handleDeleteProfile}
+                    onToggleAI={handleToggleAI}
                     isCurrentUser={profile.id === currentProfile?.id}
                     parentName={parent?.name}
                   />
@@ -463,12 +476,13 @@ interface ProfileRowProps {
   profile: Profile;
   onEdit: (profile: Profile) => void;
   onDelete: (profile: Profile) => void;
+  onToggleAI?: (profile: Profile) => void;
   isCurrentUser: boolean;
   children?: Profile[];
   parentName?: string;
 }
 
-function ProfileRow({ profile, onEdit, onDelete, isCurrentUser, children, parentName }: ProfileRowProps) {
+function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, children, parentName }: ProfileRowProps) {
   const getProfileIcon = (type: string) => {
     switch (type) {
       case 'admin': return <Shield className="text-red-600" size={20} />;
@@ -501,6 +515,11 @@ function ProfileRow({ profile, onEdit, onDelete, isCurrentUser, children, parent
             {profile.gender && <span>• {profile.gender}</span>}
             {parentName && <span>• Parent: {parentName}</span>}
             {profile.pin && <span>• 🔒 PIN Protected</span>}
+            {profile.type === 'child' && (
+              <span className={profile.ai_enabled === 1 ? 'text-purple-600' : 'text-gray-400'}>
+                • 🤖 AI {profile.ai_enabled === 1 ? 'Enabled' : 'Disabled'}
+              </span>
+            )}
           </div>
           {children && children.length > 0 && (
             <div className="text-xs text-gray-500 mt-1">
@@ -511,6 +530,21 @@ function ProfileRow({ profile, onEdit, onDelete, isCurrentUser, children, parent
       </div>
 
       <div className="flex space-x-2">
+        {/* AI Access Toggle (only for children) */}
+        {profile.type === 'child' && onToggleAI && (
+          <button
+            onClick={() => onToggleAI(profile)}
+            className={clsx(
+              'p-2 rounded-lg transition-colors',
+              profile.ai_enabled === 1
+                ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
+                : 'text-gray-400 hover:bg-gray-100'
+            )}
+            title={profile.ai_enabled === 1 ? 'AI Enabled - Click to disable' : 'AI Disabled - Click to enable'}
+          >
+            <Bot size={18} />
+          </button>
+        )}
         <button
           onClick={() => onEdit(profile)}
           className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"

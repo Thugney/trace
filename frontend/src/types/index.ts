@@ -10,6 +10,7 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   parent_id?: number;
+  ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
 }
 
 export interface DietGoal {

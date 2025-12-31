@@ -448,6 +448,21 @@ export function initDatabase() {
     console.error('Migration error (Robel to admin):', error.message);
   }
 
+  // Migration: Add ai_enabled column to profiles table for AI access control
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasAiEnabled = profileInfo.some((col: any) => col.name === 'ai_enabled');
+
+    if (!hasAiEnabled) {
+      console.log('🔄 Migrating profiles table: adding ai_enabled column for AI access control...');
+      // Default: AI disabled for everyone, admin can enable it per student
+      db.prepare('ALTER TABLE profiles ADD COLUMN ai_enabled INTEGER DEFAULT 0').run();
+      console.log('✅ Migration completed: ai_enabled column added');
+    }
+  } catch (error: any) {
+    console.error('Migration error (ai_enabled):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 
