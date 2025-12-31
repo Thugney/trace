@@ -13,10 +13,11 @@ import type {
   AIConversation
 } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative path for production (nginx proxy) or explicit URL for development
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: API_URL ? `${API_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json'
   }

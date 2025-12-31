@@ -105,9 +105,19 @@ The app creates these profiles automatically:
 ## Troubleshooting
 
 ### Can't access the app?
-- Check if containers are running: `sudo docker-compose ps`
-- Check firewall settings on Synology
-- Try `http://localhost:3000` from Synology itself
+
+**Quick checks:**
+1. Verify containers are running: `sudo docker-compose ps`
+2. Check logs: `sudo docker-compose logs -f`
+3. Test backend: `curl http://localhost:3001/health`
+4. Test frontend: `curl http://localhost:3000`
+
+**Common issues:**
+- **ERR_CONNECTION_REFUSED**: Check firewall, verify ports 3000/3001 are accessible
+- **Port already in use**: Another app is using the port, change port in docker-compose.yml
+- **Permission denied**: Run with `sudo` or fix data directory permissions
+
+**📖 For detailed troubleshooting, see [DOCKER_TROUBLESHOOTING.md](DOCKER_TROUBLESHOOTING.md)**
 
 ### AI not working?
 - Make sure you've entered a valid Grok API key in Settings
@@ -117,7 +127,7 @@ The app creates these profiles automatically:
 ```bash
 sudo docker-compose down
 sudo rm -rf data/
-sudo docker-compose up -d
+sudo docker-compose up -d --build
 ```
 
 ## Next Steps

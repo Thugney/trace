@@ -32,7 +32,8 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:3001
+      # Leave empty to use nginx proxy (relative /api path)
+      - VITE_API_URL=
     networks:
       - family-network
 
