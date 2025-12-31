@@ -13,7 +13,7 @@ import Settings from './pages/Settings';
 import { useProfile } from './context/ProfileContext';
 
 function AppRoutes() {
-  const { currentProfile, isLoading } = useProfile();
+  const { currentProfile, setCurrentProfile, isLoading } = useProfile();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [parentProfile, setParentProfile] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
