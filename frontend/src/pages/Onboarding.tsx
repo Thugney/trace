@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
-import { UserCircle, Lock, Users } from 'lucide-react';
+import { UserCircle, Users } from 'lucide-react';
 
 interface OnboardingProps {
   onComplete: () => void;
