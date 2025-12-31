@@ -312,7 +312,7 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
         const response = await axios.post(
           GROK_API_URL,
           {
-            model: 'grok-2-1212',  // Updated from deprecated 'grok-beta'
+            model: 'grok-2-latest',  // Grok 2 latest (Grok 4.1 Fast)
             messages,
             temperature: 0.7,
             max_tokens: 500
