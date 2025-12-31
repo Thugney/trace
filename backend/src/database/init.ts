@@ -390,19 +390,62 @@ export function initDatabase() {
     console.error('Migration error:', error);
   }
 
-  // Migration: Convert Robel (ID 1) from 'parent' to 'admin'
+  // Migration: Update profiles table to support 'admin' type and convert Robel to admin
   try {
     const robel: any = db.prepare('SELECT id, name, type FROM profiles WHERE id = 1').get();
 
     if (robel && robel.type !== 'admin') {
-      console.log(`🔄 Migrating user '${robel.name}' (ID: ${robel.id}) from '${robel.type}' to 'admin'...`);
-      db.prepare('UPDATE profiles SET type = ? WHERE id = ?').run('admin', robel.id);
-      console.log('✅ Migration completed: Robel is now an admin');
+      console.log('🔄 Migrating profiles table to support admin role...');
+
+      // Check if we need to migrate the table schema
+      db.exec(`
+        -- Create new table with updated CHECK constraint
+        CREATE TABLE IF NOT EXISTS profiles_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL CHECK(type IN ('admin', 'parent', 'child', 'teacher')),
+          age INTEGER,
+          gender TEXT CHECK(gender IN ('male', 'female', 'other')),
+          avatar TEXT,
+          pin TEXT,
+          settings TEXT DEFAULT '{}',
+          parent_id INTEGER REFERENCES profiles(id) ON DELETE CASCADE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Copy data, converting Robel (ID 1) to admin
+        INSERT INTO profiles_new
+        SELECT
+          id,
+          name,
+          CASE WHEN id = 1 THEN 'admin' ELSE type END as type,
+          age,
+          gender,
+          avatar,
+          pin,
+          settings,
+          parent_id,
+          created_at,
+          updated_at
+        FROM profiles;
+
+        -- Drop old table
+        DROP TABLE profiles;
+
+        -- Rename new table
+        ALTER TABLE profiles_new RENAME TO profiles;
+
+        -- Recreate index
+        CREATE INDEX IF NOT EXISTS idx_profiles_parent_id ON profiles(parent_id);
+      `);
+
+      console.log('✅ Migration completed: Profiles table updated and Robel is now an admin');
     } else if (robel && robel.type === 'admin') {
       console.log('✓ User Robel (ID: 1) is already an admin');
     }
-  } catch (error) {
-    console.error('Migration error (Robel to admin):', error);
+  } catch (error: any) {
+    console.error('Migration error (Robel to admin):', error.message);
   }
 
   console.log('✅ Database initialized successfully');
