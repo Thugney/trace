@@ -33,9 +33,15 @@ function AppRoutes() {
     setCheckingAuth(false);
   }, []);
 
-  const handleAuthenticated = (parent: any) => {
+  const handleAuthenticated = (loggedInProfile: any) => {
     setIsAuthenticated(true);
-    setParentProfile(parent);
+    setParentProfile(loggedInProfile);
+
+    // If a child logs in, set them as current profile directly
+    if (loggedInProfile.type === 'child') {
+      setCurrentProfile(loggedInProfile);
+    }
+    // If a parent logs in, show profile selection
   };
 
   if (checkingAuth || isLoading) {
@@ -53,7 +59,11 @@ function AppRoutes() {
     return <Login onAuthenticated={handleAuthenticated} />;
   }
 
-  if (!currentProfile) {
+  // If child is logged in, skip profile selection
+  if (parentProfile.type === 'child' && currentProfile) {
+    // Already using child's profile, show dashboard
+  } else if (!currentProfile) {
+    // Parent logged in, show profile selection
     return <ProfileSelector parentProfile={parentProfile} />;
   }
 

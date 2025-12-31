@@ -49,7 +49,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
       }
     } catch (err: any) {
       if (err.response?.status === 401) {
-        setError('Invalid username or PIN. Only parents can login.');
+        setError('Invalid username or PIN. Please check and try again.');
       } else {
         setError('Login failed. Please try again.');
       }
@@ -70,7 +70,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
             Family PWA
           </h1>
           <p className="text-gray-600">
-            Parent login required
+            Enter your username and PIN to login
           </p>
         </div>
 
@@ -138,7 +138,9 @@ export default function Login({ onAuthenticated }: LoginProps) {
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Note:</strong> Only parent accounts can login. Enter your parent username and PIN to access family profiles.
+            <strong>For Kids:</strong> Login with your name and PIN to access your tasks and goals.
+            <br />
+            <strong>For Parents:</strong> Login to manage family profiles and settings.
           </p>
         </div>
       </div>

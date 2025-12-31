@@ -112,7 +112,7 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// Parent login (username + PIN)
+// Login (username + PIN) - works for both parents and kids
 router.post('/login', (req, res) => {
   try {
     const { username, pin } = req.body;
@@ -121,10 +121,10 @@ router.post('/login', (req, res) => {
       return res.status(400).json({ error: 'Username and PIN are required' });
     }
 
-    // Find parent profile by name
+    // Find profile by name (parent OR child)
     const profile: any = db.prepare(
-      'SELECT * FROM profiles WHERE name = ? AND type = ?'
-    ).get(username, 'parent');
+      'SELECT * FROM profiles WHERE name = ?'
+    ).get(username);
 
     if (!profile) {
       return res.status(401).json({ error: 'Invalid username or PIN' });
@@ -135,7 +135,7 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
 
-    // Return parent profile info
+    // Return profile info
     res.json({
       success: true,
       profile: {
