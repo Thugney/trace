@@ -175,25 +175,7 @@ function generateFallbackResponse(message: string, profile: any, context: string
   return `I received your message, ${profile.name}! To get full AI assistance with detailed answers and personalized advice, please ask your ${profile.type === 'child' ? 'parents' : 'administrator'} to configure the AI API key in settings. Until then, I'm here in limited mode! 🤖`;
 }
 
-// Chat with AI (GET endpoint for EventSource streaming)
-router.get('/chat', async (req, res) => {
-  try {
-    const { profile_id, message, context = 'general' } = req.query;
-    console.log(`[AI Chat GET] Request from profile ${profile_id}, context: ${context}`);
-
-    if (!profile_id || !message) {
-      console.error('[AI Chat GET] Missing required fields');
-      return res.status(400).json({ error: 'profile_id and message are required' });
-    }
-
-    await handleChatStream(parseInt(profile_id as string), message as string, context as string, res);
-  } catch (error: any) {
-    console.error('[AI Chat GET] ERROR:', error);
-    res.status(500).json({ error: 'Failed to process message', details: error.message });
-  }
-});
-
-// Chat with AI (POST endpoint for non-streaming)
+// Chat with AI (POST endpoint)
 router.post('/chat', async (req, res) => {
   try {
     const { profile_id, message, context = 'general' } = req.body;
