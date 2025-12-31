@@ -29,16 +29,16 @@ router.get('/:id', (req, res) => {
 // Create profile
 router.post('/', (req, res) => {
   try {
-    const { name, type, age, gender, avatar, settings } = req.body;
+    const { name, type, age, gender, avatar, settings, pin } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, settings)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, JSON.stringify(settings || {}));
+      INSERT INTO profiles (name, type, age, gender, avatar, pin, settings)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, pin || null, JSON.stringify(settings || {}));
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
