@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { settingsAPI, profilesAPI } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X } from 'lucide-react';
 
 export default function Settings() {
   const { currentProfile, isParent, profiles, refreshProfiles } = useProfile();
@@ -11,6 +11,7 @@ export default function Settings() {
   const [grokApiKey, setGrokApiKey] = useState('');
   const [parentPin, setParentPin] = useState('');
   const [newParentPin, setNewParentPin] = useState('');
+  const [showAddProfile, setShowAddProfile] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -91,6 +92,58 @@ export default function Settings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAddProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const pin = formData.get('pin') as string;
+    const confirmPin = formData.get('confirmPin') as string;
+    const profileType = formData.get('profileType') as string;
+
+    // Validate PIN
+    if (!pin || pin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const age = formData.get('age') as string;
+      const gender = formData.get('gender') as string;
+
+      await profilesAPI.create({
+        name: formData.get('name') as string,
+        type: profileType as any,
+        age: age ? parseInt(age, 10) : undefined,
+        gender: gender as any,
+        pin,
+        avatar: getAvatar(profileType, gender)
+      });
+
+      alert('Profile created successfully!');
+      await refreshProfiles();
+      setShowAddProfile(false);
+      e.currentTarget.reset();
+    } catch (error) {
+      console.error('Failed to create profile:', error);
+      alert('Failed to create profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getAvatar = (type: string, gender: string) => {
+    if (type === 'parent') {
+      return gender === 'male' ? '👨' : gender === 'female' ? '👩' : '👤';
+    }
+    return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
   };
 
   if (!isParent) {
@@ -304,7 +357,16 @@ export default function Settings() {
 
           {/* Family Profiles */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4">Family Profiles</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Family Profiles</h2>
+              <button
+                onClick={() => setShowAddProfile(true)}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus size={16} className="mr-1" />
+                Add Profile
+              </button>
+            </div>
 
             <div className="space-y-3">
               {profiles.map(profile => (
@@ -317,11 +379,19 @@ export default function Settings() {
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : `Child (${profile.age} years)`}
+                        {profile.type === 'parent' ? 'Parent' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
-                  <span className="badge badge-primary">{profile.type}</span>
+                  <div className="flex items-center space-x-2">
+                    {profile.pin && (
+                      <span className="text-xs text-gray-400 flex items-center">
+                        <Lock size={12} className="mr-1" />
+                        Protected
+                      </span>
+                    )}
+                    <span className="badge badge-primary">{profile.type}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -339,6 +409,124 @@ export default function Settings() {
               A comprehensive family management solution for diet tracking, task management, and
               AI-powered assistance.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Add Profile Modal */}
+      {showAddProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Add New Profile</h2>
+              <button
+                onClick={() => setShowAddProfile(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProfile} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Profile Type *
+                </label>
+                <select name="profileType" required className="input">
+                  <option value="child">Child</option>
+                  <option value="parent">Parent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  className="input"
+                  placeholder="Enter name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  name="age"
+                  min="1"
+                  max="100"
+                  className="input"
+                  placeholder="Enter age"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender
+                </label>
+                <select name="gender" className="input">
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Create PIN *
+                </label>
+                <input
+                  type="password"
+                  name="pin"
+                  required
+                  minLength={4}
+                  maxLength={8}
+                  className="input"
+                  placeholder="Enter 4-8 digit PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This PIN will protect the profile
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm PIN *
+                </label>
+                <input
+                  type="password"
+                  name="confirmPin"
+                  required
+                  minLength={4}
+                  maxLength={8}
+                  className="input"
+                  placeholder="Re-enter PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                  {saving ? <div className="spinner"></div> : 'Add Profile'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddProfile(false)}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
