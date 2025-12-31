@@ -52,7 +52,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
       } else {
         // Kid profile created, can add more or finish
         setShowForm(false);
-        e.currentTarget.reset();
       }
     } catch (error) {
       console.error('Failed to create profile:', error);

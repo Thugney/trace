@@ -54,12 +54,11 @@ export default function Notes() {
         color: formData.get('color') as string
       });
 
-      await loadNotes();
       setShowAddNote(false);
-      e.currentTarget.reset();
+      await loadNotes();
     } catch (error) {
       console.error('Failed to create note:', error);
-      alert('Failed to create note');
+      alert('Failed to create note. Please try again.');
     }
   };
 
