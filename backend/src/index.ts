@@ -10,6 +10,7 @@ import dietRoutes from './routes/diet';
 import taskRoutes from './routes/tasks';
 import aiRoutes from './routes/ai';
 import settingsRoutes from './routes/settings';
+import notesRoutes from './routes/notes';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ app.use('/api/diet', dietRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -10,7 +10,8 @@ import type {
   Task,
   Progress,
   Reward,
-  AIConversation
+  AIConversation,
+  Note
 } from '../types';
 
 // Use relative path for production (nginx proxy) or explicit URL for development
@@ -124,6 +125,15 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin })
+};
+
+// Notes
+export const notesAPI = {
+  getByProfile: (profileId: number) => api.get<Note[]>(`/notes/${profileId}`),
+  getOne: (id: number) => api.get<Note>(`/notes/note/${id}`),
+  create: (data: Partial<Note>) => api.post<Note>('/notes', data),
+  update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
+  delete: (id: number) => api.delete(`/notes/${id}`)
 };
 
 export default api;

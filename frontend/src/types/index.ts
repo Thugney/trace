@@ -74,7 +74,7 @@ export interface Task {
   profile_id: number;
   title: string;
   description?: string;
-  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'other';
+  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
   is_recurring: boolean;
@@ -119,6 +119,16 @@ export interface AIConversation {
   user_message: string;
   ai_response: string;
   created_at: string;
+}
+
+export interface Note {
+  id: number;
+  profile_id: number;
+  title: string;
+  content: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProfileStats {

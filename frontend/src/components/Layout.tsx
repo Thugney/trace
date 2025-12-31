@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, Settings, LogOut } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -18,6 +18,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/', icon: Home, label: 'Dashboard', showForKids: true },
     { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false },
     { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true },
+    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true },
     { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true },
     { path: '/settings', icon: Settings, label: 'Settings', showForKids: false }
   ];

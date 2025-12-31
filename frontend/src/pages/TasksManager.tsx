@@ -310,6 +310,7 @@ export default function TasksManager() {
                     <option value="clean-room">🛏️ Clean Room</option>
                     <option value="clean-kitchen">🍽️ Clean Kitchen</option>
                     <option value="school">🎒 School Work</option>
+                    <option value="watch-movies">📺 Watch Movies/Screen Time</option>
                     <option value="other">📌 Other</option>
                   </select>
                 </div>

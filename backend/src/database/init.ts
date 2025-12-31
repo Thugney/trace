@@ -114,7 +114,7 @@ export function initDatabase() {
       profile_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
-      category TEXT CHECK(category IN ('read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'other')),
+      category TEXT CHECK(category IN ('read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'watch-movies', 'other')),
       points INTEGER DEFAULT 10,
       difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'easy',
       is_recurring BOOLEAN DEFAULT 0,
@@ -177,6 +177,20 @@ export function initDatabase() {
     )
   `);
 
+  // Notes table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      color TEXT DEFAULT '#ffffff',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
   // Settings table
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -196,6 +210,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_progress_profile ON progress(profile_id);
     CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_notes_profile ON notes(profile_id);
   `);
 
   // Insert default settings if none exist
