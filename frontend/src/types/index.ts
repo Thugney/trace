@@ -77,6 +77,7 @@ export interface Task {
   category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  earns_points: boolean;
   is_recurring: boolean;
   recurrence_pattern?: string;
   due_date?: string;
@@ -127,6 +128,20 @@ export interface Note {
   title: string;
   content: string;
   color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyGoal {
+  id: number;
+  profile_id: number;
+  month: string;
+  goal_description: string;
+  goal_points: number;
+  goal_type: string;
+  achieved: boolean;
+  reward_given: boolean;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }

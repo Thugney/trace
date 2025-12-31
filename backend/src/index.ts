@@ -11,6 +11,7 @@ import taskRoutes from './routes/tasks';
 import aiRoutes from './routes/ai';
 import settingsRoutes from './routes/settings';
 import notesRoutes from './routes/notes';
+import goalsRoutes from './routes/goals';
 
 dotenv.config();
 
@@ -46,6 +47,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notes', notesRoutes);
+app.use('/api/goals', goalsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

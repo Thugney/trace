@@ -11,7 +11,8 @@ import type {
   Progress,
   Reward,
   AIConversation,
-  Note
+  Note,
+  MonthlyGoal
 } from '../types';
 
 // Use relative path for production (nginx proxy) or explicit URL for development
@@ -134,6 +135,22 @@ export const notesAPI = {
   create: (data: Partial<Note>) => api.post<Note>('/notes', data),
   update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
   delete: (id: number) => api.delete(`/notes/${id}`)
+};
+
+// Monthly Goals
+export const goalsAPI = {
+  getByProfile: (profileId: number, month?: string) =>
+    api.get<MonthlyGoal[]>(`/goals/${profileId}`, { params: { month } }),
+  getCurrent: (profileId: number) => api.get<MonthlyGoal | null>(`/goals/${profileId}/current`),
+  create: (data: Partial<MonthlyGoal>) => api.post<MonthlyGoal>('/goals', data),
+  update: (id: number, data: Partial<MonthlyGoal>) => api.put<MonthlyGoal>(`/goals/${id}`, data),
+  delete: (id: number) => api.delete(`/goals/${id}`),
+  awardBonusPoints: (profileId: number, points: number, stars: number, reason: string) =>
+    api.post<{ message: string; progress: Progress }>(`/goals/${profileId}/bonus-points`, {
+      points,
+      stars,
+      reason
+    })
 };
 
 export default api;

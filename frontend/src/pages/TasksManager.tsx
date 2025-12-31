@@ -67,13 +67,17 @@ export default function TasksManager() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
+    const category = formData.get('category') as string;
+    const isTracking = category === 'watch-movies';
+
     try {
       await tasksAPI.create({
         profile_id: displayProfileId!,
         title: formData.get('title') as string,
         description: formData.get('description') as string,
-        category: formData.get('category') as any,
-        difficulty: formData.get('difficulty') as any,
+        category: category as any,
+        difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
+        earns_points: !isTracking,
         created_by: currentProfile?.id
       });
 
