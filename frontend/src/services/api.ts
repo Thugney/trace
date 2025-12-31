@@ -91,7 +91,7 @@ export const tasksAPI = {
 // AI
 export const aiAPI = {
   chat: (profile_id: number, message: string, context?: string) =>
-    api.post<{ response: string; profile: { id: number; name: string; type: string } }>(
+    api.post<{ response: string; profile: { id: number; name: string; type: string }; usingFallback?: boolean }>(
       '/ai/chat',
       { profile_id, message, context }
     ),
@@ -115,7 +115,10 @@ export const aiAPI = {
   getConversations: (profileId: number, context?: string, limit?: number) =>
     api.get<AIConversation[]>(`/ai/conversations/${profileId}`, { params: { context, limit } }),
   clearConversations: (profileId: number, context?: string) =>
-    api.delete(`/ai/conversations/${profileId}`, { params: { context } })
+    api.delete(`/ai/conversations/${profileId}`, { params: { context } }),
+  getStatus: () => api.get<{ apiConfigured: boolean; fallbackMode: boolean }>('/ai/status'),
+  getSettings: (profileId: number) => api.get(`/ai/settings/${profileId}`),
+  updateSettings: (profileId: number, settings: any) => api.put(`/ai/settings/${profileId}`, settings)
 };
 
 // Settings

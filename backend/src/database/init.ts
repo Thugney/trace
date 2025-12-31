@@ -220,6 +220,21 @@ export function initDatabase() {
     )
   `);
 
+  // AI settings table for parental controls
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER,
+      strict_mode BOOLEAN DEFAULT 1,
+      max_messages_per_day INTEGER DEFAULT 20,
+      allowed_contexts TEXT DEFAULT '["general","tasks"]',
+      content_filter_level TEXT DEFAULT 'strict',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_meal_logs_profile ON meal_logs(profile_id);
@@ -231,6 +246,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
     CREATE INDEX IF NOT EXISTS idx_notes_profile ON notes(profile_id);
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_profile_month ON monthly_goals(profile_id, month);
+    CREATE INDEX IF NOT EXISTS idx_ai_settings_profile ON ai_settings(profile_id);
   `);
 
   // Insert default settings if none exist

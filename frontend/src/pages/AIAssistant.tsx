@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { aiAPI } from '../services/api';
 import { AIConversation } from '../types';
-import { Send, Sparkles, Trash2, Lightbulb } from 'lucide-react';
+import { Send, Sparkles, Trash2, Lightbulb, AlertCircle, Info } from 'lucide-react';
 
 export default function AIAssistant() {
   const { currentProfile, isParent } = useProfile();
@@ -10,7 +10,12 @@ export default function AIAssistant() {
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [context, setContext] = useState<'diet' | 'tasks' | 'general'>('general');
+  const [apiStatus, setApiStatus] = useState<{ apiConfigured: boolean; fallbackMode: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    checkAPIStatus();
+  }, []);
 
   useEffect(() => {
     if (currentProfile) {
@@ -24,6 +29,15 @@ export default function AIAssistant() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const checkAPIStatus = async () => {
+    try {
+      const response = await aiAPI.getStatus();
+      setApiStatus(response.data);
+    } catch (error) {
+      console.error('Failed to check API status:', error);
+    }
   };
 
   const loadConversations = async () => {
@@ -97,6 +111,22 @@ export default function AIAssistant() {
             : 'Ask me anything! I\'m here to help you learn and grow'}
         </p>
       </div>
+
+      {/* API Status Banner */}
+      {apiStatus?.fallbackMode && (
+        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+          <div className="flex items-start">
+            <Info className="text-yellow-600 mr-3 flex-shrink-0 mt-0.5" size={20} />
+            <div>
+              <h3 className="font-semibold text-yellow-800">Limited Mode Active</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                The AI is currently in limited mode with basic responses.
+                {isParent && ' To enable full AI capabilities, please configure your Grok API key in Settings.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Context Selector */}
       <div className="card mb-6">

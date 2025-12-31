@@ -6,19 +6,113 @@ const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
-// Middleware to check if Grok API is enabled
-function checkGrokEnabled(req: express.Request, res: express.Response, next: express.NextFunction) {
+// Helper: Check if Grok API is available
+function isGrokAvailable(): boolean {
   const apiKey = process.env.GROK_API_KEY;
-  if (!apiKey || apiKey === 'your_grok_api_key_here') {
-    return res.status(503).json({
-      error: 'Grok AI is not configured. Please set GROK_API_KEY in your environment variables.'
-    });
+  return !!(apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '');
+}
+
+// Helper: Get AI settings for profile
+function getAISettings(profileId: number) {
+  let settings: any = db.prepare(
+    'SELECT * FROM ai_settings WHERE profile_id = ?'
+  ).get(profileId);
+
+  // Create default settings if none exist
+  if (!settings) {
+    db.prepare(`
+      INSERT INTO ai_settings (profile_id, strict_mode, max_messages_per_day, content_filter_level)
+      VALUES (?, 1, 20, 'strict')
+    `).run(profileId);
+
+    settings = db.prepare(
+      'SELECT * FROM ai_settings WHERE profile_id = ?'
+    ).get(profileId);
   }
-  next();
+
+  return settings;
+}
+
+// Helper: Get profile context (tasks, progress, diet, goals)
+function getProfileContext(profileId: number) {
+  const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileId);
+
+  // Get task stats
+  const taskStats: any = db.prepare(`
+    SELECT
+      COUNT(*) as total_tasks,
+      SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_tasks,
+      SUM(CASE WHEN completed = 0 AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
+    FROM tasks
+    WHERE profile_id = ?
+  `).get(profileId);
+
+  // Get progress
+  const progress: any = db.prepare(`
+    SELECT total_points, total_stars, level
+    FROM progress
+    WHERE profile_id = ?
+    ORDER BY logged_at DESC
+    LIMIT 1
+  `).get(profileId);
+
+  // Get monthly goal
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthlyGoal: any = db.prepare(`
+    SELECT *
+    FROM monthly_goals
+    WHERE profile_id = ? AND month = ?
+  `).get(profileId, currentMonth);
+
+  // Get diet summary (today)
+  const today = new Date().toISOString().split('T')[0];
+  const dietSummary: any = db.prepare(`
+    SELECT
+      SUM(calories_consumed) as total_calories,
+      SUM(protein_consumed) as total_protein
+    FROM meal_logs
+    WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
+  `).get(profileId, today);
+
+  return {
+    profile,
+    taskStats: taskStats || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
+    progress: progress || { total_points: 0, total_stars: 0, level: 1 },
+    monthlyGoal,
+    dietSummary: dietSummary || { total_calories: 0, total_protein: 0 }
+  };
+}
+
+// Helper: Generate fallback response (when no API key)
+function generateFallbackResponse(message: string, profile: any, context: string): string {
+  const lowerMessage = message.toLowerCase();
+
+  // Greetings
+  if (lowerMessage.match(/^(hi|hello|hey|hei)/)) {
+    return `Hi ${profile.name}! 👋 I'm your AI assistant, but I'm currently in limited mode. To unlock my full potential, ask your parents to configure the AI API key in settings!`;
+  }
+
+  // Task-related
+  if (lowerMessage.includes('task') || lowerMessage.includes('chore')) {
+    return `Great question about tasks, ${profile.name}! In full mode, I can give you personalized task suggestions. For now, I recommend focusing on your pending tasks and working towards your monthly goal! 🎯`;
+  }
+
+  // Diet-related
+  if (lowerMessage.includes('food') || lowerMessage.includes('meal') || lowerMessage.includes('eat')) {
+    return `I'd love to help with meal suggestions! When the AI API is configured, I can provide personalized nutrition advice and meal ideas. For now, remember to eat balanced meals with protein, carbs, and healthy fats! 🥗`;
+  }
+
+  // Motivation
+  if (lowerMessage.includes('help') || lowerMessage.includes('motivate')) {
+    return `You're doing great, ${profile.name}! ${profile.type === 'child' ? 'Keep completing your tasks and earning points. Every small step counts!' : 'Keep supporting your family and managing tasks effectively!'} 🌟`;
+  }
+
+  // Default
+  return `I received your message, ${profile.name}! To get full AI assistance with detailed answers and personalized advice, please ask your ${profile.type === 'child' ? 'parents' : 'administrator'} to configure the AI API key in settings. Until then, I'm here in limited mode! 🤖`;
 }
 
 // Chat with AI
-router.post('/chat', checkGrokEnabled, async (req, res) => {
+router.post('/chat', async (req, res) => {
   try {
     const { profile_id, message, context = 'general' } = req.body;
 
@@ -26,74 +120,132 @@ router.post('/chat', checkGrokEnabled, async (req, res) => {
       return res.status(400).json({ error: 'profile_id and message are required' });
     }
 
-    // Get profile to understand user type (parent or child)
-    const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profile_id);
+    // Get profile context
+    const profileContext = getProfileContext(profile_id);
+    const profile = profileContext.profile;
+
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // Build system prompt based on context and user type
-    let systemPrompt = '';
+    // Get AI settings
+    const aiSettings = getAISettings(profile_id);
 
-    if (profile.type === 'child') {
-      systemPrompt = `You are a friendly and encouraging AI assistant helping a ${profile.age}-year-old child named ${profile.name}.
-Keep your language age-appropriate, positive, and educational. Focus on helping with tasks, learning, and positive habits.
-Be supportive and motivating. Use simple language and examples.`;
+    // Check daily message limit
+    const today = new Date().toISOString().split('T')[0];
+    const messageCount: any = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM ai_conversations
+      WHERE profile_id = ? AND DATE(created_at) = DATE(?)
+    `).get(profile_id, today);
+
+    if (messageCount.count >= aiSettings.max_messages_per_day) {
+      return res.status(429).json({
+        error: `Daily message limit reached (${aiSettings.max_messages_per_day} messages). Try again tomorrow!`
+      });
+    }
+
+    let aiResponse: string;
+
+    // Check if Grok API is available
+    if (!isGrokAvailable()) {
+      // Fallback mode
+      aiResponse = generateFallbackResponse(message, profile, context);
     } else {
-      systemPrompt = `You are a helpful AI assistant for family management, nutrition, and parenting.
-Provide practical advice about diet, meal planning, task management for kids, and family organization.
-Be informative, supportive, and family-oriented.`;
-    }
+      // Build system prompt based on context, user type, and AI settings
+      let systemPrompt = '';
 
-    if (context === 'diet') {
-      systemPrompt += `\nContext: Focus on nutrition, meal planning, and healthy eating habits for a Norwegian family.
-Consider Norwegian food culture and locally available ingredients.`;
-    } else if (context === 'tasks') {
-      systemPrompt += `\nContext: Focus on task management, productivity, and age-appropriate chores/activities for children.`;
-    }
+      if (profile.type === 'child') {
+        if (aiSettings.strict_mode) {
+          systemPrompt = `You are a friendly, educational AI assistant for a ${profile.age}-year-old child named ${profile.name}.
 
-    // Get recent conversation history
-    const history = db.prepare(`
-      SELECT user_message, ai_response FROM ai_conversations
-      WHERE profile_id = ? AND context = ?
-      ORDER BY created_at DESC
-      LIMIT 5
-    `).all(profile_id, context);
+STRICT GUIDELINES:
+- Use age-appropriate language only
+- Be positive, encouraging, and educational
+- Never discuss inappropriate topics (violence, adult content, etc.)
+- Focus on learning, creativity, and positive habits
+- Encourage task completion and healthy choices
+- If asked anything inappropriate, politely redirect to positive topics
 
-    // Build messages array for Grok
-    const messages: any[] = [
-      { role: 'system', content: systemPrompt }
-    ];
+Profile Context:
+- Total tasks: ${profileContext.taskStats.total_tasks} (${profileContext.taskStats.completed_tasks} completed)
+- Points: ${profileContext.progress.total_points} | Stars: ${profileContext.progress.total_stars} | Level: ${profileContext.progress.level}
+${profileContext.monthlyGoal ? `- Monthly Goal: ${profileContext.monthlyGoal.goal_description} (${profileContext.monthlyGoal.goal_points} points target)` : ''}
+- Today's calories: ${profileContext.dietSummary.total_calories || 0} kcal`;
+        } else {
+          systemPrompt = `You are a friendly AI assistant helping ${profile.age}-year-old ${profile.name}.
+Keep language age-appropriate and focus on being helpful and educational.
 
-    // Add history (reverse order for chronological)
-    history.reverse().forEach((h: any) => {
-      messages.push(
-        { role: 'user', content: h.user_message },
-        { role: 'assistant', content: h.ai_response }
-      );
-    });
-
-    // Add current message
-    messages.push({ role: 'user', content: message });
-
-    // Call Grok API
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: 'grok-beta',
-        messages,
-        temperature: 0.7,
-        max_tokens: 500
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
-          'Content-Type': 'application/json'
+Profile Context:
+- Points: ${profileContext.progress.total_points} | Level: ${profileContext.progress.level}
+- Tasks: ${profileContext.taskStats.total_tasks} total, ${profileContext.taskStats.completed_tasks} completed`;
         }
-      }
-    );
+      } else {
+        systemPrompt = `You are a helpful AI assistant for family management, nutrition, and parenting.
+Provide practical advice for ${profile.name}.
 
-    const aiResponse = response.data.choices[0]?.message?.content || 'Sorry, I could not generate a response.';
+Family Context:
+- Tasks managed: ${profileContext.taskStats.total_tasks}
+- Today's calories logged: ${profileContext.dietSummary.total_calories || 0} kcal`;
+      }
+
+      if (context === 'diet') {
+        systemPrompt += `\n\nFocus on nutrition, meal planning, and healthy eating for a Norwegian family. Use Norwegian ingredients and food culture.`;
+      } else if (context === 'tasks') {
+        systemPrompt += `\n\nFocus on task management, productivity, and age-appropriate activities for children.`;
+      }
+
+      // Get recent conversation history
+      const history = db.prepare(`
+        SELECT user_message, ai_response FROM ai_conversations
+        WHERE profile_id = ? AND context = ?
+        ORDER BY created_at DESC
+        LIMIT 5
+      `).all(profile_id, context);
+
+      // Build messages for Grok
+      const messages: any[] = [
+        { role: 'system', content: systemPrompt }
+      ];
+
+      // Add history (reverse for chronological order)
+      history.reverse().forEach((h: any) => {
+        messages.push(
+          { role: 'user', content: h.user_message },
+          { role: 'assistant', content: h.ai_response }
+        );
+      });
+
+      // Add current message
+      messages.push({ role: 'user', content: message });
+
+      try {
+        // Call Grok API
+        const response = await axios.post(
+          GROK_API_URL,
+          {
+            model: 'grok-beta',
+            messages,
+            temperature: 0.7,
+            max_tokens: 500
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 15000
+          }
+        );
+
+        aiResponse = response.data.choices[0]?.message?.content ||
+          'Sorry, I could not generate a response.';
+      } catch (apiError: any) {
+        console.error('Grok API error:', apiError.response?.data || apiError.message);
+        // Fallback to simple response on API error
+        aiResponse = generateFallbackResponse(message, profile, context);
+      }
+    }
 
     // Save conversation
     db.prepare(`
@@ -103,181 +255,71 @@ Consider Norwegian food culture and locally available ingredients.`;
 
     res.json({
       response: aiResponse,
-      profile: { id: profile.id, name: profile.name, type: profile.type }
+      profile: { id: profile.id, name: profile.name, type: profile.type },
+      usingFallback: !isGrokAvailable()
     });
 
   } catch (error: any) {
-    console.error('Grok API error:', error.response?.data || error.message);
+    console.error('Chat error:', error);
     res.status(500).json({
-      error: 'Failed to get AI response',
-      details: error.response?.data?.error?.message || error.message
+      error: 'Failed to process message',
+      details: error.message
     });
   }
 });
 
-// Get meal suggestions using AI
-router.post('/meal-suggestions', checkGrokEnabled, async (req, res) => {
+// Get/Update AI settings for a profile
+router.get('/settings/:profileId', (req, res) => {
   try {
-    const { profile_id, preferences, dietary_restrictions, num_meals = 3 } = req.body;
-
-    if (!profile_id) {
-      return res.status(400).json({ error: 'profile_id is required' });
-    }
-
-    const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profile_id);
-
-    const prompt = `Suggest ${num_meals} healthy meal ideas for a Norwegian family.
-${preferences ? `Preferences: ${preferences}` : ''}
-${dietary_restrictions ? `Dietary restrictions: ${dietary_restrictions}` : ''}
-
-Please provide meals that:
-- Use ingredients commonly available in Norwegian supermarkets
-- Are healthy and balanced
-- Include estimated calories and main macros
-- Are practical to prepare
-
-Format the response as a JSON array with this structure:
-[
-  {
-    "name": "Meal name",
-    "description": "Brief description",
-    "calories": 500,
-    "protein": 30,
-    "carbs": 50,
-    "fat": 15,
-    "ingredients": ["ingredient 1", "ingredient 2"],
-    "meal_type": "breakfast/lunch/dinner"
-  }
-]`;
-
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: 'grok-beta',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a nutrition expert specializing in Norwegian cuisine and family meal planning.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 1000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const aiResponse = response.data.choices[0]?.message?.content || '[]';
-
-    // Try to parse JSON response
-    let meals = [];
-    try {
-      // Extract JSON from response (in case there's extra text)
-      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        meals = JSON.parse(jsonMatch[0]);
-      }
-    } catch (e) {
-      // If parsing fails, return raw response
-      meals = [{ name: 'AI Suggestion', description: aiResponse }];
-    }
-
-    res.json({ meals });
-
+    const settings = getAISettings(parseInt(req.params.profileId));
+    res.json(settings);
   } catch (error: any) {
-    console.error('Grok API error:', error.response?.data || error.message);
-    res.status(500).json({
-      error: 'Failed to get meal suggestions',
-      details: error.response?.data?.error?.message || error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get task recommendations using AI
-router.post('/task-recommendations', checkGrokEnabled, async (req, res) => {
+router.put('/settings/:profileId', (req, res) => {
   try {
-    const { profile_id } = req.body;
+    const { profileId } = req.params;
+    const { strict_mode, max_messages_per_day, allowed_contexts, content_filter_level } = req.body;
 
-    if (!profile_id) {
-      return res.status(400).json({ error: 'profile_id is required' });
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (strict_mode !== undefined) {
+      updates.push('strict_mode = ?');
+      values.push(strict_mode ? 1 : 0);
+    }
+    if (max_messages_per_day !== undefined) {
+      updates.push('max_messages_per_day = ?');
+      values.push(max_messages_per_day);
+    }
+    if (allowed_contexts !== undefined) {
+      updates.push('allowed_contexts = ?');
+      values.push(JSON.stringify(allowed_contexts));
+    }
+    if (content_filter_level !== undefined) {
+      updates.push('content_filter_level = ?');
+      values.push(content_filter_level);
     }
 
-    const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profile_id);
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
     }
 
-    if (profile.type !== 'child') {
-      return res.status(400).json({ error: 'Task recommendations are only for child profiles' });
-    }
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(profileId);
 
-    const prompt = `Suggest 5 age-appropriate tasks/chores for a ${profile.age}-year-old child named ${profile.name}.
+    db.prepare(`
+      UPDATE ai_settings
+      SET ${updates.join(', ')}
+      WHERE profile_id = ?
+    `).run(...values);
 
-Consider:
-- Age-appropriate difficulty
-- Educational value
-- Life skills development
-- Fun and engagement
-
-Format response as JSON array:
-[
-  {
-    "title": "Task title",
-    "description": "Brief description",
-    "category": "chore/homework/activity/habit",
-    "difficulty": "easy/medium/hard",
-    "points": 10-30,
-    "educational_value": "What the child learns"
-  }
-]`;
-
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: 'grok-beta',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a child development expert specializing in age-appropriate tasks and activities.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 800
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const aiResponse = response.data.choices[0]?.message?.content || '[]';
-
-    let tasks = [];
-    try {
-      const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        tasks = JSON.parse(jsonMatch[0]);
-      }
-    } catch (e) {
-      tasks = [{ title: 'AI Suggestion', description: aiResponse }];
-    }
-
-    res.json({ tasks, profile: { name: profile.name, age: profile.age } });
-
+    const updated = getAISettings(parseInt(profileId));
+    res.json(updated);
   } catch (error: any) {
-    console.error('Grok API error:', error.response?.data || error.message);
-    res.status(500).json({
-      error: 'Failed to get task recommendations',
-      details: error.response?.data?.error?.message || error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -328,6 +370,14 @@ router.delete('/conversations/:profileId', (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Check API status
+router.get('/status', (req, res) => {
+  res.json({
+    apiConfigured: isGrokAvailable(),
+    fallbackMode: !isGrokAvailable()
+  });
 });
 
 export default router;
