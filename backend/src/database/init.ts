@@ -270,6 +270,20 @@ export function initDatabase() {
     console.log('✅ Default settings created');
   }
 
+  // Migration: Add custom_instructions column if it doesn't exist
+  try {
+    const tableInfo: any[] = db.prepare('PRAGMA table_info(ai_settings)').all();
+    const hasCustomInstructions = tableInfo.some((col: any) => col.name === 'custom_instructions');
+
+    if (!hasCustomInstructions) {
+      console.log('🔄 Migrating ai_settings table: adding custom_instructions column...');
+      db.prepare('ALTER TABLE ai_settings ADD COLUMN custom_instructions TEXT DEFAULT \'\'').run();
+      console.log('✅ Migration completed: custom_instructions column added');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

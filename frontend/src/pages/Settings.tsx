@@ -14,11 +14,19 @@ export default function Settings() {
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [aiSettings, setAiSettings] = useState<Record<number, any>>({});
   const [expandedAIProfile, setExpandedAIProfile] = useState<number | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     loadSettings();
     loadAllAISettings();
   }, []);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const loadAllAISettings = async () => {
     const childProfiles = profiles.filter(p => p.type === 'child');
@@ -37,19 +45,16 @@ export default function Settings() {
   };
 
   const handleUpdateAISettings = async (profileId: number, updates: any) => {
-    setSaving(true);
     try {
       const response = await aiAPI.updateSettings(profileId, updates);
       setAiSettings(prev => ({
         ...prev,
         [profileId]: response.data
       }));
-      alert('AI settings updated successfully!');
+      setSuccessMessage('AI settings updated!');
     } catch (error) {
       console.error('Failed to update AI settings:', error);
-      alert('Failed to update AI settings');
-    } finally {
-      setSaving(false);
+      setSuccessMessage('Failed to update settings');
     }
   };
 
@@ -246,6 +251,16 @@ export default function Settings() {
         </h1>
         <p className="text-gray-600 mt-1">Manage app settings and configurations</p>
       </div>
+
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <Shield size={20} />
+            <span>{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
