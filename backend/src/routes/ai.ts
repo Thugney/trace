@@ -14,23 +14,47 @@ function isGrokAvailable(): boolean {
 
 // Helper: Get AI settings for profile
 function getAISettings(profileId: number) {
-  let settings: any = db.prepare(
-    'SELECT * FROM ai_settings WHERE profile_id = ?'
-  ).get(profileId);
-
-  // Create default settings if none exist
-  if (!settings) {
-    db.prepare(`
-      INSERT INTO ai_settings (profile_id, strict_mode, max_messages_per_day, content_filter_level)
-      VALUES (?, 1, 20, 'strict')
-    `).run(profileId);
-
-    settings = db.prepare(
+  try {
+    let settings: any = db.prepare(
       'SELECT * FROM ai_settings WHERE profile_id = ?'
     ).get(profileId);
-  }
 
-  return settings;
+    // Create default settings if none exist
+    if (!settings) {
+      console.log(`Creating default AI settings for profile ${profileId}`);
+      db.prepare(`
+        INSERT INTO ai_settings (
+          profile_id,
+          strict_mode,
+          max_messages_per_day,
+          content_filter_level,
+          custom_instructions
+        )
+        VALUES (?, 1, 20, 'strict', '')
+      `).run(profileId);
+
+      settings = db.prepare(
+        'SELECT * FROM ai_settings WHERE profile_id = ?'
+      ).get(profileId);
+    }
+
+    // Ensure custom_instructions exists
+    if (!settings.custom_instructions) {
+      settings.custom_instructions = '';
+    }
+
+    return settings;
+  } catch (error) {
+    console.error(`Error getting AI settings for profile ${profileId}:`, error);
+    // Return safe defaults if database fails
+    return {
+      profile_id: profileId,
+      strict_mode: 1,
+      max_messages_per_day: 20,
+      content_filter_level: 'strict',
+      custom_instructions: ''
+    };
+  }
 }
 
 // Helper: Get profile context (tasks, progress, diet, goals, notes)
@@ -136,18 +160,25 @@ function generateFallbackResponse(message: string, profile: any, context: string
 router.post('/chat', async (req, res) => {
   try {
     const { profile_id, message, context = 'general' } = req.body;
+    console.log(`[AI Chat] Request from profile ${profile_id}, context: ${context}`);
 
     if (!profile_id || !message) {
+      console.error('[AI Chat] Missing required fields');
       return res.status(400).json({ error: 'profile_id and message are required' });
     }
 
     // Get profile context
+    console.log(`[AI Chat] Getting profile context for ${profile_id}`);
     const profileContext = getProfileContext(profile_id);
     const profile = profileContext.profile;
 
     if (!profile) {
+      console.error(`[AI Chat] Profile ${profile_id} not found`);
       return res.status(404).json({ error: 'Profile not found' });
     }
+
+    console.log(`[AI Chat] Profile: ${profile.name} (${profile.type})`);
+
 
     // Get AI settings
     const aiSettings = getAISettings(profile_id);
@@ -285,11 +316,19 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
     }
 
     // Save conversation
-    db.prepare(`
-      INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
-      VALUES (?, ?, ?, ?)
-    `).run(profile_id, context, message, aiResponse);
+    console.log(`[AI Chat] Saving conversation for profile ${profile_id}`);
+    try {
+      db.prepare(`
+        INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
+        VALUES (?, ?, ?, ?)
+      `).run(profile_id, context, message, aiResponse);
+      console.log(`[AI Chat] Conversation saved successfully`);
+    } catch (dbError: any) {
+      console.error(`[AI Chat] Failed to save conversation:`, dbError);
+      // Continue even if save fails
+    }
 
+    console.log(`[AI Chat] Sending response to client`);
     res.json({
       response: aiResponse,
       profile: { id: profile.id, name: profile.name, type: profile.type },
@@ -297,10 +336,12 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
     });
 
   } catch (error: any) {
-    console.error('Chat error:', error);
+    console.error('[AI Chat] ERROR:', error);
+    console.error('[AI Chat] Stack:', error.stack);
     res.status(500).json({
       error: 'Failed to process message',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
