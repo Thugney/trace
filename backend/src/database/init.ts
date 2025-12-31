@@ -23,7 +23,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS profiles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('parent', 'child')),
+      type TEXT NOT NULL CHECK(type IN ('parent', 'child', 'teacher')),
       age INTEGER,
       gender TEXT CHECK(gender IN ('male', 'female', 'other')),
       avatar TEXT,
@@ -268,6 +268,97 @@ export function initDatabase() {
     });
 
     console.log('✅ Default settings created');
+  }
+
+  // School Classes table (Tigrinya Church School)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_classes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      age_min INTEGER,
+      age_max INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // School Class Enrollments (which students are in which class)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_enrollments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      class_id INTEGER NOT NULL,
+      enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+      UNIQUE(student_id, class_id)
+    )
+  `);
+
+  // School Assignments (homework, psalms, videos)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      teacher_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      type TEXT CHECK(type IN ('homework', 'psalm', 'alphabet', 'video', 'other')) DEFAULT 'homework',
+      youtube_link TEXT,
+      attachment_url TEXT,
+      due_date DATE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+      FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // School Submissions (student work)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      notes TEXT,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT CHECK(status IN ('submitted', 'approved', 'needs_revision')) DEFAULT 'submitted',
+      FOREIGN KEY (assignment_id) REFERENCES school_assignments(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(assignment_id, student_id)
+    )
+  `);
+
+  // School Feedback (teacher comments/approvals)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      submission_id INTEGER NOT NULL,
+      teacher_id INTEGER NOT NULL,
+      comment TEXT NOT NULL,
+      rating TEXT CHECK(rating IN ('excellent', 'very_good', 'good', 'needs_improvement')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (submission_id) REFERENCES school_submissions(id) ON DELETE CASCADE,
+      FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Insert default school classes
+  const defaultClasses = [
+    { name: 'First Class', description: 'Youngest students learning basics', age_min: 5, age_max: 7 },
+    { name: 'Second Class', description: 'Intermediate students', age_min: 8, age_max: 10 },
+    { name: 'Third Class', description: 'Advanced students', age_min: 11, age_max: 14 }
+  ];
+
+  const existingClasses = db.prepare('SELECT COUNT(*) as count FROM school_classes').get() as { count: number };
+  if (existingClasses.count === 0) {
+    console.log('📚 Creating default school classes...');
+    const insertClass = db.prepare('INSERT INTO school_classes (name, description, age_min, age_max) VALUES (?, ?, ?, ?)');
+    defaultClasses.forEach(cls => {
+      insertClass.run(cls.name, cls.description, cls.age_min, cls.age_max);
+    });
+    console.log('✅ Default school classes created');
   }
 
   // Migration: Add custom_instructions column if it doesn't exist

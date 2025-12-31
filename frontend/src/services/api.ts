@@ -14,6 +14,14 @@ import type {
   Note,
   MonthlyGoal
 } from '../types';
+import type {
+  SchoolClass,
+  SchoolEnrollment,
+  SchoolAssignment,
+  SchoolSubmission,
+  SchoolFeedback,
+  StudentProgress
+} from '../types/school';
 
 // Use relative path for production (nginx proxy) or explicit URL for development
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -154,6 +162,61 @@ export const goalsAPI = {
       stars,
       reason
     })
+};
+
+// School (Tigrinya Church School)
+export const schoolAPI = {
+  // Classes
+  getClasses: () => api.get<SchoolClass[]>('/school/classes'),
+  getClassStudents: (classId: number) =>
+    api.get<(SchoolEnrollment & { student_name: string; age: number })[]>(`/school/classes/${classId}/students`),
+
+  // Enrollments
+  enrollStudent: (student_id: number, class_id: number) =>
+    api.post<SchoolEnrollment>('/school/enrollments', { student_id, class_id }),
+  getStudentEnrollments: (studentId: number) =>
+    api.get<(SchoolEnrollment & { class_name: string })[]>(`/school/students/${studentId}/enrollments`),
+
+  // Assignments
+  createAssignment: (data: {
+    class_id: number;
+    teacher_id: number;
+    title: string;
+    description?: string;
+    type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'other';
+    youtube_link?: string;
+    attachment_url?: string;
+    due_date?: string;
+  }) => api.post<SchoolAssignment>('/school/assignments', data),
+  getClassAssignments: (classId: number) =>
+    api.get<SchoolAssignment[]>(`/school/classes/${classId}/assignments`),
+  getStudentAssignments: (studentId: number) =>
+    api.get<(SchoolAssignment & { class_name: string; has_submitted: boolean; submission_status?: string })[]>(
+      `/school/students/${studentId}/assignments`
+    ),
+  updateAssignment: (id: number, data: Partial<SchoolAssignment>) =>
+    api.put<SchoolAssignment>(`/school/assignments/${id}`, data),
+  deleteAssignment: (id: number) => api.delete(`/school/assignments/${id}`),
+
+  // Submissions
+  submitWork: (assignment_id: number, student_id: number, notes?: string) =>
+    api.post<SchoolSubmission>('/school/submissions', { assignment_id, student_id, notes }),
+  getAssignmentSubmissions: (assignmentId: number) =>
+    api.get<(SchoolSubmission & { student_name: string; age: number })[]>(
+      `/school/assignments/${assignmentId}/submissions`
+    ),
+
+  // Feedback
+  addFeedback: (submission_id: number, teacher_id: number, comment: string, rating?: string) =>
+    api.post<SchoolFeedback>('/school/feedback', { submission_id, teacher_id, comment, rating }),
+  getSubmissionFeedback: (submissionId: number) =>
+    api.get<(SchoolFeedback & { teacher_name: string })[]>(`/school/submissions/${submissionId}/feedback`),
+
+  // Progress
+  getStudentProgress: (studentId: number) =>
+    api.get<StudentProgress>(`/school/students/${studentId}/progress`),
+  getAllStudentsProgress: () =>
+    api.get<StudentProgress[]>('/school/students/all/progress')
 };
 
 export default api;

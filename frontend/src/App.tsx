@@ -10,6 +10,8 @@ import TasksManager from './pages/TasksManager';
 import AIAssistant from './pages/AIAssistant';
 import Notes from './pages/Notes';
 import Settings from './pages/Settings';
+import SchoolDashboard from './pages/SchoolDashboard';
+import SchoolStudent from './pages/SchoolStudent';
 import { useProfile } from './context/ProfileContext';
 
 function AppRoutes() {
@@ -36,11 +38,11 @@ function AppRoutes() {
   const handleAuthenticated = (loggedInProfile: any) => {
     setIsAuthenticated(true);
 
-    // If a child logs in, set them as current profile directly (skip profile selection)
-    if (loggedInProfile.type === 'child') {
+    // If a child or teacher logs in, set them as current profile directly (skip profile selection)
+    if (loggedInProfile.type === 'child' || loggedInProfile.type === 'teacher') {
       setParentProfile(loggedInProfile);
       setCurrentProfile(loggedInProfile);
-      return; // Don't show profile selection for kids
+      return; // Don't show profile selection for kids and teachers
     }
 
     // If a parent logs in, store and show profile selection
@@ -62,9 +64,9 @@ function AppRoutes() {
     return <Login onAuthenticated={handleAuthenticated} />;
   }
 
-  // If child logged in and profile is set, show dashboard (skip profile selection)
-  if (parentProfile.type === 'child' && currentProfile) {
-    // Child goes directly to dashboard - continue to render Layout below
+  // If child or teacher logged in and profile is set, show dashboard (skip profile selection)
+  if ((parentProfile.type === 'child' || parentProfile.type === 'teacher') && currentProfile) {
+    // Child/teacher goes directly to dashboard - continue to render Layout below
   } else if (!currentProfile) {
     // Parent logged in without selecting a profile - show profile selection
     return <ProfileSelector parentProfile={parentProfile} />;
@@ -76,6 +78,12 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/diet" element={<DietTracking />} />
         <Route path="/tasks" element={<TasksManager />} />
+        <Route
+          path="/school"
+          element={
+            currentProfile?.type === 'teacher' ? <SchoolDashboard /> : <SchoolStudent />
+          }
+        />
         <Route path="/ai" element={<AIAssistant />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/settings" element={<Settings />} />
