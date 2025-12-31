@@ -15,16 +15,27 @@ import { useProfile } from './context/ProfileContext';
 function AppRoutes() {
   const { currentProfile, isLoading } = useProfile();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [parentProfile, setParentProfile] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     const authStatus = localStorage.getItem('family_auth');
+    const savedParent = localStorage.getItem('parent_profile');
+
     setIsAuthenticated(authStatus === 'true');
+    if (savedParent) {
+      try {
+        setParentProfile(JSON.parse(savedParent));
+      } catch (e) {
+        console.error('Failed to parse parent profile:', e);
+      }
+    }
     setCheckingAuth(false);
   }, []);
 
-  const handleAuthenticated = () => {
+  const handleAuthenticated = (parent: any) => {
     setIsAuthenticated(true);
+    setParentProfile(parent);
   };
 
   if (checkingAuth || isLoading) {
@@ -38,12 +49,12 @@ function AppRoutes() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !parentProfile) {
     return <Login onAuthenticated={handleAuthenticated} />;
   }
 
   if (!currentProfile) {
-    return <ProfileSelector />;
+    return <ProfileSelector parentProfile={parentProfile} />;
   }
 
   return (

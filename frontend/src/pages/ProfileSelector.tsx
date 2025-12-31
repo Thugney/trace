@@ -1,20 +1,33 @@
 import { useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { User, Lock } from 'lucide-react';
+import { User, Lock, LogOut } from 'lucide-react';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
 import Onboarding from './Onboarding';
 import clsx from 'clsx';
 
-export default function ProfileSelector() {
+interface ProfileSelectorProps {
+  parentProfile?: any;
+}
+
+export default function ProfileSelector({ parentProfile }: ProfileSelectorProps) {
   const { profiles, setCurrentProfile, refreshProfiles } = useProfile();
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(profiles.length === 0);
 
-  const parents = profiles.filter(p => p.type === 'parent');
+  // If parent is logged in, show only their profile and kids
+  // Otherwise show all profiles (backward compatibility)
+  const loggedInParent = parentProfile ? profiles.find(p => p.id === parentProfile.id) : null;
+  const parents = parentProfile && loggedInParent ? [loggedInParent] : profiles.filter(p => p.type === 'parent');
   const kids = profiles.filter(p => p.type === 'child');
+
+  const handleLogout = () => {
+    localStorage.removeItem('family_auth');
+    localStorage.removeItem('parent_profile');
+    window.location.reload();
+  };
 
   const handleProfileClick = (profile: Profile) => {
     // If profile has no PIN, allow direct access (backward compatibility)
@@ -120,8 +133,25 @@ export default function ProfileSelector() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Family PWA</h1>
-          <p className="text-gray-600">Select your profile to continue</p>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex-1"></div>
+            <h1 className="text-4xl font-bold text-gray-900 flex-1">Family PWA</h1>
+            <div className="flex-1 flex justify-end">
+              {parentProfile && (
+                <button
+                  onClick={handleLogout}
+                  className="btn btn-secondary flex items-center"
+                  title="Logout"
+                >
+                  <LogOut size={20} className="mr-2" />
+                  Logout
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-gray-600">
+            {parentProfile ? `Welcome, ${parentProfile.name}! Select a profile to continue` : 'Select your profile to continue'}
+          </p>
         </div>
 
         {/* Parents */}

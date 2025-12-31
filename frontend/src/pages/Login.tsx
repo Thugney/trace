@@ -1,32 +1,58 @@
 import { useState } from 'react';
-import { Lock, Shield } from 'lucide-react';
+import { Lock, Shield, User } from 'lucide-react';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 interface LoginProps {
-  onAuthenticated: () => void;
+  onAuthenticated: (parentProfile: any) => void;
 }
 
 export default function Login({ onAuthenticated }: LoginProps) {
+  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Simple PIN auth - in production, verify against backend
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      // For now, accept any 4+ digit PIN to proceed to profile selection
-      // In production, verify against parent PIN in settings
-      if (pin.length >= 4) {
-        localStorage.setItem('family_auth', 'true');
-        onAuthenticated();
-      } else {
-        setError('PIN must be at least 4 digits');
+      if (!username.trim()) {
+        setError('Please enter your username');
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      setError('Invalid PIN. Please try again.');
+
+      if (pin.length < 4) {
+        setError('PIN must be at least 4 digits');
+        setLoading(false);
+        return;
+      }
+
+      // Call parent login endpoint
+      const response = await axios.post(`${API_URL}/api/profiles/login`, {
+        username: username.trim(),
+        pin: pin
+      });
+
+      if (response.data.success) {
+        // Store authentication
+        localStorage.setItem('family_auth', 'true');
+        localStorage.setItem('parent_profile', JSON.stringify(response.data.profile));
+
+        // Call onAuthenticated with parent profile
+        onAuthenticated(response.data.profile);
+      }
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError('Invalid username or PIN. Only parents can login.');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -43,14 +69,34 @@ export default function Login({ onAuthenticated }: LoginProps) {
             Family PWA
           </h1>
           <p className="text-gray-600">
-            Enter PIN to access profiles
+            Parent login required
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Family PIN
+              Username
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="text-gray-400" size={20} />
+              </div>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="input pl-10"
+                placeholder="Enter your username"
+                autoFocus
+                autoComplete="username"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              PIN
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -62,33 +108,36 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 onChange={(e) => setPin(e.target.value)}
                 className="input pl-10"
                 placeholder="Enter PIN"
-                autoFocus
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={8}
+                autoComplete="current-password"
               />
             </div>
-            {error && (
-              <p className="mt-2 text-sm text-red-600">{error}</p>
-            )}
           </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
           <button
             type="submit"
-            disabled={loading || pin.length < 4}
+            disabled={loading || !username.trim() || pin.length < 4}
             className="btn btn-primary w-full"
           >
             {loading ? (
               <div className="spinner mx-auto"></div>
             ) : (
-              'Continue'
+              'Login'
             )}
           </button>
         </form>
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>First time?</strong> Enter any 4+ digit PIN to set up your family profiles.
+            <strong>Note:</strong> Only parent accounts can login. Enter your parent username and PIN to access family profiles.
           </p>
         </div>
       </div>

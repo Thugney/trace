@@ -59,14 +59,30 @@ export default function AIAssistant() {
     setLoading(true);
 
     try {
-      await aiAPI.chat(currentProfile.id, userMessage, context);
+      const response = await aiAPI.chat(currentProfile.id, userMessage, context);
+      console.log('[AI Chat Frontend] Success:', response.data);
 
       // Add new conversation
       await loadConversations();
     } catch (error: any) {
-      console.error('AI chat failed:', error);
-      const errorMsg = error.response?.data?.error || 'Failed to get AI response. Please check your API configuration.';
-      alert(errorMsg);
+      console.error('[AI Chat Frontend] Error:', error);
+      console.error('[AI Chat Frontend] Error response:', error.response?.data);
+      console.error('[AI Chat Frontend] Error details:', error.response?.data?.details);
+
+      // Show detailed error message
+      const errorMsg = error.response?.data?.details ||
+                      error.response?.data?.error ||
+                      'Failed to get AI response. Please check backend logs.';
+
+      // Create a temporary error conversation to show to user
+      setConversations(prev => [...prev, {
+        id: Date.now(),
+        profile_id: currentProfile.id,
+        context: context,
+        user_message: userMessage,
+        ai_response: `❌ Error: ${errorMsg}`,
+        created_at: new Date().toISOString()
+      }]);
     } finally {
       setLoading(false);
     }

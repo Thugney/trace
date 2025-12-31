@@ -112,6 +112,44 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+// Parent login (username + PIN)
+router.post('/login', (req, res) => {
+  try {
+    const { username, pin } = req.body;
+
+    if (!username || !pin) {
+      return res.status(400).json({ error: 'Username and PIN are required' });
+    }
+
+    // Find parent profile by name
+    const profile: any = db.prepare(
+      'SELECT * FROM profiles WHERE name = ? AND type = ?'
+    ).get(username, 'parent');
+
+    if (!profile) {
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    // Verify PIN
+    if (!profile.pin || profile.pin !== pin) {
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    // Return parent profile info
+    res.json({
+      success: true,
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        type: profile.type,
+        avatar: profile.avatar
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Verify profile PIN
 router.post('/:id/verify-pin', (req, res) => {
   try {
