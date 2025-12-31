@@ -16,6 +16,26 @@ import SchoolEnroll from './pages/SchoolEnroll';
 import AdminPanel from './pages/AdminPanel';
 import { useProfile } from './context/ProfileContext';
 
+// Protected Route Component
+function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
+  const { currentProfile } = useProfile();
+
+  if (!currentProfile) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If user role is not in allowed roles, redirect based on their role
+  if (!allowedRoles.includes(currentProfile.type)) {
+    // Redirect to appropriate home page based on role
+    if (currentProfile.type === 'teacher') {
+      return <Navigate to="/school" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   const { currentProfile, setCurrentProfile, isLoading } = useProfile();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -77,21 +97,107 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/diet" element={<DietTracking />} />
-        <Route path="/tasks" element={<TasksManager />} />
+        {/* Dashboard - Not for teachers */}
+        <Route
+          path="/"
+          element={
+            currentProfile?.type === 'teacher' ? (
+              <Navigate to="/school" replace />
+            ) : (
+              <Dashboard />
+            )
+          }
+        />
+
+        {/* Diet - Only parent, admin, child */}
+        <Route
+          path="/diet"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <DietTracking />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Tasks - Only parent, admin, child */}
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <TasksManager />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* School - Everyone */}
         <Route
           path="/school"
           element={
             currentProfile?.type === 'teacher' ? <SchoolDashboard /> : <SchoolStudent />
           }
         />
-        <Route path="/school/enroll" element={<SchoolEnroll />} />
-        <Route path="/ai" element={<AIAssistant />} />
-        <Route path="/notes" element={<Notes />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/admin" element={<AdminPanel />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* School Enrollment - Only parent and admin */}
+        <Route
+          path="/school/enroll"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <SchoolEnroll />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* AI - Only parent, admin, child */}
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <AIAssistant />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Notes - Only parent, admin, child */}
+        <Route
+          path="/notes"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <Notes />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Settings - Only parent, admin */}
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Admin Panel - Only admin */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch all - redirect based on role */}
+        <Route
+          path="*"
+          element={
+            currentProfile?.type === 'teacher' ? (
+              <Navigate to="/school" replace />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
       </Routes>
     </Layout>
   );
