@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { tasksAPI, profilesAPI } from '../services/api';
-import { Task, Progress, Profile } from '../types';
+import { tasksAPI } from '../services/api';
+import { Task } from '../types';
 import { Plus, Check, Star, Trophy, Gift } from 'lucide-react';
 import clsx from 'clsx';
 

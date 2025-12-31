@@ -45,7 +45,7 @@ export default function AIAssistant() {
     setLoading(true);
 
     try {
-      const response = await aiAPI.chat(currentProfile.id, userMessage, context);
+      await aiAPI.chat(currentProfile.id, userMessage, context);
 
       // Add new conversation
       await loadConversations();

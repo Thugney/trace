@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, Settings, User, LogOut } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, Settings, LogOut } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 

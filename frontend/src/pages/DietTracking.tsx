@@ -6,7 +6,7 @@ import { Search, Plus, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function DietTracking() {
-  const { currentProfile, isParent } = useProfile();
+  const { currentProfile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);

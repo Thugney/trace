@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, tasksAPI, dietAPI } from '../services/api';
+import { profilesAPI } from '../services/api';
 import { ProfileStats } from '../types';
 import { TrendingUp, CheckCircle, Award, Utensils } from 'lucide-react';
 
