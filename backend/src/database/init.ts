@@ -204,11 +204,25 @@ export function initDatabase() {
   if (profileCount.count === 0) {
     console.log('📝 Creating default profiles...');
 
-    // Default parent profile
-    db.prepare(`
-      INSERT INTO profiles (name, type, avatar, settings)
-      VALUES (?, ?, ?, ?)
-    `).run('Parent', 'parent', '👨‍👩‍👧‍👦', JSON.stringify({ theme: 'light', language: 'no' }));
+    // Default parent profiles - Mom and Dad
+    const parents = [
+      { name: 'Mom', avatar: '👩', gender: 'female' },
+      { name: 'Dad', avatar: '👨', gender: 'male' }
+    ];
+
+    const insertParent = db.prepare(`
+      INSERT INTO profiles (name, type, gender, avatar, settings)
+      VALUES (?, 'parent', ?, ?, ?)
+    `);
+
+    parents.forEach(parent => {
+      insertParent.run(
+        parent.name,
+        parent.gender,
+        parent.avatar,
+        JSON.stringify({ theme: 'light', language: 'no' })
+      );
+    });
 
     // Default kid profiles
     const kids = [
