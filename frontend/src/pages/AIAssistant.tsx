@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { aiAPI } from '../services/api';
 import { AIConversation } from '../types';
-import { Send, Sparkles, Trash2, Lightbulb, AlertCircle, Info } from 'lucide-react';
+import { Send, Sparkles, Trash2, Lightbulb, Info } from 'lucide-react';
 
 export default function AIAssistant() {
   const { currentProfile, isParent } = useProfile();
