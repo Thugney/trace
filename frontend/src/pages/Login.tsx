@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Lock, Shield, User } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Use relative path for production (nginx proxy) or explicit URL for development
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 interface LoginProps {
   onAuthenticated: (parentProfile: any) => void;
