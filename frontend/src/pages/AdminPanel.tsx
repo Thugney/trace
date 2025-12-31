@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
-import { Users, Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function AdminPanel() {
@@ -166,16 +166,6 @@ export default function AdminPanel() {
       pin: '',
       parent_id: ''
     });
-  };
-
-  const getProfileIcon = (type: string) => {
-    switch (type) {
-      case 'admin': return <Shield className="text-red-600" />;
-      case 'parent': return <User className="text-blue-600" />;
-      case 'teacher': return <GraduationCap className="text-green-600" />;
-      case 'child': return <Baby className="text-purple-600" />;
-      default: return <User />;
-    }
   };
 
   // Group profiles by type
