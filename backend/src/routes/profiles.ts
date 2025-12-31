@@ -29,16 +29,21 @@ router.get('/:id', (req, res) => {
 // Create profile
 router.post('/', (req, res) => {
   try {
-    const { name, type, age, gender, avatar, settings, pin } = req.body;
+    const { name, type, age, gender, avatar, settings, pin, parent_id } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
+    // If creating a child, parent_id is recommended
+    if (type === 'child' && !parent_id) {
+      console.warn('Creating child profile without parent_id - child will not be linked to a parent');
+    }
+
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, pin, settings)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, pin || null, JSON.stringify(settings || {}));
+      INSERT INTO profiles (name, type, age, gender, avatar, pin, settings, parent_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, pin || null, JSON.stringify(settings || {}), parent_id || null);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);

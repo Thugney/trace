@@ -375,6 +375,21 @@ export function initDatabase() {
     console.error('Migration error:', error);
   }
 
+  // Migration: Add parent_id column to profiles table for parent-child relationships
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasParentId = profileInfo.some((col: any) => col.name === 'parent_id');
+
+    if (!hasParentId) {
+      console.log('🔄 Migrating profiles table: adding parent_id column for family relationships...');
+      db.prepare('ALTER TABLE profiles ADD COLUMN parent_id INTEGER REFERENCES profiles(id) ON DELETE CASCADE').run();
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_profiles_parent_id ON profiles(parent_id)').run();
+      console.log('✅ Migration completed: parent_id column added');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

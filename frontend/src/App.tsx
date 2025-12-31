@@ -12,6 +12,7 @@ import Notes from './pages/Notes';
 import Settings from './pages/Settings';
 import SchoolDashboard from './pages/SchoolDashboard';
 import SchoolStudent from './pages/SchoolStudent';
+import SchoolEnroll from './pages/SchoolEnroll';
 import { useProfile } from './context/ProfileContext';
 
 function AppRoutes() {
@@ -84,6 +85,7 @@ function AppRoutes() {
             currentProfile?.type === 'teacher' ? <SchoolDashboard /> : <SchoolStudent />
           }
         />
+        <Route path="/school/enroll" element={<SchoolEnroll />} />
         <Route path="/ai" element={<AIAssistant />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/settings" element={<Settings />} />

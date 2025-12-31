@@ -42,13 +42,37 @@ router.get('/classes/:id/students', (req, res) => {
   }
 });
 
+// Get parent's own children (for enrollment)
+router.get('/parents/:parentId/children', (req, res) => {
+  try {
+    const children = db.prepare(`
+      SELECT p.*,
+             (SELECT COUNT(*) FROM school_enrollments WHERE student_id = p.id) as enrollment_count
+      FROM profiles p
+      WHERE p.parent_id = ? AND p.type = 'child'
+      ORDER BY p.name ASC
+    `).all(req.params.parentId);
+    res.json(children);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Enroll student in class
 router.post('/enrollments', (req, res) => {
   try {
-    const { student_id, class_id } = req.body;
+    const { student_id, class_id, parent_id } = req.body;
 
     if (!student_id || !class_id) {
       return res.status(400).json({ error: 'student_id and class_id are required' });
+    }
+
+    // If parent_id is provided, verify the child belongs to this parent
+    if (parent_id) {
+      const child: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(student_id);
+      if (!child || child.parent_id !== parent_id) {
+        return res.status(403).json({ error: 'You can only enroll your own children' });
+      }
     }
 
     const result = db.prepare(`

@@ -172,8 +172,10 @@ export const schoolAPI = {
     api.get<(SchoolEnrollment & { student_name: string; age: number })[]>(`/school/classes/${classId}/students`),
 
   // Enrollments
-  enrollStudent: (student_id: number, class_id: number) =>
-    api.post<SchoolEnrollment>('/school/enrollments', { student_id, class_id }),
+  getParentChildren: (parentId: number) =>
+    api.get<any[]>(`/school/parents/${parentId}/children`),
+  enrollStudent: (student_id: number, class_id: number, parent_id?: number) =>
+    api.post<SchoolEnrollment>('/school/enrollments', { student_id, class_id, parent_id }),
   getStudentEnrollments: (studentId: number) =>
     api.get<(SchoolEnrollment & { class_name: string })[]>(`/school/students/${studentId}/enrollments`),
 
