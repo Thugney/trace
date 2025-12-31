@@ -198,55 +198,12 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
   `);
 
-  // Insert default parent profile if no profiles exist
-  const profileCount = db.prepare('SELECT COUNT(*) as count FROM profiles').get() as { count: number };
+  // Insert default settings if none exist
+  const settingsCount = db.prepare('SELECT COUNT(*) as count FROM settings').get() as { count: number };
 
-  if (profileCount.count === 0) {
-    console.log('📝 Creating default profiles...');
+  if (settingsCount.count === 0) {
+    console.log('📝 Creating default settings...');
 
-    // Default parent profiles - Mom and Dad
-    const parents = [
-      { name: 'Mom', avatar: '👩', gender: 'female' },
-      { name: 'Dad', avatar: '👨', gender: 'male' }
-    ];
-
-    const insertParent = db.prepare(`
-      INSERT INTO profiles (name, type, gender, avatar, settings)
-      VALUES (?, 'parent', ?, ?, ?)
-    `);
-
-    parents.forEach(parent => {
-      insertParent.run(
-        parent.name,
-        parent.gender,
-        parent.avatar,
-        JSON.stringify({ theme: 'light', language: 'no' })
-      );
-    });
-
-    // Default kid profiles
-    const kids = [
-      { name: 'Betlehem', age: 12, gender: 'female', avatar: '👧' },
-      { name: 'Bitanya', age: 7, gender: 'female', avatar: '👧' },
-      { name: 'Amindab', age: 5, gender: 'male', avatar: '👦' }
-    ];
-
-    const insertKid = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, settings)
-      VALUES (?, 'child', ?, ?, ?, ?)
-    `);
-
-    kids.forEach(kid => {
-      insertKid.run(
-        kid.name,
-        kid.age,
-        kid.gender,
-        kid.avatar,
-        JSON.stringify({ theme: 'light', language: 'no', ageAppropriateUI: true })
-      );
-    });
-
-    // Insert default settings
     const settings = [
       { key: 'grok_api_enabled', value: 'false' },
       { key: 'norwegian_food_api', value: 'matvaretabellen' },
@@ -258,7 +215,7 @@ export function initDatabase() {
       insertSetting.run(setting.key, setting.value);
     });
 
-    console.log('✅ Default profiles and settings created');
+    console.log('✅ Default settings created');
   }
 
   console.log('✅ Database initialized successfully');

@@ -1,12 +1,120 @@
+import { useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { User } from 'lucide-react';
+import { User, Lock } from 'lucide-react';
+import { profilesAPI } from '../services/api';
+import { Profile } from '../types';
+import Onboarding from './Onboarding';
 import clsx from 'clsx';
 
 export default function ProfileSelector() {
-  const { profiles, setCurrentProfile } = useProfile();
+  const { profiles, setCurrentProfile, refreshProfiles } = useProfile();
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(profiles.length === 0);
 
   const parents = profiles.filter(p => p.type === 'parent');
   const kids = profiles.filter(p => p.type === 'child');
+
+  const handleProfileClick = (profile: Profile) => {
+    // If profile has no PIN, allow direct access (backward compatibility)
+    if (!profile.pin) {
+      setCurrentProfile(profile);
+      return;
+    }
+
+    // Show PIN prompt
+    setSelectedProfile(profile);
+    setPin('');
+    setError('');
+  };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProfile) return;
+
+    try {
+      const response = await profilesAPI.verifyPIN(selectedProfile.id, pin);
+
+      if (response.data.verified) {
+        setCurrentProfile(selectedProfile);
+      } else {
+        setError('Incorrect PIN. Please try again.');
+        setPin('');
+      }
+    } catch (error) {
+      console.error('PIN verification failed:', error);
+      setError('Failed to verify PIN. Please try again.');
+      setPin('');
+    }
+  };
+
+  const handleCancelPin = () => {
+    setSelectedProfile(null);
+    setPin('');
+    setError('');
+  };
+
+  const handleOnboardingComplete = async () => {
+    await refreshProfiles();
+    setShowOnboarding(false);
+  };
+
+  // Show onboarding if no profiles exist
+  if (showOnboarding) {
+    return <Onboarding onComplete={handleOnboardingComplete} />;
+  }
+
+  // Show PIN prompt if profile selected
+  if (selectedProfile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="card max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">{selectedProfile.avatar || '👤'}</div>
+            <h2 className="text-2xl font-bold text-gray-900">{selectedProfile.name}</h2>
+            <p className="text-gray-600 mt-1">Enter your PIN to continue</p>
+          </div>
+
+          <form onSubmit={handlePinSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                PIN
+              </label>
+              <input
+                type="password"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                className="input text-center text-2xl tracking-widest"
+                placeholder="••••"
+                maxLength={8}
+                autoFocus
+                pattern="[0-9]*"
+                inputMode="numeric"
+              />
+              {error && (
+                <p className="text-red-600 text-sm mt-2">{error}</p>
+              )}
+            </div>
+
+            <div className="flex space-x-3">
+              <button type="submit" className="btn btn-primary flex-1">
+                <Lock size={20} className="mr-2" />
+                Unlock
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelPin}
+                className="btn btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4">
@@ -24,12 +132,18 @@ export default function ProfileSelector() {
               {parents.map(profile => (
                 <button
                   key={profile.id}
-                  onClick={() => setCurrentProfile(profile)}
+                  onClick={() => handleProfileClick(profile)}
                   className="card hover:shadow-lg transition-shadow text-center p-8 cursor-pointer border-2 border-transparent hover:border-primary-500"
                 >
                   <div className="text-6xl mb-4">{profile.avatar || '👤'}</div>
                   <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">Parent</p>
+                  {profile.pin && (
+                    <div className="flex items-center justify-center mt-2 text-xs text-gray-400">
+                      <Lock size={12} className="mr-1" />
+                      PIN Protected
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -44,7 +158,7 @@ export default function ProfileSelector() {
               {kids.map(profile => (
                 <button
                   key={profile.id}
-                  onClick={() => setCurrentProfile(profile)}
+                  onClick={() => handleProfileClick(profile)}
                   className={clsx(
                     'card hover:shadow-lg transition-shadow text-center p-8 cursor-pointer border-2 border-transparent hover:border-primary-500',
                     profile.age && profile.age <= 5 && 'theme-kid-5',
@@ -57,6 +171,12 @@ export default function ProfileSelector() {
                   <p className="text-sm text-gray-500 mt-1">
                     {profile.age ? `${profile.age} years old` : 'Child'}
                   </p>
+                  {profile.pin && (
+                    <div className="flex items-center justify-center mt-2 text-xs text-gray-400">
+                      <Lock size={12} className="mr-1" />
+                      PIN Protected
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
