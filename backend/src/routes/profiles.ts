@@ -50,7 +50,7 @@ router.post('/', (req, res) => {
 // Update profile
 router.put('/:id', (req, res) => {
   try {
-    const { name, age, gender, avatar, settings } = req.body;
+    const { name, age, gender, avatar, settings, pin } = req.body;
     const { id } = req.params;
 
     const updates: string[] = [];
@@ -75,6 +75,10 @@ router.put('/:id', (req, res) => {
     if (settings !== undefined) {
       updates.push('settings = ?');
       values.push(JSON.stringify(settings));
+    }
+    if (pin !== undefined) {
+      updates.push('pin = ?');
+      values.push(pin || null);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -103,6 +107,58 @@ router.delete('/:id', (req, res) => {
     }
 
     res.json({ message: 'Profile deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify profile PIN
+router.post('/:id/verify-pin', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin } = req.body;
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // If no PIN is set, allow access
+    if (!profile.pin) {
+      return res.json({ verified: true });
+    }
+
+    // Check if provided PIN matches
+    const verified = profile.pin === pin;
+    res.json({ verified });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set profile PIN
+router.post('/:id/set-pin', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin, currentPin } = req.body;
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // If PIN already exists, verify current PIN first
+    if (profile.pin && profile.pin !== currentPin) {
+      return res.status(403).json({ error: 'Current PIN is incorrect' });
+    }
+
+    // Update PIN
+    db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(pin || null, id);
+
+    res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

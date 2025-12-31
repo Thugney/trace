@@ -102,12 +102,10 @@ export default function TasksManager() {
           </p>
         </div>
 
-        {isParent && (
-          <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
-            <Plus size={20} className="mr-2" />
-            Add Task
-          </button>
-        )}
+        <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
+          <Plus size={20} className="mr-2" />
+          Add Task
+        </button>
       </div>
 
       {/* Child Selector for Parents */}
@@ -307,10 +305,12 @@ export default function TasksManager() {
                     Category *
                   </label>
                   <select name="category" required className="input">
-                    <option value="chore">Chore</option>
-                    <option value="homework">Homework</option>
-                    <option value="activity">Activity</option>
-                    <option value="habit">Habit</option>
+                    <option value="read-book">📚 Read Book</option>
+                    <option value="tigrinya">✍️ Tigrinya Practice</option>
+                    <option value="clean-room">🛏️ Clean Room</option>
+                    <option value="clean-kitchen">🍽️ Clean Kitchen</option>
+                    <option value="school">🎒 School Work</option>
+                    <option value="other">📌 Other</option>
                   </select>
                 </div>
 

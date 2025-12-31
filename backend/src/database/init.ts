@@ -27,6 +27,7 @@ export function initDatabase() {
       age INTEGER,
       gender TEXT CHECK(gender IN ('male', 'female', 'other')),
       avatar TEXT,
+      pin TEXT,
       settings TEXT DEFAULT '{}',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -113,7 +114,7 @@ export function initDatabase() {
       profile_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
-      category TEXT CHECK(category IN ('chore', 'homework', 'activity', 'habit')),
+      category TEXT CHECK(category IN ('read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'other')),
       points INTEGER DEFAULT 10,
       difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'easy',
       is_recurring BOOLEAN DEFAULT 0,
@@ -211,9 +212,9 @@ export function initDatabase() {
 
     // Default kid profiles
     const kids = [
-      { name: 'Emma', age: 12, gender: 'female', avatar: '👧' },
-      { name: 'Sofia', age: 7, gender: 'female', avatar: '👧' },
-      { name: 'Oliver', age: 5, gender: 'male', avatar: '👦' }
+      { name: 'Betlehem', age: 12, gender: 'female', avatar: '👧' },
+      { name: 'Bitanya', age: 7, gender: 'female', avatar: '👧' },
+      { name: 'Amindab', age: 5, gender: 'male', avatar: '👦' }
     ];
 
     const insertKid = db.prepare(`

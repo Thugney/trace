@@ -5,6 +5,7 @@ export interface Profile {
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;
+  pin?: string;
   settings?: string;
   created_at: string;
   updated_at: string;
@@ -73,7 +74,7 @@ export interface Task {
   profile_id: number;
   title: string;
   description?: string;
-  category: 'chore' | 'homework' | 'activity' | 'habit';
+  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
   is_recurring: boolean;

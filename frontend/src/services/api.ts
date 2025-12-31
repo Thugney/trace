@@ -30,7 +30,9 @@ export const profilesAPI = {
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
   delete: (id: number) => api.delete(`/profiles/${id}`),
-  getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`)
+  getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
+  verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
+  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin })
 };
 
 // Diet
