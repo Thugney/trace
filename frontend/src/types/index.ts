@@ -1,7 +1,7 @@
 export interface Profile {
   id: number;
   name: string;
-  type: 'parent' | 'child' | 'teacher';
+  type: 'admin' | 'parent' | 'child' | 'teacher';
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;

@@ -25,8 +25,11 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   const isTeacher = currentProfile?.type === 'teacher';
+  const isAdmin = currentProfile?.type === 'admin';
 
-  const visibleNavItems = isTeacher
+  const visibleNavItems = isAdmin
+    ? navItems // Admin sees everything
+    : isTeacher
     ? navItems.filter(item => item.showForTeachers)
     : isParent
     ? navItems

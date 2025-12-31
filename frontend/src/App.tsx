@@ -39,11 +39,11 @@ function AppRoutes() {
   const handleAuthenticated = (loggedInProfile: any) => {
     setIsAuthenticated(true);
 
-    // If a child or teacher logs in, set them as current profile directly (skip profile selection)
-    if (loggedInProfile.type === 'child' || loggedInProfile.type === 'teacher') {
+    // If a child, teacher, or admin logs in, set them as current profile directly (skip profile selection)
+    if (loggedInProfile.type === 'child' || loggedInProfile.type === 'teacher' || loggedInProfile.type === 'admin') {
       setParentProfile(loggedInProfile);
       setCurrentProfile(loggedInProfile);
-      return; // Don't show profile selection for kids and teachers
+      return; // Don't show profile selection for kids, teachers, and admin
     }
 
     // If a parent logs in, store and show profile selection
@@ -65,9 +65,9 @@ function AppRoutes() {
     return <Login onAuthenticated={handleAuthenticated} />;
   }
 
-  // If child or teacher logged in and profile is set, show dashboard (skip profile selection)
-  if ((parentProfile.type === 'child' || parentProfile.type === 'teacher') && currentProfile) {
-    // Child/teacher goes directly to dashboard - continue to render Layout below
+  // If child, teacher, or admin logged in and profile is set, show dashboard (skip profile selection)
+  if ((parentProfile.type === 'child' || parentProfile.type === 'teacher' || parentProfile.type === 'admin') && currentProfile) {
+    // Child/teacher/admin goes directly to dashboard - continue to render Layout below
   } else if (!currentProfile) {
     // Parent logged in without selecting a profile - show profile selection
     return <ProfileSelector parentProfile={parentProfile} />;

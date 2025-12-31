@@ -23,7 +23,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS profiles (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('parent', 'child', 'teacher')),
+      type TEXT NOT NULL CHECK(type IN ('admin', 'parent', 'child', 'teacher')),
       age INTEGER,
       gender TEXT CHECK(gender IN ('male', 'female', 'other')),
       avatar TEXT,
@@ -388,6 +388,21 @@ export function initDatabase() {
     }
   } catch (error) {
     console.error('Migration error:', error);
+  }
+
+  // Migration: Convert Robel (ID 1) from 'parent' to 'admin'
+  try {
+    const robel: any = db.prepare('SELECT id, name, type FROM profiles WHERE id = 1').get();
+
+    if (robel && robel.type !== 'admin') {
+      console.log(`🔄 Migrating user '${robel.name}' (ID: ${robel.id}) from '${robel.type}' to 'admin'...`);
+      db.prepare('UPDATE profiles SET type = ? WHERE id = ?').run('admin', robel.id);
+      console.log('✅ Migration completed: Robel is now an admin');
+    } else if (robel && robel.type === 'admin') {
+      console.log('✓ User Robel (ID: 1) is already an admin');
+    }
+  } catch (error) {
+    console.error('Migration error (Robel to admin):', error);
   }
 
   console.log('✅ Database initialized successfully');
