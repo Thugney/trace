@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ProfileProvider } from './context/ProfileContext';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import ProfileSelector from './pages/ProfileSelector';
 import Dashboard from './pages/Dashboard';
 import DietTracking from './pages/DietTracking';
@@ -12,8 +14,20 @@ import { useProfile } from './context/ProfileContext';
 
 function AppRoutes() {
   const { currentProfile, isLoading } = useProfile();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    const authStatus = localStorage.getItem('family_auth');
+    setIsAuthenticated(authStatus === 'true');
+    setCheckingAuth(false);
+  }, []);
+
+  const handleAuthenticated = () => {
+    setIsAuthenticated(true);
+  };
+
+  if (checkingAuth || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -22,6 +36,10 @@ function AppRoutes() {
         </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <Login onAuthenticated={handleAuthenticated} />;
   }
 
   if (!currentProfile) {
