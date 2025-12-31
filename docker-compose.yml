@@ -11,8 +11,7 @@ services:
       - "3001:3001"
     volumes:
       - ./data:/app/data
-      - ./backend:/app
-      - /app/node_modules
+      # Removed ./backend:/app mount - it was overwriting compiled dist/ folder
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/family.db
@@ -32,7 +31,8 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:3001
+      # Leave empty to use nginx proxy (relative /api path)
+      - VITE_API_URL=
     networks:
       - family-network
 

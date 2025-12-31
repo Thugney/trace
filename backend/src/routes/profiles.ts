@@ -29,16 +29,21 @@ router.get('/:id', (req, res) => {
 // Create profile
 router.post('/', (req, res) => {
   try {
-    const { name, type, age, gender, avatar, settings } = req.body;
+    const { name, type, age, gender, avatar, settings, pin, parent_id } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
+    // If creating a child, parent_id is recommended
+    if (type === 'child' && !parent_id) {
+      console.warn('Creating child profile without parent_id - child will not be linked to a parent');
+    }
+
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, settings)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, JSON.stringify(settings || {}));
+      INSERT INTO profiles (name, type, age, gender, avatar, pin, settings, parent_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, pin || null, JSON.stringify(settings || {}), parent_id || null);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
@@ -50,7 +55,7 @@ router.post('/', (req, res) => {
 // Update profile
 router.put('/:id', (req, res) => {
   try {
-    const { name, age, gender, avatar, settings } = req.body;
+    const { name, age, gender, avatar, settings, pin } = req.body;
     const { id } = req.params;
 
     const updates: string[] = [];
@@ -75,6 +80,10 @@ router.put('/:id', (req, res) => {
     if (settings !== undefined) {
       updates.push('settings = ?');
       values.push(JSON.stringify(settings));
+    }
+    if (pin !== undefined) {
+      updates.push('pin = ?');
+      values.push(pin || null);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -103,6 +112,96 @@ router.delete('/:id', (req, res) => {
     }
 
     res.json({ message: 'Profile deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login (username + PIN) - works for both parents and kids
+router.post('/login', (req, res) => {
+  try {
+    const { username, pin } = req.body;
+
+    if (!username || !pin) {
+      return res.status(400).json({ error: 'Username and PIN are required' });
+    }
+
+    // Find profile by name (parent OR child)
+    const profile: any = db.prepare(
+      'SELECT * FROM profiles WHERE name = ?'
+    ).get(username);
+
+    if (!profile) {
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    // Verify PIN
+    if (!profile.pin || profile.pin !== pin) {
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    // Return profile info
+    res.json({
+      success: true,
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        type: profile.type,
+        avatar: profile.avatar
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify profile PIN
+router.post('/:id/verify-pin', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin } = req.body;
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // If no PIN is set, allow access
+    if (!profile.pin) {
+      return res.json({ verified: true });
+    }
+
+    // Check if provided PIN matches
+    const verified = profile.pin === pin;
+    res.json({ verified });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Set profile PIN
+router.post('/:id/set-pin', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin, currentPin } = req.body;
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // If PIN already exists, verify current PIN first
+    if (profile.pin && profile.pin !== currentPin) {
+      return res.status(403).json({ error: 'Current PIN is incorrect' });
+    }
+
+    // Update PIN
+    db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(pin || null, id);
+
+    res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

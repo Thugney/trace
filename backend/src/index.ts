@@ -10,11 +10,14 @@ import dietRoutes from './routes/diet';
 import taskRoutes from './routes/tasks';
 import aiRoutes from './routes/ai';
 import settingsRoutes from './routes/settings';
+import notesRoutes from './routes/notes';
+import goalsRoutes from './routes/goals';
+import schoolRoutes from './routes/school';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Security middleware
 app.use(helmet());
@@ -44,6 +47,9 @@ app.use('/api/diet', dietRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/notes', notesRoutes);
+app.use('/api/goals', goalsRoutes);
+app.use('/api/school', schoolRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -58,9 +64,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Backend server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Backend server running on http://0.0.0.0:${PORT}`);
   console.log(`📊 Database: ${process.env.DATABASE_PATH || './data/family.db'}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 export default app;

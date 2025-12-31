@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, tasksAPI, dietAPI } from '../services/api';
+import { profilesAPI } from '../services/api';
 import { ProfileStats } from '../types';
 import { TrendingUp, CheckCircle, Award, Utensils } from 'lucide-react';
 
@@ -125,8 +126,8 @@ export default function Dashboard() {
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <a
-              href="/diet"
+            <Link
+              to="/diet"
               className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -136,9 +137,9 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-600">Track your food intake</p>
                 </div>
               </div>
-            </a>
-            <a
-              href="/tasks"
+            </Link>
+            <Link
+              to="/tasks"
               className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -150,9 +151,9 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
-            </a>
-            <a
-              href="/ai"
+            </Link>
+            <Link
+              to="/ai"
               className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -162,7 +163,7 @@ export default function Dashboard() {
                   <p className="text-sm text-gray-600">Get personalized suggestions</p>
                 </div>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
 

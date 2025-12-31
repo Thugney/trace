@@ -10,13 +10,24 @@ import type {
   Task,
   Progress,
   Reward,
-  AIConversation
+  AIConversation,
+  Note,
+  MonthlyGoal
 } from '../types';
+import type {
+  SchoolClass,
+  SchoolEnrollment,
+  SchoolAssignment,
+  SchoolSubmission,
+  SchoolFeedback,
+  StudentProgress
+} from '../types/school';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Use relative path for production (nginx proxy) or explicit URL for development
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: API_URL ? `${API_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -29,7 +40,9 @@ export const profilesAPI = {
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
   delete: (id: number) => api.delete(`/profiles/${id}`),
-  getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`)
+  getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
+  verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
+  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin })
 };
 
 // Diet
@@ -86,7 +99,7 @@ export const tasksAPI = {
 // AI
 export const aiAPI = {
   chat: (profile_id: number, message: string, context?: string) =>
-    api.post<{ response: string; profile: { id: number; name: string; type: string } }>(
+    api.post<{ response: string; profile: { id: number; name: string; type: string }; usingFallback?: boolean }>(
       '/ai/chat',
       { profile_id, message, context }
     ),
@@ -110,7 +123,10 @@ export const aiAPI = {
   getConversations: (profileId: number, context?: string, limit?: number) =>
     api.get<AIConversation[]>(`/ai/conversations/${profileId}`, { params: { context, limit } }),
   clearConversations: (profileId: number, context?: string) =>
-    api.delete(`/ai/conversations/${profileId}`, { params: { context } })
+    api.delete(`/ai/conversations/${profileId}`, { params: { context } }),
+  getStatus: () => api.get<{ apiConfigured: boolean; fallbackMode: boolean }>('/ai/status'),
+  getSettings: (profileId: number) => api.get(`/ai/settings/${profileId}`),
+  updateSettings: (profileId: number, settings: any) => api.put(`/ai/settings/${profileId}`, settings)
 };
 
 // Settings
@@ -121,6 +137,88 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin })
+};
+
+// Notes
+export const notesAPI = {
+  getByProfile: (profileId: number) => api.get<Note[]>(`/notes/${profileId}`),
+  getOne: (id: number) => api.get<Note>(`/notes/note/${id}`),
+  create: (data: Partial<Note>) => api.post<Note>('/notes', data),
+  update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
+  delete: (id: number) => api.delete(`/notes/${id}`)
+};
+
+// Monthly Goals
+export const goalsAPI = {
+  getByProfile: (profileId: number, month?: string) =>
+    api.get<MonthlyGoal[]>(`/goals/${profileId}`, { params: { month } }),
+  getCurrent: (profileId: number) => api.get<MonthlyGoal | null>(`/goals/${profileId}/current`),
+  create: (data: Partial<MonthlyGoal>) => api.post<MonthlyGoal>('/goals', data),
+  update: (id: number, data: Partial<MonthlyGoal>) => api.put<MonthlyGoal>(`/goals/${id}`, data),
+  delete: (id: number) => api.delete(`/goals/${id}`),
+  awardBonusPoints: (profileId: number, points: number, stars: number, reason: string) =>
+    api.post<{ message: string; progress: Progress }>(`/goals/${profileId}/bonus-points`, {
+      points,
+      stars,
+      reason
+    })
+};
+
+// School (Tigrinya Church School)
+export const schoolAPI = {
+  // Classes
+  getClasses: () => api.get<SchoolClass[]>('/school/classes'),
+  getClassStudents: (classId: number) =>
+    api.get<(SchoolEnrollment & { student_name: string; age: number })[]>(`/school/classes/${classId}/students`),
+
+  // Enrollments
+  getParentChildren: (parentId: number) =>
+    api.get<any[]>(`/school/parents/${parentId}/children`),
+  enrollStudent: (student_id: number, class_id: number, parent_id?: number) =>
+    api.post<SchoolEnrollment>('/school/enrollments', { student_id, class_id, parent_id }),
+  getStudentEnrollments: (studentId: number) =>
+    api.get<(SchoolEnrollment & { class_name: string })[]>(`/school/students/${studentId}/enrollments`),
+
+  // Assignments
+  createAssignment: (data: {
+    class_id: number;
+    teacher_id: number;
+    title: string;
+    description?: string;
+    type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'other';
+    youtube_link?: string;
+    attachment_url?: string;
+    due_date?: string;
+  }) => api.post<SchoolAssignment>('/school/assignments', data),
+  getClassAssignments: (classId: number) =>
+    api.get<SchoolAssignment[]>(`/school/classes/${classId}/assignments`),
+  getStudentAssignments: (studentId: number) =>
+    api.get<(SchoolAssignment & { class_name: string; has_submitted: boolean; submission_status?: string })[]>(
+      `/school/students/${studentId}/assignments`
+    ),
+  updateAssignment: (id: number, data: Partial<SchoolAssignment>) =>
+    api.put<SchoolAssignment>(`/school/assignments/${id}`, data),
+  deleteAssignment: (id: number) => api.delete(`/school/assignments/${id}`),
+
+  // Submissions
+  submitWork: (assignment_id: number, student_id: number, notes?: string) =>
+    api.post<SchoolSubmission>('/school/submissions', { assignment_id, student_id, notes }),
+  getAssignmentSubmissions: (assignmentId: number) =>
+    api.get<(SchoolSubmission & { student_name: string; age: number })[]>(
+      `/school/assignments/${assignmentId}/submissions`
+    ),
+
+  // Feedback
+  addFeedback: (submission_id: number, teacher_id: number, comment: string, rating?: string) =>
+    api.post<SchoolFeedback>('/school/feedback', { submission_id, teacher_id, comment, rating }),
+  getSubmissionFeedback: (submissionId: number) =>
+    api.get<(SchoolFeedback & { teacher_name: string })[]>(`/school/submissions/${submissionId}/feedback`),
+
+  // Progress
+  getStudentProgress: (studentId: number) =>
+    api.get<StudentProgress>(`/school/students/${studentId}/progress`),
+  getAllStudentsProgress: () =>
+    api.get<StudentProgress[]>('/school/students/all/progress')
 };
 
 export default api;

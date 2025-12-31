@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { dietAPI } from '../services/api';
 import { FoodItem, MealLog, NutritionSummary } from '../types';
-import { Search, Plus, Calendar } from 'lucide-react';
+import { Search, Plus, Calendar, PlusCircle, X } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function DietTracking() {
-  const { currentProfile, isParent } = useProfile();
+  const { currentProfile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
@@ -14,6 +14,7 @@ export default function DietTracking() {
   const [nutrition, setNutrition] = useState<NutritionSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string>('breakfast');
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
   useEffect(() => {
     if (currentProfile) {
@@ -76,6 +77,44 @@ export default function DietTracking() {
     } catch (error) {
       console.error('Failed to log meal:', error);
       alert('Failed to log meal. Please try again.');
+    }
+  };
+
+  const handleManualEntry = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!currentProfile) return;
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      // First create the custom food item
+      const foodResponse = await dietAPI.addFood({
+        name: formData.get('name') as string,
+        calories: parseInt(formData.get('calories') as string),
+        protein: parseFloat(formData.get('protein') as string) || 0,
+        carbs: parseFloat(formData.get('carbs') as string) || 0,
+        fat: parseFloat(formData.get('fat') as string) || 0,
+        serving_size: formData.get('serving_size') as string || '100',
+        serving_unit: formData.get('serving_unit') as string || 'g',
+        brand: formData.get('brand') as string || undefined
+      });
+
+      // Then log it as a meal
+      await dietAPI.logMeal({
+        profile_id: currentProfile.id,
+        food_id: foodResponse.data.id,
+        meal_type: selectedMealType,
+        portion_size: parseFloat(formData.get('portion_size') as string),
+        portion_unit: foodResponse.data.serving_unit
+      });
+
+      // Reload data and close modal
+      setShowManualEntry(false);
+      await loadMealLogs();
+      await loadNutrition();
+    } catch (error) {
+      console.error('Failed to add manual entry:', error);
+      alert('Failed to add food. Please try again.');
     }
   };
 
@@ -185,6 +224,13 @@ export default function DietTracking() {
             <button onClick={handleSearch} className="btn btn-primary" disabled={loading}>
               {loading ? <div className="spinner"></div> : <Search size={20} />}
             </button>
+            <button
+              onClick={() => setShowManualEntry(true)}
+              className="btn btn-secondary"
+              title="Add food manually"
+            >
+              <PlusCircle size={20} />
+            </button>
           </div>
 
           {searchResults.length > 0 && (
@@ -262,6 +308,175 @@ export default function DietTracking() {
           )}
         </div>
       </div>
+
+      {/* Manual Entry Modal */}
+      {showManualEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold">Add Food Manually</h3>
+                <button
+                  onClick={() => setShowManualEntry(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleManualEntry} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Food Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="e.g., Homemade Pizza"
+                    className="input w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Brand (optional)
+                  </label>
+                  <input
+                    type="text"
+                    name="brand"
+                    placeholder="e.g., Tine, Grandiosa"
+                    className="input w-full"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Serving Size *
+                    </label>
+                    <input
+                      type="text"
+                      name="serving_size"
+                      defaultValue="100"
+                      required
+                      placeholder="100"
+                      className="input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit *
+                    </label>
+                    <select name="serving_unit" defaultValue="g" className="input w-full">
+                      <option value="g">grams (g)</option>
+                      <option value="ml">milliliters (ml)</option>
+                      <option value="pcs">pieces (pcs)</option>
+                      <option value="slice">slice</option>
+                      <option value="cup">cup</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium text-gray-900 mb-3">Nutrition per serving</h4>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Calories * (kcal)
+                      </label>
+                      <input
+                        type="number"
+                        name="calories"
+                        required
+                        min="0"
+                        step="1"
+                        placeholder="250"
+                        className="input w-full"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Protein (g)
+                        </label>
+                        <input
+                          type="number"
+                          name="protein"
+                          min="0"
+                          step="0.1"
+                          placeholder="10"
+                          className="input w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Carbs (g)
+                        </label>
+                        <input
+                          type="number"
+                          name="carbs"
+                          min="0"
+                          step="0.1"
+                          placeholder="30"
+                          className="input w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fat (g)
+                        </label>
+                        <input
+                          type="number"
+                          name="fat"
+                          min="0"
+                          step="0.1"
+                          placeholder="8"
+                          className="input w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Portion Size * (how much you ate)
+                  </label>
+                  <input
+                    type="number"
+                    name="portion_size"
+                    required
+                    min="0"
+                    step="0.1"
+                    defaultValue="100"
+                    placeholder="150"
+                    className="input w-full"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter the amount you actually consumed
+                  </p>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualEntry(false)}
+                    className="btn btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary flex-1">
+                    Add Food
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

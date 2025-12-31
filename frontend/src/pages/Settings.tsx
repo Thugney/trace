@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { settingsAPI, profilesAPI } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save } from 'lucide-react';
+import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle } from 'lucide-react';
 
 export default function Settings() {
   const { currentProfile, isParent, profiles, refreshProfiles } = useProfile();
@@ -11,10 +11,52 @@ export default function Settings() {
   const [grokApiKey, setGrokApiKey] = useState('');
   const [parentPin, setParentPin] = useState('');
   const [newParentPin, setNewParentPin] = useState('');
+  const [showAddProfile, setShowAddProfile] = useState(false);
+  const [aiSettings, setAiSettings] = useState<Record<number, any>>({});
+  const [expandedAIProfile, setExpandedAIProfile] = useState<number | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     loadSettings();
+    loadAllAISettings();
   }, []);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  const loadAllAISettings = async () => {
+    const childProfiles = profiles.filter(p => p.type === 'child');
+    const settingsMap: Record<number, any> = {};
+
+    for (const profile of childProfiles) {
+      try {
+        const response = await aiAPI.getSettings(profile.id);
+        settingsMap[profile.id] = response.data;
+      } catch (error) {
+        console.error(`Failed to load AI settings for ${profile.name}:`, error);
+      }
+    }
+
+    setAiSettings(settingsMap);
+  };
+
+  const handleUpdateAISettings = async (profileId: number, updates: any) => {
+    try {
+      const response = await aiAPI.updateSettings(profileId, updates);
+      setAiSettings(prev => ({
+        ...prev,
+        [profileId]: response.data
+      }));
+      setSuccessMessage('AI settings updated!');
+    } catch (error) {
+      console.error('Failed to update AI settings:', error);
+      setSuccessMessage('Failed to update settings');
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -93,6 +135,58 @@ export default function Settings() {
     }
   };
 
+  const handleAddProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const pin = formData.get('pin') as string;
+    const confirmPin = formData.get('confirmPin') as string;
+    const profileType = formData.get('profileType') as string;
+
+    // Validate PIN
+    if (!pin || pin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const age = formData.get('age') as string;
+      const gender = formData.get('gender') as string;
+
+      await profilesAPI.create({
+        name: formData.get('name') as string,
+        type: profileType as any,
+        age: age ? parseInt(age, 10) : undefined,
+        gender: gender as any,
+        pin,
+        avatar: getAvatar(profileType, gender)
+      });
+
+      alert('Profile created successfully!');
+      await refreshProfiles();
+      setShowAddProfile(false);
+      e.currentTarget.reset();
+    } catch (error) {
+      console.error('Failed to create profile:', error);
+      alert('Failed to create profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getAvatar = (type: string, gender: string) => {
+    if (type === 'parent') {
+      return gender === 'male' ? '👨' : gender === 'female' ? '👩' : '👤';
+    }
+    return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
+  };
+
   if (!isParent) {
     // Kids only see limited settings
     return (
@@ -157,6 +251,16 @@ export default function Settings() {
         </h1>
         <p className="text-gray-600 mt-1">Manage app settings and configurations</p>
       </div>
+
+      {/* Success Toast */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+            <Shield size={20} />
+            <span>{successMessage}</span>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -254,6 +358,186 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* AI Parental Controls */}
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Brain className="mr-2 text-purple-600" size={20} />
+              AI Parental Controls
+            </h2>
+
+            <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="flex items-start">
+                <AlertTriangle className="text-purple-600 mr-3 mt-0.5 flex-shrink-0" size={20} />
+                <div className="text-sm text-purple-800">
+                  <p className="font-semibold mb-1">Control AI behavior for each child</p>
+                  <p>Set strict mode, message limits, and content filtering to ensure safe and educational AI interactions.</p>
+                </div>
+              </div>
+            </div>
+
+            {profiles.filter(p => p.type === 'child').length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No child profiles yet. Add a child profile to configure AI controls.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {profiles.filter(p => p.type === 'child').map(profile => {
+                  const settings = aiSettings[profile.id];
+                  const isExpanded = expandedAIProfile === profile.id;
+
+                  return (
+                    <div key={profile.id} className="border rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setExpandedAIProfile(isExpanded ? null : profile.id)}
+                        className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{profile.avatar || '👤'}</span>
+                          <div className="text-left">
+                            <p className="font-semibold">{profile.name}</p>
+                            <p className="text-xs text-gray-600">
+                              {settings?.strict_mode ? '🛡️ Strict Mode ON' : '⚠️ Strict Mode OFF'} •
+                              {settings?.max_messages_per_day || 20} msgs/day
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-gray-400">{isExpanded ? '▲' : '▼'}</span>
+                      </button>
+
+                      {isExpanded && settings && (
+                        <div className="p-4 space-y-4 bg-white">
+                          {/* Strict Mode Toggle */}
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="font-medium text-gray-900">Strict Mode</label>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={settings.strict_mode}
+                                  onChange={(e) => handleUpdateAISettings(profile.id, {
+                                    strict_mode: e.target.checked
+                                  })}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                              </label>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              {settings.strict_mode
+                                ? '✅ Age-appropriate language, blocks inappropriate topics, educational focus'
+                                : '⚠️ Less restrictive but still age-appropriate'}
+                            </p>
+                          </div>
+
+                          {/* Daily Message Limit */}
+                          <div>
+                            <label className="font-medium text-gray-900 block mb-2">
+                              Daily Message Limit
+                            </label>
+                            <div className="flex items-center space-x-4">
+                              <input
+                                type="range"
+                                min="5"
+                                max="100"
+                                value={settings.max_messages_per_day}
+                                onChange={(e) => handleUpdateAISettings(profile.id, {
+                                  max_messages_per_day: parseInt(e.target.value)
+                                })}
+                                className="flex-1"
+                              />
+                              <span className="font-semibold text-purple-600 min-w-[60px]">
+                                {settings.max_messages_per_day} msgs
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Prevents excessive AI usage
+                            </p>
+                          </div>
+
+                          {/* Content Filter Level */}
+                          <div>
+                            <label className="font-medium text-gray-900 block mb-2">
+                              Content Filter Level
+                            </label>
+                            <select
+                              value={settings.content_filter_level}
+                              onChange={(e) => handleUpdateAISettings(profile.id, {
+                                content_filter_level: e.target.value
+                              })}
+                              className="input w-full"
+                            >
+                              <option value="strict">🛡️ Strict (Recommended for kids)</option>
+                              <option value="moderate">⚖️ Moderate</option>
+                              <option value="relaxed">🔓 Relaxed (Teens only)</option>
+                            </select>
+                            <p className="text-xs text-gray-600 mt-1">
+                              Controls how strictly the AI filters responses
+                            </p>
+                          </div>
+
+                          {/* Custom Instructions */}
+                          <div className="border-t pt-4">
+                            <label className="font-medium text-gray-900 block mb-2">
+                              Custom Instructions (Optional)
+                            </label>
+                            <textarea
+                              value={settings.custom_instructions || ''}
+                              onChange={(e) => handleUpdateAISettings(profile.id, {
+                                custom_instructions: e.target.value
+                              })}
+                              onBlur={(e) => handleUpdateAISettings(profile.id, {
+                                custom_instructions: e.target.value
+                              })}
+                              className="input w-full min-h-[120px] font-mono text-sm"
+                              placeholder="Add your own instructions for the AI...&#10;&#10;Examples:&#10;- Always remind about bedtime at 8pm&#10;- Encourage outdoor activities&#10;- Help with Norwegian language homework&#10;- Focus on math practice"
+                            />
+                            <p className="text-xs text-gray-600 mt-1">
+                              💡 These instructions are added to the AI's system prompt. Be specific about behavior, tone, or focus areas.
+                            </p>
+                          </div>
+
+                          {/* System Prompt Preview */}
+                          <div className="border-t pt-4">
+                            <details>
+                              <summary className="font-medium text-gray-900 cursor-pointer hover:text-purple-600">
+                                View AI System Prompt
+                              </summary>
+                              <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono text-gray-700 overflow-x-auto">
+                                {settings.strict_mode ? (
+                                  <pre className="whitespace-pre-wrap">
+{`You are a friendly, educational AI assistant for ${profile.name} (${profile.age} years).
+
+STRICT GUIDELINES:
+- Use age-appropriate language only
+- Be positive, encouraging, and educational
+- Never discuss inappropriate topics
+- Focus on learning and positive habits
+- Encourage task completion
+- Redirect inappropriate questions
+
+Context: Tasks, Points, Goals, Diet tracking`}
+                                  </pre>
+                                ) : (
+                                  <pre className="whitespace-pre-wrap">
+{`You are a friendly AI assistant for ${profile.name} (${profile.age} years).
+
+Keep language age-appropriate and be helpful.
+
+Context: Tasks, Points, Level, Progress`}
+                                  </pre>
+                                )}
+                              </div>
+                            </details>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           {/* Parent PIN */}
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
@@ -304,7 +588,16 @@ export default function Settings() {
 
           {/* Family Profiles */}
           <div className="card">
-            <h2 className="text-xl font-semibold mb-4">Family Profiles</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Family Profiles</h2>
+              <button
+                onClick={() => setShowAddProfile(true)}
+                className="btn btn-primary btn-sm"
+              >
+                <Plus size={16} className="mr-1" />
+                Add Profile
+              </button>
+            </div>
 
             <div className="space-y-3">
               {profiles.map(profile => (
@@ -317,11 +610,19 @@ export default function Settings() {
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : `Child (${profile.age} years)`}
+                        {profile.type === 'parent' ? 'Parent' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
-                  <span className="badge badge-primary">{profile.type}</span>
+                  <div className="flex items-center space-x-2">
+                    {profile.pin && (
+                      <span className="text-xs text-gray-400 flex items-center">
+                        <Lock size={12} className="mr-1" />
+                        Protected
+                      </span>
+                    )}
+                    <span className="badge badge-primary">{profile.type}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -339,6 +640,124 @@ export default function Settings() {
               A comprehensive family management solution for diet tracking, task management, and
               AI-powered assistance.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Add Profile Modal */}
+      {showAddProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Add New Profile</h2>
+              <button
+                onClick={() => setShowAddProfile(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProfile} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Profile Type *
+                </label>
+                <select name="profileType" required className="input">
+                  <option value="child">Child</option>
+                  <option value="parent">Parent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  className="input"
+                  placeholder="Enter name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  name="age"
+                  min="1"
+                  max="100"
+                  className="input"
+                  placeholder="Enter age"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender
+                </label>
+                <select name="gender" className="input">
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Create PIN *
+                </label>
+                <input
+                  type="password"
+                  name="pin"
+                  required
+                  minLength={4}
+                  maxLength={8}
+                  className="input"
+                  placeholder="Enter 4-8 digit PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This PIN will protect the profile
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm PIN *
+                </label>
+                <input
+                  type="password"
+                  name="confirmPin"
+                  required
+                  minLength={4}
+                  maxLength={8}
+                  className="input"
+                  placeholder="Re-enter PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                  {saving ? <div className="spinner"></div> : 'Add Profile'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddProfile(false)}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

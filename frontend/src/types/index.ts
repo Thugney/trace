@@ -1,13 +1,16 @@
 export interface Profile {
   id: number;
   name: string;
-  type: 'parent' | 'child';
+  type: 'admin' | 'parent' | 'child' | 'teacher';
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;
+  pin?: string;
   settings?: string;
   created_at: string;
   updated_at: string;
+  parent_id?: number;
+  ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
 }
 
 export interface DietGoal {
@@ -73,9 +76,10 @@ export interface Task {
   profile_id: number;
   title: string;
   description?: string;
-  category: 'chore' | 'homework' | 'activity' | 'habit';
+  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
+  earns_points: boolean;
   is_recurring: boolean;
   recurrence_pattern?: string;
   due_date?: string;
@@ -118,6 +122,30 @@ export interface AIConversation {
   user_message: string;
   ai_response: string;
   created_at: string;
+}
+
+export interface Note {
+  id: number;
+  profile_id: number;
+  title: string;
+  content: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyGoal {
+  id: number;
+  profile_id: number;
+  month: string;
+  goal_description: string;
+  goal_points: number;
+  goal_type: string;
+  achieved: boolean;
+  reward_given: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProfileStats {

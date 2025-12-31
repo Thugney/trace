@@ -1,24 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { tasksAPI, profilesAPI } from '../services/api';
-import { Task, Progress, Profile } from '../types';
-import { Plus, Check, Star, Trophy, Gift } from 'lucide-react';
+import { tasksAPI, goalsAPI } from '../services/api';
+import { Task, MonthlyGoal } from '../types';
+import { Plus, Check, Star, Trophy, Gift, Target, Award } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function TasksManager() {
   const { currentProfile, isParent, profiles } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<any>(null);
+  const [monthlyGoal, setMonthlyGoal] = useState<MonthlyGoal | null>(null);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showBonusPoints, setShowBonusPoints] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
+  const children = profiles.filter(p => p.type === 'child');
+  const pendingTasks = tasks.filter(t => !t.completed);
+  const completedTasks = tasks.filter(t => t.completed);
 
   useEffect(() => {
     if (displayProfileId) {
       loadTasks();
       loadProgress();
+      loadMonthlyGoal();
     }
   }, [displayProfileId]);
 
@@ -47,6 +55,17 @@ export default function TasksManager() {
     }
   };
 
+  const loadMonthlyGoal = async () => {
+    if (!displayProfileId) return;
+
+    try {
+      const response = await goalsAPI.getCurrent(displayProfileId);
+      setMonthlyGoal(response.data);
+    } catch (error) {
+      console.error('Failed to load monthly goal:', error);
+    }
+  };
+
   const handleCompleteTask = async (taskId: number) => {
     try {
       const response = await tasksAPI.complete(taskId);
@@ -67,31 +86,99 @@ export default function TasksManager() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
+    const category = formData.get('category') as string;
+    const isTracking = category === 'watch-movies';
+
     try {
       await tasksAPI.create({
         profile_id: displayProfileId!,
         title: formData.get('title') as string,
         description: formData.get('description') as string,
-        category: formData.get('category') as any,
-        difficulty: formData.get('difficulty') as any,
+        category: category as any,
+        difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
+        earns_points: !isTracking,
         created_by: currentProfile?.id
       });
 
       await loadTasks();
       setShowAddTask(false);
-      e.currentTarget.reset();
     } catch (error) {
       console.error('Failed to create task:', error);
       alert('Failed to create task');
     }
   };
 
-  const pendingTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
-  const children = profiles.filter(p => p.type === 'child');
+  const handleAddGoal = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      await goalsAPI.create({
+        profile_id: displayProfileId!,
+        month: currentMonth,
+        goal_description: formData.get('description') as string,
+        goal_points: parseInt(formData.get('points') as string, 10),
+        goal_type: formData.get('type') as string
+      });
+
+      await loadMonthlyGoal();
+      setShowAddGoal(false);
+    } catch (error) {
+      console.error('Failed to create goal:', error);
+      alert('Failed to create goal');
+    }
+  };
+
+  const handleAwardBonus = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      await goalsAPI.awardBonusPoints(
+        displayProfileId!,
+        parseInt(formData.get('points') as string, 10) || 0,
+        parseInt(formData.get('stars') as string, 10) || 0,
+        formData.get('reason') as string
+      );
+
+      await loadProgress();
+      setShowBonusPoints(false);
+      alert('Bonus points awarded! 🎉');
+    } catch (error) {
+      console.error('Failed to award bonus:', error);
+      alert('Failed to award bonus points');
+    }
+  };
+
+  const handleMarkGoalAchieved = async () => {
+    if (!monthlyGoal) return;
+
+    try {
+      await goalsAPI.update(monthlyGoal.id, { achieved: true, reward_given: true });
+      await loadMonthlyGoal();
+      alert('Goal marked as achieved! 🎉');
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+      alert('Failed to update goal');
+    }
+  };
+
+  if (!currentProfile) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-600">Please select a profile first</p>
+      </div>
+    );
+  }
+
+  const goalProgress = monthlyGoal && progress
+    ? Math.min(100, (progress.current.total_points / monthlyGoal.goal_points) * 100)
+    : 0;
 
   return (
-    <div>
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -102,12 +189,18 @@ export default function TasksManager() {
           </p>
         </div>
 
-        {isParent && (
+        <div className="flex space-x-2">
+          {isParent && displayProfileId && (
+            <button onClick={() => setShowBonusPoints(true)} className="btn btn-secondary">
+              <Award size={20} className="mr-2" />
+              Award Bonus
+            </button>
+          )}
           <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
             <Plus size={20} className="mr-2" />
             Add Task
           </button>
-        )}
+        </div>
       </div>
 
       {/* Child Selector for Parents */}
@@ -131,6 +224,100 @@ export default function TasksManager() {
                 {child.avatar} {child.name}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Monthly Goal Card */}
+      {!isParent && (
+        <div className="card bg-gradient-to-r from-green-500 to-teal-600 text-white mb-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center">
+              <Target size={32} className="mr-3" />
+              <div>
+                <h3 className="text-xl font-bold">Monthly Goal</h3>
+                <p className="text-green-100 text-sm">
+                  {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+            {!monthlyGoal && (
+              <button
+                onClick={() => setShowAddGoal(true)}
+                className="btn bg-white text-green-600 hover:bg-green-50 btn-sm"
+              >
+                <Plus size={16} className="mr-1" />
+                Set Goal
+              </button>
+            )}
+          </div>
+
+          {monthlyGoal ? (
+            <>
+              <div className="mb-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>🎯 {monthlyGoal.goal_description}</span>
+                  <span className="font-bold">
+                    {progress?.current.total_points || 0} / {monthlyGoal.goal_points} points
+                  </span>
+                </div>
+                <div className="w-full bg-green-700 rounded-full h-4">
+                  <div
+                    className="bg-white rounded-full h-4 transition-all duration-500"
+                    style={{ width: `${goalProgress}%` }}
+                  />
+                </div>
+              </div>
+              {monthlyGoal.achieved ? (
+                <div className="bg-white text-green-600 px-4 py-2 rounded-lg font-bold text-center">
+                  🎉 Goal Achieved! Reward: {monthlyGoal.goal_type}
+                </div>
+              ) : goalProgress >= 100 ? (
+                <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg font-bold text-center">
+                  ⭐ Goal Reached! Ask parent for reward!
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="text-center py-4 text-green-100">
+              <p>No goal set for this month</p>
+              <p className="text-sm mt-1">Set a goal to work towards!</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Parent View: Monthly Goal Management */}
+      {isParent && selectedChild && monthlyGoal && (
+        <div className="card bg-blue-50 border-2 border-blue-200 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="font-bold text-blue-900">
+                {profiles.find(p => p.id === selectedChild)?.name}'s Goal
+              </h3>
+              <p className="text-blue-700">
+                {monthlyGoal.goal_description} • {progress?.current.total_points || 0} / {monthlyGoal.goal_points} points
+              </p>
+              <div className="w-full bg-blue-200 rounded-full h-3 mt-2">
+                <div
+                  className="bg-blue-600 rounded-full h-3"
+                  style={{ width: `${goalProgress}%` }}
+                />
+              </div>
+            </div>
+            {!monthlyGoal.achieved && goalProgress >= 100 && (
+              <button
+                onClick={handleMarkGoalAchieved}
+                className="btn btn-success ml-4"
+              >
+                Mark Achieved
+              </button>
+            )}
+            {monthlyGoal.achieved && (
+              <span className="ml-4 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-bold">
+                ✅ Achieved!
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -193,44 +380,39 @@ export default function TasksManager() {
                   key={task.id}
                   className={clsx(
                     'p-4 border-2 rounded-lg transition-all',
-                    task.difficulty === 'hard' && 'border-red-300 bg-red-50',
-                    task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
-                    task.difficulty === 'easy' && 'border-green-300 bg-green-50'
+                    task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
+                    task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
+                    task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
+                    !task.earns_points && 'border-gray-300 bg-gray-50'
                   )}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="badge badge-primary">{task.category}</span>
-                        <span className={clsx(
-                          'badge',
-                          task.difficulty === 'hard' && 'badge-danger',
-                          task.difficulty === 'medium' && 'badge-warning',
-                          task.difficulty === 'easy' && 'badge-success'
-                        )}>
-                          {task.difficulty}
-                        </span>
-                      </div>
                       <h3 className="font-semibold text-gray-900">{task.title}</h3>
                       {task.description && (
                         <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                       )}
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                        <span>⭐ {task.points} points</span>
-                        {task.due_date && (
-                          <span>📅 Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                      <div className="flex items-center mt-2 space-x-2">
+                        {task.earns_points ? (
+                          <>
+                            <span className="badge badge-primary">{task.points} pts</span>
+                            <span className="badge badge-warning">
+                              {task.difficulty}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="badge bg-gray-500 text-white">
+                            📍 Tracking Only
+                          </span>
                         )}
                       </div>
                     </div>
-
-                    {!isParent && (
-                      <button
-                        onClick={() => handleCompleteTask(task.id)}
-                        className="btn btn-success ml-4"
-                      >
-                        <Check size={20} />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleCompleteTask(task.id)}
+                      className="btn btn-success btn-sm ml-4"
+                    >
+                      <Check size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -249,18 +431,17 @@ export default function TasksManager() {
               <p>No completed tasks yet</p>
             </div>
           ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-3">
               {completedTasks.slice(0, 10).map(task => (
-                <div key={task.id} className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Check size={20} className="text-green-600" />
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{task.title}</h3>
-                      <p className="text-sm text-gray-600">
-                        Completed {task.completed_at && new Date(task.completed_at).toLocaleDateString()}
+                <div key={task.id} className="p-4 bg-gray-50 rounded-lg opacity-60">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 line-through">{task.title}</h3>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Completed {new Date(task.completed_at!).toLocaleDateString()}
                       </p>
                     </div>
-                    <span className="text-green-600 font-semibold">+{task.points}</span>
+                    <Check size={20} className="text-green-600" />
                   </div>
                 </div>
               ))}
@@ -272,7 +453,7 @@ export default function TasksManager() {
       {/* Add Task Modal */}
       {showAddTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full">
+          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-4">Add New Task</h2>
 
             <form onSubmit={handleAddTask} className="space-y-4">
@@ -285,7 +466,7 @@ export default function TasksManager() {
                   name="title"
                   required
                   className="input"
-                  placeholder="Clean your room"
+                  placeholder="Task title"
                 />
               </div>
 
@@ -296,27 +477,38 @@ export default function TasksManager() {
                 <textarea
                   name="description"
                   className="input"
+                  placeholder="Task description"
                   rows={3}
-                  placeholder="Details about the task..."
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
-                  </label>
-                  <select name="category" required className="input">
-                    <option value="chore">Chore</option>
-                    <option value="homework">Homework</option>
-                    <option value="activity">Activity</option>
-                    <option value="habit">Habit</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  name="category"
+                  required
+                  className="input"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">Select category</option>
+                  <option value="read-book">📚 Read Book</option>
+                  <option value="tigrinya">✍️ Tigrinya Practice</option>
+                  <option value="clean-room">🛏️ Clean Room</option>
+                  <option value="clean-kitchen">🍽️ Clean Kitchen</option>
+                  <option value="school">🎒 School Work</option>
+                  <option value="watch-movies">📺 Watch Movies/Screen Time (Tracking Only)</option>
+                  <option value="other">📌 Other</option>
+                </select>
+              </div>
 
+              {/* Only show difficulty if NOT tracking task */}
+              {selectedCategory && selectedCategory !== 'watch-movies' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Difficulty *
+                    Difficulty * (affects points earned)
                   </label>
                   <select name="difficulty" required className="input">
                     <option value="easy">Easy (10 pts)</option>
@@ -324,7 +516,16 @@ export default function TasksManager() {
                     <option value="hard">Hard (30 pts)</option>
                   </select>
                 </div>
-              </div>
+              )}
+
+              {selectedCategory === 'watch-movies' && (
+                <div className="p-4 bg-gray-100 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>📍 Tracking Task:</strong> This task logs screen time but doesn't earn points.
+                    It's for tracking purposes only.
+                  </p>
+                </div>
+              )}
 
               <div className="flex space-x-3 pt-4">
                 <button type="submit" className="btn btn-primary flex-1">
@@ -332,7 +533,146 @@ export default function TasksManager() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddTask(false)}
+                  onClick={() => {
+                    setShowAddTask(false);
+                    setSelectedCategory('');
+                  }}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Goal Modal */}
+      {showAddGoal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full">
+            <h2 className="text-2xl font-bold mb-4">Set Monthly Goal</h2>
+
+            <form onSubmit={handleAddGoal} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  What do you want to earn? *
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  required
+                  className="input"
+                  placeholder="e.g., 100 kroner, Movie night, New toy"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type of Reward
+                </label>
+                <select name="type" className="input">
+                  <option value="kroner">Money (Kroner)</option>
+                  <option value="movie-night">Movie Night</option>
+                  <option value="treat">Special Treat</option>
+                  <option value="toy">Toy/Gift</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  How many points do you need? *
+                </label>
+                <input
+                  type="number"
+                  name="points"
+                  required
+                  min="10"
+                  className="input"
+                  placeholder="e.g., 500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Complete tasks and earn bonus points for good behavior to reach your goal!
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="btn btn-primary flex-1">
+                  <Target size={20} className="mr-2" />
+                  Set Goal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddGoal(false)}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Award Bonus Points Modal */}
+      {showBonusPoints && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full">
+            <h2 className="text-2xl font-bold mb-4">Award Bonus Points</h2>
+            <p className="text-gray-600 mb-4">
+              Reward good behavior (sammearbeid/cooperation) with bonus points!
+            </p>
+
+            <form onSubmit={handleAwardBonus} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for Bonus *
+                </label>
+                <input
+                  type="text"
+                  name="reason"
+                  required
+                  className="input"
+                  placeholder="e.g., Helped sibling, Great teamwork"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bonus Points
+                  </label>
+                  <input
+                    type="number"
+                    name="points"
+                    min="0"
+                    defaultValue="10"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Bonus Stars
+                  </label>
+                  <input
+                    type="number"
+                    name="stars"
+                    min="0"
+                    defaultValue="1"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="btn btn-primary flex-1">
+                  <Award size={20} className="mr-2" />
+                  Award Bonus
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBonusPoints(false)}
                   className="btn btn-secondary flex-1"
                 >
                   Cancel
