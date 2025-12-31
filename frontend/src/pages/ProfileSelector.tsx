@@ -19,7 +19,9 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
 
   // If parent is logged in, show only their profile and kids
   // Otherwise show all profiles (backward compatibility)
-  const loggedInParent = parentProfile ? profiles.find(p => p.id === parentProfile.id) : null;
+  const loggedInParent = parentProfile && parentProfile.type === 'parent'
+    ? profiles.find(p => p.id === parentProfile.id && p.type === 'parent')
+    : null;
   const parents = parentProfile && loggedInParent ? [loggedInParent] : profiles.filter(p => p.type === 'parent');
   const kids = profiles.filter(p => p.type === 'child');
 
