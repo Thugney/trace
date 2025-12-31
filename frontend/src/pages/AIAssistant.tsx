@@ -4,11 +4,14 @@ import { aiAPI } from '../services/api';
 import { AIConversation } from '../types';
 import { Send, Sparkles, Trash2, Lightbulb, Info } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 export default function AIAssistant() {
   const { currentProfile, isParent } = useProfile();
   const [message, setMessage] = useState('');
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
   const [context, setContext] = useState<'diet' | 'tasks' | 'general'>('general');
   const [apiStatus, setApiStatus] = useState<{ apiConfigured: boolean; fallbackMode: boolean } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -25,7 +28,7 @@ export default function AIAssistant() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [conversations]);
+  }, [conversations, streamingMessage]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,34 +60,88 @@ export default function AIAssistant() {
     const userMessage = message;
     setMessage('');
     setLoading(true);
+    setStreamingMessage('');
+
+    // Add user message to UI immediately
+    const tempConversation: AIConversation = {
+      id: Date.now(),
+      profile_id: currentProfile.id,
+      context: context,
+      user_message: userMessage,
+      ai_response: '',
+      created_at: new Date().toISOString()
+    };
+
+    setConversations(prev => [...prev, tempConversation]);
 
     try {
-      const response = await aiAPI.chat(currentProfile.id, userMessage, context);
-      console.log('[AI Chat Frontend] Success:', response.data);
+      // Use EventSource for streaming
+      const eventSource = new EventSource(
+        `${API_URL || ''}/api/ai/chat?profile_id=${currentProfile.id}&message=${encodeURIComponent(userMessage)}&context=${context}`
+      );
 
-      // Add new conversation
-      await loadConversations();
+      let fullResponse = '';
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.done) {
+            // Stream complete
+            eventSource.close();
+            setLoading(false);
+            setStreamingMessage('');
+
+            // Reload conversations to get the saved one
+            loadConversations();
+          } else if (data.content) {
+            // Append new token
+            fullResponse += data.content;
+            setStreamingMessage(fullResponse);
+          } else if (data.error) {
+            // Error occurred
+            console.error('[AI Chat Streaming] Error:', data.error);
+            eventSource.close();
+            setLoading(false);
+            setStreamingMessage('');
+
+            // Show error
+            setConversations(prev => [...prev.slice(0, -1), {
+              ...tempConversation,
+              ai_response: `❌ Error: ${data.error}`
+            }]);
+          }
+        } catch (error) {
+          console.error('[AI Chat Streaming] Parse error:', error);
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('[AI Chat Streaming] Connection error:', error);
+        eventSource.close();
+        setLoading(false);
+        setStreamingMessage('');
+
+        // Show error message
+        setConversations(prev => [...prev.slice(0, -1), {
+          ...tempConversation,
+          ai_response: '❌ Error: Failed to connect to AI service'
+        }]);
+      };
+
     } catch (error: any) {
       console.error('[AI Chat Frontend] Error:', error);
-      console.error('[AI Chat Frontend] Error response:', error.response?.data);
-      console.error('[AI Chat Frontend] Error details:', error.response?.data?.details);
+      setLoading(false);
+      setStreamingMessage('');
 
-      // Show detailed error message
       const errorMsg = error.response?.data?.details ||
                       error.response?.data?.error ||
-                      'Failed to get AI response. Please check backend logs.';
+                      'Failed to get AI response. Please try again.';
 
-      // Create a temporary error conversation to show to user
-      setConversations(prev => [...prev, {
-        id: Date.now(),
-        profile_id: currentProfile.id,
-        context: context,
-        user_message: userMessage,
-        ai_response: `❌ Error: ${errorMsg}`,
-        created_at: new Date().toISOString()
+      setConversations(prev => [...prev.slice(0, -1), {
+        ...tempConversation,
+        ai_response: `❌ Error: ${errorMsg}`
       }]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -114,42 +171,34 @@ export default function AIAssistant() {
         'How can I earn more points?'
       ];
 
-  return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-          <Sparkles className="mr-3 text-primary-600" />
-          AI Assistant
-        </h1>
-        <p className="text-gray-600 mt-1">
-          {isParent
-            ? 'Get personalized suggestions for meals, nutrition, and family management'
-            : 'Ask me anything! I\'m here to help you learn and grow'}
-        </p>
+  if (!currentProfile) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-gray-600">Please select a profile to use the AI Assistant.</p>
       </div>
+    );
+  }
 
-      {/* API Status Banner */}
-      {apiStatus?.fallbackMode && (
-        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
-          <div className="flex items-start">
-            <Info className="text-yellow-600 mr-3 flex-shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="font-semibold text-yellow-800">Limited Mode Active</h3>
-              <p className="text-sm text-yellow-700 mt-1">
-                The AI is currently in limited mode with basic responses.
-                {isParent && ' To enable full AI capabilities, please configure your Grok API key in Settings.'}
-              </p>
-            </div>
+  return (
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="text-purple-600" size={24} />
+            <h1 className="text-2xl font-bold text-gray-900">AI Assistant</h1>
           </div>
+          {apiStatus && (
+            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+              apiStatus.apiConfigured ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            }`}>
+              {apiStatus.apiConfigured ? '✓ AI Powered' : '⚡ Limited Mode'}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Context Selector */}
-      <div className="card mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Chat Context
-        </label>
-        <div className="flex flex-wrap gap-2">
+        {/* Context Selector */}
+        <div className="flex space-x-2">
           <button
             onClick={() => setContext('general')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -180,78 +229,98 @@ export default function AIAssistant() {
           >
             Tasks & Activities
           </button>
+          <button
+            onClick={handleClearHistory}
+            className="ml-auto btn btn-secondary flex items-center space-x-2"
+            title="Clear chat history"
+          >
+            <Trash2 size={16} />
+            <span className="hidden sm:inline">Clear History</span>
+          </button>
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="card mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Chat</h2>
-          {conversations.length > 0 && (
-            <button
-              onClick={handleClearHistory}
-              className="text-sm text-red-600 hover:text-red-700 flex items-center"
-            >
-              <Trash2 size={16} className="mr-1" />
-              Clear History
-            </button>
-          )}
-        </div>
-
-        {/* Messages */}
-        <div className="h-96 overflow-y-auto mb-4 space-y-4 p-4 bg-gray-50 rounded-lg">
-          {conversations.length === 0 ? (
-            <div className="text-center text-gray-500 py-12">
-              <Sparkles size={48} className="mx-auto mb-4 text-primary-300" />
-              <p className="mb-2">No messages yet</p>
-              <p className="text-sm">Start a conversation or try a quick prompt below</p>
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {conversations.map((conv) => (
+          <div key={conv.id} className="space-y-2">
+            {/* User Message */}
+            <div className="flex justify-end">
+              <div className="bg-primary-600 text-white rounded-lg px-4 py-2 max-w-[80%]">
+                <p className="text-sm">{conv.user_message}</p>
+              </div>
             </div>
-          ) : (
-            <>
-              {conversations.slice().reverse().map((conv, index) => (
-                <div key={index}>
-                  {/* User Message */}
-                  <div className="flex justify-end mb-2">
-                    <div className="bg-primary-600 text-white rounded-lg px-4 py-2 max-w-[80%]">
-                      <p className="text-sm">{conv.user_message}</p>
-                    </div>
-                  </div>
 
-                  {/* AI Response */}
-                  <div className="flex justify-start">
-                    <div className="bg-white border rounded-lg px-4 py-2 max-w-[80%]">
-                      <div className="flex items-start space-x-2">
-                        <Sparkles size={16} className="text-primary-600 mt-1 flex-shrink-0" />
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                          {conv.ai_response}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+            {/* AI Response */}
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 max-w-[80%]">
+                <div className="flex items-start space-x-2">
+                  <Sparkles className="text-purple-600 mt-1 flex-shrink-0" size={16} />
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{conv.ai_response}</p>
                 </div>
-              ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border rounded-lg px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="spinner"></div>
-                      <span className="text-sm text-gray-600">Thinking...</span>
-                    </div>
-                  </div>
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {/* Streaming Message */}
+        {streamingMessage && (
+          <div className="space-y-2">
+            <div className="flex justify-start">
+              <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 max-w-[80%]">
+                <div className="flex items-start space-x-2">
+                  <Sparkles className="text-purple-600 mt-1 flex-shrink-0 animate-pulse" size={16} />
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{streamingMessage}</p>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </>
-          )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading Indicator */}
+        {loading && !streamingMessage && (
+          <div className="flex justify-start">
+            <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
+              <div className="flex items-center space-x-2">
+                <div className="spinner"></div>
+                <span className="text-sm text-gray-600">Thinking...</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick Prompts */}
+      {conversations.length === 0 && (
+        <div className="bg-white border-t border-gray-200 p-4">
+          <div className="flex items-center space-x-2 mb-3">
+            <Lightbulb size={18} className="text-primary-600" />
+            <h3 className="font-medium text-gray-900">Quick Prompts</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {quickPrompts.map((prompt, index) => (
+              <button
+                key={index}
+                onClick={() => setMessage(prompt)}
+                className="text-left text-sm px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         </div>
+      )}
 
-        {/* Input */}
+      {/* Input */}
+      <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex space-x-2">
           <input
             type="text"
             value={message}
-            onChange={e => setMessage(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
             placeholder="Type your message..."
             className="input flex-1"
             disabled={loading}
@@ -264,35 +333,17 @@ export default function AIAssistant() {
             <Send size={20} />
           </button>
         </div>
-      </div>
 
-      {/* Quick Prompts */}
-      <div className="card">
-        <div className="flex items-center mb-3">
-          <Lightbulb size={20} className="text-primary-600 mr-2" />
-          <h3 className="font-semibold">Quick Prompts</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {quickPrompts.map((prompt, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setMessage(prompt);
-              }}
-              className="text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors text-sm"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> AI responses are powered by Grok. Make sure your API key is
-          configured in the settings. The AI provides suggestions but always use your own judgment.
-        </p>
+        {apiStatus && !apiStatus.apiConfigured && (
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Info size={16} className="text-blue-600 mt-0.5" />
+              <p className="text-xs text-blue-800">
+                <strong>Note:</strong> AI responses are powered by Grok. Make sure your API key is configured in the settings. The AI provides suggestions but always use your own judgment.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

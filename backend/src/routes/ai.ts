@@ -175,11 +175,29 @@ function generateFallbackResponse(message: string, profile: any, context: string
   return `I received your message, ${profile.name}! To get full AI assistance with detailed answers and personalized advice, please ask your ${profile.type === 'child' ? 'parents' : 'administrator'} to configure the AI API key in settings. Until then, I'm here in limited mode! 🤖`;
 }
 
-// Chat with AI
+// Chat with AI (GET endpoint for EventSource streaming)
+router.get('/chat', async (req, res) => {
+  try {
+    const { profile_id, message, context = 'general' } = req.query;
+    console.log(`[AI Chat GET] Request from profile ${profile_id}, context: ${context}`);
+
+    if (!profile_id || !message) {
+      console.error('[AI Chat GET] Missing required fields');
+      return res.status(400).json({ error: 'profile_id and message are required' });
+    }
+
+    await handleChatStream(parseInt(profile_id as string), message as string, context as string, res);
+  } catch (error: any) {
+    console.error('[AI Chat GET] ERROR:', error);
+    res.status(500).json({ error: 'Failed to process message', details: error.message });
+  }
+});
+
+// Chat with AI (POST endpoint for non-streaming)
 router.post('/chat', async (req, res) => {
   try {
     const { profile_id, message, context = 'general' } = req.body;
-    console.log(`[AI Chat] Request from profile ${profile_id}, context: ${context}`);
+    console.log(`[AI Chat POST] Request from profile ${profile_id}, context: ${context}`);
 
     if (!profile_id || !message) {
       console.error('[AI Chat] Missing required fields');
@@ -307,7 +325,7 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
       messages.push({ role: 'user', content: message });
 
       try {
-        // Call Grok API
+        // Call Grok API with streaming
         const apiKey = getGrokApiKey();
         const response = await axios.post(
           GROK_API_URL,
@@ -315,45 +333,104 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
             model: 'grok-2-latest',  // Grok 2 latest (Grok 4.1 Fast)
             messages,
             temperature: 0.7,
-            max_tokens: 500
+            max_tokens: 500,
+            stream: true  // Enable streaming
           },
           {
             headers: {
               'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
             },
-            timeout: 15000
+            timeout: 30000,
+            responseType: 'stream'  // Receive stream
           }
         );
 
-        aiResponse = response.data.choices[0]?.message?.content ||
-          'Sorry, I could not generate a response.';
+        // Set up SSE (Server-Sent Events) for streaming to frontend
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        let fullResponse = '';
+
+        // Handle streaming data from Grok
+        response.data.on('data', (chunk: Buffer) => {
+          const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+
+              if (data === '[DONE]') {
+                // Stream complete
+                res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+                continue;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+
+                if (content) {
+                  fullResponse += content;
+                  // Send token to frontend
+                  res.write(`data: ${JSON.stringify({ content })}\n\n`);
+                }
+              } catch (e) {
+                // Skip invalid JSON
+              }
+            }
+          }
+        });
+
+        response.data.on('end', async () => {
+          // Save conversation after streaming completes
+          console.log(`[AI Chat] Saving conversation for profile ${profile_id}`);
+          try {
+            db.prepare(`
+              INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
+              VALUES (?, ?, ?, ?)
+            `).run(profile_id, context, message, fullResponse || 'No response generated');
+            console.log(`[AI Chat] Conversation saved successfully`);
+          } catch (dbError: any) {
+            console.error(`[AI Chat] Failed to save conversation:`, dbError);
+          }
+
+          res.end();
+        });
+
+        response.data.on('error', (error: any) => {
+          console.error('[AI Chat] Stream error:', error);
+          res.write(`data: ${JSON.stringify({ error: 'Stream error occurred' })}\n\n`);
+          res.end();
+        });
+
       } catch (apiError: any) {
         console.error('Grok API error:', apiError.response?.data || apiError.message);
-        // Fallback to simple response on API error
+
+        // If streaming fails, fall back to non-streaming response
         aiResponse = generateFallbackResponse(message, profile, context);
+
+        // Save fallback conversation
+        try {
+          db.prepare(`
+            INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
+            VALUES (?, ?, ?, ?)
+          `).run(profile_id, context, message, aiResponse);
+        } catch (dbError: any) {
+          console.error(`[AI Chat] Failed to save conversation:`, dbError);
+        }
+
+        res.json({
+          response: aiResponse,
+          profile: { id: profile.id, name: profile.name, type: profile.type },
+          usingFallback: true
+        });
       }
     }
 
-    // Save conversation
-    console.log(`[AI Chat] Saving conversation for profile ${profile_id}`);
-    try {
-      db.prepare(`
-        INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
-        VALUES (?, ?, ?, ?)
-      `).run(profile_id, context, message, aiResponse);
-      console.log(`[AI Chat] Conversation saved successfully`);
-    } catch (dbError: any) {
-      console.error(`[AI Chat] Failed to save conversation:`, dbError);
-      // Continue even if save fails
-    }
-
-    console.log(`[AI Chat] Sending response to client`);
-    res.json({
-      response: aiResponse,
-      profile: { id: profile.id, name: profile.name, type: profile.type },
-      usingFallback: !isGrokAvailable()
-    });
+    // Note: For streaming responses, save happens in the stream 'end' handler
+    // For non-streaming fallback responses, save happens in the catch block above
 
   } catch (error: any) {
     console.error('[AI Chat] ERROR:', error);
