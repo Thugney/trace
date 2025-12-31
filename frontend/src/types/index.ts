@@ -1,7 +1,7 @@
 export interface Profile {
   id: number;
   name: string;
-  type: 'parent' | 'child';
+  type: 'parent' | 'child' | 'teacher';
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;
@@ -9,6 +9,7 @@ export interface Profile {
   settings?: string;
   created_at: string;
   updated_at: string;
+  parent_id?: number;
 }
 
 export interface DietGoal {

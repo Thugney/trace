@@ -11,13 +11,11 @@ import {
   FileText,
   Award,
   Trash2,
-  Edit,
   Send
 } from 'lucide-react';
 import type {
   SchoolClass,
   SchoolAssignment,
-  SchoolSubmission,
   StudentProgress
 } from '../types/school';
 

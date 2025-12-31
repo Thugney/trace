@@ -8,7 +8,6 @@ import {
   Clock,
   Youtube,
   FileText,
-  Award,
   Send,
   AlertCircle,
   UserPlus
@@ -24,7 +23,6 @@ export default function SchoolStudent() {
   const [loading, setLoading] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<SchoolAssignment | null>(null);
   const [submissionNotes, setSubmissionNotes] = useState('');
-  const [feedback, setFeedback] = useState<any[]>([]);
 
   useEffect(() => {
     if (currentProfile) {
@@ -67,20 +65,6 @@ export default function SchoolStudent() {
     } catch (error: any) {
       console.error('Failed to submit work:', error);
       alert(error.response?.data?.error || 'Failed to submit work. Please try again.');
-    }
-  };
-
-  const loadFeedback = async (assignmentId: number) => {
-    try {
-      // Find the submission for this assignment
-      const assignment = assignments.find((a) => a.id === assignmentId);
-      if (!assignment || !assignment.has_submitted) return;
-
-      // We need to get the submission ID first - this requires an API enhancement
-      // For now, we'll show a placeholder
-      setFeedback([]);
-    } catch (error) {
-      console.error('Failed to load feedback:', error);
     }
   };
 
