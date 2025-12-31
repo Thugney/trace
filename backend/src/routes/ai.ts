@@ -33,7 +33,7 @@ function getAISettings(profileId: number) {
   return settings;
 }
 
-// Helper: Get profile context (tasks, progress, diet, goals)
+// Helper: Get profile context (tasks, progress, diet, goals, notes)
 function getProfileContext(profileId: number) {
   const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileId);
 
@@ -46,6 +46,16 @@ function getProfileContext(profileId: number) {
     FROM tasks
     WHERE profile_id = ?
   `).get(profileId);
+
+  // Get recent/upcoming tasks (next 7 days, not completed)
+  const recentTasks = db.prepare(`
+    SELECT title, category, difficulty, due_date, points
+    FROM tasks
+    WHERE profile_id = ? AND completed = 0
+    AND (due_date IS NULL OR due_date >= date('now'))
+    ORDER BY due_date ASC
+    LIMIT 5
+  `).all(profileId);
 
   // Get progress
   const progress: any = db.prepare(`
@@ -74,12 +84,23 @@ function getProfileContext(profileId: number) {
     WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
   `).get(profileId, today);
 
+  // Get recent notes (last 10)
+  const recentNotes = db.prepare(`
+    SELECT content, category, created_at
+    FROM notes
+    WHERE profile_id = ?
+    ORDER BY created_at DESC
+    LIMIT 10
+  `).all(profileId);
+
   return {
     profile,
     taskStats: taskStats || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
+    recentTasks: recentTasks || [],
     progress: progress || { total_points: 0, total_stars: 0, level: 1 },
     monthlyGoal,
-    dietSummary: dietSummary || { total_calories: 0, total_protein: 0 }
+    dietSummary: dietSummary || { total_calories: 0, total_protein: 0 },
+    recentNotes: recentNotes || []
   };
 }
 
@@ -171,14 +192,22 @@ Profile Context:
 - Total tasks: ${profileContext.taskStats.total_tasks} (${profileContext.taskStats.completed_tasks} completed)
 - Points: ${profileContext.progress.total_points} | Stars: ${profileContext.progress.total_stars} | Level: ${profileContext.progress.level}
 ${profileContext.monthlyGoal ? `- Monthly Goal: ${profileContext.monthlyGoal.goal_description} (${profileContext.monthlyGoal.goal_points} points target)` : ''}
-- Today's calories: ${profileContext.dietSummary.total_calories || 0} kcal`;
+- Today's calories: ${profileContext.dietSummary.total_calories || 0} kcal
+
+${profileContext.recentTasks.length > 0 ? `Upcoming Tasks:
+${profileContext.recentTasks.map((t: any) => `- ${t.title} (${t.category}, ${t.difficulty}, ${t.points} pts${t.due_date ? `, due: ${t.due_date}` : ''})`).join('\n')}` : ''}
+
+${profileContext.recentNotes.length > 0 ? `Recent Notes:
+${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substring(0, 100)}${n.content.length > 100 ? '...' : ''}`).join('\n')}` : ''}`;
         } else {
           systemPrompt = `You are a friendly AI assistant helping ${profile.age}-year-old ${profile.name}.
 Keep language age-appropriate and focus on being helpful and educational.
 
 Profile Context:
 - Points: ${profileContext.progress.total_points} | Level: ${profileContext.progress.level}
-- Tasks: ${profileContext.taskStats.total_tasks} total, ${profileContext.taskStats.completed_tasks} completed`;
+- Tasks: ${profileContext.taskStats.total_tasks} total, ${profileContext.taskStats.completed_tasks} completed
+
+${profileContext.recentTasks.length > 0 ? `Upcoming Tasks: ${profileContext.recentTasks.map((t: any) => t.title).join(', ')}` : ''}`;
         }
       } else {
         systemPrompt = `You are a helpful AI assistant for family management, nutrition, and parenting.
@@ -186,7 +215,15 @@ Provide practical advice for ${profile.name}.
 
 Family Context:
 - Tasks managed: ${profileContext.taskStats.total_tasks}
-- Today's calories logged: ${profileContext.dietSummary.total_calories || 0} kcal`;
+- Today's calories logged: ${profileContext.dietSummary.total_calories || 0} kcal
+
+${profileContext.recentNotes.length > 0 ? `Recent Notes:
+${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substring(0, 100)}${n.content.length > 100 ? '...' : ''}`).join('\n')}` : ''}`;
+      }
+
+      // Add custom instructions from parent (if any)
+      if (aiSettings.custom_instructions && aiSettings.custom_instructions.trim()) {
+        systemPrompt += `\n\n=== PARENT INSTRUCTIONS ===\n${aiSettings.custom_instructions}\n=== END PARENT INSTRUCTIONS ===`;
       }
 
       if (context === 'diet') {
@@ -281,7 +318,7 @@ router.get('/settings/:profileId', (req, res) => {
 router.put('/settings/:profileId', (req, res) => {
   try {
     const { profileId } = req.params;
-    const { strict_mode, max_messages_per_day, allowed_contexts, content_filter_level } = req.body;
+    const { strict_mode, max_messages_per_day, allowed_contexts, content_filter_level, custom_instructions } = req.body;
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -301,6 +338,10 @@ router.put('/settings/:profileId', (req, res) => {
     if (content_filter_level !== undefined) {
       updates.push('content_filter_level = ?');
       values.push(content_filter_level);
+    }
+    if (custom_instructions !== undefined) {
+      updates.push('custom_instructions = ?');
+      values.push(custom_instructions);
     }
 
     if (updates.length === 0) {

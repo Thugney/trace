@@ -229,6 +229,7 @@ export function initDatabase() {
       max_messages_per_day INTEGER DEFAULT 20,
       allowed_contexts TEXT DEFAULT '["general","tasks"]',
       content_filter_level TEXT DEFAULT 'strict',
+      custom_instructions TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE

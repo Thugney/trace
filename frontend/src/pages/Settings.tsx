@@ -460,6 +460,27 @@ export default function Settings() {
                             </p>
                           </div>
 
+                          {/* Custom Instructions */}
+                          <div className="border-t pt-4">
+                            <label className="font-medium text-gray-900 block mb-2">
+                              Custom Instructions (Optional)
+                            </label>
+                            <textarea
+                              value={settings.custom_instructions || ''}
+                              onChange={(e) => handleUpdateAISettings(profile.id, {
+                                custom_instructions: e.target.value
+                              })}
+                              onBlur={(e) => handleUpdateAISettings(profile.id, {
+                                custom_instructions: e.target.value
+                              })}
+                              className="input w-full min-h-[120px] font-mono text-sm"
+                              placeholder="Add your own instructions for the AI...&#10;&#10;Examples:&#10;- Always remind about bedtime at 8pm&#10;- Encourage outdoor activities&#10;- Help with Norwegian language homework&#10;- Focus on math practice"
+                            />
+                            <p className="text-xs text-gray-600 mt-1">
+                              💡 These instructions are added to the AI's system prompt. Be specific about behavior, tone, or focus areas.
+                            </p>
+                          </div>
+
                           {/* System Prompt Preview */}
                           <div className="border-t pt-4">
                             <details>
