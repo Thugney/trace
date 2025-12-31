@@ -117,6 +117,7 @@ export function initDatabase() {
       category TEXT CHECK(category IN ('read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'watch-movies', 'other')),
       points INTEGER DEFAULT 10,
       difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'easy',
+      earns_points BOOLEAN DEFAULT 1,
       is_recurring BOOLEAN DEFAULT 0,
       recurrence_pattern TEXT,
       due_date DATETIME,
@@ -160,6 +161,24 @@ export function initDatabase() {
       is_claimed BOOLEAN DEFAULT 0,
       claimed_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Monthly goals table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS monthly_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      month TEXT NOT NULL,
+      goal_description TEXT NOT NULL,
+      goal_points INTEGER NOT NULL,
+      goal_type TEXT DEFAULT 'kroner',
+      achieved BOOLEAN DEFAULT 0,
+      reward_given BOOLEAN DEFAULT 0,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
     )
   `);
@@ -211,6 +230,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
     CREATE INDEX IF NOT EXISTS idx_notes_profile ON notes(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_monthly_goals_profile_month ON monthly_goals(profile_id, month);
   `);
 
   // Insert default settings if none exist
