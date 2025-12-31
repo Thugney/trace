@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Shield } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -15,20 +15,21 @@ export default function Layout({ children }: LayoutProps) {
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard', showForKids: true, showForTeachers: false },
-    { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false, showForTeachers: false },
-    { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true, showForTeachers: false },
-    { path: '/school', icon: GraduationCap, label: 'School', showForKids: true, showForTeachers: true },
-    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true, showForTeachers: false },
-    { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true, showForTeachers: false },
-    { path: '/settings', icon: Settings, label: 'Settings', showForKids: false, showForTeachers: false }
+    { path: '/', icon: Home, label: 'Dashboard', showForKids: true, showForTeachers: false, showForAdmin: true },
+    { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false, showForTeachers: false, showForAdmin: true },
+    { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true, showForTeachers: false, showForAdmin: true },
+    { path: '/school', icon: GraduationCap, label: 'School', showForKids: true, showForTeachers: true, showForAdmin: true },
+    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true, showForTeachers: false, showForAdmin: true },
+    { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true, showForTeachers: false, showForAdmin: true },
+    { path: '/admin', icon: Shield, label: 'Admin Panel', showForKids: false, showForTeachers: false, showForAdmin: true },
+    { path: '/settings', icon: Settings, label: 'Settings', showForKids: false, showForTeachers: false, showForAdmin: true }
   ];
 
   const isTeacher = currentProfile?.type === 'teacher';
   const isAdmin = currentProfile?.type === 'admin';
 
   const visibleNavItems = isAdmin
-    ? navItems // Admin sees everything
+    ? navItems.filter(item => item.showForAdmin)
     : isTeacher
     ? navItems.filter(item => item.showForTeachers)
     : isParent

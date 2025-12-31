@@ -8,6 +8,7 @@ interface ProfileContextType {
   setCurrentProfile: (profile: Profile | null) => void;
   refreshProfiles: () => Promise<void>;
   isParent: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
 }
 
@@ -57,6 +58,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [currentProfile]);
 
   const isParent = currentProfile?.type === 'parent';
+  const isAdmin = currentProfile?.type === 'admin';
 
   return (
     <ProfileContext.Provider
@@ -66,6 +68,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setCurrentProfile,
         refreshProfiles,
         isParent,
+        isAdmin,
         isLoading
       }}
     >

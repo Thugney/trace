@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import SchoolDashboard from './pages/SchoolDashboard';
 import SchoolStudent from './pages/SchoolStudent';
 import SchoolEnroll from './pages/SchoolEnroll';
+import AdminPanel from './pages/AdminPanel';
 import { useProfile } from './context/ProfileContext';
 
 function AppRoutes() {
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/ai" element={<AIAssistant />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

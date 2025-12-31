@@ -17,13 +17,28 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
   const [error, setError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(profiles.length === 0);
 
-  // If parent is logged in, show only their profile and kids
+  // If admin is logged in, show ALL profiles
+  // If parent is logged in, show only their profile and their kids
   // Otherwise show all profiles (backward compatibility)
+  const isAdmin = parentProfile?.type === 'admin';
   const loggedInParent = parentProfile && parentProfile.type === 'parent'
     ? profiles.find(p => p.id === parentProfile.id && p.type === 'parent')
     : null;
-  const parents = parentProfile && loggedInParent ? [loggedInParent] : profiles.filter(p => p.type === 'parent');
-  const kids = profiles.filter(p => p.type === 'child');
+
+  // Admin sees all profiles, parent sees only their family
+  const parents = isAdmin
+    ? profiles.filter(p => p.type === 'parent' || p.type === 'admin')
+    : parentProfile && loggedInParent
+    ? [loggedInParent]
+    : profiles.filter(p => p.type === 'parent');
+
+  const kids = isAdmin
+    ? profiles.filter(p => p.type === 'child')
+    : loggedInParent
+    ? profiles.filter(p => p.type === 'child' && p.parent_id === loggedInParent.id)
+    : profiles.filter(p => p.type === 'child');
+
+  const teachers = profiles.filter(p => p.type === 'teacher');
 
   const handleLogout = () => {
     localStorage.removeItem('family_auth');
@@ -156,10 +171,12 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
           </p>
         </div>
 
-        {/* Parents */}
+        {/* Parents & Admins */}
         {parents.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Parents</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              {isAdmin ? 'Parents & Admins' : 'Parents'}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {parents.map(profile => (
                 <button
@@ -169,7 +186,35 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
                 >
                   <div className="text-6xl mb-4">{profile.avatar || '👤'}</div>
                   <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">Parent</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {profile.type === 'admin' ? '🛡️ Admin' : 'Parent'}
+                  </p>
+                  {profile.pin && (
+                    <div className="flex items-center justify-center mt-2 text-xs text-gray-400">
+                      <Lock size={12} className="mr-1" />
+                      PIN Protected
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Teachers (only shown to admin) */}
+        {isAdmin && teachers.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">Teachers</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {teachers.map(profile => (
+                <button
+                  key={profile.id}
+                  onClick={() => handleProfileClick(profile)}
+                  className="card hover:shadow-lg transition-shadow text-center p-8 cursor-pointer border-2 border-transparent hover:border-primary-500"
+                >
+                  <div className="text-6xl mb-4">{profile.avatar || '🎓'}</div>
+                  <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">Teacher</p>
                   {profile.pin && (
                     <div className="flex items-center justify-center mt-2 text-xs text-gray-400">
                       <Lock size={12} className="mr-1" />
