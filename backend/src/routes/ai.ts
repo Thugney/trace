@@ -6,10 +6,29 @@ const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
+// Helper: Get Grok API key from env or settings table
+function getGrokApiKey(): string | null {
+  // First check environment variable
+  let apiKey = process.env.GROK_API_KEY;
+
+  // If not in env, check settings table
+  if (!apiKey || apiKey === 'your_grok_api_key_here' || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('grok_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read grok_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '' ? apiKey : null;
+}
+
 // Helper: Check if Grok API is available
 function isGrokAvailable(): boolean {
-  const apiKey = process.env.GROK_API_KEY;
-  return !!(apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '');
+  return !!getGrokApiKey();
 }
 
 // Helper: Get AI settings for profile
@@ -289,6 +308,7 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
 
       try {
         // Call Grok API
+        const apiKey = getGrokApiKey();
         const response = await axios.post(
           GROK_API_URL,
           {
@@ -299,7 +319,7 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
           },
           {
             headers: {
-              'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
+              'Authorization': `Bearer ${apiKey}`,
               'Content-Type': 'application/json'
             },
             timeout: 15000
