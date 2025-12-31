@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Calendar } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function TasksManager() {
