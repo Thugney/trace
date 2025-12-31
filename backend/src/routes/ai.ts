@@ -110,7 +110,7 @@ function getProfileContext(profileId: number) {
 
   // Get recent notes (last 10)
   const recentNotes = db.prepare(`
-    SELECT content, category, created_at
+    SELECT title, content, created_at
     FROM notes
     WHERE profile_id = ?
     ORDER BY created_at DESC
