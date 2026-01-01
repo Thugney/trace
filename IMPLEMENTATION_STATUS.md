@@ -8,7 +8,7 @@
    - Updated meta tags, SEO descriptions, titles
    - Updated package.json names (frontend and backend)
 
-2. **✅ Password Authentication** (Commit: dd9b749)
+2. **✅ Password Authentication** (Commits: dd9b749, 868d9fa)
    - Added `password` and `username` columns to profiles table
    - Kids use PIN (4-6 digits), adults use password (secure)
    - Auto-generated usernames for existing users
@@ -16,6 +16,7 @@
    - Password reset endpoints (admin can reset anyone, parents can reset kids)
    - All credentials bcrypt hashed (SALT_ROUNDS=10)
    - Updated Profile TypeScript interface
+   - **FIXED**: SQLite UNIQUE constraint issue in username migration (3-step process)
 
 3. **✅ AdminDashboard Created** (Commit: ad2514d, 8acb0de)
    - System overview dashboard (separate from AdminPanel)
@@ -176,6 +177,35 @@
 
 ---
 
+## 🔧 Just Fixed (Commit 868d9fa)
+
+**Database Migration Error - Username Column**
+- **Problem**: SQLite was throwing "Cannot add a UNIQUE column" error
+- **Cause**: SQLite doesn't allow adding UNIQUE constraints when adding columns to tables with existing data
+- **Impact**: Login was failing with "no such column: username" error
+- **Solution**: Changed migration to 3-step process:
+  1. Add username column WITHOUT UNIQUE constraint
+  2. Auto-populate usernames from existing profile names (lowercase, no spaces)
+  3. Create UNIQUE INDEX on the username column
+- **Action Required**: **Rebuild Docker containers** to apply the database migration fix
+
+### To Apply This Fix:
+```bash
+# Pull the latest changes
+git pull origin claude/fix-project-flow-dcUOs
+
+# Rebuild and restart Docker containers
+docker-compose down
+docker-compose up -d --build
+
+# Check logs to verify migration ran successfully
+docker-compose logs -f backend
+```
+
+You should see: `✅ Migration completed: username column added and auto-generated for existing users`
+
+---
+
 ## 📈 Major Improvements Made
 
 ### Before → After
@@ -270,7 +300,7 @@ The project had fundamental architectural problems with user flow, authenticatio
 
 ---
 
-**Last Updated:** 2026-01-01  
-**Current Branch:** claude/fix-project-flow-dcUOs  
-**Total Commits:** 9  
-**Status:** ✅ All P0 critical fixes complete - Ready for testing!
+**Last Updated:** 2026-01-01
+**Current Branch:** claude/fix-project-flow-dcUOs
+**Total Commits:** 10
+**Status:** ✅ All P0 critical fixes complete - Database migration fixed - Ready for Docker rebuild!
