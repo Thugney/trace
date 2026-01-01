@@ -1,16 +1,42 @@
-import express from 'express';
+import express, { Response } from 'express';
 import db from '../database/init';
 import bcrypt from 'bcrypt';
+import { authenticate, adminOnly } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-// Get all profiles
-router.get('/', (req, res) => {
+// Get all profiles - FILTERED BY USER TYPE FOR SECURITY
+router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    console.log('[DEBUG] GET /api/profiles - Fetching all profiles');
-    const profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
-    console.log(`[DEBUG] Found ${profiles.length} profiles`);
+    const userProfile = req.profile!;
+    console.log(`[DEBUG] GET /api/profiles - User: ${userProfile.type} (ID: ${userProfile.id})`);
+
+    let profiles: any[];
+
+    if (userProfile.type === 'admin') {
+      // Admin sees all profiles
+      profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
+      console.log(`[DEBUG] Admin view: ${profiles.length} total profiles`);
+    } else if (userProfile.type === 'parent') {
+      // Parent sees only themselves and their children
+      profiles = db.prepare(`
+        SELECT * FROM profiles
+        WHERE id = ? OR parent_id = ?
+        ORDER BY type DESC, created_at ASC
+      `).all(userProfile.id, userProfile.id);
+      console.log(`[DEBUG] Parent view: ${profiles.length} profiles (self + children)`);
+    } else if (userProfile.type === 'teacher') {
+      // Teacher sees only themselves
+      profiles = db.prepare('SELECT * FROM profiles WHERE id = ?').all(userProfile.id);
+      console.log(`[DEBUG] Teacher view: self only`);
+    } else {
+      // Child sees only themselves
+      profiles = db.prepare('SELECT * FROM profiles WHERE id = ?').all(userProfile.id);
+      console.log(`[DEBUG] Child view: self only`);
+    }
+
     res.json(profiles);
   } catch (error: any) {
     console.error('[ERROR] GET /api/profiles failed:', error.message);
@@ -18,31 +44,62 @@ router.get('/', (req, res) => {
   }
 });
 
-// Get single profile
-router.get('/:id', (req, res) => {
+// Get single profile - with authorization check
+router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(req.params.id);
+    const userProfile = req.profile!;
+    const requestedId = parseInt(req.params.id);
+
+    const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(requestedId);
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
-    res.json(profile);
+
+    // Authorization: admin can see anyone, parent can see self + kids, others only self
+    if (userProfile.type === 'admin') {
+      // Admin can see anyone
+      return res.json(profile);
+    } else if (userProfile.type === 'parent') {
+      // Parent can see themselves or their children
+      if (profile.id === userProfile.id || profile.parent_id === userProfile.id) {
+        return res.json(profile);
+      }
+    } else {
+      // Teacher/Child can only see themselves
+      if (profile.id === userProfile.id) {
+        return res.json(profile);
+      }
+    }
+
+    return res.status(403).json({ error: 'Access denied: You can only view your own profile or your children\'s profiles' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Create profile
-router.post('/', async (req, res) => {
+// Create profile - Admin can create anyone, parents can only create children
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const userProfile = req.profile!;
     const { name, type, age, gender, avatar, settings, pin, password, username, parent_id } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
     }
 
-    // If creating a child, parent_id is recommended
-    if (type === 'child' && !parent_id) {
-      console.warn('Creating child profile without parent_id - child will not be linked to a parent');
+    // Authorization check
+    if (type !== 'child' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create parent/teacher/admin profiles' });
+    }
+
+    // If parent is creating a child, link to themselves
+    let finalParentId = parent_id;
+    if (type === 'child') {
+      if (userProfile.type === 'parent') {
+        finalParentId = userProfile.id; // Link child to the parent creating it
+      } else if (userProfile.type === 'admin' && !parent_id) {
+        console.warn('Admin creating child profile without parent_id - child will not be linked to a parent');
+      }
     }
 
     // Auto-generate username if not provided (lowercase name without spaces)
@@ -57,7 +114,7 @@ router.post('/', async (req, res) => {
     const result = db.prepare(`
       INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), parent_id || null);
+    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
@@ -66,11 +123,32 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update profile
-router.put('/:id', async (req, res) => {
+// Update profile - with authorization check
+router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const userProfile = req.profile!;
     const { name, age, gender, avatar, settings, pin, password, username, ai_enabled, parent_id, type } = req.body;
     const { id } = req.params;
+
+    // Get the profile being updated
+    const targetProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!targetProfile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Authorization: admin can update anyone, parent can update self + kids, others only self
+    let canUpdate = false;
+    if (userProfile.type === 'admin') {
+      canUpdate = true;
+    } else if (userProfile.type === 'parent') {
+      canUpdate = (targetProfile.id === userProfile.id || targetProfile.parent_id === userProfile.id);
+    } else {
+      canUpdate = (targetProfile.id === userProfile.id);
+    }
+
+    if (!canUpdate) {
+      return res.status(403).json({ error: 'Access denied: You can only update your own profile or your children\'s profiles' });
+    }
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -140,8 +218,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete profile
-router.delete('/:id', (req, res) => {
+// Delete profile - Admin only for now
+router.delete('/:id', adminOnly, (req: AuthRequest, res: Response) => {
   try {
     const result = db.prepare('DELETE FROM profiles WHERE id = ?').run(req.params.id);
 

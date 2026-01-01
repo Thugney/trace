@@ -313,8 +313,8 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Grok AI Configuration - Show to parents and admin only */}
-          {(isParent || isAdmin) && (
+          {/* Grok AI Configuration - Admin only */}
+          {isAdmin && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4">Grok AI Configuration</h2>
 
@@ -365,19 +365,19 @@ export default function Settings() {
           </div>
           )}
 
-          {/* AI Parental Controls - Parent and admin only */}
-          {(isParent || isAdmin) && (
+          {/* AI Parental Controls - Admin only */}
+          {isAdmin && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Brain className="mr-2 text-purple-600" size={20} />
-              AI Parental Controls
+              AI Controls (Admin Only)
             </h2>
 
             <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
               <div className="flex items-start">
                 <AlertTriangle className="text-purple-600 mr-3 mt-0.5 flex-shrink-0" size={20} />
                 <div className="text-sm text-purple-800">
-                  <p className="font-semibold mb-1">Control AI behavior for each child</p>
+                  <p className="font-semibold mb-1">Admin-only: Control AI behavior for each child</p>
                   <p>Set strict mode, message limits, and content filtering to ensure safe and educational AI interactions.</p>
                 </div>
               </div>
