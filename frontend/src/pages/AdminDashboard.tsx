@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
-import { Shield, Users, Baby, GraduationCap, Activity, Settings, UserPlus } from 'lucide-react';
+import { Shield, Users, Baby, GraduationCap, Activity, Settings } from 'lucide-react';
 
 interface SystemStats {
   totalProfiles: number;
@@ -20,7 +20,6 @@ interface SystemStats {
 }
 
 export default function AdminDashboard() {
-  const { currentProfile } = useProfile();
   const [stats, setStats] = useState<SystemStats>({
     totalProfiles: 0,
     admins: 0,
