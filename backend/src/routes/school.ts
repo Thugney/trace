@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, requireRole, verifyParentChild, optionalAuth, teacherOnly, parentOrAdmin, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
@@ -61,7 +61,7 @@ router.get('/parents/:parentId/children', (req, res) => {
 });
 
 // Enroll student in class (parents and admin only, with parent-child verification)
-router.post('/enrollments', parentOrAdmin, verifyParentChild('student_id'), (req: AuthRequest, res) => {
+router.post('/enrollments', parentOrAdmin, verifyParentChild('student_id'), (req: AuthRequest, res: Response) => {
   try {
     const { student_id, class_id } = req.body;
 
@@ -101,7 +101,7 @@ router.get('/students/:studentId/enrollments', (req, res) => {
 });
 
 // Create assignment (teachers only)
-router.post('/assignments', teacherOnly, (req: AuthRequest, res) => {
+router.post('/assignments', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const {
       class_id,
@@ -190,7 +190,7 @@ router.get('/assignments', (req, res) => {
 });
 
 // Update assignment (teachers only)
-router.put('/assignments/:id', teacherOnly, (req: AuthRequest, res) => {
+router.put('/assignments/:id', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const { title, description, type, youtube_link, attachment_url, due_date } = req.body;
     const { id } = req.params;
@@ -240,7 +240,7 @@ router.put('/assignments/:id', teacherOnly, (req: AuthRequest, res) => {
 });
 
 // Delete assignment (teachers only)
-router.delete('/assignments/:id', teacherOnly, (req: AuthRequest, res) => {
+router.delete('/assignments/:id', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const result = db.prepare('DELETE FROM school_assignments WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
