@@ -185,3 +185,19 @@ export interface NutritionSummary {
   };
   goals?: DietGoal | null;
 }
+
+export interface Message {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  subject?: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  sender_name?: string;
+  sender_type?: string;
+  sender_avatar?: string;
+  recipient_name?: string;
+  recipient_type?: string;
+  recipient_avatar?: string;
+}

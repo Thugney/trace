@@ -17,6 +17,7 @@ import SchoolDashboard from './pages/SchoolDashboard';
 import SchoolStudent from './pages/SchoolStudent';
 import SchoolEnroll from './pages/SchoolEnroll';
 import AdminPanel from './pages/AdminPanel';
+import Messages from './pages/Messages';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -236,6 +237,16 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminPanel />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Messages - Only teacher and parent */}
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute allowedRoles={['teacher', 'parent']}>
+              <Messages />
             </ProtectedRoute>
           }
         />

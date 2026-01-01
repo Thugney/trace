@@ -345,6 +345,21 @@ export function initDatabase() {
     )
   `);
 
+  // Teacher-Parent Messages
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL,
+      recipient_id INTEGER NOT NULL,
+      subject TEXT,
+      message TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (sender_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipient_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
   // Insert default school classes
   const defaultClasses = [
     { name: 'First Class', description: 'Youngest students learning basics', age_min: 5, age_max: 7 },
