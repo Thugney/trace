@@ -34,7 +34,7 @@ router.get('/:id', (req, res) => {
 // Create profile
 router.post('/', async (req, res) => {
   try {
-    const { name, type, age, gender, avatar, settings, pin, parent_id } = req.body;
+    const { name, type, age, gender, avatar, settings, pin, password, username, parent_id } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
@@ -45,13 +45,19 @@ router.post('/', async (req, res) => {
       console.warn('Creating child profile without parent_id - child will not be linked to a parent');
     }
 
-    // Hash PIN if provided (security: never store plain text PINs)
+    // Auto-generate username if not provided (lowercase name without spaces)
+    const finalUsername = username || name.toLowerCase().replace(/\s+/g, '');
+
+    // Hash PIN if provided (for kids - security: never store plain text)
     const hashedPin = pin ? await bcrypt.hash(pin, SALT_ROUNDS) : null;
 
+    // Hash password if provided (for adults - security: never store plain text)
+    const hashedPassword = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
+
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, pin, settings, parent_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, hashedPin, JSON.stringify(settings || {}), parent_id || null);
+      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), parent_id || null);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
@@ -63,7 +69,7 @@ router.post('/', async (req, res) => {
 // Update profile
 router.put('/:id', async (req, res) => {
   try {
-    const { name, age, gender, avatar, settings, pin } = req.body;
+    const { name, age, gender, avatar, settings, pin, password, username, ai_enabled, parent_id, type } = req.body;
     const { id } = req.params;
 
     const updates: string[] = [];
@@ -72,6 +78,10 @@ router.put('/:id', async (req, res) => {
     if (name !== undefined) {
       updates.push('name = ?');
       values.push(name);
+    }
+    if (type !== undefined) {
+      updates.push('type = ?');
+      values.push(type);
     }
     if (age !== undefined) {
       updates.push('age = ?');
@@ -85,6 +95,18 @@ router.put('/:id', async (req, res) => {
       updates.push('avatar = ?');
       values.push(avatar);
     }
+    if (username !== undefined) {
+      updates.push('username = ?');
+      values.push(username);
+    }
+    if (parent_id !== undefined) {
+      updates.push('parent_id = ?');
+      values.push(parent_id);
+    }
+    if (ai_enabled !== undefined) {
+      updates.push('ai_enabled = ?');
+      values.push(ai_enabled);
+    }
     if (settings !== undefined) {
       updates.push('settings = ?');
       values.push(JSON.stringify(settings));
@@ -94,6 +116,12 @@ router.put('/:id', async (req, res) => {
       const hashedPin = pin ? await bcrypt.hash(pin, SALT_ROUNDS) : null;
       updates.push('pin = ?');
       values.push(hashedPin);
+    }
+    if (password !== undefined) {
+      // Hash password if provided (security: never store plain text passwords)
+      const hashedPassword = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
+      updates.push('password = ?');
+      values.push(hashedPassword);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -127,7 +155,7 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-// Login (username + PIN) - works for both parents and kids
+// Login - supports both PIN (kids) and password (adults)
 router.post('/login', async (req, res) => {
   try {
     const { username, pin } = req.body;
@@ -135,47 +163,73 @@ router.post('/login', async (req, res) => {
     console.log(`[DEBUG] Login attempt for username: ${username}`);
 
     if (!username || !pin) {
-      return res.status(400).json({ error: 'Username and PIN are required' });
+      return res.status(400).json({ error: 'Username and password/PIN are required' });
     }
 
-    // Find profile by name (parent OR child)
+    // Find profile by username OR name (backwards compatibility)
     const profile: any = db.prepare(
-      'SELECT * FROM profiles WHERE name = ?'
-    ).get(username);
+      'SELECT * FROM profiles WHERE username = ? OR LOWER(name) = LOWER(?)'
+    ).get(username, username);
 
     if (!profile) {
       console.log(`[DEBUG] Profile not found for username: ${username}`);
-      return res.status(401).json({ error: 'Invalid username or PIN' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (!profile.pin) {
-      console.log(`[DEBUG] Profile has no PIN set`);
-      return res.status(401).json({ error: 'Invalid username or PIN' });
+    console.log(`[DEBUG] Profile found: ${profile.name} (${profile.type})`);
+
+    // For children: verify PIN
+    // For adults (parent/teacher/admin): verify password (if set) or PIN (backwards compat)
+    let isValid = false;
+
+    if (profile.type === 'child') {
+      // Kids use PIN
+      if (!profile.pin) {
+        console.log(`[DEBUG] Child profile has no PIN set`);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      isValid = await bcrypt.compare(pin, profile.pin);
+      console.log(`[DEBUG] PIN verification for child: ${isValid}`);
+    } else {
+      // Adults use password (preferred) or PIN (backwards compatibility)
+      if (profile.password) {
+        // Password is set - use it
+        isValid = await bcrypt.compare(pin, profile.password);
+        console.log(`[DEBUG] Password verification for ${profile.type}: ${isValid}`);
+      } else if (profile.pin) {
+        // Fallback to PIN for backwards compatibility
+        isValid = await bcrypt.compare(pin, profile.pin);
+        console.log(`[DEBUG] PIN verification for ${profile.type} (backwards compat): ${isValid}`);
+      } else {
+        console.log(`[DEBUG] ${profile.type} profile has no password or PIN set`);
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
     }
 
-    console.log(`[DEBUG] Profile found. PIN is hashed: ${profile.pin.startsWith('$2')}`);
-
-    // Verify PIN using bcrypt (secure comparison)
-    const isValidPin = await bcrypt.compare(pin, profile.pin);
-
-    if (!isValidPin) {
-      console.log(`[DEBUG] PIN verification failed - bcrypt compare returned false`);
-      return res.status(401).json({ error: 'Invalid username or PIN' });
+    if (!isValid) {
+      console.log(`[DEBUG] Credential verification failed`);
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    console.log(`[DEBUG] PIN verification successful!`);
+    console.log(`[DEBUG] Login successful for ${profile.name}!`);
 
-    // Return profile info
+    // Return profile info (exclude sensitive data)
     res.json({
       success: true,
       profile: {
         id: profile.id,
         name: profile.name,
         type: profile.type,
-        avatar: profile.avatar
+        avatar: profile.avatar,
+        age: profile.age,
+        gender: profile.gender,
+        parent_id: profile.parent_id,
+        ai_enabled: profile.ai_enabled,
+        username: profile.username
       }
     });
   } catch (error: any) {
+    console.error('[ERROR] Login failed:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -228,6 +282,60 @@ router.post('/:id/set-pin', (req, res) => {
 
     res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reset password/PIN (admin can reset anyone, parents can reset their kids)
+router.post('/:id/reset-password', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword, newPin, adminId, parentId } = req.body;
+
+    // Get the profile being reset
+    const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Authorization check
+    if (adminId) {
+      // Verify admin has permission
+      const admin: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(adminId);
+      if (!admin || admin.type !== 'admin') {
+        return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+      }
+    } else if (parentId) {
+      // Verify parent owns this child
+      const parent: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(parentId);
+      if (!parent || (parent.type !== 'parent' && parent.type !== 'admin')) {
+        return res.status(403).json({ error: 'Unauthorized: Parent/Admin access required' });
+      }
+      if (profile.parent_id !== parseInt(parentId)) {
+        return res.status(403).json({ error: 'Unauthorized: You can only reset your own children\'s credentials' });
+      }
+    } else {
+      return res.status(403).json({ error: 'Unauthorized: Admin or parent ID required' });
+    }
+
+    // Reset password or PIN based on profile type
+    if (profile.type === 'child' && newPin) {
+      const hashedPin = await bcrypt.hash(newPin, SALT_ROUNDS);
+      db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(hashedPin, id);
+      console.log(`[DEBUG] PIN reset for child ${profile.name} by ${adminId ? 'admin' : 'parent'}`);
+      res.json({ message: 'PIN reset successfully' });
+    } else if (profile.type !== 'child' && newPassword) {
+      const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      db.prepare('UPDATE profiles SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(hashedPassword, id);
+      console.log(`[DEBUG] Password reset for ${profile.type} ${profile.name} by admin`);
+      res.json({ message: 'Password reset successfully' });
+    } else {
+      return res.status(400).json({ error: 'Invalid reset request' });
+    }
+  } catch (error: any) {
+    console.error('[ERROR] Password/PIN reset failed:', error);
     res.status(500).json({ error: error.message });
   }
 });

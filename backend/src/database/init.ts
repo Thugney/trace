@@ -488,6 +488,43 @@ export function initDatabase() {
     console.error('Migration error (PIN encryption):', error.message);
   }
 
+  // Migration: Add password column for adults (separate from PIN for kids)
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasPassword = profileInfo.some((col: any) => col.name === 'password');
+
+    if (!hasPassword) {
+      console.log('🔄 Migrating profiles table: adding password column for adult authentication...');
+      db.prepare('ALTER TABLE profiles ADD COLUMN password TEXT').run();
+      console.log('✅ Migration completed: password column added');
+      console.log('ℹ️  Note: Adults (parent/teacher/admin) should use password field, kids use PIN field');
+    }
+  } catch (error: any) {
+    console.error('Migration error (password column):', error.message);
+  }
+
+  // Migration: Add username column for unique login identifiers
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasUsername = profileInfo.some((col: any) => col.name === 'username');
+
+    if (!hasUsername) {
+      console.log('🔄 Migrating profiles table: adding username column for login...');
+      db.prepare('ALTER TABLE profiles ADD COLUMN username TEXT UNIQUE').run();
+
+      // Auto-generate usernames from names for existing users (lowercase, no spaces)
+      const existingProfiles: any[] = db.prepare('SELECT id, name FROM profiles').all();
+      for (const profile of existingProfiles) {
+        const username = profile.name.toLowerCase().replace(/\s+/g, '');
+        db.prepare('UPDATE profiles SET username = ? WHERE id = ?').run(username, profile.id);
+      }
+
+      console.log('✅ Migration completed: username column added and auto-generated for existing users');
+    }
+  } catch (error: any) {
+    console.error('Migration error (username column):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

@@ -2,10 +2,12 @@ export interface Profile {
   id: number;
   name: string;
   type: 'admin' | 'parent' | 'child' | 'teacher';
+  username?: string; // For login (adults)
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;
-  pin?: string;
+  pin?: string; // For kids (4-6 digits)
+  password?: string; // For adults (secure password)
   settings?: string;
   created_at: string;
   updated_at: string;
