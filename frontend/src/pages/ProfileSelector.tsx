@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { User, Lock, LogOut } from 'lucide-react';
 import { profilesAPI } from '../services/api';
@@ -16,6 +16,11 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(profiles.length === 0);
+
+  // Update showOnboarding when profiles change
+  useEffect(() => {
+    setShowOnboarding(profiles.length === 0);
+  }, [profiles]);
 
   // If admin is logged in, show ALL profiles
   // If parent is logged in, show only their profile and their kids

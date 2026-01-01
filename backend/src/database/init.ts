@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import bcrypt from 'bcrypt';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../../data/family.db');
 
@@ -461,6 +462,30 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (ai_enabled):', error.message);
+  }
+
+  // Migration: Hash any plain text PINs for security
+  try {
+    const profiles: any[] = db.prepare('SELECT id, name, pin FROM profiles WHERE pin IS NOT NULL').all();
+    let hashedCount = 0;
+
+    for (const profile of profiles) {
+      // Check if PIN is plain text (not bcrypt hashed)
+      const isPlainText = !profile.pin.startsWith('$2');
+
+      if (isPlainText) {
+        console.log(`🔐 Encrypting plain text PIN for ${profile.name}...`);
+        const hashedPin = bcrypt.hashSync(profile.pin, 10);
+        db.prepare('UPDATE profiles SET pin = ? WHERE id = ?').run(hashedPin, profile.id);
+        hashedCount++;
+      }
+    }
+
+    if (hashedCount > 0) {
+      console.log(`✅ Migration completed: Encrypted ${hashedCount} plain text PINs with bcrypt`);
+    }
+  } catch (error: any) {
+    console.error('Migration error (PIN encryption):', error.message);
   }
 
   console.log('✅ Database initialized successfully');

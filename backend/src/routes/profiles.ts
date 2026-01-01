@@ -1,14 +1,19 @@
 import express from 'express';
 import db from '../database/init';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
+const SALT_ROUNDS = 10;
 
 // Get all profiles
 router.get('/', (req, res) => {
   try {
+    console.log('[DEBUG] GET /api/profiles - Fetching all profiles');
     const profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
+    console.log(`[DEBUG] Found ${profiles.length} profiles`);
     res.json(profiles);
   } catch (error: any) {
+    console.error('[ERROR] GET /api/profiles failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -27,7 +32,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create profile
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, type, age, gender, avatar, settings, pin, parent_id } = req.body;
 
@@ -40,10 +45,13 @@ router.post('/', (req, res) => {
       console.warn('Creating child profile without parent_id - child will not be linked to a parent');
     }
 
+    // Hash PIN if provided (security: never store plain text PINs)
+    const hashedPin = pin ? await bcrypt.hash(pin, SALT_ROUNDS) : null;
+
     const result = db.prepare(`
       INSERT INTO profiles (name, type, age, gender, avatar, pin, settings, parent_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, pin || null, JSON.stringify(settings || {}), parent_id || null);
+    `).run(name, type, age, gender, avatar || null, hashedPin, JSON.stringify(settings || {}), parent_id || null);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
@@ -53,7 +61,7 @@ router.post('/', (req, res) => {
 });
 
 // Update profile
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { name, age, gender, avatar, settings, pin } = req.body;
     const { id } = req.params;
@@ -82,8 +90,10 @@ router.put('/:id', (req, res) => {
       values.push(JSON.stringify(settings));
     }
     if (pin !== undefined) {
+      // Hash PIN if provided (security: never store plain text PINs)
+      const hashedPin = pin ? await bcrypt.hash(pin, SALT_ROUNDS) : null;
       updates.push('pin = ?');
-      values.push(pin || null);
+      values.push(hashedPin);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');
@@ -118,9 +128,11 @@ router.delete('/:id', (req, res) => {
 });
 
 // Login (username + PIN) - works for both parents and kids
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, pin } = req.body;
+
+    console.log(`[DEBUG] Login attempt for username: ${username}`);
 
     if (!username || !pin) {
       return res.status(400).json({ error: 'Username and PIN are required' });
@@ -132,13 +144,26 @@ router.post('/login', (req, res) => {
     ).get(username);
 
     if (!profile) {
+      console.log(`[DEBUG] Profile not found for username: ${username}`);
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
 
-    // Verify PIN
-    if (!profile.pin || profile.pin !== pin) {
+    if (!profile.pin) {
+      console.log(`[DEBUG] Profile has no PIN set`);
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
+
+    console.log(`[DEBUG] Profile found. PIN is hashed: ${profile.pin.startsWith('$2')}`);
+
+    // Verify PIN using bcrypt (secure comparison)
+    const isValidPin = await bcrypt.compare(pin, profile.pin);
+
+    if (!isValidPin) {
+      console.log(`[DEBUG] PIN verification failed - bcrypt compare returned false`);
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    console.log(`[DEBUG] PIN verification successful!`);
 
     // Return profile info
     res.json({
