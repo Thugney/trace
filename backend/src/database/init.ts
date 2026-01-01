@@ -345,6 +345,21 @@ export function initDatabase() {
     )
   `);
 
+  // Teacher-Parent Messages
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL,
+      recipient_id INTEGER NOT NULL,
+      subject TEXT,
+      message TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (sender_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (recipient_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
   // Insert default school classes
   const defaultClasses = [
     { name: 'First Class', description: 'Youngest students learning basics', age_min: 5, age_max: 7 },
@@ -486,6 +501,48 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (PIN encryption):', error.message);
+  }
+
+  // Migration: Add password column for adults (separate from PIN for kids)
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasPassword = profileInfo.some((col: any) => col.name === 'password');
+
+    if (!hasPassword) {
+      console.log('🔄 Migrating profiles table: adding password column for adult authentication...');
+      db.prepare('ALTER TABLE profiles ADD COLUMN password TEXT').run();
+      console.log('✅ Migration completed: password column added');
+      console.log('ℹ️  Note: Adults (parent/teacher/admin) should use password field, kids use PIN field');
+    }
+  } catch (error: any) {
+    console.error('Migration error (password column):', error.message);
+  }
+
+  // Migration: Add username column for unique login identifiers
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasUsername = profileInfo.some((col: any) => col.name === 'username');
+
+    if (!hasUsername) {
+      console.log('🔄 Migrating profiles table: adding username column for login...');
+
+      // Step 1: Add column without UNIQUE constraint (SQLite limitation)
+      db.prepare('ALTER TABLE profiles ADD COLUMN username TEXT').run();
+
+      // Step 2: Auto-generate usernames from names for existing users (lowercase, no spaces)
+      const existingProfiles: any[] = db.prepare('SELECT id, name FROM profiles').all();
+      for (const profile of existingProfiles) {
+        const username = profile.name.toLowerCase().replace(/\s+/g, '');
+        db.prepare('UPDATE profiles SET username = ? WHERE id = ?').run(username, profile.id);
+      }
+
+      // Step 3: Create unique index on username column
+      db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username)').run();
+
+      console.log('✅ Migration completed: username column added and auto-generated for existing users');
+    }
+  } catch (error: any) {
+    console.error('Migration error (username column):', error.message);
   }
 
   console.log('✅ Database initialized successfully');

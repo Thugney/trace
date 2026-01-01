@@ -12,7 +12,8 @@ import type {
   Reward,
   AIConversation,
   Note,
-  MonthlyGoal
+  MonthlyGoal,
+  Message
 } from '../types';
 import type {
   SchoolClass,
@@ -33,6 +34,20 @@ const api = axios.create({
   }
 });
 
+// Request interceptor to add profile ID to all authenticated requests
+api.interceptors.request.use((config) => {
+  // Get current profile ID from localStorage
+  const currentProfileId = localStorage.getItem('currentProfileId');
+
+  if (currentProfileId) {
+    config.headers['x-profile-id'] = currentProfileId;
+  }
+
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // Profiles
 export const profilesAPI = {
   getAll: () => api.get<Profile[]>('/profiles'),
@@ -42,7 +57,8 @@ export const profilesAPI = {
   delete: (id: number) => api.delete(`/profiles/${id}`),
   getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
   verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
-  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin })
+  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin }),
+  resetPassword: (profileId: number, newPin: string, parentId: number) => api.post<{ message: string }>(`/profiles/${profileId}/reset-password`, { newPin, parentId })
 };
 
 // Diet
@@ -219,6 +235,26 @@ export const schoolAPI = {
     api.get<StudentProgress>(`/school/students/${studentId}/progress`),
   getAllStudentsProgress: () =>
     api.get<StudentProgress[]>('/school/students/all/progress')
+};
+
+// Messages API
+export const messagesAPI = {
+  sendMessage: (sender_id: number, recipient_id: number, message: string, subject?: string) =>
+    api.post<Message>('/messages', { sender_id, recipient_id, message, subject }),
+  getInbox: (userId: number, unreadOnly = false) =>
+    api.get<Message[]>(`/messages/inbox/${userId}${unreadOnly ? '?unread_only=true' : ''}`),
+  getSent: (userId: number) =>
+    api.get<Message[]>(`/messages/sent/${userId}`),
+  markAsRead: (messageId: number) =>
+    api.put<Message>(`/messages/${messageId}/read`, {}),
+  getUnreadCount: (userId: number) =>
+    api.get<{ count: number }>(`/messages/unread-count/${userId}`),
+  getConversation: (userId1: number, userId2: number) =>
+    api.get<Message[]>(`/messages/conversation/${userId1}/${userId2}`),
+  deleteMessage: (messageId: number) =>
+    api.delete(`/messages/${messageId}`),
+  getParents: () =>
+    api.get<Profile[]>('/messages/parents')
 };
 
 export default api;

@@ -4,7 +4,7 @@ import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
 import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle } from 'lucide-react';
 
 export default function Settings() {
-  const { currentProfile, isParent, profiles, refreshProfiles } = useProfile();
+  const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -15,6 +15,16 @@ export default function Settings() {
   const [aiSettings, setAiSettings] = useState<Record<number, any>>({});
   const [expandedAIProfile, setExpandedAIProfile] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // Password management state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Reset PIN modal state
+  const [showResetPinModal, setShowResetPinModal] = useState(false);
+  const [resetPinProfile, setResetPinProfile] = useState<any>(null);
+  const [resetPin, setResetPin] = useState('');
+  const [confirmResetPin, setConfirmResetPin] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -112,6 +122,64 @@ export default function Settings() {
     }
   };
 
+  const handleSetPassword = async () => {
+    if (!currentProfile) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await profilesAPI.update(currentProfile.id, { password: newPassword });
+      setSuccessMessage('Password updated successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+      await refreshProfiles();
+    } catch (error: any) {
+      console.error('Failed to set password:', error);
+      alert(error.response?.data?.error || 'Failed to set password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetChildPin = async () => {
+    if (!currentProfile || !resetPinProfile) return;
+
+    if (!resetPin || resetPin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (resetPin !== confirmResetPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Use the reset-password endpoint with parentId
+      await profilesAPI.resetPassword(resetPinProfile.id, resetPin, currentProfile.id);
+      setSuccessMessage(`PIN reset successfully for ${resetPinProfile.name}!`);
+      setShowResetPinModal(false);
+      setResetPinProfile(null);
+      setResetPin('');
+      setConfirmResetPin('');
+    } catch (error: any) {
+      console.error('Failed to reset PIN:', error);
+      alert(error.response?.data?.error || 'Failed to reset PIN');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!currentProfile) return;
@@ -187,7 +255,7 @@ export default function Settings() {
     return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
   };
 
-  if (!isParent) {
+  if (currentProfile?.type === 'child') {
     // Kids only see limited settings
     return (
       <div className="max-w-2xl mx-auto">
@@ -199,10 +267,11 @@ export default function Settings() {
         <div className="card">
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="child-name" className="block text-sm font-medium text-gray-700 mb-1">
                 Name
               </label>
               <input
+                id="child-name"
                 type="text"
                 name="name"
                 defaultValue={currentProfile?.name}
@@ -212,10 +281,11 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="child-avatar" className="block text-sm font-medium text-gray-700 mb-1">
                 Avatar (Emoji)
               </label>
               <input
+                id="child-avatar"
                 type="text"
                 name="avatar"
                 defaultValue={currentProfile?.avatar}
@@ -277,10 +347,11 @@ export default function Settings() {
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="parent-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name
                 </label>
                 <input
+                  id="parent-name"
                   type="text"
                   name="name"
                   defaultValue={currentProfile?.name}
@@ -290,10 +361,11 @@ export default function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="parent-avatar" className="block text-sm font-medium text-gray-700 mb-1">
                   Avatar (Emoji)
                 </label>
                 <input
+                  id="parent-avatar"
                   type="text"
                   name="avatar"
                   defaultValue={currentProfile?.avatar}
@@ -309,7 +381,66 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Grok AI Configuration */}
+          {/* Password Management - Parents, Teachers, and Admin */}
+          {(isParent || isAdmin || currentProfile?.type === 'teacher') && (
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Lock className="mr-2 text-orange-600" size={20} />
+              Password Management
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Set or change your password for secure account access.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password *
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="input"
+                  placeholder="Enter new password (min 6 characters)"
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password *
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="input"
+                  placeholder="Re-enter new password"
+                  minLength={6}
+                />
+              </div>
+
+              <button onClick={handleSetPassword} disabled={saving} className="btn btn-primary">
+                {saving ? <div className="spinner"></div> : <Save size={20} className="mr-2" />}
+                Set Password
+              </button>
+
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <Shield className="inline mr-1" size={14} />
+                  Password will be securely hashed and stored. Use it to log in instead of PIN.
+                </p>
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* Grok AI Configuration - Admin only */}
+          {isAdmin && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4">Grok AI Configuration</h2>
 
@@ -328,10 +459,11 @@ export default function Settings() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="grok-api-key" className="block text-sm font-medium text-gray-700 mb-1">
                   Grok API Key
                 </label>
                 <input
+                  id="grok-api-key"
                   type="password"
                   value={grokApiKey}
                   onChange={e => setGrokApiKey(e.target.value)}
@@ -357,19 +489,21 @@ export default function Settings() {
               </button>
             </div>
           </div>
+          )}
 
-          {/* AI Parental Controls */}
+          {/* AI Parental Controls - Admin only */}
+          {isAdmin && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Brain className="mr-2 text-purple-600" size={20} />
-              AI Parental Controls
+              AI Controls (Admin Only)
             </h2>
 
             <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
               <div className="flex items-start">
                 <AlertTriangle className="text-purple-600 mr-3 mt-0.5 flex-shrink-0" size={20} />
                 <div className="text-sm text-purple-800">
-                  <p className="font-semibold mb-1">Control AI behavior for each child</p>
+                  <p className="font-semibold mb-1">Admin-only: Control AI behavior for each child</p>
                   <p>Set strict mode, message limits, and content filtering to ensure safe and educational AI interactions.</p>
                 </div>
               </div>
@@ -537,8 +671,10 @@ Context: Tasks, Points, Level, Progress`}
               </div>
             )}
           </div>
+          )}
 
-          {/* Parent PIN */}
+          {/* Parent PIN - Parent and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Lock className="mr-2" size={20} />
@@ -552,10 +688,11 @@ Context: Tasks, Points, Level, Progress`}
             <div className="space-y-4">
               {settings.parent_pin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="current-pin" className="block text-sm font-medium text-gray-700 mb-1">
                     Current PIN
                   </label>
                   <input
+                    id="current-pin"
                     type="password"
                     value={parentPin}
                     onChange={e => setParentPin(e.target.value)}
@@ -566,10 +703,11 @@ Context: Tasks, Points, Level, Progress`}
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="new-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   {settings.parent_pin ? 'New PIN' : 'Set PIN'}
                 </label>
                 <input
+                  id="new-pin"
                   type="password"
                   value={newParentPin}
                   onChange={e => setNewParentPin(e.target.value)}
@@ -585,8 +723,10 @@ Context: Tasks, Points, Level, Progress`}
               </button>
             </div>
           </div>
+          )}
 
-          {/* Family Profiles */}
+          {/* Family Profiles - Parent and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Family Profiles</h2>
@@ -610,7 +750,7 @@ Context: Tasks, Points, Level, Progress`}
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
+                        {profile.type === 'parent' ? 'Parent' : profile.type === 'teacher' ? 'Teacher' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
@@ -622,11 +762,56 @@ Context: Tasks, Points, Level, Progress`}
                       </span>
                     )}
                     <span className="badge badge-primary">{profile.type}</span>
+
+                    {/* Parent can reset their children's PINs */}
+                    {isParent && profile.type === 'child' && profile.parent_id === currentProfile?.id && (
+                      <button
+                        onClick={() => {
+                          setResetPinProfile(profile);
+                          setShowResetPinModal(true);
+                        }}
+                        className="btn btn-sm btn-secondary text-xs"
+                        title="Reset child's PIN"
+                      >
+                        Reset PIN
+                      </button>
+                    )}
+
+                    {/* Admin can edit and delete all profiles (except themselves) */}
+                    {isAdmin && profile.id !== currentProfile?.id && (
+                      <>
+                        <button
+                          onClick={() => alert('Edit functionality coming soon')}
+                          className="btn btn-sm btn-secondary text-xs"
+                          title="Edit profile"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to delete ${profile.name}? This action cannot be undone.`)) {
+                              try {
+                                await profilesAPI.delete(profile.id);
+                                setSuccessMessage(`${profile.name} deleted successfully`);
+                                await refreshProfiles();
+                              } catch (error: any) {
+                                alert(error.response?.data?.error || 'Failed to delete profile');
+                              }
+                            }
+                          }}
+                          className="btn btn-sm bg-red-500 hover:bg-red-600 text-white text-xs"
+                          title="Delete profile"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+          )}
 
           {/* About */}
           <div className="card bg-primary-50 border border-primary-200">
@@ -644,8 +829,8 @@ Context: Tasks, Points, Level, Progress`}
         </div>
       )}
 
-      {/* Add Profile Modal */}
-      {showAddProfile && (
+      {/* Add Profile Modal - Parent and admin only */}
+      {showAddProfile && (isParent || isAdmin) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
@@ -660,20 +845,32 @@ Context: Tasks, Points, Level, Progress`}
 
             <form onSubmit={handleAddProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-type" className="block text-sm font-medium text-gray-700 mb-1">
                   Profile Type *
                 </label>
-                <select name="profileType" required className="input">
+                <select id="profile-type" name="profileType" required className="input">
                   <option value="child">Child</option>
-                  <option value="parent">Parent</option>
+                  {isAdmin && (
+                    <>
+                      <option value="parent">Parent</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                    </>
+                  )}
                 </select>
+                {isAdmin && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Admin can create any profile type. Parents can only create children.
+                  </p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name *
                 </label>
                 <input
+                  id="profile-name"
                   type="text"
                   name="name"
                   required
@@ -683,10 +880,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-age" className="block text-sm font-medium text-gray-700 mb-1">
                   Age
                 </label>
                 <input
+                  id="profile-age"
                   type="number"
                   name="age"
                   min="1"
@@ -697,10 +895,10 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-gender" className="block text-sm font-medium text-gray-700 mb-1">
                   Gender
                 </label>
-                <select name="gender" className="input">
+                <select id="profile-gender" name="gender" className="input">
                   <option value="">Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -709,10 +907,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   Create PIN *
                 </label>
                 <input
+                  id="profile-pin"
                   type="password"
                   name="pin"
                   required
@@ -729,10 +928,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm PIN *
                 </label>
                 <input
+                  id="profile-confirm-pin"
                   type="password"
                   name="confirmPin"
                   required
@@ -758,6 +958,94 @@ Context: Tasks, Points, Level, Progress`}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Child PIN Modal - Parent only */}
+      {showResetPinModal && resetPinProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Reset PIN for {resetPinProfile.name}</h2>
+              <button
+                onClick={() => {
+                  setShowResetPinModal(false);
+                  setResetPinProfile(null);
+                  setResetPin('');
+                  setConfirmResetPin('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <Shield className="inline mr-1" size={14} />
+                  You are resetting the PIN for your child. They will need this new PIN to log in.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="reset-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                  New PIN *
+                </label>
+                <input
+                  id="reset-pin"
+                  type="password"
+                  value={resetPin}
+                  onChange={e => setResetPin(e.target.value)}
+                  className="input"
+                  placeholder="Enter new 4-8 digit PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  minLength={4}
+                  maxLength={8}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-reset-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm PIN *
+                </label>
+                <input
+                  id="confirm-reset-pin"
+                  type="password"
+                  value={confirmResetPin}
+                  onChange={e => setConfirmResetPin(e.target.value)}
+                  className="input"
+                  placeholder="Re-enter new PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  minLength={4}
+                  maxLength={8}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleResetChildPin}
+                  disabled={saving}
+                  className="btn btn-primary flex-1"
+                >
+                  {saving ? <div className="spinner"></div> : 'Reset PIN'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowResetPinModal(false);
+                    setResetPinProfile(null);
+                    setResetPin('');
+                    setConfirmResetPin('');
+                  }}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

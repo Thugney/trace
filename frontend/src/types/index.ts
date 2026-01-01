@@ -2,10 +2,12 @@ export interface Profile {
   id: number;
   name: string;
   type: 'admin' | 'parent' | 'child' | 'teacher';
+  username?: string; // For login (adults)
   age?: number;
   gender?: 'male' | 'female' | 'other';
   avatar?: string;
-  pin?: string;
+  pin?: string; // For kids (4-6 digits)
+  password?: string; // For adults (secure password)
   settings?: string;
   created_at: string;
   updated_at: string;
@@ -182,4 +184,20 @@ export interface NutritionSummary {
     total_fat: number;
   };
   goals?: DietGoal | null;
+}
+
+export interface Message {
+  id: number;
+  sender_id: number;
+  recipient_id: number;
+  subject?: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  sender_name?: string;
+  sender_type?: string;
+  sender_avatar?: string;
+  recipient_name?: string;
+  recipient_type?: string;
+  recipient_avatar?: string;
 }

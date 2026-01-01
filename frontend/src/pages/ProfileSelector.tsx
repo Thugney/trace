@@ -22,9 +22,16 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
     setShowOnboarding(profiles.length === 0);
   }, [profiles]);
 
+  // SECURITY: Only parents should see this screen
+  // Kids, teachers, and admin go directly to their dashboard (handled in App.tsx)
+  if (parentProfile && parentProfile.type !== 'parent' && parentProfile.type !== 'admin') {
+    console.error('Security: Non-parent user should not see ProfileSelector');
+    setCurrentProfile(parentProfile); // Set them directly
+    return null;
+  }
+
   // If admin is logged in, show ALL profiles
   // If parent is logged in, show only their profile and their kids
-  // Otherwise show all profiles (backward compatibility)
   const isAdmin = parentProfile?.type === 'admin';
   const loggedInParent = parentProfile && parentProfile.type === 'parent'
     ? profiles.find(p => p.id === parentProfile.id && p.type === 'parent')
@@ -37,13 +44,15 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
     ? [loggedInParent]
     : profiles.filter(p => p.type === 'parent');
 
+  // SECURITY FIX: Parents ONLY see their own kids (filtered by parent_id)
   const kids = isAdmin
     ? profiles.filter(p => p.type === 'child')
     : loggedInParent
     ? profiles.filter(p => p.type === 'child' && p.parent_id === loggedInParent.id)
-    : profiles.filter(p => p.type === 'child');
+    : []; // If not admin and no logged in parent, show NO kids for security
 
-  const teachers = profiles.filter(p => p.type === 'teacher');
+  // Teachers should NEVER be shown in ProfileSelector (they don't need profile selection)
+  const teachers = isAdmin ? profiles.filter(p => p.type === 'teacher') : [];
 
   const handleLogout = () => {
     localStorage.removeItem('family_auth');
@@ -52,13 +61,19 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
   };
 
   const handleProfileClick = (profile: Profile) => {
+    // If clicking the already-authenticated parent profile, set directly (no PIN needed)
+    if (parentProfile && profile.id === parentProfile.id) {
+      setCurrentProfile(profile);
+      return;
+    }
+
     // If profile has no PIN, allow direct access (backward compatibility)
     if (!profile.pin) {
       setCurrentProfile(profile);
       return;
     }
 
-    // Show PIN prompt
+    // Show PIN prompt for children
     setSelectedProfile(profile);
     setPin('');
     setError('');
@@ -157,7 +172,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
         <div className="text-center mb-12">
           <div className="flex justify-between items-center mb-4">
             <div className="flex-1"></div>
-            <h1 className="text-4xl font-bold text-gray-900 flex-1">Family PWA</h1>
+            <h1 className="text-4xl font-bold text-gray-900 flex-1">Family Learning Hub</h1>
             <div className="flex-1 flex justify-end">
               {parentProfile && (
                 <button
@@ -176,11 +191,11 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
           </p>
         </div>
 
-        {/* Parents & Admins */}
+        {/* Parents & Admins (only show if admin) */}
         {parents.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">
-              {isAdmin ? 'Parents & Admins' : 'Parents'}
+              {isAdmin ? 'Parents & Admins' : 'Your Account'}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {parents.map(profile => (
@@ -232,10 +247,12 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
           </div>
         )}
 
-        {/* Kids */}
+        {/* Kids - SECURITY: Only show parent's own kids */}
         {kids.length > 0 && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Kids</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              {isAdmin ? 'All Children' : 'Your Children'}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {kids.map(profile => (
                 <button

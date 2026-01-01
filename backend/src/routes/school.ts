@@ -1,5 +1,7 @@
-import express from 'express';
+import express, { Response } from 'express';
 import db from '../database/init';
+import { authenticate, requireRole, verifyParentChild, optionalAuth, teacherOnly, parentOrAdmin, adminOnly } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -58,23 +60,16 @@ router.get('/parents/:parentId/children', (req, res) => {
   }
 });
 
-// Enroll student in class
-router.post('/enrollments', (req, res) => {
+// Enroll student in class (parents and admin only, with parent-child verification)
+router.post('/enrollments', parentOrAdmin, verifyParentChild('student_id'), (req: AuthRequest, res: Response) => {
   try {
-    const { student_id, class_id, parent_id } = req.body;
+    const { student_id, class_id } = req.body;
 
     if (!student_id || !class_id) {
       return res.status(400).json({ error: 'student_id and class_id are required' });
     }
 
-    // If parent_id is provided, verify the child belongs to this parent
-    if (parent_id) {
-      const child: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(student_id);
-      if (!child || child.parent_id !== parent_id) {
-        return res.status(403).json({ error: 'You can only enroll your own children' });
-      }
-    }
-
+    // Middleware already verified parent-child relationship if parent
     const result = db.prepare(`
       INSERT INTO school_enrollments (student_id, class_id)
       VALUES (?, ?)
@@ -105,8 +100,8 @@ router.get('/students/:studentId/enrollments', (req, res) => {
   }
 });
 
-// Create assignment
-router.post('/assignments', (req, res) => {
+// Create assignment (teachers only)
+router.post('/assignments', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const {
       class_id,
@@ -160,7 +155,10 @@ router.get('/students/:studentId/assignments', (req, res) => {
   try {
     const assignments = db.prepare(`
       SELECT DISTINCT sa.*, p.name as teacher_name, sc.name as class_name,
-             ss.id as submission_id, ss.status, ss.submitted_at
+             ss.id as submission_id,
+             CASE WHEN ss.id IS NOT NULL THEN 1 ELSE 0 END as has_submitted,
+             ss.status as submission_status,
+             ss.submitted_at
       FROM school_assignments sa
       JOIN school_classes sc ON sa.class_id = sc.id
       JOIN school_enrollments e ON sc.id = e.class_id
@@ -191,8 +189,8 @@ router.get('/assignments', (req, res) => {
   }
 });
 
-// Update assignment
-router.put('/assignments/:id', (req, res) => {
+// Update assignment (teachers only)
+router.put('/assignments/:id', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const { title, description, type, youtube_link, attachment_url, due_date } = req.body;
     const { id } = req.params;
@@ -241,8 +239,8 @@ router.put('/assignments/:id', (req, res) => {
   }
 });
 
-// Delete assignment
-router.delete('/assignments/:id', (req, res) => {
+// Delete assignment (teachers only)
+router.delete('/assignments/:id', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
     const result = db.prepare('DELETE FROM school_assignments WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
@@ -254,8 +252,8 @@ router.delete('/assignments/:id', (req, res) => {
   }
 });
 
-// Submit assignment
-router.post('/submissions', (req, res) => {
+// Submit assignment (students and parents only, with verification)
+router.post('/submissions', authenticate, requireRole(['child', 'parent']), verifyParentChild('student_id'), (req: AuthRequest, res) => {
   try {
     const { assignment_id, student_id, notes } = req.body;
 

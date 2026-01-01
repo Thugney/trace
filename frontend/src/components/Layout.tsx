@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Shield } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -9,39 +9,78 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { currentProfile, setCurrentProfile, isParent } = useProfile();
+  const { currentProfile, setCurrentProfile } = useProfile();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
-    { path: '/diet', icon: Utensils, label: 'Diet', showForKids: false, showForTeachers: false, showForParents: true, showForAdmin: true },
-    { path: '/tasks', icon: CheckSquare, label: 'Tasks', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
-    { path: '/school', icon: GraduationCap, label: 'School', showForKids: true, showForTeachers: true, showForParents: true, showForAdmin: true },
-    { path: '/notes', icon: StickyNote, label: 'Notes', showForKids: true, showForTeachers: false, showForParents: true, showForAdmin: true },
-    { path: '/ai', icon: Bot, label: 'AI Assistant', showForKids: true, showForTeachers: false, showForParents: false, showForAdmin: false },
-    { path: '/admin', icon: Shield, label: 'Admin Panel', showForKids: false, showForTeachers: false, showForParents: false, showForAdmin: true },
-    { path: '/settings', icon: Settings, label: 'Settings', showForKids: false, showForTeachers: false, showForParents: true, showForAdmin: true }
-  ];
+  // Role-specific navigation items
+  const getNavItems = () => {
+    if (!currentProfile) return [];
 
-  const isTeacher = currentProfile?.type === 'teacher';
-  const isAdmin = currentProfile?.type === 'admin';
-  const hasAIAccess = currentProfile?.ai_enabled === 1;
+    const { type } = currentProfile;
 
-  // Filter navigation items based on role
-  let visibleNavItems = isAdmin
-    ? navItems.filter(item => item.showForAdmin)
-    : isTeacher
-    ? navItems.filter(item => item.showForTeachers)
-    : isParent
-    ? navItems.filter(item => item.showForParents)
-    : navItems.filter(item => item.showForKids);
+    if (type === 'admin') {
+      return [
+        { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
+        { path: '/admin', icon: Users, label: 'User Management' },
+        { path: '/school', icon: GraduationCap, label: 'School System' },
+        { path: '/settings', icon: Settings, label: 'Settings' }
+      ];
+    }
 
-  // Further filter AI Assistant based on ai_enabled flag for children
-  if (currentProfile?.type === 'child' && !hasAIAccess) {
-    visibleNavItems = visibleNavItems.filter(item => item.path !== '/ai');
-  }
+    if (type === 'parent') {
+      return [
+        { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
+        { path: '/diet', icon: Utensils, label: 'Family Diet' },
+        { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+        { path: '/school', icon: GraduationCap, label: 'School' },
+        { path: '/messages', icon: Mail, label: 'Messages' },
+        { path: '/notes', icon: StickyNote, label: 'Notes' },
+        { path: '/settings', icon: Settings, label: 'Settings' }
+      ];
+    }
+
+    if (type === 'teacher') {
+      return [
+        { path: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
+        { path: '/school', icon: GraduationCap, label: 'My Classes' },
+        { path: '/messages', icon: Mail, label: 'Messages' },
+        { path: '/settings', icon: Settings, label: 'Settings' }
+      ];
+    }
+
+    if (type === 'child') {
+      const items = [
+        { path: '/child/dashboard', icon: Home, label: 'Home' },
+        { path: '/tasks', icon: CheckSquare, label: 'My Tasks' },
+        { path: '/school', icon: GraduationCap, label: 'School' },
+        { path: '/notes', icon: StickyNote, label: 'Notes' }
+      ];
+
+      // Add AI if enabled for this child
+      if (currentProfile.ai_enabled === 1) {
+        items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });
+      }
+
+      return items;
+    }
+
+    return [];
+  };
+
+  const visibleNavItems = getNavItems();
+
+  const handleLogout = () => {
+    // Clear all authentication
+    localStorage.removeItem('family_auth');
+    localStorage.removeItem('parent_profile');
+    localStorage.removeItem('currentProfileId');
+    setCurrentProfile(null);
+    navigate('/');
+    window.location.reload();
+  };
 
   const getThemeClass = () => {
     if (!currentProfile || currentProfile.type === 'parent') return '';
@@ -58,7 +97,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <h1 className="text-lg sm:text-xl font-bold text-primary-600">Family PWA</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-primary-600">Family Learning Hub</h1>
               {currentProfile && (
                 <div className="hidden sm:flex items-center space-x-2 text-sm">
                   <span className="text-2xl">{currentProfile.avatar || '👤'}</span>
@@ -66,18 +105,31 @@ export default function Layout({ children }: LayoutProps) {
                   {currentProfile.type === 'child' && currentProfile.age && (
                     <span className="text-gray-500">({currentProfile.age} years)</span>
                   )}
+                  {currentProfile.type === 'admin' && (
+                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded">
+                      Admin
+                    </span>
+                  )}
+                  {currentProfile.type === 'teacher' && (
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded">
+                      Teacher
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            <button
-              onClick={() => setCurrentProfile(null)}
-              className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
-            >
-              <LogOut size={16} className="sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Switch Profile</span>
-              <span className="sm:hidden">Switch</span>
-            </button>
+            {/* Sign Out Button */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
+              >
+                <LogOut size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">Out</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -104,7 +156,7 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
 
           {/* Profile info for kids */}
-          {!isParent && currentProfile && (
+          {currentProfile?.type === 'child' && (
             <div className="p-4 border-t mt-4">
               <div className="bg-gradient-to-r from-primary-100 to-purple-100 rounded-lg p-4">
                 <div className="text-center">
@@ -127,7 +179,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around items-center h-16">
-          {visibleNavItems.map(({ path, icon: Icon, label }) => (
+          {visibleNavItems.slice(0, 5).map(({ path, icon: Icon, label }) => (
             <Link
               key={path}
               to={path}
