@@ -6,9 +6,12 @@ const router = express.Router();
 // Get all profiles
 router.get('/', (req, res) => {
   try {
+    console.log('[DEBUG] GET /api/profiles - Fetching all profiles');
     const profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
+    console.log(`[DEBUG] Found ${profiles.length} profiles`);
     res.json(profiles);
   } catch (error: any) {
+    console.error('[ERROR] GET /api/profiles failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
