@@ -1,7 +1,9 @@
 import express from 'express';
 import db from '../database/init';
+import bcrypt from 'bcrypt';
 
 const router = express.Router();
+const SALT_ROUNDS = 10;
 
 // Get all profiles
 router.get('/', (req, res) => {
@@ -121,7 +123,7 @@ router.delete('/:id', (req, res) => {
 });
 
 // Login (username + PIN) - works for both parents and kids
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, pin } = req.body;
 
@@ -141,14 +143,22 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
 
-    console.log(`[DEBUG] Profile found. Stored PIN: ${profile.pin}, Provided PIN: ${pin}`);
-    console.log(`[DEBUG] PIN length - Stored: ${profile.pin?.length}, Provided: ${pin.length}`);
-
-    // Verify PIN
-    if (!profile.pin || profile.pin !== pin) {
-      console.log(`[DEBUG] PIN verification failed`);
+    if (!profile.pin) {
+      console.log(`[DEBUG] Profile has no PIN set`);
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
+
+    console.log(`[DEBUG] Profile found. PIN is hashed: ${profile.pin.startsWith('$2')}`);
+
+    // Verify PIN using bcrypt (secure comparison)
+    const isValidPin = await bcrypt.compare(pin, profile.pin);
+
+    if (!isValidPin) {
+      console.log(`[DEBUG] PIN verification failed - bcrypt compare returned false`);
+      return res.status(401).json({ error: 'Invalid username or PIN' });
+    }
+
+    console.log(`[DEBUG] PIN verification successful!`);
 
     // Return profile info
     res.json({
