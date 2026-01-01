@@ -57,7 +57,8 @@ export const profilesAPI = {
   delete: (id: number) => api.delete(`/profiles/${id}`),
   getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
   verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
-  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin })
+  setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin }),
+  resetPassword: (profileId: number, newPin: string, parentId: number) => api.post<{ message: string }>(`/profiles/${profileId}/reset-password`, { newPin, parentId })
 };
 
 // Diet

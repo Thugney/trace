@@ -16,6 +16,16 @@ export default function Settings() {
   const [expandedAIProfile, setExpandedAIProfile] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>('');
 
+  // Password management state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Reset PIN modal state
+  const [showResetPinModal, setShowResetPinModal] = useState(false);
+  const [resetPinProfile, setResetPinProfile] = useState<any>(null);
+  const [resetPin, setResetPin] = useState('');
+  const [confirmResetPin, setConfirmResetPin] = useState('');
+
   useEffect(() => {
     loadSettings();
     loadAllAISettings();
@@ -107,6 +117,64 @@ export default function Settings() {
     } catch (error: any) {
       console.error('Failed to set PIN:', error);
       alert(error.response?.data?.error || 'Failed to set PIN');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSetPassword = async () => {
+    if (!currentProfile) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await profilesAPI.update(currentProfile.id, { password: newPassword });
+      setSuccessMessage('Password updated successfully!');
+      setNewPassword('');
+      setConfirmPassword('');
+      await refreshProfiles();
+    } catch (error: any) {
+      console.error('Failed to set password:', error);
+      alert(error.response?.data?.error || 'Failed to set password');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetChildPin = async () => {
+    if (!currentProfile || !resetPinProfile) return;
+
+    if (!resetPin || resetPin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (resetPin !== confirmResetPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Use the reset-password endpoint with parentId
+      await profilesAPI.resetPassword(resetPinProfile.id, resetPin, currentProfile.id);
+      setSuccessMessage(`PIN reset successfully for ${resetPinProfile.name}!`);
+      setShowResetPinModal(false);
+      setResetPinProfile(null);
+      setResetPin('');
+      setConfirmResetPin('');
+    } catch (error: any) {
+      console.error('Failed to reset PIN:', error);
+      alert(error.response?.data?.error || 'Failed to reset PIN');
     } finally {
       setSaving(false);
     }
@@ -312,6 +380,64 @@ export default function Settings() {
               </button>
             </form>
           </div>
+
+          {/* Password Management - Parents, Teachers, and Admin */}
+          {(isParent || isAdmin || currentProfile?.type === 'teacher') && (
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Lock className="mr-2 text-orange-600" size={20} />
+              Password Management
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-4">
+              Set or change your password for secure account access.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password *
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="input"
+                  placeholder="Enter new password (min 6 characters)"
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password *
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="input"
+                  placeholder="Re-enter new password"
+                  minLength={6}
+                />
+              </div>
+
+              <button onClick={handleSetPassword} disabled={saving} className="btn btn-primary">
+                {saving ? <div className="spinner"></div> : <Save size={20} className="mr-2" />}
+                Set Password
+              </button>
+
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <Shield className="inline mr-1" size={14} />
+                  Password will be securely hashed and stored. Use it to log in instead of PIN.
+                </p>
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* Grok AI Configuration - Admin only */}
           {isAdmin && (
@@ -624,7 +750,7 @@ Context: Tasks, Points, Level, Progress`}
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
+                        {profile.type === 'parent' ? 'Parent' : profile.type === 'teacher' ? 'Teacher' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
@@ -636,6 +762,50 @@ Context: Tasks, Points, Level, Progress`}
                       </span>
                     )}
                     <span className="badge badge-primary">{profile.type}</span>
+
+                    {/* Parent can reset their children's PINs */}
+                    {isParent && profile.type === 'child' && profile.parent_id === currentProfile?.id && (
+                      <button
+                        onClick={() => {
+                          setResetPinProfile(profile);
+                          setShowResetPinModal(true);
+                        }}
+                        className="btn btn-sm btn-secondary text-xs"
+                        title="Reset child's PIN"
+                      >
+                        Reset PIN
+                      </button>
+                    )}
+
+                    {/* Admin can edit and delete all profiles (except themselves) */}
+                    {isAdmin && profile.id !== currentProfile?.id && (
+                      <>
+                        <button
+                          onClick={() => alert('Edit functionality coming soon')}
+                          className="btn btn-sm btn-secondary text-xs"
+                          title="Edit profile"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Are you sure you want to delete ${profile.name}? This action cannot be undone.`)) {
+                              try {
+                                await profilesAPI.delete(profile.id);
+                                setSuccessMessage(`${profile.name} deleted successfully`);
+                                await refreshProfiles();
+                              } catch (error: any) {
+                                alert(error.response?.data?.error || 'Failed to delete profile');
+                              }
+                            }
+                          }}
+                          className="btn btn-sm bg-red-500 hover:bg-red-600 text-white text-xs"
+                          title="Delete profile"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -680,8 +850,19 @@ Context: Tasks, Points, Level, Progress`}
                 </label>
                 <select id="profile-type" name="profileType" required className="input">
                   <option value="child">Child</option>
-                  <option value="parent">Parent</option>
+                  {isAdmin && (
+                    <>
+                      <option value="parent">Parent</option>
+                      <option value="teacher">Teacher</option>
+                      <option value="admin">Admin</option>
+                    </>
+                  )}
                 </select>
+                {isAdmin && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Admin can create any profile type. Parents can only create children.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -777,6 +958,94 @@ Context: Tasks, Points, Level, Progress`}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Child PIN Modal - Parent only */}
+      {showResetPinModal && resetPinProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-md w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Reset PIN for {resetPinProfile.name}</h2>
+              <button
+                onClick={() => {
+                  setShowResetPinModal(false);
+                  setResetPinProfile(null);
+                  setResetPin('');
+                  setConfirmResetPin('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <Shield className="inline mr-1" size={14} />
+                  You are resetting the PIN for your child. They will need this new PIN to log in.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="reset-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                  New PIN *
+                </label>
+                <input
+                  id="reset-pin"
+                  type="password"
+                  value={resetPin}
+                  onChange={e => setResetPin(e.target.value)}
+                  className="input"
+                  placeholder="Enter new 4-8 digit PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  minLength={4}
+                  maxLength={8}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="confirm-reset-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm PIN *
+                </label>
+                <input
+                  id="confirm-reset-pin"
+                  type="password"
+                  value={confirmResetPin}
+                  onChange={e => setConfirmResetPin(e.target.value)}
+                  className="input"
+                  placeholder="Re-enter new PIN"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  minLength={4}
+                  maxLength={8}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  onClick={handleResetChildPin}
+                  disabled={saving}
+                  className="btn btn-primary flex-1"
+                >
+                  {saving ? <div className="spinner"></div> : 'Reset PIN'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowResetPinModal(false);
+                    setResetPinProfile(null);
+                    setResetPin('');
+                    setConfirmResetPin('');
+                  }}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
