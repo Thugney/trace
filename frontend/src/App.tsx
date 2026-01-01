@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ProfileProvider } from './context/ProfileContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
-import ProfileSelector from './pages/ProfileSelector';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
