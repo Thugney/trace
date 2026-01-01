@@ -4,7 +4,7 @@ import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
 import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle } from 'lucide-react';
 
 export default function Settings() {
-  const { currentProfile, isParent, profiles, refreshProfiles } = useProfile();
+  const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -187,7 +187,7 @@ export default function Settings() {
     return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
   };
 
-  if (!isParent) {
+  if (currentProfile?.type === 'child') {
     // Kids only see limited settings
     return (
       <div className="max-w-2xl mx-auto">
@@ -313,7 +313,8 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Grok AI Configuration */}
+          {/* Grok AI Configuration - Show to parents and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4">Grok AI Configuration</h2>
 
@@ -362,8 +363,10 @@ export default function Settings() {
               </button>
             </div>
           </div>
+          )}
 
-          {/* AI Parental Controls */}
+          {/* AI Parental Controls - Parent and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Brain className="mr-2 text-purple-600" size={20} />
@@ -542,8 +545,10 @@ Context: Tasks, Points, Level, Progress`}
               </div>
             )}
           </div>
+          )}
 
-          {/* Parent PIN */}
+          {/* Parent PIN - Parent and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Lock className="mr-2" size={20} />
@@ -592,8 +597,10 @@ Context: Tasks, Points, Level, Progress`}
               </button>
             </div>
           </div>
+          )}
 
-          {/* Family Profiles */}
+          {/* Family Profiles - Parent and admin only */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Family Profiles</h2>
@@ -634,6 +641,7 @@ Context: Tasks, Points, Level, Progress`}
               ))}
             </div>
           </div>
+          )}
 
           {/* About */}
           <div className="card bg-primary-50 border border-primary-200">
@@ -651,8 +659,8 @@ Context: Tasks, Points, Level, Progress`}
         </div>
       )}
 
-      {/* Add Profile Modal */}
-      {showAddProfile && (
+      {/* Add Profile Modal - Parent and admin only */}
+      {showAddProfile && (isParent || isAdmin) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
