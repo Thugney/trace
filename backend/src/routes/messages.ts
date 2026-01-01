@@ -1,10 +1,12 @@
 import express from 'express';
 import db from '../database/init';
+import { authenticate, requireRole } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
 // Send a message (teacher to parent or parent to teacher)
-router.post('/', (req, res) => {
+router.post('/', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { sender_id, recipient_id, subject, message } = req.body;
 
@@ -39,7 +41,7 @@ router.post('/', (req, res) => {
 });
 
 // Get inbox (messages received by user)
-router.get('/inbox/:userId', (req, res) => {
+router.get('/inbox/:userId', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
     const { unread_only } = req.query;
@@ -68,7 +70,7 @@ router.get('/inbox/:userId', (req, res) => {
 });
 
 // Get sent messages
-router.get('/sent/:userId', (req, res) => {
+router.get('/sent/:userId', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
 
@@ -90,7 +92,7 @@ router.get('/sent/:userId', (req, res) => {
 });
 
 // Mark message as read
-router.put('/:id/read', (req, res) => {
+router.put('/:id/read', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -108,7 +110,7 @@ router.put('/:id/read', (req, res) => {
 });
 
 // Get unread count for user
-router.get('/unread-count/:userId', (req, res) => {
+router.get('/unread-count/:userId', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { userId } = req.params;
 
@@ -151,7 +153,7 @@ router.get('/conversation/:userId1/:userId2', (req, res) => {
 });
 
 // Delete message
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authenticate, requireRole(['teacher', 'parent']), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 

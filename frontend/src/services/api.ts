@@ -34,6 +34,20 @@ const api = axios.create({
   }
 });
 
+// Request interceptor to add profile ID to all authenticated requests
+api.interceptors.request.use((config) => {
+  // Get current profile ID from localStorage
+  const currentProfileId = localStorage.getItem('currentProfileId');
+
+  if (currentProfileId) {
+    config.headers['x-profile-id'] = currentProfileId;
+  }
+
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // Profiles
 export const profilesAPI = {
   getAll: () => api.get<Profile[]>('/profiles'),
