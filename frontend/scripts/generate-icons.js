@@ -9,13 +9,17 @@
  * Usage: node scripts/generate-icons.js
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Check if sharp is installed
 let sharp;
 try {
-  sharp = require('sharp');
+  sharp = (await import('sharp')).default;
 } catch (error) {
   console.error('❌ Error: sharp is not installed');
   console.error('   Please run: npm install sharp');
