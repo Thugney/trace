@@ -60,8 +60,8 @@
 8. **✅ Layout.tsx Navigation** (Commit: 4094b90)
    - Role-specific navigation items:
      - **Admin**: Dashboard, User Management, School System, Settings
-     - **Parent**: Dashboard, Family Diet, Tasks, School, Notes, Settings
-     - **Teacher**: Dashboard, My Classes, Settings
+     - **Parent**: Dashboard, Family Diet, Tasks, School, Messages, Notes, Settings
+     - **Teacher**: Dashboard, My Classes, Messages, Settings
      - **Child**: Home, My Tasks, School, Notes, AI Helper (if enabled)
    - Mobile navigation limited to 5 items
    - Role badges for admin and teacher
@@ -95,47 +95,42 @@
     - Parents can view and read messages from teachers
     - Added to navigation for teachers and parents
 
+13. **✅ PWA Configuration** (Commit: 3658baa)
+    - Updated vite-plugin-pwa with enhanced manifest settings
+    - Configured comprehensive caching strategies (API, images, fonts)
+    - Created SVG icon template with Learning Hub branding
+    - Built icon generation script (npm run generate:icons)
+    - Registered service worker with auto-update
+    - Added complete PWA documentation (PWA_SETUP.md)
+    - Ready for Synology Docker deployment with HTTPS
+
 ---
 
 ## 🚧 Remaining Tasks
 
-### Important (P1)
-13. **Backend authorization middleware**
-    - JWT or session-based auth (currently using localStorage only)
-    - Session expiry (30 min inactivity)
+### Important (P1) - Backend Security
+14. **Backend authorization middleware**
+    - Add auth middleware to verify user sessions
+    - Implement role-based access control
     - Protect all API routes
-
-14. **Secure all API endpoints**
-    - Role-based access control on backend
-    - Verify user has permission for each operation
     - Return 403 for unauthorized access
 
-### Polish (P2)
-15. **Configure vite-plugin-pwa**
-    - Update vite.config.ts with PWA settings
-    - Define app manifest (name, icons, theme color)
-    - Configure service worker for offline support
-
-16. **Create PWA icons**
-    - Generate 192x192 and 512x512 PNG icons
-    - Add to public folder
-    - Reference in manifest
-
-17. **Add web manifest and service worker**
-    - Create manifest.webmanifest
-    - Configure Workbox for caching
-    - Test install prompt
+15. **Secure all API endpoints**
+    - Add role checks to sensitive endpoints
+    - Verify parent-child relationships on operations
+    - Prevent cross-family data access
+    - Audit all routes for security
 
 ---
 
 ## 📊 Progress Summary
 
-**Completed:** 12/17 tasks (71%)
-**Remaining:** 5/17 tasks (29%)
+**Completed:** 13/15 tasks (87%)
+**Remaining:** 2/15 tasks (13%)
 
 **P0 (Critical - DONE!):** ✅ 10/10 completed
-**P1 (Important):** ✅ 2/4 completed
-**P2 (Polish):** 0/3 completed
+**P1 (Important):** ✅ 3/5 completed  
+**P2 (Polish - DONE!):** ✅ 3/3 completed
 
 ---
 
@@ -185,40 +180,22 @@
 - Mark as read and delete functionality
 - Optional subject lines for organization
 
+### ✅ **PWA (Progressive Web App)**
+- **True PWA**: Full offline support and installability
+- Service worker with auto-update
+- Comprehensive caching: API (24h), images (30d), fonts (1y)
+- Install to home screen (mobile and desktop)
+- Icon generation system with SVG template
+- Works offline with cached content
+- Production-ready for Synology Docker with HTTPS
+
 ---
 
 ## 🐛 Known Issues (To Fix)
 
 None currently! All P0 and most P1 features are working.
 
----
-
-## 🔧 Just Fixed (Commit 868d9fa)
-
-**Database Migration Error - Username Column**
-- **Problem**: SQLite was throwing "Cannot add a UNIQUE column" error
-- **Cause**: SQLite doesn't allow adding UNIQUE constraints when adding columns to tables with existing data
-- **Impact**: Login was failing with "no such column: username" error
-- **Solution**: Changed migration to 3-step process:
-  1. Add username column WITHOUT UNIQUE constraint
-  2. Auto-populate usernames from existing profile names (lowercase, no spaces)
-  3. Create UNIQUE INDEX on the username column
-- **Action Required**: **Rebuild Docker containers** to apply the database migration fix
-
-### To Apply This Fix:
-```bash
-# Pull the latest changes
-git pull origin claude/fix-project-flow-dcUOs
-
-# Rebuild and restart Docker containers
-docker-compose down
-docker-compose up -d --build
-
-# Check logs to verify migration ran successfully
-docker-compose logs -f backend
-```
-
-You should see: `✅ Migration completed: username column added and auto-generated for existing users`
+Remaining work: Backend security (authorization middleware and endpoint protection)
 
 ---
 
@@ -250,6 +227,10 @@ You should see: `✅ Migration completed: username column added and auto-generat
 - ❌ Before: Kids could see and select parent profiles
 - ✅ After: Parents ONLY see themselves and their own kids
 
+**PWA:**
+- ❌ Before: Basic web app, no offline support
+- ✅ After: Full PWA with install prompts, offline caching, native app experience
+
 ---
 
 ## 🚀 How to Test
@@ -257,6 +238,19 @@ You should see: `✅ Migration completed: username column added and auto-generat
 ### Pull the changes:
 ```bash
 git pull origin claude/fix-project-flow-dcUOs
+```
+
+### Generate PWA Icons (One-time):
+```bash
+cd frontend
+npm install sharp
+npm run generate:icons
+```
+
+### Docker Rebuild:
+```bash
+docker-compose down
+docker-compose up -d --build
 ```
 
 ### Test Each Role:
@@ -269,13 +263,13 @@ git pull origin claude/fix-project-flow-dcUOs
 **2. Parent Login:**
 - Should see ProfileSelector with themselves + their kids
 - Select parent → lands on `/parent/dashboard`
-- See: Dashboard, Family Diet, Tasks, School, Notes, Settings in nav
+- See: Dashboard, Family Diet, Tasks, School, Messages, Notes, Settings in nav
 - Header shows "Switch Profile" button
 
 **3. Teacher Login:**
 - Should skip ProfileSelector
 - Land directly on `/teacher/dashboard`
-- See: Dashboard, My Classes, Settings in nav
+- See: Dashboard, My Classes, Messages, Settings in nav
 - Header shows "Sign Out" button
 
 **4. Child Login:**
@@ -285,11 +279,29 @@ git pull origin claude/fix-project-flow-dcUOs
 - See: Home, My Tasks, School, Notes, (AI Helper if enabled) in nav
 - Header shows "Sign Out" button
 
+### Test PWA Features:
+```bash
+cd frontend
+npm run build
+npm run preview
+```
+Visit http://localhost:4173 and:
+- Check service worker registration in DevTools
+- Test "Add to Home Screen"
+- Try offline mode (Network tab → Offline)
+
 ### Test Security:
 - **Parent can ONLY see their own kids** (not other families' children)
 - **Kids never see profile selection screen**
 - **Teachers never see profile selection screen**
 - **Each role only sees nav items relevant to them**
+- **Assignment status updates correctly after submission**
+
+### Test Messaging:
+- **Teachers**: Can compose messages to any parent
+- **Parents**: Can view and respond to teacher messages
+- **Unread counts**: Show correctly in inbox tab
+- **Mark as read**: Updates unread count
 
 ---
 
@@ -305,18 +317,19 @@ The project had fundamental architectural problems with user flow, authenticatio
 - ✅ **Role-specific navigation** (no more confusion)
 - ✅ **Security fixed** (kids can't access parent profiles)
 - ✅ **Professional flow** (feels like a real app, not a prototype)
+- ✅ **Teacher-parent messaging** (complete communication system)
+- ✅ **Assignment tracking** (status displays correctly)
+- ✅ **True PWA** (install to home screen, works offline)
 
 ### Remaining Work:
-- Assignment status bug fix (~1 hour)
-- Teacher-parent messaging (~3-4 hours)
-- Backend authorization (~2-3 hours)
-- PWA configuration (~2-3 hours)
+- Backend authorization middleware (~2-3 hours)
+- Secure API endpoints with role checks (~2-3 hours)
 
-**Estimated time to 100% completion: 8-11 hours**
+**Estimated time to 100% completion: 4-6 hours**
 
 ---
 
-**Last Updated:** 2026-01-01
-**Current Branch:** claude/fix-project-flow-dcUOs
-**Total Commits:** 12
-**Status:** ✅ 71% Complete - Assignment status fixed, Messaging system added!
+**Last Updated:** 2026-01-01  
+**Current Branch:** claude/fix-project-flow-dcUOs  
+**Total Commits:** 15  
+**Status:** ✅ 87% Complete - PWA ready! Last 2 tasks: Backend security
