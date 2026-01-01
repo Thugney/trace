@@ -28,12 +28,20 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Load profiles on mount
   useEffect(() => {
     const loadProfiles = async () => {
       setIsLoading(true);
       await refreshProfiles();
+      setIsLoading(false);
+    };
 
-      // Try to restore last selected profile from localStorage
+    loadProfiles();
+  }, []);
+
+  // Restore saved profile when profiles are loaded
+  useEffect(() => {
+    if (profiles.length > 0 && !currentProfile) {
       const savedProfileId = localStorage.getItem('currentProfileId');
       if (savedProfileId) {
         const profile = profiles.find(p => p.id === parseInt(savedProfileId));
@@ -41,12 +49,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           setCurrentProfile(profile);
         }
       }
-
-      setIsLoading(false);
-    };
-
-    loadProfiles();
-  }, []);
+    }
+  }, [profiles, currentProfile]);
 
   useEffect(() => {
     // Save current profile to localStorage
