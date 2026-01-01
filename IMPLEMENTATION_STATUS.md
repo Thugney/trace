@@ -82,19 +82,24 @@
 
 ---
 
+11. **✅ Assignment Submission Status Fixed** (Commit: 11d9f4c)
+    - Fixed bug where SchoolStudent.tsx showed "Not Submitted" after submission
+    - Backend now returns `has_submitted` (boolean) and `submission_status` (string)
+    - Status badges now display correctly based on submission state
+
+12. **✅ Teacher-Parent Messaging** (Commit: d888506)
+    - Created messages table with sender/recipient tracking
+    - Full REST API: send, inbox, sent, mark as read, delete, unread count
+    - Messages.tsx page with inbox/sent tabs
+    - Teachers can compose messages to any parent
+    - Parents can view and read messages from teachers
+    - Added to navigation for teachers and parents
+
+---
+
 ## 🚧 Remaining Tasks
 
 ### Important (P1)
-11. **Fix assignment submission status bug**
-    - SchoolStudent.tsx shows "Not Submitted" even after submission
-    - Need to check backend API response
-    - Fix status refresh after submission
-
-12. **Add teacher-parent messaging**
-    - Create messaging table in database
-    - API endpoints for sending/receiving messages
-    - UI in TeacherDashboard and ParentDashboard
-
 13. **Backend authorization middleware**
     - JWT or session-based auth (currently using localStorage only)
     - Session expiry (30 min inactivity)
@@ -125,11 +130,11 @@
 
 ## 📊 Progress Summary
 
-**Completed:** 10/17 tasks (59%)
-**Remaining:** 7/17 tasks (41%)
+**Completed:** 12/17 tasks (71%)
+**Remaining:** 5/17 tasks (29%)
 
 **P0 (Critical - DONE!):** ✅ 10/10 completed
-**P1 (Important):** 0/4 completed
+**P1 (Important):** ✅ 2/4 completed
 **P2 (Polish):** 0/3 completed
 
 ---
@@ -166,14 +171,25 @@
 - No more teachers seeing diet options
 - No more kids seeing settings they can't access
 
+### ✅ **School System**
+- **Assignment Status**: Fixed - now displays correctly after submission
+- Proper status badges: Not Submitted, Submitted, Approved, Needs Revision
+- Teachers can create and manage assignments
+- Students can view and submit work
+
+### ✅ **Messaging**
+- **Teacher-Parent Communication**: Complete bidirectional messaging
+- Teachers can send messages to any parent
+- Parents receive and can read messages from teachers
+- Inbox/Sent tabs with unread count badges
+- Mark as read and delete functionality
+- Optional subject lines for organization
+
 ---
 
 ## 🐛 Known Issues (To Fix)
 
-1. **Assignment Status Bug**
-   - SchoolStudent shows "Not Submitted" even after submitting
-   - Likely API response or state refresh issue
-   - **Impact**: Confusing for students and parents
+None currently! All P0 and most P1 features are working.
 
 ---
 
@@ -302,5 +318,5 @@ The project had fundamental architectural problems with user flow, authenticatio
 
 **Last Updated:** 2026-01-01
 **Current Branch:** claude/fix-project-flow-dcUOs
-**Total Commits:** 10
-**Status:** ✅ All P0 critical fixes complete - Database migration fixed - Ready for Docker rebuild!
+**Total Commits:** 12
+**Status:** ✅ 71% Complete - Assignment status fixed, Messaging system added!
