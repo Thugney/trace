@@ -199,10 +199,11 @@ export default function Settings() {
         <div className="card">
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="child-name" className="block text-sm font-medium text-gray-700 mb-1">
                 Name
               </label>
               <input
+                id="child-name"
                 type="text"
                 name="name"
                 defaultValue={currentProfile?.name}
@@ -212,10 +213,11 @@ export default function Settings() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="child-avatar" className="block text-sm font-medium text-gray-700 mb-1">
                 Avatar (Emoji)
               </label>
               <input
+                id="child-avatar"
                 type="text"
                 name="avatar"
                 defaultValue={currentProfile?.avatar}
@@ -277,10 +279,11 @@ export default function Settings() {
 
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="parent-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name
                 </label>
                 <input
+                  id="parent-name"
                   type="text"
                   name="name"
                   defaultValue={currentProfile?.name}
@@ -290,10 +293,11 @@ export default function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="parent-avatar" className="block text-sm font-medium text-gray-700 mb-1">
                   Avatar (Emoji)
                 </label>
                 <input
+                  id="parent-avatar"
                   type="text"
                   name="avatar"
                   defaultValue={currentProfile?.avatar}
@@ -328,10 +332,11 @@ export default function Settings() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="grok-api-key" className="block text-sm font-medium text-gray-700 mb-1">
                   Grok API Key
                 </label>
                 <input
+                  id="grok-api-key"
                   type="password"
                   value={grokApiKey}
                   onChange={e => setGrokApiKey(e.target.value)}
@@ -552,10 +557,11 @@ Context: Tasks, Points, Level, Progress`}
             <div className="space-y-4">
               {settings.parent_pin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="current-pin" className="block text-sm font-medium text-gray-700 mb-1">
                     Current PIN
                   </label>
                   <input
+                    id="current-pin"
                     type="password"
                     value={parentPin}
                     onChange={e => setParentPin(e.target.value)}
@@ -566,10 +572,11 @@ Context: Tasks, Points, Level, Progress`}
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="new-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   {settings.parent_pin ? 'New PIN' : 'Set PIN'}
                 </label>
                 <input
+                  id="new-pin"
                   type="password"
                   value={newParentPin}
                   onChange={e => setNewParentPin(e.target.value)}
@@ -660,20 +667,21 @@ Context: Tasks, Points, Level, Progress`}
 
             <form onSubmit={handleAddProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-type" className="block text-sm font-medium text-gray-700 mb-1">
                   Profile Type *
                 </label>
-                <select name="profileType" required className="input">
+                <select id="profile-type" name="profileType" required className="input">
                   <option value="child">Child</option>
                   <option value="parent">Parent</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-name" className="block text-sm font-medium text-gray-700 mb-1">
                   Name *
                 </label>
                 <input
+                  id="profile-name"
                   type="text"
                   name="name"
                   required
@@ -683,10 +691,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-age" className="block text-sm font-medium text-gray-700 mb-1">
                   Age
                 </label>
                 <input
+                  id="profile-age"
                   type="number"
                   name="age"
                   min="1"
@@ -697,10 +706,10 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-gender" className="block text-sm font-medium text-gray-700 mb-1">
                   Gender
                 </label>
-                <select name="gender" className="input">
+                <select id="profile-gender" name="gender" className="input">
                   <option value="">Select gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -709,10 +718,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   Create PIN *
                 </label>
                 <input
+                  id="profile-pin"
                   type="password"
                   name="pin"
                   required
@@ -729,10 +739,11 @@ Context: Tasks, Points, Level, Progress`}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="profile-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm PIN *
                 </label>
                 <input
+                  id="profile-confirm-pin"
                   type="password"
                   name="confirmPin"
                   required
