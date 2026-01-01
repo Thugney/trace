@@ -4,7 +4,10 @@ import { ProfileProvider } from './context/ProfileContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import ProfileSelector from './pages/ProfileSelector';
-import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import ParentDashboard from './pages/ParentDashboard';
+import TeacherDashboard from './pages/TeacherDashboard';
+import ChildDashboard from './pages/ChildDashboard';
 import DietTracking from './pages/DietTracking';
 import TasksManager from './pages/TasksManager';
 import AIAssistant from './pages/AIAssistant';
@@ -27,8 +30,14 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   // If user role is not in allowed roles, redirect based on their role
   if (!allowedRoles.includes(currentProfile.type)) {
     // Redirect to appropriate home page based on role
-    if (currentProfile.type === 'teacher') {
-      return <Navigate to="/school" replace />;
+    if (currentProfile.type === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (currentProfile.type === 'parent') {
+      return <Navigate to="/parent/dashboard" replace />;
+    } else if (currentProfile.type === 'teacher') {
+      return <Navigate to="/teacher/dashboard" replace />;
+    } else if (currentProfile.type === 'child') {
+      return <Navigate to="/child/dashboard" replace />;
     }
     return <Navigate to="/" replace />;
   }
@@ -97,19 +106,59 @@ function AppRoutes() {
   return (
     <Layout>
       <Routes>
-        {/* Dashboard - Not for teachers */}
+        {/* Home - Redirect to role-specific dashboard */}
         <Route
           path="/"
           element={
-            currentProfile?.type === 'teacher' ? (
-              <Navigate to="/school" replace />
+            currentProfile?.type === 'admin' ? (
+              <Navigate to="/admin/dashboard" replace />
+            ) : currentProfile?.type === 'parent' ? (
+              <Navigate to="/parent/dashboard" replace />
+            ) : currentProfile?.type === 'teacher' ? (
+              <Navigate to="/teacher/dashboard" replace />
+            ) : currentProfile?.type === 'child' ? (
+              <Navigate to="/child/dashboard" replace />
             ) : (
-              <Dashboard />
+              <Navigate to="/login" replace />
             )
           }
         />
 
-        {/* Diet - Only parent, admin, child */}
+        {/* Role-Specific Dashboards */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/parent/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <ParentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/child/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={['child']}>
+              <ChildDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Diet - Only parent, admin */}
         <Route
           path="/diet"
           element={
@@ -191,17 +240,8 @@ function AppRoutes() {
           }
         />
 
-        {/* Catch all - redirect based on role */}
-        <Route
-          path="*"
-          element={
-            currentProfile?.type === 'teacher' ? (
-              <Navigate to="/school" replace />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+        {/* Catch all - redirect to home (which redirects to role dashboard) */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   );
