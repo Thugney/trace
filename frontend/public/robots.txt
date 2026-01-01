@@ -1,0 +1,10 @@
+# Family Learning Hub - robots.txt
+
+User-agent: *
+Allow: /
+
+# Disallow access to API endpoints (backend handles this)
+Disallow: /api/
+
+# Sitemap (update this URL when deploying)
+# Sitemap: https://yourdomain.com/sitemap.xml
