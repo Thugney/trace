@@ -67,7 +67,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
             <Shield className="text-primary-600" size={40} />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Family PWA
+            Family Learning Hub
           </h1>
           <p className="text-gray-600">
             Enter your username and PIN to login

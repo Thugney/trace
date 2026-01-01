@@ -58,7 +58,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <h1 className="text-lg sm:text-xl font-bold text-primary-600">Family PWA</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-primary-600">Family Learning Hub</h1>
               {currentProfile && (
                 <div className="hidden sm:flex items-center space-x-2 text-sm">
                   <span className="text-2xl">{currentProfile.avatar || '👤'}</span>

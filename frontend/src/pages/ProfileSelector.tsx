@@ -157,7 +157,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
         <div className="text-center mb-12">
           <div className="flex justify-between items-center mb-4">
             <div className="flex-1"></div>
-            <h1 className="text-4xl font-bold text-gray-900 flex-1">Family PWA</h1>
+            <h1 className="text-4xl font-bold text-gray-900 flex-1">Family Learning Hub</h1>
             <div className="flex-1 flex justify-end">
               {parentProfile && (
                 <button
