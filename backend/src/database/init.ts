@@ -510,14 +510,19 @@ export function initDatabase() {
 
     if (!hasUsername) {
       console.log('🔄 Migrating profiles table: adding username column for login...');
-      db.prepare('ALTER TABLE profiles ADD COLUMN username TEXT UNIQUE').run();
 
-      // Auto-generate usernames from names for existing users (lowercase, no spaces)
+      // Step 1: Add column without UNIQUE constraint (SQLite limitation)
+      db.prepare('ALTER TABLE profiles ADD COLUMN username TEXT').run();
+
+      // Step 2: Auto-generate usernames from names for existing users (lowercase, no spaces)
       const existingProfiles: any[] = db.prepare('SELECT id, name FROM profiles').all();
       for (const profile of existingProfiles) {
         const username = profile.name.toLowerCase().replace(/\s+/g, '');
         db.prepare('UPDATE profiles SET username = ? WHERE id = ?').run(username, profile.id);
       }
+
+      // Step 3: Create unique index on username column
+      db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username)').run();
 
       console.log('✅ Migration completed: username column added and auto-generated for existing users');
     }
