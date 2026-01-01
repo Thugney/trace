@@ -61,13 +61,19 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
   };
 
   const handleProfileClick = (profile: Profile) => {
+    // If clicking the already-authenticated parent profile, set directly (no PIN needed)
+    if (parentProfile && profile.id === parentProfile.id) {
+      setCurrentProfile(profile);
+      return;
+    }
+
     // If profile has no PIN, allow direct access (backward compatibility)
     if (!profile.pin) {
       setCurrentProfile(profile);
       return;
     }
 
-    // Show PIN prompt
+    // Show PIN prompt for children
     setSelectedProfile(profile);
     setPin('');
     setError('');
