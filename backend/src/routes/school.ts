@@ -160,7 +160,10 @@ router.get('/students/:studentId/assignments', (req, res) => {
   try {
     const assignments = db.prepare(`
       SELECT DISTINCT sa.*, p.name as teacher_name, sc.name as class_name,
-             ss.id as submission_id, ss.status, ss.submitted_at
+             ss.id as submission_id,
+             CASE WHEN ss.id IS NOT NULL THEN 1 ELSE 0 END as has_submitted,
+             ss.status as submission_status,
+             ss.submitted_at
       FROM school_assignments sa
       JOIN school_classes sc ON sa.class_id = sc.id
       JOIN school_enrollments e ON sc.id = e.class_id
