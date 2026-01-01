@@ -82,13 +82,6 @@ export default function Layout({ children }: LayoutProps) {
     window.location.reload();
   };
 
-  const handleSwitchProfile = () => {
-    // Parents can switch between themselves and their kids
-    setCurrentProfile(null);
-    // Don't reload, just navigate to home which will show ProfileSelector
-    navigate('/');
-  };
-
   const getThemeClass = () => {
     if (!currentProfile || currentProfile.type === 'parent') return '';
     const age = currentProfile.age || 0;
@@ -126,27 +119,16 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </div>
 
-            {/* Profile Actions: Switch Profile (parents) or Sign Out (everyone else) */}
+            {/* Sign Out Button */}
             <div className="flex items-center space-x-2">
-              {currentProfile?.type === 'parent' ? (
-                <button
-                  onClick={handleSwitchProfile}
-                  className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
-                >
-                  <Users size={16} className="sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">Switch Profile</span>
-                  <span className="sm:hidden">Switch</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
-                >
-                  <LogOut size={16} className="sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                  <span className="sm:hidden">Out</span>
-                </button>
-              )}
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
+              >
+                <LogOut size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="sm:hidden">Out</span>
+              </button>
             </div>
           </div>
         </div>
