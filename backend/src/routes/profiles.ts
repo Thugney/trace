@@ -125,6 +125,8 @@ router.post('/login', (req, res) => {
   try {
     const { username, pin } = req.body;
 
+    console.log(`[DEBUG] Login attempt for username: ${username}`);
+
     if (!username || !pin) {
       return res.status(400).json({ error: 'Username and PIN are required' });
     }
@@ -135,11 +137,16 @@ router.post('/login', (req, res) => {
     ).get(username);
 
     if (!profile) {
+      console.log(`[DEBUG] Profile not found for username: ${username}`);
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
 
+    console.log(`[DEBUG] Profile found. Stored PIN: ${profile.pin}, Provided PIN: ${pin}`);
+    console.log(`[DEBUG] PIN length - Stored: ${profile.pin?.length}, Provided: ${pin.length}`);
+
     // Verify PIN
     if (!profile.pin || profile.pin !== pin) {
+      console.log(`[DEBUG] PIN verification failed`);
       return res.status(401).json({ error: 'Invalid username or PIN' });
     }
 
