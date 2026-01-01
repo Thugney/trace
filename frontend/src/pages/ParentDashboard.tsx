@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
-import { Baby, TrendingUp, CheckCircle, AlertCircle, Utensils, BookOpen, Award } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();

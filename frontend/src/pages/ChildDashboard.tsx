@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, BookOpen, Sparkles } from 'lucide-react';
+import { Star, Trophy, Target, Sparkles } from 'lucide-react';
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Shield, Users, Baby, GraduationCap, Activity, Settings } from 'lucide-react';
 

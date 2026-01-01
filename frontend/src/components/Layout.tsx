@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Shield, Users, Baby } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -9,7 +9,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { currentProfile, setCurrentProfile, isParent } = useProfile();
+  const { currentProfile, setCurrentProfile } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
 

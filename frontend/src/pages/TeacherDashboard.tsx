@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { schoolAPI } from '../services/api';
-import { GraduationCap, Users, BookOpen, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { GraduationCap, Users, BookOpen, CheckCircle, Clock } from 'lucide-react';
 
 export default function TeacherDashboard() {
   const { currentProfile } = useProfile();
