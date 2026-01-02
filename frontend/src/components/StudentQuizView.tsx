@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { schoolAPI } from '../services/api';
 import type { QuizQuestion, QuizSubmission } from '../types/school';
-import { X, Send, Clock } from 'lucide-react';
+import { X, Send } from 'lucide-react';
 
 interface StudentQuizViewProps {
   assignmentId: number;
@@ -11,11 +11,11 @@ interface StudentQuizViewProps {
 
 export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: StudentQuizViewProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<number, 'A' | 'B' | 'C' | 'D'>>({});
+  const [answers, setAnswers] = useState<Record<number, 'A' | 'B' | 'C' | 'D' | ''>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [timeLeft, setTimeLeft] = useState(0); // Optional timer, set to 0 if no timer
+  const timeLeft = 0; // Optional timer, set to 0 if no timer
 
   useEffect(() => {
     loadQuiz();
@@ -27,9 +27,9 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
       const response = await schoolAPI.getQuiz(assignmentId);
       setQuestions(response.data);
       // Initialize answers
-      const initialAnswers = {};
+      const initialAnswers: Record<number, 'A' | 'B' | 'C' | 'D' | ''> = {};
       response.data.forEach((q: QuizQuestion) => {
-        initialAnswers[q.id] = '' as 'A' | 'B' | 'C' | 'D';
+        initialAnswers[q.id] = '';
       });
       setAnswers(initialAnswers);
     } catch (err) {

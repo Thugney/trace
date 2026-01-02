@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { schoolAPI } from '../services/api';
 import type { QuizResult } from '../types/school';
 import { X, CheckCircle, XCircle, Award } from 'lucide-react';

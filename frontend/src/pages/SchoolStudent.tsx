@@ -13,7 +13,7 @@ import {
   UserPlus
 } from 'lucide-react';
 import StudentQuizView from '../components/StudentQuizView';
-import QuizResults from '../components/QuizResults';
+
 import type { SchoolAssignment, SchoolEnrollment } from '../types/school';
 
 export default function SchoolStudent() {

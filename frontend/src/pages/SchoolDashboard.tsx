@@ -40,7 +40,7 @@ export default function SchoolDashboard() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'homework' as 'homework' | 'psalm' | 'alphabet' | 'video' | 'other',
+    type: 'homework' as AssignmentType,
     youtube_link: '',
     due_date: ''
   });
@@ -317,7 +317,7 @@ export default function SchoolDashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                 <select
                   value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as AssignmentType })}
                   className="input"
                 >
                   <option value="homework">Homework</option>
