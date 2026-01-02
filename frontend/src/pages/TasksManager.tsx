@@ -10,7 +10,7 @@ export default function TasksManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [monthlyGoal, setMonthlyGoal] = useState<MonthlyGoal | null>(null);
-  // const [allGoals, setAllGoals] = useState<MonthlyGoal[]>([]); // For future: show goal history
+  const [allGoals, setAllGoals] = useState<MonthlyGoal[]>([]);
   const [pendingGoals, setPendingGoals] = useState<MonthlyGoal[]>([]);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +29,7 @@ export default function TasksManager() {
       loadTasks();
       loadProgress();
       loadMonthlyGoal();
-      // loadAllGoals(); // For future: show goal history
+      loadAllGoals();
     }
   }, [displayProfileId]);
 
@@ -80,17 +80,17 @@ export default function TasksManager() {
     }
   };
 
-  // For future: show goal history
-  // const loadAllGoals = async () => {
-  //   if (!displayProfileId) return;
-  //   try {
-  //     const response = await goalsAPI.getByProfile(displayProfileId);
-  //     const filteredGoals = isParent ? response.data : response.data.filter(g => g.parent_approved);
-  //     setAllGoals(filteredGoals);
-  //   } catch (error) {
-  //     console.error('Failed to load all goals:', error);
-  //   }
-  // };
+  const loadAllGoals = async () => {
+    if (!displayProfileId) return;
+    try {
+      const response = await goalsAPI.getByProfile(displayProfileId);
+      // Filter to only show approved goals to kids, parents see all
+      const filteredGoals = isParent ? response.data : response.data.filter(g => g.parent_approved);
+      setAllGoals(filteredGoals);
+    } catch (error) {
+      console.error('Failed to load all goals:', error);
+    }
+  };
 
   const loadPendingGoals = async () => {
     if (!currentProfile?.id) return;
@@ -161,7 +161,7 @@ export default function TasksManager() {
       });
 
       await loadMonthlyGoal();
-      // await loadAllGoals(); // For future: show goal history
+      await loadAllGoals();
       if (isParent) {
         await loadPendingGoals();
       }
@@ -217,7 +217,8 @@ export default function TasksManager() {
     try {
       await goalsAPI.approve(goalId, currentProfile.id);
       await loadPendingGoals();
-      // await loadAllGoals(); // For future: show goal history
+      await loadAllGoals();
+      await loadMonthlyGoal();
       alert('✅ Goal approved!');
     } catch (error) {
       console.error('Failed to approve goal:', error);
@@ -406,6 +407,68 @@ export default function TasksManager() {
               <p className="text-sm mt-1">Set a goal to work towards!</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* All Approved Goals */}
+      {allGoals.length > 0 && (
+        <div className="card mb-6">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <Trophy className="mr-2 text-yellow-600" size={24} />
+            {isParent ? 'All Goals' : 'My Goals'}
+            <span className="ml-2 text-sm font-normal text-gray-600">({allGoals.length} total)</span>
+          </h3>
+          <div className="space-y-3">
+            {allGoals.map((goal) => {
+              const goalProgress = progress && goal.parent_approved
+                ? Math.min(100, (progress.current.total_points / goal.goal_points) * 100)
+                : 0;
+
+              return (
+                <div key={goal.id} className={clsx(
+                  'p-4 rounded-lg border-2',
+                  goal.achieved ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                )}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <p className="font-semibold text-gray-900">{goal.goal_description}</p>
+                        {goal.achieved && <span className="text-green-600 text-xl">✅</span>}
+                        {!goal.parent_approved && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending Approval</span>}
+                      </div>
+                      <div className="flex items-center space-x-4 text-sm text-gray-600">
+                        <span>📅 {new Date(goal.created_at).toLocaleDateString()}</span>
+                        <span>🎯 {goal.goal_points} points</span>
+                        <span>🎁 {goal.goal_type}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {goal.parent_approved && !goal.achieved && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-gray-600 mb-1">
+                        <span>Progress</span>
+                        <span>{Math.round(goalProgress)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-300 rounded-full h-2">
+                        <div
+                          className={clsx(
+                            'rounded-full h-2 transition-all',
+                            goalProgress >= 100 ? 'bg-green-500' : 'bg-blue-500'
+                          )}
+                          style={{ width: `${goalProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {goal.achieved && (
+                    <div className="mt-2 text-sm text-green-700 font-medium">
+                      🎉 Achieved! Reward given: {goal.reward_given ? 'Yes' : 'Pending'}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

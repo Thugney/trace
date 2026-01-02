@@ -110,6 +110,9 @@ export default function SchoolDashboard() {
     if (!currentProfile || !selectedClass) return;
 
     try {
+      // Save the type before resetting form
+      const assignmentType = formData.type;
+
       const response = await schoolAPI.createAssignment({
         class_id: selectedClass,
         teacher_id: currentProfile.id,
@@ -129,7 +132,8 @@ export default function SchoolDashboard() {
         due_date: ''
       });
 
-      if (formData.type === 'quiz') {
+      // Check the saved type (not the reset formData)
+      if (assignmentType === 'quiz') {
         setQuizAssignmentId(response.data.id);
         setShowQuizForm(true);
       } else {
