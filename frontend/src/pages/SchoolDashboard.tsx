@@ -17,7 +17,8 @@ import QuizCreationForm from '../components/QuizCreationForm';
 import type {
   SchoolClass,
   SchoolAssignment,
-  StudentProgress
+  StudentProgress,
+  AssignmentType
 } from '../types/school';
 
 type TabType = 'assignments' | 'students' | 'submissions';
