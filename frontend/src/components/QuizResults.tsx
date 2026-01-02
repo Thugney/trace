@@ -81,19 +81,19 @@ export default function QuizResults({ assignmentId, studentId, onClose }: QuizRe
                 )}
               </div>
             </div>
-            <p className="text-gray-700 mb-3">{answer.question.question}</p>
+            <p className="text-gray-700 mb-3">{(answer as any).question_text}</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               <div>
-                <strong>Your Answer:</strong> {answer.selected_option}
+                <strong>Your Answer:</strong> {answer.selected_answer?.toUpperCase() || 'N/A'}
               </div>
               <div>
-                <strong>Correct Answer:</strong> {answer.question.correct_option}
+                <strong>Correct Answer:</strong> {(answer as any).correct_answer?.toUpperCase()}
               </div>
             </div>
-            {!answer.is_correct && (
+            {!answer.is_correct && (answer as any).correct_answer && (
               <div className="mt-3 p-3 bg-yellow-50 rounded border-l-4 border-yellow-400">
                 <p className="text-sm text-yellow-800">
-                  Explanation: The correct answer is {answer.question.correct_option}. {answer.question[`option_${answer.question.correct_option.toLowerCase()}` as keyof typeof answer.question]}
+                  Correct answer: {(answer as any)[`option_${(answer as any).correct_answer}`]}
                 </p>
               </div>
             )}

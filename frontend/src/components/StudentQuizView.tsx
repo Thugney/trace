@@ -5,13 +5,14 @@ import { X, Send } from 'lucide-react';
 
 interface StudentQuizViewProps {
   assignmentId: number;
+  studentId: number;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: StudentQuizViewProps) {
+export default function StudentQuizView({ assignmentId, studentId, onSuccess, onCancel }: StudentQuizViewProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<number, 'A' | 'B' | 'C' | 'D' | ''>>({});
+  const [answers, setAnswers] = useState<Record<number, 'a' | 'b' | 'c' | 'd' | ''>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -27,7 +28,7 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
       const response = await schoolAPI.getQuiz(assignmentId);
       setQuestions(response.data);
       // Initialize answers
-      const initialAnswers: Record<number, 'A' | 'B' | 'C' | 'D' | ''> = {};
+      const initialAnswers: Record<number, 'a' | 'b' | 'c' | 'd' | ''> = {};
       response.data.forEach((q: QuizQuestion) => {
         initialAnswers[q.id] = '';
       });
@@ -39,7 +40,7 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
     }
   };
 
-  const updateAnswer = (questionId: number, option: 'A' | 'B' | 'C' | 'D') => {
+  const updateAnswer = (questionId: number, option: 'a' | 'b' | 'c' | 'd') => {
     setAnswers({ ...answers, [questionId]: option });
   };
 
@@ -65,8 +66,11 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
     try {
       const submission: QuizSubmission = {
         assignment_id: assignmentId,
-        student_id: parseInt(localStorage.getItem('currentProfileId') || '0'), // Assume profile ID in localStorage
-        answers: questions.filter((q: QuizQuestion) => answers[q.id] !== '').map((q: QuizQuestion) => ({ question_id: q.id, selected_option: answers[q.id] as "A" | "B" | "C" | "D" }))
+        student_id: studentId,
+        answers: questions.filter((q: QuizQuestion) => answers[q.id] !== '').map((q: QuizQuestion) => ({
+          question_id: q.id,
+          selected_answer: answers[q.id] as 'a' | 'b' | 'c' | 'd'
+        }))
       };
       await schoolAPI.submitQuiz(submission);
       if (onSuccess) onSuccess();
@@ -81,7 +85,7 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
     return <div className="flex items-center justify-center h-64"><div className="spinner"></div></div>;
   }
 
-  if (error) {
+  if (error && questions.length === 0) {
     return <div className="text-red-600 text-center p-4">{error}</div>;
   }
 
@@ -97,10 +101,14 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
         {questions.map((question, index) => (
           <div key={question.id} className="border border-gray-200 rounded-lg p-4 space-y-4">
             <h3 className="font-semibold text-gray-900">Question {index + 1}</h3>
-            <p className="text-gray-700 mb-4">{question.question}</p>
+            <p className="text-gray-700 mb-4">{question.question_text}</p>
             <div className="space-y-2">
-              {(['A', 'B', 'C', 'D'] as const).map((option) => {
-                const optionText = question[`option_${option.toLowerCase()}` as keyof QuizQuestion] as string;
+              {(['a', 'b', 'c', 'd'] as const).map((option) => {
+                const optionKey = `option_${option}` as keyof QuizQuestion;
+                const optionText = question[optionKey] as string | null;
+
+                if (!optionText) return null;
+
                 return (
                   <label key={option} className="flex items-center space-x-3 p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
                     <input
@@ -112,7 +120,7 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
                       className="rounded"
                       required
                     />
-                    <span className="text-sm">{option}. {optionText}</span>
+                    <span className="text-sm">{option.toUpperCase()}. {optionText}</span>
                   </label>
                 );
               })}

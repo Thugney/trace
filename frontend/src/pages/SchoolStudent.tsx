@@ -270,6 +270,7 @@ export default function SchoolStudent() {
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <StudentQuizView
               assignmentId={selectedQuizAssignment.id}
+              studentId={currentProfile?.id || 0}
               onSuccess={() => {
                 setShowQuiz(false);
                 setSelectedQuizAssignment(null);

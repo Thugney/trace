@@ -243,7 +243,7 @@ export const schoolAPI = {
     api.get<StudentProgress[]>('/school/students/all/progress'),
 
   // Quiz
-  createQuiz: (assignmentId: number, questions: Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at' | 'updated_at'>[]) =>
+  createQuiz: (assignmentId: number, questions: Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at'>[]) =>
     api.post(`/school/assignments/${assignmentId}/quiz`, { questions }),
 
   getQuiz: (assignmentId: number) =>
@@ -253,7 +253,10 @@ export const schoolAPI = {
     api.post<QuizAnswer[]>(`/school/quiz/submit`, submission),
 
   getQuizResults: (assignmentId: number, studentId: number) =>
-    api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`)
+    api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`),
+
+  getAllQuizResults: (studentId: number) =>
+    api.get<any[]>(`/school/students/${studentId}/quiz-results`)
 };
 
 // Messages API

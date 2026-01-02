@@ -10,14 +10,14 @@ interface QuizCreationFormProps {
 }
 
 export default function QuizCreationForm({ assignmentId, onSuccess, onCancel }: QuizCreationFormProps) {
-  const [questions, setQuestions] = useState<Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at' | 'updated_at'>[]>([
-    { question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_option: 'A' }
+  const [questions, setQuestions] = useState<Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at'>[]>([
+    { question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'a' }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const addQuestion = () => {
-    setQuestions([...questions, { question: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_option: 'A' }]);
+    setQuestions([...questions, { question_text: '', option_a: '', option_b: '', option_c: '', option_d: '', correct_answer: 'a' }]);
   };
 
   const removeQuestion = (index: number) => {
@@ -26,23 +26,23 @@ export default function QuizCreationForm({ assignmentId, onSuccess, onCancel }: 
     }
   };
 
-  const updateQuestion = (index: number, field: keyof Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at' | 'updated_at'>, value: string) => {
+  const updateQuestion = (index: number, field: keyof Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at'>, value: string) => {
     const newQuestions = [...questions];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     setQuestions(newQuestions);
   };
 
-  const updateCorrectOption = (index: number, correct_option: 'A' | 'B' | 'C' | 'D') => {
+  const updateCorrectAnswer = (index: number, correct_answer: 'a' | 'b' | 'c' | 'd') => {
     const newQuestions = [...questions];
-    newQuestions[index] = { ...newQuestions[index], correct_option };
+    newQuestions[index] = { ...newQuestions[index], correct_answer };
     setQuestions(newQuestions);
   };
 
   const validateQuestions = () => {
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      if (!q.question.trim() || !q.option_a.trim() || !q.option_b.trim() || !q.option_c.trim() || !q.option_d.trim()) {
-        return `Question ${i + 1} is incomplete.`;
+      if (!q.question_text.trim() || !q.option_a.trim() || !q.option_b.trim()) {
+        return `Question ${i + 1} is incomplete. At least questions and options A and B are required.`;
       }
     }
     return '';
@@ -89,8 +89,8 @@ export default function QuizCreationForm({ assignmentId, onSuccess, onCancel }: 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Question Text</label>
               <textarea
-                value={question.question}
-                onChange={(e) => updateQuestion(index, 'question', e.target.value)}
+                value={question.question_text}
+                onChange={(e) => updateQuestion(index, 'question_text', e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
                 placeholder="Enter the question here..."
@@ -101,33 +101,33 @@ export default function QuizCreationForm({ assignmentId, onSuccess, onCancel }: 
               {(['option_a', 'option_b', 'option_c', 'option_d'] as const).map((option) => (
                 <div key={option}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Option {option.toUpperCase()}
+                    Option {option.split('_')[1].toUpperCase()}{option === 'option_a' || option === 'option_b' ? ' *' : ''}
                   </label>
                   <input
                     type="text"
-                    value={question[option]}
+                    value={question[option] || ''}
                     onChange={(e) => updateQuestion(index, option, e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={`Enter option ${option.toUpperCase()}...`}
-                    required
+                    placeholder={`Enter option ${option.split('_')[1].toUpperCase()}...`}
+                    required={option === 'option_a' || option === 'option_b'}
                   />
                 </div>
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Correct Option</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Correct Answer</label>
               <div className="flex space-x-4">
-                {(['A', 'B', 'C', 'D'] as const).map((opt) => (
+                {(['a', 'b', 'c', 'd'] as const).map((opt) => (
                   <label key={opt} className="flex items-center space-x-2">
                     <input
                       type="radio"
                       value={opt}
-                      checked={question.correct_option === opt}
-                      onChange={() => updateCorrectOption(index, opt)}
+                      checked={question.correct_answer === opt}
+                      onChange={() => updateCorrectAnswer(index, opt)}
                       className="rounded"
                       required
                     />
-                    <span>{opt}</span>
+                    <span>{opt.toUpperCase()}</span>
                   </label>
                 ))}
               </div>

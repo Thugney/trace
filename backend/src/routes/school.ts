@@ -553,9 +553,42 @@ router.post('/quiz/submit', authenticate, requireRole(['child', 'parent']), veri
 });
 
 // Get student's quiz results for an assignment
-router.get('/assignments/:assignmentId/quiz/results/:studentId', (req, res) => {
+// Accessible by: student (own results), parent (children's results), teacher, admin
+router.get('/assignments/:assignmentId/quiz/results/:studentId', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const { assignmentId, studentId } = req.params;
+    const studentIdNum = parseInt(studentId);
+
+    if (!req.profile) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Authorization check
+    if (req.profile.type === 'child') {
+      // Students can only view their own results
+      if (req.profile.id !== studentIdNum) {
+        return res.status(403).json({ error: 'Access denied: You can only view your own results' });
+      }
+    } else if (req.profile.type === 'parent') {
+      // Parents can only view their children's results
+      const child: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(studentIdNum);
+      if (!child || child.parent_id !== req.profile.id) {
+        return res.status(403).json({ error: 'Access denied: You can only view your own children\'s results' });
+      }
+    } else if (req.profile.type === 'teacher') {
+      // Teachers can view results for students in their classes
+      const enrollment: any = db.prepare(`
+        SELECT e.id
+        FROM school_enrollments e
+        JOIN school_assignments sa ON e.class_id = sa.class_id
+        WHERE e.student_id = ? AND sa.id = ? AND sa.teacher_id = ?
+      `).get(studentIdNum, assignmentId, req.profile.id);
+
+      if (!enrollment) {
+        return res.status(403).json({ error: 'Access denied: You can only view results for students in your classes' });
+      }
+    }
+    // Admin has access to all results (no check needed)
 
     const answers = db.prepare(`
       SELECT qa.*, qq.question_text, qq.option_a, qq.option_b, qq.option_c, qq.option_d, qq.correct_answer, qq.points
@@ -579,6 +612,38 @@ router.get('/assignments/:assignmentId/quiz/results/:studentId', (req, res) => {
       total: totalQuestions,
       answers
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all quiz results for a student across all assignments (for parents)
+router.get('/students/:studentId/quiz-results', authenticate, verifyParentChild('studentId'), (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId } = req.params;
+
+    const results = db.prepare(`
+      SELECT
+        sa.id as assignment_id,
+        sa.title as assignment_title,
+        sa.type,
+        sc.name as class_name,
+        COUNT(DISTINCT qq.id) as total_questions,
+        COUNT(DISTINCT CASE WHEN sqa.is_correct = 1 THEN sqa.id END) as correct_answers,
+        ROUND(CAST(COUNT(DISTINCT CASE WHEN sqa.is_correct = 1 THEN sqa.id END) AS FLOAT) / COUNT(DISTINCT qq.id) * 100) as score_percentage,
+        MAX(sqa.submitted_at) as submitted_at
+      FROM school_assignments sa
+      JOIN school_classes sc ON sa.class_id = sc.id
+      JOIN school_enrollments e ON sc.id = e.class_id
+      LEFT JOIN quiz_questions qq ON sa.id = qq.assignment_id
+      LEFT JOIN student_quiz_answers sqa ON qq.id = sqa.question_id AND sqa.student_id = ?
+      WHERE e.student_id = ? AND qq.id IS NOT NULL
+      GROUP BY sa.id, sa.title, sa.type, sc.name
+      HAVING COUNT(DISTINCT sqa.id) > 0
+      ORDER BY submitted_at DESC
+    `).all(studentId, studentId);
+
+    res.json(results);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

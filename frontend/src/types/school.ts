@@ -76,23 +76,23 @@ export interface StudentProgress {
 export interface QuizQuestion {
   id: number;
   assignment_id: number;
-  question: string;
+  question_text: string;
   option_a: string;
   option_b: string;
-  option_c: string;
-  option_d: string;
-  correct_option: 'A' | 'B' | 'C' | 'D';
-  created_at: string;
-  updated_at: string;
+  option_c: string | null;
+  option_d: string | null;
+  correct_answer: 'a' | 'b' | 'c' | 'd';
+  points?: number;
+  order_index?: number;
+  created_at?: string;
 }
 
 export interface QuizAnswer {
   id: number;
   question_id: number;
   student_id: number;
-  selected_option: 'A' | 'B' | 'C' | 'D' | null;
+  selected_answer: 'a' | 'b' | 'c' | 'd' | null;
   is_correct: boolean;
-  score: number;
   submitted_at: string;
 }
 
@@ -101,7 +101,7 @@ export interface QuizSubmission {
   student_id: number;
   answers: {
     question_id: number;
-    selected_option: 'A' | 'B' | 'C' | 'D';
+    selected_answer: 'a' | 'b' | 'c' | 'd';
   }[];
 }
 
