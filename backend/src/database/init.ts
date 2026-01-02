@@ -178,9 +178,14 @@ export function initDatabase() {
       achieved BOOLEAN DEFAULT 0,
       reward_given BOOLEAN DEFAULT 0,
       notes TEXT,
+      parent_approved BOOLEAN DEFAULT 0,
+      created_by INTEGER,
+      approved_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id),
+      FOREIGN KEY (approved_by) REFERENCES profiles(id)
     )
   `);
 
@@ -578,6 +583,36 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (username column):', error.message);
+  }
+
+  // Migration: Add parent approval columns to monthly_goals table
+  try {
+    const goalsInfo: any[] = db.prepare('PRAGMA table_info(monthly_goals)').all();
+    const hasParentApproved = goalsInfo.some((col: any) => col.name === 'parent_approved');
+    const hasCreatedBy = goalsInfo.some((col: any) => col.name === 'created_by');
+    const hasApprovedBy = goalsInfo.some((col: any) => col.name === 'approved_by');
+
+    if (!hasParentApproved) {
+      console.log('🔄 Migrating monthly_goals table: adding parent approval columns...');
+      db.prepare('ALTER TABLE monthly_goals ADD COLUMN parent_approved BOOLEAN DEFAULT 0').run();
+      console.log('✅ Added parent_approved column');
+    }
+
+    if (!hasCreatedBy) {
+      db.prepare('ALTER TABLE monthly_goals ADD COLUMN created_by INTEGER REFERENCES profiles(id)').run();
+      console.log('✅ Added created_by column');
+    }
+
+    if (!hasApprovedBy) {
+      db.prepare('ALTER TABLE monthly_goals ADD COLUMN approved_by INTEGER REFERENCES profiles(id)').run();
+      console.log('✅ Added approved_by column');
+    }
+
+    if (!hasParentApproved || !hasCreatedBy || !hasApprovedBy) {
+      console.log('✅ Migration completed: monthly_goals table updated with parent approval fields');
+    }
+  } catch (error: any) {
+    console.error('Migration error (monthly_goals approval):', error.message);
   }
 
   console.log('✅ Database initialized successfully');

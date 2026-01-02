@@ -146,8 +146,13 @@ export interface MonthlyGoal {
   achieved: boolean;
   reward_given: boolean;
   notes?: string;
+  parent_approved: boolean;
+  created_by?: number;
+  approved_by?: number;
   created_at: string;
   updated_at: string;
+  child_name?: string;
+  child_avatar?: string;
 }
 
 export interface ProfileStats {

@@ -10,6 +10,8 @@ export default function TasksManager() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [monthlyGoal, setMonthlyGoal] = useState<MonthlyGoal | null>(null);
+  // const [allGoals, setAllGoals] = useState<MonthlyGoal[]>([]); // For future: show goal history
+  const [pendingGoals, setPendingGoals] = useState<MonthlyGoal[]>([]);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -27,8 +29,15 @@ export default function TasksManager() {
       loadTasks();
       loadProgress();
       loadMonthlyGoal();
+      // loadAllGoals(); // For future: show goal history
     }
   }, [displayProfileId]);
+
+  useEffect(() => {
+    if (isParent && currentProfile) {
+      loadPendingGoals();
+    }
+  }, [isParent, currentProfile]);
 
   const loadTasks = async () => {
     if (!displayProfileId) return;
@@ -60,9 +69,37 @@ export default function TasksManager() {
 
     try {
       const response = await goalsAPI.getCurrent(displayProfileId);
-      setMonthlyGoal(response.data);
+      // Only show approved goals to kids
+      if (!isParent && response.data && !response.data.parent_approved) {
+        setMonthlyGoal(null);
+      } else {
+        setMonthlyGoal(response.data);
+      }
     } catch (error) {
       console.error('Failed to load monthly goal:', error);
+    }
+  };
+
+  // For future: show goal history
+  // const loadAllGoals = async () => {
+  //   if (!displayProfileId) return;
+  //   try {
+  //     const response = await goalsAPI.getByProfile(displayProfileId);
+  //     const filteredGoals = isParent ? response.data : response.data.filter(g => g.parent_approved);
+  //     setAllGoals(filteredGoals);
+  //   } catch (error) {
+  //     console.error('Failed to load all goals:', error);
+  //   }
+  // };
+
+  const loadPendingGoals = async () => {
+    if (!currentProfile?.id) return;
+
+    try {
+      const response = await goalsAPI.getPending(currentProfile.id);
+      setPendingGoals(response.data);
+    } catch (error) {
+      console.error('Failed to load pending goals:', error);
     }
   };
 
@@ -119,11 +156,21 @@ export default function TasksManager() {
         month: currentMonth,
         goal_description: formData.get('description') as string,
         goal_points: parseInt(formData.get('points') as string, 10),
-        goal_type: formData.get('type') as string
+        goal_type: formData.get('type') as string,
+        created_by: currentProfile?.id
       });
 
       await loadMonthlyGoal();
+      // await loadAllGoals(); // For future: show goal history
+      if (isParent) {
+        await loadPendingGoals();
+      }
       setShowAddGoal(false);
+
+      // Show message to kids that their goal needs parent approval
+      if (!isParent) {
+        alert('✅ Goal created! It will appear once your parent approves it.');
+      }
     } catch (error) {
       console.error('Failed to create goal:', error);
       alert('Failed to create goal');
@@ -161,6 +208,35 @@ export default function TasksManager() {
     } catch (error) {
       console.error('Failed to update goal:', error);
       alert('Failed to update goal');
+    }
+  };
+
+  const handleApproveGoal = async (goalId: number) => {
+    if (!currentProfile?.id) return;
+
+    try {
+      await goalsAPI.approve(goalId, currentProfile.id);
+      await loadPendingGoals();
+      // await loadAllGoals(); // For future: show goal history
+      alert('✅ Goal approved!');
+    } catch (error) {
+      console.error('Failed to approve goal:', error);
+      alert('Failed to approve goal');
+    }
+  };
+
+  const handleRejectGoal = async (goalId: number) => {
+    if (!currentProfile?.id) return;
+
+    if (!confirm('Are you sure you want to reject this goal?')) return;
+
+    try {
+      await goalsAPI.reject(goalId, currentProfile.id);
+      await loadPendingGoals();
+      alert('Goal rejected');
+    } catch (error) {
+      console.error('Failed to reject goal:', error);
+      alert('Failed to reject goal');
     }
   };
 
@@ -223,6 +299,52 @@ export default function TasksManager() {
               >
                 {child.avatar} {child.name}
               </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Goals for Parents to Review */}
+      {isParent && pendingGoals.length > 0 && (
+        <div className="card mb-6 bg-yellow-50 border-2 border-yellow-300">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <Trophy className="mr-2 text-yellow-600" size={24} />
+            Pending Goal Approvals
+          </h3>
+          <div className="space-y-3">
+            {pendingGoals.map(goal => (
+              <div key={goal.id} className="bg-white p-4 rounded-lg border border-yellow-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl mr-2">{goal.child_avatar || '👤'}</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">{goal.child_name}</p>
+                        <p className="text-sm text-gray-600">wants to set a goal</p>
+                      </div>
+                    </div>
+                    <p className="text-gray-800 mb-2">{goal.goal_description}</p>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Star className="mr-1" size={16} />
+                      <span>{goal.goal_points} points • {goal.goal_type}</span>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2 ml-4">
+                    <button
+                      onClick={() => handleApproveGoal(goal.id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                    >
+                      ✓ Approve
+                    </button>
+                    <button
+                      onClick={() => handleRejectGoal(goal.id)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                    >
+                      ✗ Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </div>

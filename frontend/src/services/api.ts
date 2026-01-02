@@ -181,7 +181,13 @@ export const goalsAPI = {
       points,
       stars,
       reason
-    })
+    }),
+  approve: (id: number, approved_by: number) =>
+    api.post<MonthlyGoal>(`/goals/${id}/approve`, { approved_by }),
+  reject: (id: number, rejected_by: number) =>
+    api.post<{ message: string }>(`/goals/${id}/reject`, { rejected_by }),
+  getPending: (parentId: number) =>
+    api.get<MonthlyGoal[]>(`/goals/pending/${parentId}`)
 };
 
 // School (Tigrinya Church School)

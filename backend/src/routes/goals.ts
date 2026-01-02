@@ -45,7 +45,7 @@ router.get('/:profileId/current', (req, res) => {
 // Create monthly goal
 router.post('/', (req, res) => {
   try {
-    const { profile_id, month, goal_description, goal_points, goal_type, notes } = req.body;
+    const { profile_id, month, goal_description, goal_points, goal_type, notes, created_by } = req.body;
 
     if (!profile_id || !month || !goal_description || !goal_points) {
       return res.status(400).json({
@@ -53,21 +53,23 @@ router.post('/', (req, res) => {
       });
     }
 
-    // Check if goal already exists for this month
-    const existing = db.prepare(
-      'SELECT id FROM monthly_goals WHERE profile_id = ? AND month = ?'
-    ).get(profile_id, month);
+    // Check if creator is parent or admin - auto-approve
+    // Check if creator is child - require parent approval
+    let parentApproved = 0;
+    let approvedBy = null;
 
-    if (existing) {
-      return res.status(400).json({
-        error: 'Goal already exists for this month'
-      });
+    if (created_by) {
+      const creator: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(created_by);
+      if (creator && (creator.type === 'parent' || creator.type === 'admin')) {
+        parentApproved = 1;
+        approvedBy = created_by;
+      }
     }
 
     const result = db.prepare(`
-      INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, goal_type, notes)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(profile_id, month, goal_description, goal_points, goal_type || 'kroner', notes || null);
+      INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, goal_type, notes, created_by, parent_approved, approved_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(profile_id, month, goal_description, goal_points, goal_type || 'kroner', notes || null, created_by || null, parentApproved, approvedBy);
 
     const newGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newGoal);
@@ -174,6 +176,92 @@ router.post('/:profileId/bonus-points', (req, res) => {
       message: 'Bonus points awarded!',
       progress: bonusEntry
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Approve goal (parent/admin only)
+router.post('/:id/approve', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved_by } = req.body;
+
+    if (!approved_by) {
+      return res.status(400).json({ error: 'approved_by is required' });
+    }
+
+    // Verify approver is parent or admin
+    const approver: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(approved_by);
+    if (!approver || (approver.type !== 'parent' && approver.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents or admins can approve goals' });
+    }
+
+    db.prepare(`
+      UPDATE monthly_goals
+      SET parent_approved = 1, approved_by = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(approved_by, id);
+
+    const updatedGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+    res.json(updatedGoal);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reject/delete goal (parent/admin only)
+router.post('/:id/reject', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejected_by } = req.body;
+
+    if (!rejected_by) {
+      return res.status(400).json({ error: 'rejected_by is required' });
+    }
+
+    // Verify rejector is parent or admin
+    const rejector: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(rejected_by);
+    if (!rejector || (rejector.type !== 'parent' && rejector.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents or admins can reject goals' });
+    }
+
+    const result = db.prepare('DELETE FROM monthly_goals WHERE id = ?').run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+
+    res.json({ message: 'Goal rejected and deleted' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get pending goals (for parents to review)
+router.get('/pending/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+
+    // Get all children of this parent
+    const children: any[] = db.prepare('SELECT id FROM profiles WHERE parent_id = ? AND type = ?').all(parentId, 'child');
+    const childIds = children.map(c => c.id);
+
+    if (childIds.length === 0) {
+      return res.json([]);
+    }
+
+    // Get all pending goals for children
+    const placeholders = childIds.map(() => '?').join(',');
+    const pendingGoals = db.prepare(`
+      SELECT mg.*, p.name as child_name, p.avatar as child_avatar
+      FROM monthly_goals mg
+      JOIN profiles p ON mg.profile_id = p.id
+      WHERE mg.profile_id IN (${placeholders}) AND mg.parent_approved = 0
+      ORDER BY mg.created_at DESC
+    `).all(...childIds);
+
+    res.json(pendingGoals);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
