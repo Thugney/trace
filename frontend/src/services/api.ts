@@ -207,7 +207,7 @@ export const schoolAPI = {
     teacher_id: number;
     title: string;
     description?: string;
-    type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'other';
+    type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
     youtube_link?: string;
     attachment_url?: string;
     due_date?: string;
