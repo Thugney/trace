@@ -41,19 +41,19 @@ export default function SchoolEnroll() {
         const allProfilesResponse = await profilesAPI.getAll();
         const allChildren = allProfilesResponse.data.filter(p => p.type === 'child');
 
-        // Add enrollment count for each child
+        // Add ACTUAL enrollments (list of class IDs) for each child
         const childrenWithEnrollment = await Promise.all(
           allChildren.map(async (child) => {
             try {
               const enrollmentsResponse = await schoolAPI.getStudentEnrollments(child.id);
               return {
                 ...child,
-                enrollment_count: enrollmentsResponse.data.length
+                enrolled_class_ids: enrollmentsResponse.data.map((e: any) => e.id)
               };
             } catch (error) {
               return {
                 ...child,
-                enrollment_count: 0
+                enrolled_class_ids: []
               };
             }
           })
@@ -62,7 +62,25 @@ export default function SchoolEnroll() {
       } else if (currentProfile.type === 'parent') {
         // Parent sees only their own children
         const childrenResponse = await schoolAPI.getParentChildren(currentProfile.id);
-        setMyChildren(childrenResponse.data);
+
+        // Add ACTUAL enrollments for each child
+        const childrenWithEnrollment = await Promise.all(
+          childrenResponse.data.map(async (child: any) => {
+            try {
+              const enrollmentsResponse = await schoolAPI.getStudentEnrollments(child.id);
+              return {
+                ...child,
+                enrolled_class_ids: enrollmentsResponse.data.map((e: any) => e.id)
+              };
+            } catch (error) {
+              return {
+                ...child,
+                enrolled_class_ids: []
+              };
+            }
+          })
+        );
+        setMyChildren(childrenWithEnrollment);
       }
     } catch (error) {
       console.error('Failed to load enrollment data:', error);
@@ -169,7 +187,7 @@ export default function SchoolEnroll() {
             <div className="space-y-4">
               {myChildren.map((child) => {
                 const recommendedClass = getRecommendedClass(child.age);
-                const alreadyEnrolled = child.enrollment_count > 0;
+                const hasAnyEnrollment = child.enrolled_class_ids && child.enrolled_class_ids.length > 0;
 
                 return (
                   <div key={child.id} className="card p-6">
@@ -188,10 +206,10 @@ export default function SchoolEnroll() {
                           </p>
                         </div>
                       </div>
-                      {alreadyEnrolled && (
+                      {hasAnyEnrollment && (
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           <CheckCircle size={12} className="mr-1" />
-                          Enrolled
+                          {child.enrolled_class_ids.length} {child.enrolled_class_ids.length === 1 ? 'Class' : 'Classes'}
                         </span>
                       )}
                     </div>
@@ -202,36 +220,44 @@ export default function SchoolEnroll() {
                           recommendedClass && cls.id === recommendedClass.id;
                         const ageMatch =
                           child.age >= (cls.age_min || 0) && child.age <= (cls.age_max || 100);
+                        const isEnrolledInThisClass = child.enrolled_class_ids && child.enrolled_class_ids.includes(cls.id);
 
                         return (
                           <button
                             key={cls.id}
                             onClick={() => handleEnroll(child.id, cls.id)}
-                            disabled={alreadyEnrolled}
+                            disabled={isEnrolledInThisClass}
                             className={`p-4 rounded-lg border-2 transition-all ${
-                              isRecommended
+                              isEnrolledInThisClass
+                                ? 'border-green-300 bg-green-50'
+                                : isRecommended
                                 ? 'border-primary-500 bg-primary-50'
                                 : ageMatch
                                 ? 'border-gray-300 hover:border-primary-300 bg-white'
                                 : 'border-gray-200 bg-gray-50 opacity-60'
                             } ${
-                              alreadyEnrolled
-                                ? 'cursor-not-allowed opacity-50'
+                              isEnrolledInThisClass
+                                ? 'cursor-not-allowed'
                                 : 'hover:shadow-md cursor-pointer'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium text-gray-900 text-sm">{cls.name}</h4>
-                              {isRecommended && (
+                              {isEnrolledInThisClass ? (
+                                <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded flex items-center">
+                                  <CheckCircle size={10} className="mr-1" />
+                                  Enrolled
+                                </span>
+                              ) : isRecommended ? (
                                 <span className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded">
                                   Best Fit
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                             <p className="text-xs text-gray-600">
                               Ages {cls.age_min}-{cls.age_max}
                             </p>
-                            {!alreadyEnrolled && (
+                            {!isEnrolledInThisClass && (
                               <div className="mt-3 flex items-center justify-center text-primary-600 text-sm font-medium">
                                 <UserPlus size={14} className="mr-1" />
                                 Enroll
