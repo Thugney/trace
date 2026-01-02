@@ -1,10 +1,79 @@
 import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
+import { AuthRequest, authenticate, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
 
 const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+
+// Helper: Get AI settings for profile (now includes ai_enabled and enrolled_by)
+function getAISettings(profileId: number) {
+  try {
+    let settings: any = db.prepare(`
+      SELECT 
+        ai.*,
+        p.ai_enabled,
+        p.type,
+        p.parent_id,
+        ai.enrolled_by
+      FROM ai_settings ai
+      LEFT JOIN profiles p ON ai.profile_id = p.id
+      WHERE ai.profile_id = ?
+    `).get(profileId);
+
+    // Create default settings if none exist
+    if (!settings) {
+      console.log(`Creating default AI settings for profile ${profileId}`);
+      db.prepare(`
+        INSERT INTO ai_settings (
+          profile_id,
+          strict_mode,
+          max_messages_per_day,
+          content_filter_level,
+          custom_instructions
+        )
+        VALUES (?, 1, 20, 'strict', '')
+      `).run(profileId);
+
+      settings = db.prepare(`
+        SELECT 
+          ai.*,
+          p.ai_enabled,
+          p.type,
+          p.parent_id,
+          ai.enrolled_by
+        FROM ai_settings ai
+        LEFT JOIN profiles p ON ai.profile_id = p.id
+        WHERE ai.profile_id = ?
+      `).get(profileId);
+    }
+
+    // Ensure custom_instructions exists
+    if (!settings.custom_instructions) {
+      settings.custom_instructions = '';
+    }
+
+    // If ai_enabled is null or 0, treat as disabled
+    if (settings.ai_enabled !== 1) {
+      settings.ai_enabled = 0;
+    }
+
+    return settings;
+  } catch (error) {
+    console.error(`Error getting AI settings for profile ${profileId}:`, error);
+    // Return safe defaults if database fails (disabled)
+    return {
+      profile_id: profileId,
+      strict_mode: 1,
+      max_messages_per_day: 20,
+      content_filter_level: 'strict',
+      custom_instructions: '',
+      ai_enabled: 0,
+      enrolled_by: null
+    };
+  }
+}
 
 // Helper: Get Grok API key from env or settings table
 function getGrokApiKey(): string | null {
@@ -31,50 +100,7 @@ function isGrokAvailable(): boolean {
   return !!getGrokApiKey();
 }
 
-// Helper: Get AI settings for profile
-function getAISettings(profileId: number) {
-  try {
-    let settings: any = db.prepare(
-      'SELECT * FROM ai_settings WHERE profile_id = ?'
-    ).get(profileId);
 
-    // Create default settings if none exist
-    if (!settings) {
-      console.log(`Creating default AI settings for profile ${profileId}`);
-      db.prepare(`
-        INSERT INTO ai_settings (
-          profile_id,
-          strict_mode,
-          max_messages_per_day,
-          content_filter_level,
-          custom_instructions
-        )
-        VALUES (?, 1, 20, 'strict', '')
-      `).run(profileId);
-
-      settings = db.prepare(
-        'SELECT * FROM ai_settings WHERE profile_id = ?'
-      ).get(profileId);
-    }
-
-    // Ensure custom_instructions exists
-    if (!settings.custom_instructions) {
-      settings.custom_instructions = '';
-    }
-
-    return settings;
-  } catch (error) {
-    console.error(`Error getting AI settings for profile ${profileId}:`, error);
-    // Return safe defaults if database fails
-    return {
-      profile_id: profileId,
-      strict_mode: 1,
-      max_messages_per_day: 20,
-      content_filter_level: 'strict',
-      custom_instructions: ''
-    };
-  }
-}
 
 // Helper: Get profile context (tasks, progress, diet, goals, notes)
 function getProfileContext(profileId: number) {
@@ -176,14 +202,15 @@ function generateFallbackResponse(message: string, profile: any, context: string
 }
 
 // Chat with AI (POST endpoint)
-router.post('/chat', async (req, res) => {
+router.post('/chat', authenticate, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
   try {
-    const { profile_id, message, context = 'general' } = req.body;
+    const profile_id = req.profile!.id;  // Use authenticated profile
+    const { message, context = 'general' } = req.body;
     console.log(`[AI Chat POST] Request from profile ${profile_id}, context: ${context}`);
 
-    if (!profile_id || !message) {
-      console.error('[AI Chat] Missing required fields');
-      return res.status(400).json({ error: 'profile_id and message are required' });
+    if (!message) {
+      console.error('[AI Chat] Missing message');
+      return res.status(400).json({ error: 'Message is required' });
     }
 
     // Get profile context

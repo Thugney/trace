@@ -21,7 +21,11 @@ import type {
   SchoolAssignment,
   SchoolSubmission,
   SchoolFeedback,
-  StudentProgress
+  StudentProgress,
+  QuizQuestion,
+  QuizAnswer,
+  QuizSubmission,
+  QuizResult
 } from '../types/school';
 
 // Use relative path for production (nginx proxy) or explicit URL for development
@@ -236,7 +240,20 @@ export const schoolAPI = {
   getStudentProgress: (studentId: number) =>
     api.get<StudentProgress>(`/school/students/${studentId}/progress`),
   getAllStudentsProgress: () =>
-    api.get<StudentProgress[]>('/school/students/all/progress')
+    api.get<StudentProgress[]>('/school/students/all/progress'),
+
+  // Quiz
+  createQuiz: (assignmentId: number, questions: Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at' | 'updated_at'>[]) =>
+    api.post(`/school/assignments/${assignmentId}/quiz`, { questions }),
+
+  getQuiz: (assignmentId: number) =>
+    api.get<QuizQuestion[]>(`/school/assignments/${assignmentId}/quiz`),
+
+  submitQuiz: (submission: QuizSubmission) =>
+    api.post<QuizAnswer[]>(`/school/quiz/submit`, submission),
+
+  getQuizResults: (assignmentId: number, studentId: number) =>
+    api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`)
 };
 
 // Messages API

@@ -13,6 +13,7 @@ import {
   Trash2,
   Send
 } from 'lucide-react';
+import QuizCreationForm from '../components/QuizCreationForm';
 import type {
   SchoolClass,
   SchoolAssignment,
@@ -49,6 +50,8 @@ export default function SchoolDashboard() {
     rating: 'very_good' as 'excellent' | 'very_good' | 'good' | 'needs_improvement'
   });
 
+  const [showQuizForm, setShowQuizForm] = useState(false);
+  const [quizAssignmentId, setQuizAssignmentId] = useState<number | null>(null);
   useEffect(() => {
     loadClasses();
     if (currentProfile?.type === 'teacher') {
@@ -106,7 +109,7 @@ export default function SchoolDashboard() {
     if (!currentProfile || !selectedClass) return;
 
     try {
-      await schoolAPI.createAssignment({
+      const response = await schoolAPI.createAssignment({
         class_id: selectedClass,
         teacher_id: currentProfile.id,
         title: formData.title,
@@ -124,7 +127,13 @@ export default function SchoolDashboard() {
         youtube_link: '',
         due_date: ''
       });
-      loadClassData();
+
+      if (formData.type === 'quiz') {
+        setQuizAssignmentId(response.data.id);
+        setShowQuizForm(true);
+      } else {
+        loadClassData();
+      }
     } catch (error) {
       console.error('Failed to create assignment:', error);
     }
@@ -316,6 +325,7 @@ export default function SchoolDashboard() {
                   <option value="alphabet">Alphabet Practice</option>
                   <option value="video">Video Lesson</option>
                   <option value="other">Other</option>
+<option value="quiz">Quiz</option>
                 </select>
               </div>
 
@@ -367,6 +377,26 @@ export default function SchoolDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quiz Creation Modal */}
+      {showQuizForm && quizAssignmentId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <QuizCreationForm
+              assignmentId={quizAssignmentId}
+              onSuccess={() => {
+                setShowQuizForm(false);
+                setQuizAssignmentId(null);
+                loadClassData();
+              }}
+              onCancel={() => {
+                setShowQuizForm(false);
+                setQuizAssignmentId(null);
+              }}
+            />
           </div>
         </div>
       )}

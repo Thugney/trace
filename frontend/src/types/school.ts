@@ -19,7 +19,7 @@ export interface SchoolEnrollment {
   class_name?: string;
 }
 
-export type AssignmentType = 'homework' | 'psalm' | 'alphabet' | 'video' | 'other';
+export type AssignmentType = 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
 
 export interface SchoolAssignment {
   id: number;
@@ -71,4 +71,45 @@ export interface StudentProgress {
   needs_revision_count: number;
   pending_count: number;
   completion_rate: number;
+}
+
+export interface QuizQuestion {
+  id: number;
+  assignment_id: number;
+  question: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: 'A' | 'B' | 'C' | 'D';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizAnswer {
+  id: number;
+  question_id: number;
+  student_id: number;
+  selected_option: 'A' | 'B' | 'C' | 'D' | null;
+  is_correct: boolean;
+  score: number;
+  submitted_at: string;
+}
+
+export interface QuizSubmission {
+  assignment_id: number;
+  student_id: number;
+  answers: {
+    question_id: number;
+    selected_option: 'A' | 'B' | 'C' | 'D';
+  }[];
+}
+
+export interface QuizResult {
+  assignment_id: number;
+  student_id: number;
+  score_percentage: number;
+  total_questions: number;
+  correct_answers: number;
+  answers: (QuizAnswer & { question: QuizQuestion })[];
 }

@@ -12,6 +12,8 @@ import {
   AlertCircle,
   UserPlus
 } from 'lucide-react';
+import StudentQuizView from '../components/StudentQuizView';
+import QuizResults from '../components/QuizResults';
 import type { SchoolAssignment, SchoolEnrollment } from '../types/school';
 
 export default function SchoolStudent() {
@@ -23,6 +25,12 @@ export default function SchoolStudent() {
   const [loading, setLoading] = useState(false);
   const [selectedAssignment, setSelectedAssignment] = useState<SchoolAssignment | null>(null);
   const [submissionNotes, setSubmissionNotes] = useState('');
+
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [selectedQuizAssignment, setSelectedQuizAssignment] = useState<SchoolAssignment | null>(null);
+
+  const [showResults, setShowResults] = useState(false);
+  const [selectedResultsAssignment, setSelectedResultsAssignment] = useState<SchoolAssignment | null>(null);
 
   useEffect(() => {
     if (currentProfile) {
@@ -207,16 +215,30 @@ export default function SchoolStudent() {
                 )}
 
                 {!assignment.has_submitted && (
-                  <button
-                    onClick={() => setSelectedAssignment(assignment)}
-                    className="btn btn-primary w-full sm:w-auto"
-                  >
-                    <Send size={16} className="mr-2" />
-                    Submit Work
-                  </button>
+                  <>
+                    {assignment.type === 'quiz' ? (
+                      <button
+                        onClick={() => {
+                          setSelectedQuizAssignment(assignment);
+                          setShowQuiz(true);
+                        }}
+                        className="btn btn-primary w-full sm:w-auto"
+                      >
+                        Take Quiz
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedAssignment(assignment)}
+                        className="btn btn-primary w-full sm:w-auto"
+                      >
+                        <Send size={16} className="mr-2" />
+                        Submit Work
+                      </button>
+                    )}
+                  </>
                 )}
 
-                {assignment.has_submitted && assignment.submission_status === 'needs_revision' && (
+                {assignment.has_submitted && assignment.submission_status === 'needs_revision' && assignment.type !== 'quiz' && (
                   <button
                     onClick={() => setSelectedAssignment(assignment)}
                     className="btn bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
@@ -225,11 +247,43 @@ export default function SchoolStudent() {
                     Resubmit Work
                   </button>
                 )}
+
+                {assignment.type === 'quiz' && assignment.has_submitted && (
+                  <button
+                    onClick={() => {
+                      // For now, reload or navigate to results; implement results later
+                      loadStudentData();
+                    }}
+                    className="btn btn-secondary w-full sm:w-auto"
+                  >
+                    View Results
+                  </button>
+                )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Quiz Modal */}
+      {showQuiz && selectedQuizAssignment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <StudentQuizView
+              assignmentId={selectedQuizAssignment.id}
+              onSuccess={() => {
+                setShowQuiz(false);
+                setSelectedQuizAssignment(null);
+                loadStudentData();
+              }}
+              onCancel={() => {
+                setShowQuiz(false);
+                setSelectedQuizAssignment(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Submit Work Modal */}
       {selectedAssignment && (
