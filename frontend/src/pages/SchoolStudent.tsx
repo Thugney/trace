@@ -29,8 +29,7 @@ export default function SchoolStudent() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [selectedQuizAssignment, setSelectedQuizAssignment] = useState<SchoolAssignment | null>(null);
 
-  const [showResults, setShowResults] = useState(false);
-  const [selectedResultsAssignment, setSelectedResultsAssignment] = useState<SchoolAssignment | null>(null);
+
 
   useEffect(() => {
     if (currentProfile) {
