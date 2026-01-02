@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { schoolAPI, profilesAPI } from '../services/api';
-import { GraduationCap, CheckCircle, UserPlus, Shield } from 'lucide-react';
+import { GraduationCap, CheckCircle, UserPlus, Shield, X } from 'lucide-react';
 import type { SchoolClass } from '../types/school';
 
 export default function SchoolEnroll() {
@@ -104,6 +104,28 @@ export default function SchoolEnroll() {
         setErrorMessage('You can only enroll your own children');
       } else {
         setErrorMessage('Failed to enroll. Please try again.');
+      }
+    }
+  };
+
+  const handleUnenroll = async (childId: number, classId: number, className: string) => {
+    if (!currentProfile) return;
+
+    if (!window.confirm(`Are you sure you want to unenroll from ${className}?`)) {
+      return;
+    }
+
+    try {
+      await schoolAPI.unenrollStudent(childId, classId);
+      setSuccessMessage('Child unenrolled successfully!');
+      loadData(); // Reload to update enrollment counts
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        setErrorMessage('You can only unenroll your own children');
+      } else if (error.response?.status === 404) {
+        setErrorMessage('Enrollment not found');
+      } else {
+        setErrorMessage('Failed to unenroll. Please try again.');
       }
     }
   };
@@ -223,47 +245,48 @@ export default function SchoolEnroll() {
                         const isEnrolledInThisClass = child.enrolled_class_ids && child.enrolled_class_ids.includes(cls.id);
 
                         return (
-                          <button
-                            key={cls.id}
-                            onClick={() => handleEnroll(child.id, cls.id)}
-                            disabled={isEnrolledInThisClass}
-                            className={`p-4 rounded-lg border-2 transition-all ${
-                              isEnrolledInThisClass
-                                ? 'border-green-300 bg-green-50'
-                                : isRecommended
-                                ? 'border-primary-500 bg-primary-50'
-                                : ageMatch
-                                ? 'border-gray-300 hover:border-primary-300 bg-white'
-                                : 'border-gray-200 bg-gray-50 opacity-60'
-                            } ${
-                              isEnrolledInThisClass
-                                ? 'cursor-not-allowed'
-                                : 'hover:shadow-md cursor-pointer'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-900 text-sm">{cls.name}</h4>
-                              {isEnrolledInThisClass ? (
-                                <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded flex items-center">
-                                  <CheckCircle size={10} className="mr-1" />
-                                  Enrolled
-                                </span>
-                              ) : isRecommended ? (
-                                <span className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded">
-                                  Best Fit
-                                </span>
-                              ) : null}
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              Ages {cls.age_min}-{cls.age_max}
-                            </p>
-                            {!isEnrolledInThisClass && (
-                              <div className="mt-3 flex items-center justify-center text-primary-600 text-sm font-medium">
-                                <UserPlus size={14} className="mr-1" />
-                                Enroll
+                          <div key={cls.id} className="relative">
+                            <button
+                              onClick={() => isEnrolledInThisClass ? handleUnenroll(child.id, cls.id, cls.name) : handleEnroll(child.id, cls.id)}
+                              className={`w-full p-4 rounded-lg border-2 transition-all ${
+                                isEnrolledInThisClass
+                                  ? 'border-green-300 bg-green-50 hover:border-green-400'
+                                  : isRecommended
+                                  ? 'border-primary-500 bg-primary-50'
+                                  : ageMatch
+                                  ? 'border-gray-300 hover:border-primary-300 bg-white'
+                                  : 'border-gray-200 bg-gray-50 opacity-60'
+                              } hover:shadow-md cursor-pointer`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-gray-900 text-sm">{cls.name}</h4>
+                                {isEnrolledInThisClass ? (
+                                  <span className="text-xs px-2 py-1 bg-green-200 text-green-800 rounded flex items-center">
+                                    <CheckCircle size={10} className="mr-1" />
+                                    Enrolled
+                                  </span>
+                                ) : isRecommended ? (
+                                  <span className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded">
+                                    Best Fit
+                                  </span>
+                                ) : null}
                               </div>
-                            )}
-                          </button>
+                              <p className="text-xs text-gray-600">
+                                Ages {cls.age_min}-{cls.age_max}
+                              </p>
+                              {isEnrolledInThisClass ? (
+                                <div className="mt-3 flex items-center justify-center text-red-600 text-sm font-medium">
+                                  <X size={14} className="mr-1" />
+                                  Unenroll
+                                </div>
+                              ) : (
+                                <div className="mt-3 flex items-center justify-center text-primary-600 text-sm font-medium">
+                                  <UserPlus size={14} className="mr-1" />
+                                  Enroll
+                                </div>
+                              )}
+                            </button>
+                          </div>
                         );
                       })}
                     </div>

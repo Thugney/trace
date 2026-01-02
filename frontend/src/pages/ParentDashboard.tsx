@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI } from '../services/api';
+import { profilesAPI, schoolAPI } from '../services/api';
 import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap, Clock, FileCheck } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
   const [children, setChildren] = useState<Profile[]>([]);
   const [childrenStats, setChildrenStats] = useState<any[]>([]);
+  const [childrenSchoolProgress, setChildrenSchoolProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,6 +40,32 @@ export default function ParentDashboard() {
       );
       const stats = await Promise.all(statsPromises);
       setChildrenStats(stats);
+
+      // Load school progress for each child
+      const schoolProgressPromises = myKids.map(async (child: Profile) => {
+        try {
+          const [progressRes, assignmentsRes, enrollmentsRes] = await Promise.all([
+            schoolAPI.getStudentProgress(child.id),
+            schoolAPI.getStudentAssignments(child.id),
+            schoolAPI.getStudentEnrollments(child.id)
+          ]);
+          return {
+            ...child,
+            progress: progressRes.data,
+            assignments: assignmentsRes.data.slice(0, 5), // Show latest 5
+            enrollments: enrollmentsRes.data
+          };
+        } catch (error) {
+          return {
+            ...child,
+            progress: null,
+            assignments: [],
+            enrollments: []
+          };
+        }
+      });
+      const schoolProgress = await Promise.all(schoolProgressPromises);
+      setChildrenSchoolProgress(schoolProgress);
     } catch (error) {
       console.error('Failed to load family data:', error);
     } finally {
@@ -277,6 +304,119 @@ export default function ParentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Children's School Progress */}
+      {childrenSchoolProgress.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Children's School Progress</h2>
+          <div className="space-y-6">
+            {childrenSchoolProgress.map((child) => (
+              <div key={child.id} className="card">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-3xl">{child.avatar || '👤'}</span>
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-900">{child.name}</h3>
+                      <p className="text-sm text-gray-600">
+                        {child.enrollments.length} {child.enrollments.length === 1 ? 'class' : 'classes'} enrolled
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/school"
+                    className="btn btn-sm btn-secondary"
+                  >
+                    View All
+                  </Link>
+                </div>
+
+                {/* Progress Stats */}
+                {child.progress && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <BookOpen className="text-blue-600" size={16} />
+                        <div>
+                          <p className="text-xs text-blue-600">Total</p>
+                          <p className="text-lg font-bold text-blue-900">{child.progress.total_assignments || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-yellow-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Clock className="text-yellow-600" size={16} />
+                        <div>
+                          <p className="text-xs text-yellow-600">Pending</p>
+                          <p className="text-lg font-bold text-yellow-900">
+                            {(child.progress.total_assignments || 0) - (child.progress.submitted_assignments || 0)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <FileCheck className="text-green-600" size={16} />
+                        <div>
+                          <p className="text-xs text-green-600">Submitted</p>
+                          <p className="text-lg font-bold text-green-900">{child.progress.submitted_assignments || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="text-purple-600" size={16} />
+                        <div>
+                          <p className="text-xs text-purple-600">Approved</p>
+                          <p className="text-lg font-bold text-purple-900">{child.progress.approved_assignments || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Assignments */}
+                {child.assignments && child.assignments.length > 0 ? (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3">Recent Assignments</h4>
+                    <div className="space-y-2">
+                      {child.assignments.map((assignment: any) => (
+                        <div key={assignment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">{assignment.title}</p>
+                            <p className="text-xs text-gray-600">{assignment.class_name}</p>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {assignment.due_date && (
+                              <span className="text-xs text-gray-500">
+                                Due: {new Date(assignment.due_date).toLocaleDateString()}
+                              </span>
+                            )}
+                            {assignment.has_submitted ? (
+                              <span className={`text-xs px-2 py-1 rounded ${
+                                assignment.submission_status === 'approved'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {assignment.submission_status === 'approved' ? '✓ Approved' : '📤 Submitted'}
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                                ⏳ Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No assignments yet</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -100,6 +100,27 @@ router.get('/students/:studentId/enrollments', (req, res) => {
   }
 });
 
+// Unenroll student from class (parents and admin only, with parent-child verification)
+router.delete('/enrollments/:studentId/:classId', parentOrAdmin, verifyParentChild('studentId'), (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId, classId } = req.params;
+
+    // Middleware already verified parent-child relationship if parent
+    const result = db.prepare(`
+      DELETE FROM school_enrollments
+      WHERE student_id = ? AND class_id = ?
+    `).run(studentId, classId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    res.json({ message: 'Student unenrolled successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create assignment (teachers only)
 router.post('/assignments', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
