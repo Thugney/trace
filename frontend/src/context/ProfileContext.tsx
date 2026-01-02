@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Profile } from '../types';
 import { profilesAPI } from '../services/api';
 
@@ -18,6 +18,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const previousProfileIdRef = useRef<number | null>(null);
 
   const refreshProfiles = async () => {
     try {
@@ -56,8 +57,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     // Save current profile to localStorage
     if (currentProfile) {
       localStorage.setItem('currentProfileId', currentProfile.id.toString());
+
+      // CRITICAL FIX: Refresh profiles when user logs in or switches profiles
+      // This ensures we get the correct role-based filtered data from the backend
+      if (previousProfileIdRef.current !== currentProfile.id) {
+        console.log(`[ProfileContext] Profile changed (${previousProfileIdRef.current} -> ${currentProfile.id}), refreshing profiles...`);
+        previousProfileIdRef.current = currentProfile.id;
+        refreshProfiles();
+      }
     } else {
       localStorage.removeItem('currentProfileId');
+      previousProfileIdRef.current = null;
     }
   }, [currentProfile]);
 
