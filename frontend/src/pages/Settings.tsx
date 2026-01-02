@@ -28,8 +28,14 @@ export default function Settings() {
 
   useEffect(() => {
     loadSettings();
-    loadAllAISettings();
   }, []);
+
+  // Load AI settings when profiles are loaded
+  useEffect(() => {
+    if (profiles.length > 0) {
+      loadAllAISettings();
+    }
+  }, [profiles]);
 
   useEffect(() => {
     if (successMessage) {

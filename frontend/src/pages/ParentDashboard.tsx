@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
@@ -221,6 +221,19 @@ export default function ParentDashboard() {
                 <div>
                   <p className="font-medium">School Progress</p>
                   <p className="text-sm text-gray-600">View children's school assignments</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              to="/school/enroll"
+              className="block p-4 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border-2 border-green-200"
+            >
+              <div className="flex items-center space-x-3">
+                <GraduationCap className="text-green-600" size={20} />
+                <div>
+                  <p className="font-medium text-green-900">Enroll Children in Church School</p>
+                  <p className="text-sm text-green-700">Saturday Tigrinya classes</p>
                 </div>
               </div>
             </Link>
