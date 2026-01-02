@@ -66,7 +66,7 @@ export default function StudentQuizView({ assignmentId, onSuccess, onCancel }: S
       const submission: QuizSubmission = {
         assignment_id: assignmentId,
         student_id: parseInt(localStorage.getItem('currentProfileId') || '0'), // Assume profile ID in localStorage
-        answers: questions.filter((q: QuizQuestion) => answers[q.id] !== '').map((q: QuizQuestion) => ({ question_id: q.id, selected_option: answers[q.id] }))
+        answers: questions.filter((q: QuizQuestion) => answers[q.id] !== '').map((q: QuizQuestion) => ({ question_id: q.id, selected_option: answers[q.id] as "A" | "B" | "C" | "D" }))
       };
       await schoolAPI.submitQuiz(submission);
       if (onSuccess) onSuccess();
