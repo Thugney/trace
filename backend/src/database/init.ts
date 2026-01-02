@@ -345,6 +345,41 @@ export function initDatabase() {
     )
   `);
 
+  // Quiz Questions (multiple choice questions attached to assignments)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quiz_questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      question_text TEXT NOT NULL,
+      option_a TEXT NOT NULL,
+      option_b TEXT NOT NULL,
+      option_c TEXT,
+      option_d TEXT,
+      correct_answer TEXT CHECK(correct_answer IN ('a', 'b', 'c', 'd')) NOT NULL,
+      points INTEGER DEFAULT 1,
+      order_index INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (assignment_id) REFERENCES school_assignments(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Student Quiz Submissions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_quiz_answers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      question_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      assignment_id INTEGER NOT NULL,
+      selected_answer TEXT CHECK(selected_answer IN ('a', 'b', 'c', 'd')),
+      is_correct BOOLEAN DEFAULT 0,
+      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assignment_id) REFERENCES school_assignments(id) ON DELETE CASCADE,
+      UNIQUE(question_id, student_id)
+    )
+  `);
+
   // Teacher-Parent Messages
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (

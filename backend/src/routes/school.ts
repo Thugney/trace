@@ -100,6 +100,27 @@ router.get('/students/:studentId/enrollments', (req, res) => {
   }
 });
 
+// Unenroll student from class (parents and admin only, with parent-child verification)
+router.delete('/enrollments/:studentId/:classId', parentOrAdmin, verifyParentChild('studentId'), (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId, classId } = req.params;
+
+    // Middleware already verified parent-child relationship if parent
+    const result = db.prepare(`
+      DELETE FROM school_enrollments
+      WHERE student_id = ? AND class_id = ?
+    `).run(studentId, classId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Enrollment not found' });
+    }
+
+    res.json({ message: 'Student unenrolled successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create assignment (teachers only)
 router.post('/assignments', teacherOnly, (req: AuthRequest, res: Response) => {
   try {
@@ -410,6 +431,154 @@ router.get('/students/all/progress', (req, res) => {
     `).all();
 
     res.json(studentsProgress);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== QUIZ ROUTES =====
+
+// Create quiz questions for an assignment (teachers only)
+router.post('/assignments/:assignmentId/quiz', teacherOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { assignmentId } = req.params;
+    const { questions } = req.body;
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'Questions array is required' });
+    }
+
+    // Delete existing questions for this assignment first
+    db.prepare('DELETE FROM quiz_questions WHERE assignment_id = ?').run(assignmentId);
+
+    // Insert new questions
+    const insertStmt = db.prepare(`
+      INSERT INTO quiz_questions (assignment_id, question_text, option_a, option_b, option_c, option_d, correct_answer, points, order_index)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const createdQuestions = questions.map((q: any, index: number) => {
+      const result = insertStmt.run(
+        assignmentId,
+        q.question_text,
+        q.option_a,
+        q.option_b,
+        q.option_c || null,
+        q.option_d || null,
+        q.correct_answer,
+        q.points || 1,
+        index
+      );
+      return { id: result.lastInsertRowid, ...q };
+    });
+
+    res.status(201).json(createdQuestions);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get quiz questions for an assignment
+router.get('/assignments/:assignmentId/quiz', (req, res) => {
+  try {
+    const questions = db.prepare(`
+      SELECT * FROM quiz_questions
+      WHERE assignment_id = ?
+      ORDER BY order_index ASC
+    `).all(req.params.assignmentId);
+
+    res.json(questions);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Submit quiz answers (students only)
+router.post('/quiz/submit', authenticate, requireRole(['child', 'parent']), verifyParentChild('student_id'), (req: AuthRequest, res: Response) => {
+  try {
+    const { assignment_id, student_id, answers } = req.body;
+
+    if (!assignment_id || !student_id || !answers || !Array.isArray(answers)) {
+      return res.status(400).json({ error: 'assignment_id, student_id, and answers array are required' });
+    }
+
+    // Get all questions for this assignment
+    const questions: any[] = db.prepare('SELECT * FROM quiz_questions WHERE assignment_id = ?').all(assignment_id);
+
+    // Process each answer
+    const results = answers.map((answer: any) => {
+      const question = questions.find(q => q.id === answer.question_id);
+      if (!question) return null;
+
+      const isCorrect = answer.selected_answer === question.correct_answer;
+
+      // Insert or update answer
+      db.prepare(`
+        INSERT INTO student_quiz_answers (question_id, student_id, assignment_id, selected_answer, is_correct)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(question_id, student_id) DO UPDATE SET
+          selected_answer = ?,
+          is_correct = ?,
+          submitted_at = CURRENT_TIMESTAMP
+      `).run(
+        answer.question_id,
+        student_id,
+        assignment_id,
+        answer.selected_answer,
+        isCorrect ? 1 : 0,
+        answer.selected_answer,
+        isCorrect ? 1 : 0
+      );
+
+      return {
+        question_id: answer.question_id,
+        is_correct: isCorrect
+      };
+    });
+
+    // Calculate score
+    const correctCount = results.filter(r => r && r.is_correct).length;
+    const totalQuestions = questions.length;
+    const score = Math.round((correctCount / totalQuestions) * 100);
+
+    res.json({
+      score,
+      correct: correctCount,
+      total: totalQuestions,
+      results: results.filter(r => r !== null)
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get student's quiz results for an assignment
+router.get('/assignments/:assignmentId/quiz/results/:studentId', (req, res) => {
+  try {
+    const { assignmentId, studentId } = req.params;
+
+    const answers = db.prepare(`
+      SELECT qa.*, qq.question_text, qq.option_a, qq.option_b, qq.option_c, qq.option_d, qq.correct_answer, qq.points
+      FROM student_quiz_answers qa
+      JOIN quiz_questions qq ON qa.question_id = qq.id
+      WHERE qa.assignment_id = ? AND qa.student_id = ?
+      ORDER BY qq.order_index ASC
+    `).all(assignmentId, studentId);
+
+    if (answers.length === 0) {
+      return res.json({ score: 0, correct: 0, total: 0, answers: [] });
+    }
+
+    const correctCount = answers.filter((a: any) => a.is_correct).length;
+    const totalQuestions = answers.length;
+    const score = Math.round((correctCount / totalQuestions) * 100);
+
+    res.json({
+      score,
+      correct: correctCount,
+      total: totalQuestions,
+      answers
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

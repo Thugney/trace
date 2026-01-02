@@ -26,10 +26,20 @@ export default function Settings() {
   const [resetPin, setResetPin] = useState('');
   const [confirmResetPin, setConfirmResetPin] = useState('');
 
+  // Edit Profile modal state (Admin only)
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<any>(null);
+
   useEffect(() => {
     loadSettings();
-    loadAllAISettings();
   }, []);
+
+  // Load AI settings when profiles are loaded
+  useEffect(() => {
+    if (profiles.length > 0) {
+      loadAllAISettings();
+    }
+  }, [profiles]);
 
   useEffect(() => {
     if (successMessage) {
@@ -243,6 +253,58 @@ export default function Settings() {
     } catch (error) {
       console.error('Failed to create profile:', error);
       alert('Failed to create profile');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditProfile = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingProfile) return;
+
+    const formData = new FormData(e.currentTarget);
+    const newPin = formData.get('newPin') as string;
+    const confirmNewPin = formData.get('confirmNewPin') as string;
+
+    // Validate PIN if provided
+    if (newPin) {
+      if (newPin.length < 4) {
+        alert('PIN must be at least 4 digits');
+        return;
+      }
+      if (newPin !== confirmNewPin) {
+        alert('PINs do not match');
+        return;
+      }
+    }
+
+    setSaving(true);
+    try {
+      const age = formData.get('age') as string;
+      const gender = formData.get('gender') as string;
+      const profileType = formData.get('profileType') as string;
+
+      const updateData: any = {
+        name: formData.get('name') as string,
+        type: profileType as any,
+        age: age ? parseInt(age, 10) : undefined,
+        gender: gender as any,
+        avatar: formData.get('avatar') as string
+      };
+
+      // Only update PIN if provided
+      if (newPin) {
+        updateData.pin = newPin;
+      }
+
+      await profilesAPI.update(editingProfile.id, updateData);
+      setSuccessMessage(`${updateData.name} updated successfully!`);
+      await refreshProfiles();
+      setShowEditModal(false);
+      setEditingProfile(null);
+    } catch (error: any) {
+      console.error('Failed to update profile:', error);
+      alert(error.response?.data?.error || 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -781,7 +843,10 @@ Context: Tasks, Points, Level, Progress`}
                     {isAdmin && profile.id !== currentProfile?.id && (
                       <>
                         <button
-                          onClick={() => alert('Edit functionality coming soon')}
+                          onClick={() => {
+                            setEditingProfile(profile);
+                            setShowEditModal(true);
+                          }}
                           className="btn btn-sm btn-secondary text-xs"
                           title="Edit profile"
                         >
@@ -1046,6 +1111,170 @@ Context: Tasks, Points, Level, Progress`}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal - Admin only */}
+      {showEditModal && editingProfile && isAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold">Edit Profile: {editingProfile.name}</h2>
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingProfile(null);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditProfile} className="space-y-4">
+              <div>
+                <label htmlFor="edit-profile-type" className="block text-sm font-medium text-gray-700 mb-1">
+                  Profile Type *
+                </label>
+                <select
+                  id="edit-profile-type"
+                  name="profileType"
+                  defaultValue={editingProfile.type}
+                  required
+                  className="input"
+                >
+                  <option value="child">Child</option>
+                  <option value="parent">Parent</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Change profile type (use with caution)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="edit-profile-name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Name *
+                </label>
+                <input
+                  id="edit-profile-name"
+                  type="text"
+                  name="name"
+                  defaultValue={editingProfile.name}
+                  required
+                  className="input"
+                  placeholder="Enter name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-profile-age" className="block text-sm font-medium text-gray-700 mb-1">
+                  Age
+                </label>
+                <input
+                  id="edit-profile-age"
+                  type="number"
+                  name="age"
+                  defaultValue={editingProfile.age || ''}
+                  min="1"
+                  max="100"
+                  className="input"
+                  placeholder="Enter age"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="edit-profile-gender" className="block text-sm font-medium text-gray-700 mb-1">
+                  Gender
+                </label>
+                <select
+                  id="edit-profile-gender"
+                  name="gender"
+                  defaultValue={editingProfile.gender || ''}
+                  className="input"
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="edit-profile-avatar" className="block text-sm font-medium text-gray-700 mb-1">
+                  Avatar (Emoji)
+                </label>
+                <input
+                  id="edit-profile-avatar"
+                  type="text"
+                  name="avatar"
+                  defaultValue={editingProfile.avatar || ''}
+                  className="input"
+                  placeholder="👤"
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Change PIN (Optional)</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Leave blank to keep current PIN
+                </p>
+
+                <div className="space-y-3">
+                  <div>
+                    <label htmlFor="edit-new-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                      New PIN
+                    </label>
+                    <input
+                      id="edit-new-pin"
+                      type="password"
+                      name="newPin"
+                      minLength={4}
+                      maxLength={8}
+                      className="input"
+                      placeholder="Enter new PIN (optional)"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="edit-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm New PIN
+                    </label>
+                    <input
+                      id="edit-confirm-pin"
+                      type="password"
+                      name="confirmNewPin"
+                      minLength={4}
+                      maxLength={8}
+                      className="input"
+                      placeholder="Re-enter new PIN"
+                      pattern="[0-9]*"
+                      inputMode="numeric"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+                  {saving ? <div className="spinner"></div> : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingProfile(null);
+                  }}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
