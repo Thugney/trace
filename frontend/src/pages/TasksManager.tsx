@@ -12,6 +12,7 @@ export default function TasksManager() {
   const [monthlyGoal, setMonthlyGoal] = useState<MonthlyGoal | null>(null);
   const [allGoals, setAllGoals] = useState<MonthlyGoal[]>([]);
   const [pendingGoals, setPendingGoals] = useState<MonthlyGoal[]>([]);
+  const [pendingTaskApprovals, setPendingTaskApprovals] = useState<Task[]>([]);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -21,7 +22,7 @@ export default function TasksManager() {
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
-  const pendingTasks = tasks.filter(t => !t.completed);
+  const incompleteTasks = tasks.filter(t => !t.completed);
   const completedTasks = tasks.filter(t => t.completed);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function TasksManager() {
   useEffect(() => {
     if (isParent && currentProfile) {
       loadPendingGoals();
+      loadPendingTaskApprovals();
     }
   }, [isParent, currentProfile]);
 
@@ -45,7 +47,9 @@ export default function TasksManager() {
     try {
       setLoading(true);
       const response = await tasksAPI.getByProfile(displayProfileId);
-      setTasks(response.data);
+      // Filter to only show approved tasks to kids, parents see all
+      const filteredTasks = isParent ? response.data : response.data.filter(t => t.parent_approved);
+      setTasks(filteredTasks);
     } catch (error) {
       console.error('Failed to load tasks:', error);
     } finally {
@@ -103,6 +107,17 @@ export default function TasksManager() {
     }
   };
 
+  const loadPendingTaskApprovals = async () => {
+    if (!currentProfile?.id) return;
+
+    try {
+      const response = await tasksAPI.getPending(currentProfile.id);
+      setPendingTaskApprovals(response.data);
+    } catch (error) {
+      console.error('Failed to load pending task approvals:', error);
+    }
+  };
+
   const handleCompleteTask = async (taskId: number) => {
     try {
       const response = await tasksAPI.complete(taskId);
@@ -138,7 +153,15 @@ export default function TasksManager() {
       });
 
       await loadTasks();
+      if (isParent) {
+        await loadPendingTaskApprovals();
+      }
       setShowAddTask(false);
+
+      // Show message to kids that their task needs parent approval
+      if (!isParent) {
+        alert('✅ Task created! It will appear once your parent approves it.');
+      }
     } catch (error) {
       console.error('Failed to create task:', error);
       alert('Failed to create task');
@@ -241,6 +264,35 @@ export default function TasksManager() {
     }
   };
 
+  const handleApproveTask = async (taskId: number) => {
+    if (!currentProfile?.id) return;
+
+    try {
+      await tasksAPI.approve(taskId, currentProfile.id);
+      await loadPendingTaskApprovals();
+      await loadTasks();
+      alert('✅ Task approved!');
+    } catch (error) {
+      console.error('Failed to approve task:', error);
+      alert('Failed to approve task');
+    }
+  };
+
+  const handleRejectTask = async (taskId: number) => {
+    if (!currentProfile?.id) return;
+
+    if (!confirm('Are you sure you want to reject this task?')) return;
+
+    try {
+      await tasksAPI.reject(taskId, currentProfile.id);
+      await loadPendingTaskApprovals();
+      alert('Task rejected');
+    } catch (error) {
+      console.error('Failed to reject task:', error);
+      alert('Failed to reject task');
+    }
+  };
+
   if (!currentProfile) {
     return (
       <div className="text-center py-12">
@@ -339,6 +391,59 @@ export default function TasksManager() {
                     </button>
                     <button
                       onClick={() => handleRejectGoal(goal.id)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                    >
+                      ✗ Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Tasks for Parents to Review */}
+      {isParent && pendingTaskApprovals.length > 0 && (
+        <div className="card mb-6 bg-blue-50 border-2 border-blue-300">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <Check className="mr-2 text-blue-600" size={24} />
+            Pending Task Approvals
+          </h3>
+          <div className="space-y-3">
+            {pendingTaskApprovals.map(task => (
+              <div key={task.id} className="bg-white p-4 rounded-lg border border-blue-200">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl mr-2">{task.child_avatar || '👤'}</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">{task.child_name}</p>
+                        <p className="text-sm text-gray-600">created a task</p>
+                      </div>
+                    </div>
+                    <h4 className="text-gray-900 font-bold mb-1">{task.title}</h4>
+                    {task.description && (
+                      <p className="text-gray-700 mb-2 text-sm">{task.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="badge badge-primary">{task.points} pts</span>
+                      <span className="badge badge-warning">{task.difficulty}</span>
+                      <span className="text-gray-600">• {task.category}</span>
+                      {task.due_date && (
+                        <span className="text-gray-600">• Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex space-x-2 ml-4">
+                    <button
+                      onClick={() => handleApproveTask(task.id)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
+                    >
+                      ✓ Approve
+                    </button>
+                    <button
+                      onClick={() => handleRejectTask(task.id)}
                       className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
                     >
                       ✗ Reject
@@ -541,17 +646,17 @@ export default function TasksManager() {
 
       {/* Tasks List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Tasks */}
+        {/* Incomplete Tasks */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">
-            Pending Tasks ({pendingTasks.length})
+            Pending Tasks ({incompleteTasks.length})
           </h2>
 
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="spinner"></div>
             </div>
-          ) : pendingTasks.length === 0 ? (
+          ) : incompleteTasks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No pending tasks</p>
               <p className="text-sm mt-1">
@@ -560,7 +665,7 @@ export default function TasksManager() {
             </div>
           ) : (
             <div className="space-y-3">
-              {pendingTasks.map(task => (
+              {incompleteTasks.map(task => (
                 <div
                   key={task.id}
                   className={clsx(
