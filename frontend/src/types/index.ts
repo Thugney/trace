@@ -87,8 +87,12 @@ export interface Task {
   due_date?: string;
   completed: boolean;
   completed_at?: string;
-  created_at: string;
+  parent_approved: boolean;
   created_by?: number;
+  approved_by?: number;
+  created_at: string;
+  child_name?: string;
+  child_avatar?: string;
 }
 
 export interface Progress {

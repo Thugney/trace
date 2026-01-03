@@ -101,6 +101,12 @@ export const tasksAPI = {
       `/tasks/${id}/complete`
     ),
   delete: (id: number) => api.delete(`/tasks/${id}`),
+  approve: (id: number, approved_by: number) =>
+    api.post<Task>(`/tasks/${id}/approve`, { approved_by }),
+  reject: (id: number, rejected_by: number) =>
+    api.post<{ message: string }>(`/tasks/${id}/reject`, { rejected_by }),
+  getPending: (parentId: number) =>
+    api.get<Task[]>(`/tasks/pending/${parentId}`),
   getProgress: (profileId: number, limit?: number) =>
     api.get<{
       current: Progress;

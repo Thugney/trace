@@ -615,6 +615,30 @@ export function initDatabase() {
     console.error('Migration error (monthly_goals approval):', error.message);
   }
 
+  // Migration: Add parent approval columns to tasks table
+  try {
+    const tasksInfo: any[] = db.prepare('PRAGMA table_info(tasks)').all();
+    const hasParentApproved = tasksInfo.some((col: any) => col.name === 'parent_approved');
+    const hasApprovedBy = tasksInfo.some((col: any) => col.name === 'approved_by');
+
+    if (!hasParentApproved) {
+      console.log('🔄 Migrating tasks table: adding parent approval columns...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN parent_approved BOOLEAN DEFAULT 0').run();
+      console.log('✅ Added parent_approved column to tasks');
+    }
+
+    if (!hasApprovedBy) {
+      db.prepare('ALTER TABLE tasks ADD COLUMN approved_by INTEGER REFERENCES profiles(id)').run();
+      console.log('✅ Added approved_by column to tasks');
+    }
+
+    if (!hasParentApproved || !hasApprovedBy) {
+      console.log('✅ Migration completed: tasks table updated with parent approval fields');
+    }
+  } catch (error: any) {
+    console.error('Migration error (tasks approval):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

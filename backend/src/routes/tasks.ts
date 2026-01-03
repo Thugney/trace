@@ -71,11 +71,24 @@ router.post('/', (req, res) => {
       taskPoints = pointsMap[difficulty] || 10;
     }
 
+    // Check if creator is parent or admin - auto-approve
+    // Check if creator is child - require parent approval
+    let parentApproved = 0;
+    let approvedBy = null;
+
+    if (created_by) {
+      const creator: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(created_by);
+      if (creator && (creator.type === 'parent' || creator.type === 'admin')) {
+        parentApproved = 1;
+        approvedBy = created_by;
+      }
+    }
+
     const result = db.prepare(`
       INSERT INTO tasks (
         profile_id, title, description, category, points, difficulty,
-        is_recurring, recurrence_pattern, due_date, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       profile_id,
       title,
@@ -86,7 +99,9 @@ router.post('/', (req, res) => {
       is_recurring ? 1 : 0,
       recurrence_pattern || null,
       due_date || null,
-      created_by || null
+      created_by || null,
+      parentApproved,
+      approvedBy
     );
 
     const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
@@ -350,6 +365,92 @@ router.post('/rewards/:id/claim', (req, res) => {
 
     const claimedReward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(id);
     res.json(claimedReward);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Approve task (parent/admin only)
+router.post('/:id/approve', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved_by } = req.body;
+
+    if (!approved_by) {
+      return res.status(400).json({ error: 'approved_by is required' });
+    }
+
+    // Verify approver is parent or admin
+    const approver: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(approved_by);
+    if (!approver || (approver.type !== 'parent' && approver.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents or admins can approve tasks' });
+    }
+
+    db.prepare(`
+      UPDATE tasks
+      SET parent_approved = 1, approved_by = ?
+      WHERE id = ?
+    `).run(approved_by, id);
+
+    const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    res.json(updatedTask);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reject/delete task (parent/admin only)
+router.post('/:id/reject', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejected_by } = req.body;
+
+    if (!rejected_by) {
+      return res.status(400).json({ error: 'rejected_by is required' });
+    }
+
+    // Verify rejector is parent or admin
+    const rejector: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(rejected_by);
+    if (!rejector || (rejector.type !== 'parent' && rejector.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents or admins can reject tasks' });
+    }
+
+    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json({ message: 'Task rejected and deleted' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get pending tasks (for parents to review)
+router.get('/pending/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+
+    // Get all children of this parent
+    const children: any[] = db.prepare('SELECT id FROM profiles WHERE parent_id = ? AND type = ?').all(parentId, 'child');
+    const childIds = children.map(c => c.id);
+
+    if (childIds.length === 0) {
+      return res.json([]);
+    }
+
+    // Get all pending tasks for children
+    const placeholders = childIds.map(() => '?').join(',');
+    const pendingTasks = db.prepare(`
+      SELECT t.*, p.name as child_name, p.avatar as child_avatar
+      FROM tasks t
+      JOIN profiles p ON t.profile_id = p.id
+      WHERE t.profile_id IN (${placeholders}) AND t.parent_approved = 0
+      ORDER BY t.created_at DESC
+    `).all(...childIds);
+
+    res.json(pendingTasks);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
