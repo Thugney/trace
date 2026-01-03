@@ -229,6 +229,14 @@ router.post('/chat', authenticate, requireRole(['admin', 'parent', 'child', 'tea
     // Get AI settings
     const aiSettings = getAISettings(profile_id);
 
+    // Check if AI is enabled for this profile
+    if (aiSettings.ai_enabled !== 1) {
+      console.log(`[AI Chat] AI assistant disabled for profile ${profile_id}`);
+      return res.status(403).json({
+        error: 'AI assistant is not enabled for this profile. Please ask an administrator to enable it.'
+      });
+    }
+
     // Check daily message limit
     const today = new Date().toISOString().split('T')[0];
     const messageCount: any = db.prepare(`
