@@ -243,23 +243,14 @@ router.get('/pending/:parentId', (req, res) => {
   try {
     const { parentId } = req.params;
 
-    // Get all children of this parent
-    const children: any[] = db.prepare('SELECT id FROM profiles WHERE parent_id = ? AND type = ?').all(parentId, 'child');
-    const childIds = children.map(c => c.id);
-
-    if (childIds.length === 0) {
-      return res.json([]);
-    }
-
-    // Get all pending goals for children
-    const placeholders = childIds.map(() => '?').join(',');
+    // Optimized single-query approach using JOIN to avoid N+1 queries
     const pendingGoals = db.prepare(`
       SELECT mg.*, p.name as child_name, p.avatar as child_avatar
       FROM monthly_goals mg
       JOIN profiles p ON mg.profile_id = p.id
-      WHERE mg.profile_id IN (${placeholders}) AND mg.parent_approved = 0
+      WHERE p.parent_id = ? AND p.type = 'child' AND mg.parent_approved = 0
       ORDER BY mg.created_at DESC
-    `).all(...childIds);
+    `).all(parentId);
 
     res.json(pendingGoals);
   } catch (error: any) {

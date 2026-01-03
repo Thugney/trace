@@ -432,23 +432,14 @@ router.get('/pending/:parentId', (req, res) => {
   try {
     const { parentId } = req.params;
 
-    // Get all children of this parent
-    const children: any[] = db.prepare('SELECT id FROM profiles WHERE parent_id = ? AND type = ?').all(parentId, 'child');
-    const childIds = children.map(c => c.id);
-
-    if (childIds.length === 0) {
-      return res.json([]);
-    }
-
-    // Get all pending tasks for children
-    const placeholders = childIds.map(() => '?').join(',');
+    // Optimized single-query approach using JOIN to avoid N+1 queries
     const pendingTasks = db.prepare(`
       SELECT t.*, p.name as child_name, p.avatar as child_avatar
       FROM tasks t
       JOIN profiles p ON t.profile_id = p.id
-      WHERE t.profile_id IN (${placeholders}) AND t.parent_approved = 0
+      WHERE p.parent_id = ? AND p.type = 'child' AND t.parent_approved = 0
       ORDER BY t.created_at DESC
-    `).all(...childIds);
+    `).all(parentId);
 
     res.json(pendingTasks);
   } catch (error: any) {

@@ -254,12 +254,15 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_meal_logs_date ON meal_logs(logged_at);
     CREATE INDEX IF NOT EXISTS idx_tasks_profile ON tasks(profile_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
+    CREATE INDEX IF NOT EXISTS idx_tasks_parent_approved ON tasks(parent_approved);
     CREATE INDEX IF NOT EXISTS idx_progress_profile ON progress(profile_id);
     CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
     CREATE INDEX IF NOT EXISTS idx_notes_profile ON notes(profile_id);
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_profile_month ON monthly_goals(profile_id, month);
+    CREATE INDEX IF NOT EXISTS idx_monthly_goals_parent_approved ON monthly_goals(parent_approved);
     CREATE INDEX IF NOT EXISTS idx_ai_settings_profile ON ai_settings(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_profiles_parent_id ON profiles(parent_id);
   `);
 
   // Insert default settings if none exist
