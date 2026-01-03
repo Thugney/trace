@@ -147,9 +147,13 @@ export default function AdminPanel() {
       await profilesAPI.update(profile.id, { ai_enabled: newAiEnabled });
       await loadAllProfiles();
       await refreshProfiles();
+
+      // Show success message
+      const status = newAiEnabled === 1 ? 'enabled' : 'disabled';
+      alert(`✅ AI Assistant ${status} for ${profile.name}!\n\n${profile.name} will need to log out and log back in to see the changes.`);
     } catch (error) {
       console.error('Failed to toggle AI access:', error);
-      alert('Failed to update AI access. Please try again.');
+      alert('❌ Failed to update AI access. Please try again.');
     }
   };
 
@@ -530,19 +534,20 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, chil
       </div>
 
       <div className="flex space-x-2">
-        {/* AI Access Toggle (only for children) */}
+        {/* AI Access Toggle (only for children) - PROMINENT BUTTON */}
         {profile.type === 'child' && onToggleAI && (
           <button
             onClick={() => onToggleAI(profile)}
             className={clsx(
-              'p-2 rounded-lg transition-colors',
+              'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all',
               profile.ai_enabled === 1
-                ? 'text-purple-600 bg-purple-100 hover:bg-purple-200'
-                : 'text-gray-400 hover:bg-gray-100'
+                ? 'text-white bg-purple-600 hover:bg-purple-700 shadow-md'
+                : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
             )}
-            title={profile.ai_enabled === 1 ? 'AI Enabled - Click to disable' : 'AI Disabled - Click to enable'}
+            title={profile.ai_enabled === 1 ? 'Click to disable AI Assistant' : 'Click to enable AI Assistant'}
           >
             <Bot size={18} />
+            <span>{profile.ai_enabled === 1 ? 'AI ON' : 'AI OFF'}</span>
           </button>
         )}
         <button
