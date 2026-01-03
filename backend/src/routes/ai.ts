@@ -162,14 +162,67 @@ function getProfileContext(profileId: number) {
     LIMIT 10
   `).all(profileId);
 
+  // Get completed tasks (last 10 for learning patterns)
+  const completedTasks = db.prepare(`
+    SELECT title, category, points, completed_at
+    FROM tasks
+    WHERE profile_id = ? AND completed = 1
+    ORDER BY completed_at DESC
+    LIMIT 10
+  `).all(profileId);
+
+  // Get all monthly goals (last 6 months)
+  const allGoals = db.prepare(`
+    SELECT month, goal_description, goal_points, achieved, reward_given
+    FROM monthly_goals
+    WHERE profile_id = ?
+    ORDER BY month DESC
+    LIMIT 6
+  `).all(profileId);
+
+  // Get school enrollments
+  const schoolEnrollments = db.prepare(`
+    SELECT sc.name as class_name, sc.description, se.enrolled_at
+    FROM school_enrollments se
+    JOIN school_classes sc ON se.class_id = sc.id
+    WHERE se.student_id = ?
+    ORDER BY se.enrolled_at DESC
+  `).all(profileId);
+
+  // Get school assignments (pending and recent)
+  const schoolAssignments = db.prepare(`
+    SELECT sa.title, sa.description, sa.due_date, sa.status, sa.grade, sc.name as class_name
+    FROM school_assignments sa
+    JOIN school_classes sc ON sa.class_id = sc.id
+    JOIN school_enrollments se ON se.class_id = sc.id
+    WHERE se.student_id = ? AND (sa.status = 'pending' OR sa.updated_at > date('now', '-7 days'))
+    ORDER BY sa.due_date ASC
+    LIMIT 10
+  `).all(profileId);
+
+  // Get student progress in school
+  const schoolProgress = db.prepare(`
+    SELECT sp.*, sc.name as class_name
+    FROM school_student_progress sp
+    JOIN school_classes sc ON sp.class_id = sc.id
+    WHERE sp.student_id = ?
+    ORDER BY sp.updated_at DESC
+    LIMIT 5
+  `).all(profileId);
+
   return {
     profile,
     taskStats: taskStats || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
     recentTasks: recentTasks || [],
+    completedTasks: completedTasks || [],
     progress: progress || { total_points: 0, total_stars: 0, level: 1 },
     monthlyGoal,
+    allGoals: allGoals || [],
     dietSummary: dietSummary || { total_calories: 0, total_protein: 0 },
-    recentNotes: recentNotes || []
+    recentNotes: recentNotes || [],
+    schoolEnrollments: schoolEnrollments || [],
+    schoolAssignments: schoolAssignments || [],
+    schoolProgress: schoolProgress || []
   };
 }
 
@@ -201,15 +254,16 @@ function generateFallbackResponse(message: string, profile: any, context: string
   return `I received your message, ${profile.name}! To get full AI assistance with detailed answers and personalized advice, please ask your ${profile.type === 'child' ? 'parents' : 'administrator'} to configure the AI API key in settings. Until then, I'm here in limited mode! 🤖`;
 }
 
-// Chat with AI (POST endpoint)
-router.post('/chat', authenticate, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
+// Chat with AI (GET endpoint for EventSource streaming)
+router.get('/chat', authenticate, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
   try {
     const profile_id = req.profile!.id;  // Use authenticated profile
-    const { message, context = 'general' } = req.body;
-    console.log(`[AI Chat POST] Request from profile ${profile_id}, context: ${context}`);
+    const message = req.query.message as string;
+    const context = (req.query.context as string) || 'general';
+    console.log(`[AI Chat GET] Request from profile ${profile_id}, context: ${context}`);
 
-    if (!message) {
-      console.error('[AI Chat] Missing message');
+    if (!message || typeof message !== 'string') {
+      console.error('[AI Chat] Missing or invalid message');
       return res.status(400).json({ error: 'Message is required' });
     }
 
@@ -273,17 +327,38 @@ STRICT GUIDELINES:
 - Encourage task completion and healthy choices
 - If asked anything inappropriate, politely redirect to positive topics
 
-Profile Context:
-- Total tasks: ${profileContext.taskStats.total_tasks} (${profileContext.taskStats.completed_tasks} completed)
+COMPLETE PROFILE CONTEXT (Use this to provide personalized, helpful responses):
+
+Progress & Achievements:
 - Points: ${profileContext.progress.total_points} | Stars: ${profileContext.progress.total_stars} | Level: ${profileContext.progress.level}
-${profileContext.monthlyGoal ? `- Monthly Goal: ${profileContext.monthlyGoal.goal_description} (${profileContext.monthlyGoal.goal_points} points target)` : ''}
-- Today's calories: ${profileContext.dietSummary.total_calories || 0} kcal
+- Total tasks: ${profileContext.taskStats.total_tasks} (${profileContext.taskStats.completed_tasks} completed, ${profileContext.taskStats.overdue_tasks} overdue)
+${profileContext.monthlyGoal ? `- Current Month Goal: ${profileContext.monthlyGoal.goal_description} (Target: ${profileContext.monthlyGoal.goal_points} pts, Achieved: ${profileContext.monthlyGoal.achieved ? 'Yes' : 'In Progress'})` : ''}
+
+${profileContext.allGoals.length > 0 ? `Past Goals History:
+${profileContext.allGoals.map((g: any) => `- ${g.month}: ${g.goal_description} (${g.achieved ? '✓ Achieved' : 'Not achieved'})`).join('\n')}` : ''}
 
 ${profileContext.recentTasks.length > 0 ? `Upcoming Tasks:
 ${profileContext.recentTasks.map((t: any) => `- ${t.title} (${t.category}, ${t.difficulty}, ${t.points} pts${t.due_date ? `, due: ${t.due_date}` : ''})`).join('\n')}` : ''}
 
+${profileContext.completedTasks.length > 0 ? `Recently Completed Tasks:
+${profileContext.completedTasks.map((t: any) => `- ${t.title} (+${t.points} pts, completed ${t.completed_at})`).join('\n')}` : ''}
+
+${profileContext.schoolEnrollments.length > 0 ? `School Classes:
+${profileContext.schoolEnrollments.map((e: any) => `- ${e.class_name}: ${e.description || 'No description'}`).join('\n')}` : ''}
+
+${profileContext.schoolAssignments.length > 0 ? `School Assignments:
+${profileContext.schoolAssignments.map((a: any) => `- ${a.title} (${a.class_name}, Due: ${a.due_date}, Status: ${a.status}${a.grade ? `, Grade: ${a.grade}` : ''})`).join('\n')}` : ''}
+
+${profileContext.schoolProgress.length > 0 ? `School Progress:
+${profileContext.schoolProgress.map((p: any) => `- ${p.class_name}: Attendance ${p.attendance_percentage || 0}%, Participation ${p.participation_score || 0}%, Overall ${p.overall_grade || 'N/A'}`).join('\n')}` : ''}
+
 ${profileContext.recentNotes.length > 0 ? `Recent Notes:
-${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substring(0, 100)}${n.content.length > 100 ? '...' : ''}`).join('\n')}` : ''}`;
+${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.title}: ${n.content.substring(0, 100)}${n.content.length > 100 ? '...' : ''}`).join('\n')}` : ''}
+
+Diet & Health:
+- Today's calories: ${profileContext.dietSummary.total_calories || 0} kcal, Protein: ${profileContext.dietSummary.total_protein || 0}g
+
+Use this information to give personalized, contextual advice and encouragement!`;
         } else {
           systemPrompt = `You are a friendly AI assistant helping ${profile.age}-year-old ${profile.name}.
 Keep language age-appropriate and focus on being helpful and educational.
@@ -291,6 +366,7 @@ Keep language age-appropriate and focus on being helpful and educational.
 Profile Context:
 - Points: ${profileContext.progress.total_points} | Level: ${profileContext.progress.level}
 - Tasks: ${profileContext.taskStats.total_tasks} total, ${profileContext.taskStats.completed_tasks} completed
+${profileContext.schoolAssignments.length > 0 ? `- School assignments: ${profileContext.schoolAssignments.length} pending` : ''}
 
 ${profileContext.recentTasks.length > 0 ? `Upcoming Tasks: ${profileContext.recentTasks.map((t: any) => t.title).join(', ')}` : ''}`;
         }
