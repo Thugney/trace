@@ -53,11 +53,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        // Update current profile if it changed in the profiles array (e.g., AI enabled/disabled)
+        // CRITICAL: Always update current profile with fresh data from profiles array
+        // This ensures attributes like ai_enabled are always up-to-date
         const updatedProfile = profiles.find(p => p.id === currentProfile.id);
-        if (updatedProfile && JSON.stringify(updatedProfile) !== JSON.stringify(currentProfile)) {
-          console.log('[ProfileContext] Current profile updated, refreshing...', updatedProfile);
-          setCurrentProfile(updatedProfile);
+        if (updatedProfile) {
+          // Check if any key attributes have changed
+          const hasChanges =
+            updatedProfile.ai_enabled !== currentProfile.ai_enabled ||
+            updatedProfile.pin !== currentProfile.pin ||
+            updatedProfile.name !== currentProfile.name ||
+            updatedProfile.avatar !== currentProfile.avatar;
+
+          if (hasChanges) {
+            console.log('[ProfileContext] Current profile updated with fresh data:', {
+              ai_enabled: updatedProfile.ai_enabled,
+              name: updatedProfile.name
+            });
+            setCurrentProfile(updatedProfile);
+          }
         }
       }
     }

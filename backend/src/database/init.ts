@@ -13,8 +13,14 @@ if (!fs.existsSync(dataDir)) {
 
 export const db: Database.Database = new Database(DB_PATH);
 
+// Enable WAL mode for better concurrency (allows multiple readers during writes)
+db.pragma('journal_mode = WAL');
+
 // Enable foreign keys
 db.pragma('foreign_keys = ON');
+
+// Set busy timeout to 5 seconds (prevents SQLITE_BUSY errors)
+db.pragma('busy_timeout = 5000');
 
 export function initDatabase() {
   console.log('📦 Initializing database...');
