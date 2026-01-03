@@ -40,18 +40,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     loadProfiles();
   }, []);
 
-  // Restore saved profile when profiles are loaded
+  // Restore saved profile when profiles are loaded OR update current profile when profiles change
   useEffect(() => {
-    if (profiles.length > 0 && !currentProfile) {
-      const savedProfileId = localStorage.getItem('currentProfileId');
-      if (savedProfileId) {
-        const profile = profiles.find(p => p.id === parseInt(savedProfileId));
-        if (profile) {
-          setCurrentProfile(profile);
+    if (profiles.length > 0) {
+      if (!currentProfile) {
+        // Restore from localStorage if no profile selected
+        const savedProfileId = localStorage.getItem('currentProfileId');
+        if (savedProfileId) {
+          const profile = profiles.find(p => p.id === parseInt(savedProfileId));
+          if (profile) {
+            setCurrentProfile(profile);
+          }
+        }
+      } else {
+        // Update current profile if it changed in the profiles array (e.g., AI enabled/disabled)
+        const updatedProfile = profiles.find(p => p.id === currentProfile.id);
+        if (updatedProfile && JSON.stringify(updatedProfile) !== JSON.stringify(currentProfile)) {
+          console.log('[ProfileContext] Current profile updated, refreshing...', updatedProfile);
+          setCurrentProfile(updatedProfile);
         }
       }
     }
-  }, [profiles, currentProfile]);
+  }, [profiles]);
 
   useEffect(() => {
     // Save current profile to localStorage

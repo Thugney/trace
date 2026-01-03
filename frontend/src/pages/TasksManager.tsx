@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2 } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function TasksManager() {
@@ -19,6 +19,8 @@ export default function TasksManager() {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showBonusPoints, setShowBonusPoints] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editingGoal, setEditingGoal] = useState<MonthlyGoal | null>(null);
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
@@ -293,6 +295,56 @@ export default function TasksManager() {
     }
   };
 
+  const handleEditTask = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingTask) return;
+
+    const formData = new FormData(e.currentTarget);
+    const category = formData.get('category') as string;
+    const isTracking = category === 'watch-movies';
+
+    try {
+      await tasksAPI.update(editingTask.id, {
+        title: formData.get('title') as string,
+        description: formData.get('description') as string,
+        category: category as any,
+        difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
+        earns_points: !isTracking,
+        due_date: (formData.get('due_date') as string) || undefined
+      });
+
+      await loadTasks();
+      setEditingTask(null);
+      alert('✅ Task updated!');
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      alert('Failed to update task');
+    }
+  };
+
+  const handleEditGoal = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingGoal) return;
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      await goalsAPI.update(editingGoal.id, {
+        goal_description: formData.get('description') as string,
+        goal_points: parseInt(formData.get('points') as string, 10),
+        goal_type: formData.get('type') as string
+      });
+
+      await loadMonthlyGoal();
+      await loadAllGoals();
+      setEditingGoal(null);
+      alert('✅ Goal updated!');
+    } catch (error) {
+      console.error('Failed to update goal:', error);
+      alert('Failed to update goal');
+    }
+  };
+
   if (!currentProfile) {
     return (
       <div className="text-center py-12">
@@ -547,6 +599,15 @@ export default function TasksManager() {
                         <span>🎁 {goal.goal_type}</span>
                       </div>
                     </div>
+                    {!goal.achieved && (
+                      <button
+                        onClick={() => setEditingGoal(goal)}
+                        className="btn btn-secondary btn-sm ml-4"
+                        title="Edit goal"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    )}
                   </div>
                   {goal.parent_approved && !goal.achieved && (
                     <div className="mt-2">
@@ -697,12 +758,21 @@ export default function TasksManager() {
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleCompleteTask(task.id)}
-                      className="btn btn-success btn-sm ml-4"
-                    >
-                      <Check size={16} />
-                    </button>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => setEditingTask(task)}
+                        className="btn btn-secondary btn-sm"
+                        title="Edit task"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleCompleteTask(task.id)}
+                        className="btn btn-success btn-sm"
+                      >
+                        <Check size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -963,6 +1033,171 @@ export default function TasksManager() {
                 <button
                   type="button"
                   onClick={() => setShowBonusPoints(false)}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Edit Task</h2>
+
+            <form onSubmit={handleEditTask} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  className="input"
+                  defaultValue={editingTask.title}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  className="input"
+                  rows={3}
+                  defaultValue={editingTask.description || ''}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <select
+                  name="category"
+                  required
+                  className="input"
+                  defaultValue={editingTask.category}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">Select category</option>
+                  <option value="read-book">📚 Read Book</option>
+                  <option value="tigrinya">✍️ Tigrinya Practice</option>
+                  <option value="clean-room">🛏️ Clean Room</option>
+                  <option value="clean-kitchen">🍽️ Clean Kitchen</option>
+                  <option value="school">🎒 School Work</option>
+                  <option value="watch-movies">📺 Watch Movies/Screen Time (Tracking Only)</option>
+                  <option value="other">📌 Other</option>
+                </select>
+              </div>
+
+              {selectedCategory !== 'watch-movies' && editingTask.category !== 'watch-movies' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Difficulty * (affects points earned)
+                  </label>
+                  <select name="difficulty" required className="input" defaultValue={editingTask.difficulty}>
+                    <option value="easy">Easy (10 pts)</option>
+                    <option value="medium">Medium (20 pts)</option>
+                    <option value="hard">Hard (30 pts)</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Due Date (optional)
+                </label>
+                <input
+                  type="date"
+                  name="due_date"
+                  className="input"
+                  defaultValue={editingTask.due_date?.split('T')[0] || ''}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="btn btn-primary flex-1">
+                  <Edit2 size={20} className="mr-2" />
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingTask(null);
+                    setSelectedCategory('');
+                  }}
+                  className="btn btn-secondary flex-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Goal Modal */}
+      {editingGoal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full">
+            <h2 className="text-2xl font-bold mb-4">Edit Goal</h2>
+
+            <form onSubmit={handleEditGoal} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  What do you want to earn? *
+                </label>
+                <input
+                  type="text"
+                  name="description"
+                  required
+                  className="input"
+                  defaultValue={editingGoal.goal_description}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type of Reward
+                </label>
+                <select name="type" className="input" defaultValue={editingGoal.goal_type}>
+                  <option value="kroner">Money (Kroner)</option>
+                  <option value="movie-night">Movie Night</option>
+                  <option value="treat">Special Treat</option>
+                  <option value="toy">Toy/Gift</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  How many points do you need? *
+                </label>
+                <input
+                  type="number"
+                  name="points"
+                  required
+                  min="10"
+                  className="input"
+                  defaultValue={editingGoal.goal_points}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button type="submit" className="btn btn-primary flex-1">
+                  <Edit2 size={20} className="mr-2" />
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingGoal(null)}
                   className="btn btn-secondary flex-1"
                 >
                   Cancel
