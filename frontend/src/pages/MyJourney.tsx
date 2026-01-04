@@ -40,9 +40,24 @@ export default function MyJourney() {
     try {
       const response = await profilesAPI.getAll();
       const profiles = response.data;
-      setFamilyProfiles(profiles);
-      // Default to first child if parent, otherwise self
-      const children = profiles.filter((p: Profile) => p.type === 'child');
+
+      // For parents: show themselves + their children
+      // For admins: show all profiles
+      let viewableProfiles: Profile[] = [];
+      if (currentProfile?.type === 'admin') {
+        viewableProfiles = profiles;
+      } else if (currentProfile?.type === 'parent') {
+        // Parent sees themselves and their children only
+        viewableProfiles = profiles.filter((p: Profile) =>
+          p.id === currentProfile.id ||
+          (p.type === 'child' && p.parent_id === currentProfile.id)
+        );
+      }
+
+      setFamilyProfiles(viewableProfiles);
+
+      // Default to first child if parent has children, otherwise self
+      const children = viewableProfiles.filter((p: Profile) => p.type === 'child');
       if (children.length > 0) {
         setSelectedProfileId(children[0].id);
       } else if (currentProfile) {

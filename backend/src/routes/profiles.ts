@@ -484,8 +484,34 @@ router.get('/:id/stats', (req, res) => {
 // Get profile history (My Journey)
 router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
   try {
+    const userProfile = req.profile!;
     const { id } = req.params;
+    const requestedId = parseInt(id);
     const { period } = req.query; // week, month, year, all
+
+    // Authorization: children can only see their own history
+    // Parents can see their own + their children's history
+    // Admins can see anyone's history
+    if (userProfile.type === 'child') {
+      // Children can ONLY see their own journey
+      if (userProfile.id !== requestedId) {
+        return res.status(403).json({ error: 'Access denied: You can only view your own journey' });
+      }
+    } else if (userProfile.type === 'parent') {
+      // Parents can see their own or their children's journey
+      if (userProfile.id !== requestedId) {
+        const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(requestedId);
+        if (!targetProfile || targetProfile.parent_id !== userProfile.id) {
+          return res.status(403).json({ error: 'Access denied: You can only view your own or your children\'s journey' });
+        }
+      }
+    } else if (userProfile.type === 'teacher') {
+      // Teachers can only see their own journey
+      if (userProfile.id !== requestedId) {
+        return res.status(403).json({ error: 'Access denied: You can only view your own journey' });
+      }
+    }
+    // Admins can view anyone's history (no restriction)
 
     // Calculate date range based on period
     let startDate: string;
