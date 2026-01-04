@@ -148,6 +148,7 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
   try {
     switch (toolName) {
       case 'add_diet_entry': {
+        console.log(`[AI Tool] Adding diet entry: "${args.food_items}" for profile ${profileId}`);
         // First, create a food item for this AI-generated meal
         const foodResult = db.prepare(`
           INSERT INTO food_items (name, calories, protein, carbs, fat, source)
@@ -159,6 +160,7 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           args.carbs || 0,
           args.fat || 0
         );
+        console.log(`[AI Tool] Food item created with id: ${foodResult.lastInsertRowid}`);
 
         // Now log the meal with the food_id
         const result = db.prepare(`
@@ -175,6 +177,7 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           args.fat || 0,
           args.notes || ''
         );
+        console.log(`[AI Tool] Meal log created with id: ${result.lastInsertRowid}`);
         return {
           success: true,
           message: `Added "${args.food_items}" to your ${args.meal_type} log (${args.calories} calories)`,
@@ -183,6 +186,18 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
       }
 
       case 'create_note': {
+        // Map color names to hex values
+        const colorMap: Record<string, string> = {
+          'yellow': '#fef08a',
+          'blue': '#93c5fd',
+          'green': '#86efac',
+          'pink': '#f9a8d4',
+          'purple': '#c4b5fd',
+          'orange': '#fed7aa'
+        };
+        const hexColor = colorMap[args.color] || '#fef08a'; // Default to yellow
+
+        console.log(`[AI Tool] Creating note: "${args.title}" for profile ${profileId}`);
         const result = db.prepare(`
           INSERT INTO notes (profile_id, title, content, color)
           VALUES (?, ?, ?, ?)
@@ -190,8 +205,9 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           profileId,
           args.title,
           args.content,
-          args.color || 'yellow'
+          hexColor
         );
+        console.log(`[AI Tool] Note created with id: ${result.lastInsertRowid}`);
         return {
           success: true,
           message: `Created note "${args.title}"`,
@@ -200,9 +216,10 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
       }
 
       case 'create_task': {
+        console.log(`[AI Tool] Creating task: "${args.title}" for profile ${profileId}`);
         const result = db.prepare(`
-          INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date, created_by, parent_approved, approved_by)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
         `).run(
           profileId,
           args.title,
@@ -210,17 +227,20 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           args.category,
           args.difficulty,
           args.points,
-          args.due_date || null
+          args.due_date || null,
+          profileId  // created_by = the child profile
         );
+        console.log(`[AI Tool] Task created with id: ${result.lastInsertRowid}`);
         return {
           success: true,
-          message: `Created task "${args.title}" (${args.points} points)`,
+          message: `Created task "${args.title}" (${args.points} points) - awaiting parent approval`,
           data: { id: result.lastInsertRowid, ...args }
         };
       }
 
       case 'set_monthly_goal': {
         const currentMonth = new Date().toISOString().slice(0, 7);
+        console.log(`[AI Tool] Setting monthly goal for profile ${profileId}, month: ${currentMonth}`);
 
         // Check if goal exists for this month
         const existing: any = db.prepare(`
@@ -229,9 +249,10 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
 
         if (existing) {
           db.prepare(`
-            UPDATE monthly_goals SET goal_description = ?, goal_points = ?, reward = ?, updated_at = CURRENT_TIMESTAMP
+            UPDATE monthly_goals SET goal_description = ?, goal_points = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
           `).run(args.goal_description, args.goal_points, args.reward || '', existing.id);
+          console.log(`[AI Tool] Updated goal id: ${existing.id}`);
           return {
             success: true,
             message: `Updated your monthly goal: "${args.goal_description}" (target: ${args.goal_points} points)`,
@@ -239,12 +260,13 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           };
         } else {
           const result = db.prepare(`
-            INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, reward)
-            VALUES (?, ?, ?, ?, ?)
-          `).run(profileId, currentMonth, args.goal_description, args.goal_points, args.reward || '');
+            INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, notes, created_by, parent_approved, approved_by)
+            VALUES (?, ?, ?, ?, ?, ?, 0, NULL)
+          `).run(profileId, currentMonth, args.goal_description, args.goal_points, args.reward || '', profileId);
+          console.log(`[AI Tool] Created goal with id: ${result.lastInsertRowid}`);
           return {
             success: true,
-            message: `Set your monthly goal: "${args.goal_description}" (target: ${args.goal_points} points)`,
+            message: `Set your monthly goal: "${args.goal_description}" (target: ${args.goal_points} points) - awaiting parent approval`,
             data: { id: result.lastInsertRowid, ...args, month: currentMonth }
           };
         }
@@ -678,31 +700,42 @@ ALWAYS use the appropriate tool when it makes sense to help the user. After usin
       try {
         // First, call Grok API with tools (non-streaming to check for tool calls)
         const apiKey = getGrokApiKey();
-
-        // First API call - check for tool calls
-        const toolCheckResponse = await axios.post(
-          GROK_API_URL,
-          {
-            model: 'grok-3-mini',  // Use faster model for tool detection
-            messages,
-            tools: AI_TOOLS,
-            tool_choice: 'auto',
-            temperature: 0.7,
-            max_tokens: 500
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 30000
-          }
-        );
-
-        const toolCheckMessage = toolCheckResponse.data.choices?.[0]?.message;
         let toolResults: { toolName: string; result: any }[] = [];
+        let toolCheckMessage: any = null;
+
+        // Try to detect tool calls first
+        try {
+          console.log('[AI Chat] Checking for tool calls with grok-2-latest...');
+          const toolCheckResponse = await axios.post(
+            GROK_API_URL,
+            {
+              model: 'grok-2-latest',  // Use Grok 2 for tool detection (better function calling support)
+              messages,
+              tools: AI_TOOLS,
+              tool_choice: 'auto',
+              temperature: 0.7,
+              max_tokens: 500
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 30000
+            }
+          );
+
+          toolCheckMessage = toolCheckResponse.data.choices?.[0]?.message;
+          console.log('[AI Chat] Tool check response:', JSON.stringify(toolCheckMessage, null, 2));
+        } catch (toolError: any) {
+          console.error('[AI Chat] Tool check failed, continuing without tools:', toolError.response?.data || toolError.message);
+          // Continue without tools if function calling fails
+        }
 
         // Check if the AI wants to call tools
+        console.log(`[AI Chat] Tool check message content:`, toolCheckMessage?.content || 'No content');
+        console.log(`[AI Chat] Tool calls in response:`, toolCheckMessage?.tool_calls ? JSON.stringify(toolCheckMessage.tool_calls) : 'None');
+
         if (toolCheckMessage?.tool_calls && toolCheckMessage.tool_calls.length > 0) {
           console.log(`[AI Chat] Tool calls detected: ${toolCheckMessage.tool_calls.length}`);
 
@@ -746,7 +779,7 @@ ALWAYS use the appropriate tool when it makes sense to help the user. After usin
         const response = await axios.post(
           GROK_API_URL,
           {
-            model: 'grok-3-mini',  // Grok model
+            model: 'grok-2-latest',  // Grok model for response
             messages,
             temperature: 0.7,
             max_tokens: 500,

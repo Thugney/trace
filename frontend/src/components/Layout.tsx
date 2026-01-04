@@ -61,6 +61,11 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/notes', icon: StickyNote, label: 'Notes' }
       ];
 
+      // Add Diet if enabled for this child
+      if (currentProfile.diet_enabled === 1) {
+        items.push({ path: '/diet', icon: Utensils, label: 'My Diet' });
+      }
+
       // Add AI if enabled for this child
       if (currentProfile.ai_enabled === 1) {
         items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });

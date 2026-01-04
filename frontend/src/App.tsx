@@ -152,13 +152,17 @@ function AppRoutes() {
           }
         />
 
-        {/* Diet - Only parent, admin */}
+        {/* Diet - Parent, admin, and children with diet_enabled */}
         <Route
           path="/diet"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin']}>
-              <DietTracking />
-            </ProtectedRoute>
+            currentProfile?.type === 'child' && currentProfile?.diet_enabled !== 1 ? (
+              <Navigate to="/" replace />
+            ) : (
+              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <DietTracking />
+              </ProtectedRoute>
+            )
           }
         />
 
