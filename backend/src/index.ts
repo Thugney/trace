@@ -28,20 +28,25 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting - generous limits for family/school app with many users per IP
+// Rate limiting - production limits for school/family app
+// Schools often have hundreds of users behind same public IP (NAT)
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // 1000 requests per 15 min per IP (families share same IP)
-  message: { error: 'Too many requests, please try again later' },
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 500, // 500 requests per minute per IP (handles school networks)
+  message: { error: 'Too many requests, please try again in a minute' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === '/health';
+  }
 });
 
-// Separate limiter for login - prevent brute force but allow normal usage
+// Login limiter - allow many logins from same IP (school/family network)
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 login attempts per 15 min per IP
-  message: { error: 'Too many login attempts, please try again in 15 minutes' },
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 100, // 100 login attempts per minute per IP
+  message: { error: 'Too many login attempts, please wait a minute' },
   standardHeaders: true,
   legacyHeaders: false,
 });
