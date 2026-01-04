@@ -289,11 +289,14 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
       }
 
       default:
+        console.error(`[AI Tool] Unknown tool: ${toolName}`);
         return { success: false, message: `Unknown tool: ${toolName}` };
     }
   } catch (error: any) {
     console.error(`[AI Tool] Error executing ${toolName}:`, error);
-    return { success: false, message: `Failed to execute ${toolName}: ${error.message}` };
+    console.error(`[AI Tool] Stack:`, error.stack);
+    console.error(`[AI Tool] Args:`, JSON.stringify(args));
+    return { success: false, message: `Tool execution failed. Please try again with different parameters.` };
   }
 }
 
@@ -682,12 +685,19 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
 
       // Add tool usage instructions
       systemPrompt += `\n\nIMPORTANT - You have access to tools that can help the user:
-- When the user asks for meal suggestions, recipes, or food ideas, use the add_diet_entry tool to save it to their diet log
-- When the user wants to remember something or save information, use the create_note tool
-- When the user wants to add a task, chore, or activity, use the create_task tool
-- When the user wants to set a monthly goal, use the set_monthly_goal tool
+- add_diet_entry: Log meals/food to the user's diet tracker
+- create_note: Save notes, reminders, recipes, ideas
+- create_task: Create tasks, chores, or activities (ANY category is allowed - reading, homework, cleaning, exercise, habits, etc.)
+- set_monthly_goal: Set monthly goals
 
-ALWAYS use the appropriate tool when it makes sense to help the user. After using a tool, confirm what you did in your response.`;
+TOOL USAGE RULES:
+1. When the user asks to create/add a task, ALWAYS use the create_task tool immediately
+2. The category can be ANY descriptive text (e.g., "reading", "habits", "self-improvement", "exercise")
+3. Do NOT ask for confirmation before using tools - just use them
+4. After using a tool, briefly confirm what you created
+5. If a tool fails, apologize once and offer to try something else
+
+Example: "Add a task to read Atomic Habits" -> Use create_task with title="Read Atomic Habits chapter", category="reading", difficulty="easy"`;
 
       // Get recent conversation history
       const history = db.prepare(`
