@@ -181,6 +181,46 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 /**
+ * EventSource-Compatible Authentication Middleware
+ * Supports both header-based auth (for regular requests) and query parameter auth (for EventSource)
+ * EventSource cannot send custom headers, so we need to accept profile_id from query string
+ */
+export const authenticateEventSource = (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Try header first (for regular axios requests)
+    let profileId = req.headers['x-profile-id'] as string;
+
+    // Fall back to query parameter (for EventSource)
+    if (!profileId && req.query.profile_id) {
+      profileId = req.query.profile_id as string;
+    }
+
+    if (!profileId) {
+      return res.status(401).json({ error: 'Authentication required: No profile ID provided' });
+    }
+
+    // Verify profile exists in database
+    const profile: any = db.prepare('SELECT id, type, parent_id FROM profiles WHERE id = ?').get(profileId);
+
+    if (!profile) {
+      return res.status(401).json({ error: 'Authentication failed: Invalid profile ID' });
+    }
+
+    // Attach profile to request for use in route handlers
+    req.profile = {
+      id: profile.id,
+      type: profile.type,
+      parent_id: profile.parent_id
+    };
+
+    next();
+  } catch (error: any) {
+    console.error('[AUTH] Authentication error:', error);
+    res.status(500).json({ error: 'Authentication error' });
+  }
+};
+
+/**
  * Admin Only Middleware
  * Shortcut for admin-only endpoints
  */

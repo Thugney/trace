@@ -28,7 +28,7 @@ export default function Login({ onAuthenticated }: LoginProps) {
       }
 
       if (pin.length < 4) {
-        setError('PIN must be at least 4 digits');
+        setError('Password/PIN must be at least 4 characters');
         setLoading(false);
         return;
       }
@@ -70,13 +70,13 @@ export default function Login({ onAuthenticated }: LoginProps) {
             Family Learning Hub
           </h1>
           <p className="text-gray-600">
-            Enter your username and PIN to login
+            Enter your username and password/PIN to login
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
               Username
             </label>
             <div className="relative">
@@ -84,6 +84,8 @@ export default function Login({ onAuthenticated }: LoginProps) {
                 <User className="text-gray-400" size={20} />
               </div>
               <input
+                id="username"
+                name="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -96,22 +98,21 @@ export default function Login({ onAuthenticated }: LoginProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              PIN
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password / PIN
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Lock className="text-gray-400" size={20} />
               </div>
               <input
+                id="password"
+                name="password"
                 type="password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
                 className="input pl-10"
-                placeholder="Enter PIN"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
+                placeholder="Enter password or PIN"
                 autoComplete="current-password"
               />
             </div>

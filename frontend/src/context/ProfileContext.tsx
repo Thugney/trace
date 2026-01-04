@@ -21,6 +21,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const previousProfileIdRef = useRef<number | null>(null);
 
   const refreshProfiles = async () => {
+    // Only fetch if user is authenticated (has profile ID in localStorage)
+    const currentProfileId = localStorage.getItem('currentProfileId');
+    if (!currentProfileId) {
+      return;
+    }
+
     try {
       const response = await profilesAPI.getAll();
       setProfiles(response.data);
@@ -29,11 +35,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Load profiles on mount
+  // Load profiles on mount (only if authenticated)
   useEffect(() => {
     const loadProfiles = async () => {
       setIsLoading(true);
-      await refreshProfiles();
+
+      // Check if user has authenticated before
+      const currentProfileId = localStorage.getItem('currentProfileId');
+      if (currentProfileId) {
+        await refreshProfiles();
+      }
+
       setIsLoading(false);
     };
 

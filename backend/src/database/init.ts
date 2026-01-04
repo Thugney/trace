@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../../data/family.db');
 
@@ -406,6 +406,24 @@ export function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (sender_id) REFERENCES profiles(id) ON DELETE CASCADE,
       FOREIGN KEY (recipient_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // School Student Progress (track attendance, participation, grades per class)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_student_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      class_id INTEGER NOT NULL,
+      attendance_percentage REAL DEFAULT 0,
+      participation_score REAL DEFAULT 0,
+      overall_grade TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+      UNIQUE(student_id, class_id)
     )
   `);
 

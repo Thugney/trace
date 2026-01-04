@@ -1,22 +1,21 @@
 import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
-import { AuthRequest, authenticate, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
+import { AuthRequest, authenticate, authenticateEventSource, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
 
 const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
-// Helper: Get AI settings for profile (now includes ai_enabled and enrolled_by)
+// Helper: Get AI settings for profile (includes ai_enabled from profiles table)
 function getAISettings(profileId: number) {
   try {
     let settings: any = db.prepare(`
-      SELECT 
+      SELECT
         ai.*,
         p.ai_enabled,
         p.type,
-        p.parent_id,
-        ai.enrolled_by
+        p.parent_id
       FROM ai_settings ai
       LEFT JOIN profiles p ON ai.profile_id = p.id
       WHERE ai.profile_id = ?
@@ -37,12 +36,11 @@ function getAISettings(profileId: number) {
       `).run(profileId);
 
       settings = db.prepare(`
-        SELECT 
+        SELECT
           ai.*,
           p.ai_enabled,
           p.type,
-          p.parent_id,
-          ai.enrolled_by
+          p.parent_id
         FROM ai_settings ai
         LEFT JOIN profiles p ON ai.profile_id = p.id
         WHERE ai.profile_id = ?
@@ -69,8 +67,7 @@ function getAISettings(profileId: number) {
       max_messages_per_day: 20,
       content_filter_level: 'strict',
       custom_instructions: '',
-      ai_enabled: 0,
-      enrolled_by: null
+      ai_enabled: 0
     };
   }
 }
@@ -189,13 +186,13 @@ function getProfileContext(profileId: number) {
     ORDER BY se.enrolled_at DESC
   `).all(profileId);
 
-  // Get school assignments (pending and recent)
+  // Get school assignments (upcoming and recent)
   const schoolAssignments = db.prepare(`
-    SELECT sa.title, sa.description, sa.due_date, sa.status, sa.grade, sc.name as class_name
+    SELECT sa.title, sa.description, sa.due_date, sa.type, sc.name as class_name
     FROM school_assignments sa
     JOIN school_classes sc ON sa.class_id = sc.id
     JOIN school_enrollments se ON se.class_id = sc.id
-    WHERE se.student_id = ? AND (sa.status = 'pending' OR sa.updated_at > date('now', '-7 days'))
+    WHERE se.student_id = ? AND (sa.due_date >= date('now') OR sa.created_at > date('now', '-7 days'))
     ORDER BY sa.due_date ASC
     LIMIT 10
   `).all(profileId);
@@ -255,7 +252,7 @@ function generateFallbackResponse(message: string, profile: any, context: string
 }
 
 // Chat with AI (GET endpoint for EventSource streaming)
-router.get('/chat', authenticate, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
+router.get('/chat', authenticateEventSource, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
   try {
     const profile_id = req.profile!.id;  // Use authenticated profile
     const message = req.query.message as string;
@@ -347,7 +344,7 @@ ${profileContext.schoolEnrollments.length > 0 ? `School Classes:
 ${profileContext.schoolEnrollments.map((e: any) => `- ${e.class_name}: ${e.description || 'No description'}`).join('\n')}` : ''}
 
 ${profileContext.schoolAssignments.length > 0 ? `School Assignments:
-${profileContext.schoolAssignments.map((a: any) => `- ${a.title} (${a.class_name}, Due: ${a.due_date}, Status: ${a.status}${a.grade ? `, Grade: ${a.grade}` : ''})`).join('\n')}` : ''}
+${profileContext.schoolAssignments.map((a: any) => `- ${a.title} (${a.class_name}, Type: ${a.type || 'homework'}${a.due_date ? `, Due: ${a.due_date}` : ''})`).join('\n')}` : ''}
 
 ${profileContext.schoolProgress.length > 0 ? `School Progress:
 ${profileContext.schoolProgress.map((p: any) => `- ${p.class_name}: Attendance ${p.attendance_percentage || 0}%, Participation ${p.participation_score || 0}%, Overall ${p.overall_grade || 'N/A'}`).join('\n')}` : ''}

@@ -1,6 +1,6 @@
 import express, { Response } from 'express';
 import db from '../database/init';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { authenticate, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 
