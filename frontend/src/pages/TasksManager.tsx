@@ -49,9 +49,8 @@ export default function TasksManager() {
     try {
       setLoading(true);
       const response = await tasksAPI.getByProfile(displayProfileId);
-      // Filter to only show approved tasks to kids, parents see all
-      const filteredTasks = isParent ? response.data : response.data.filter(t => t.parent_approved);
-      setTasks(filteredTasks);
+      // Show all tasks to everyone - unapproved ones will have a "Pending Approval" badge
+      setTasks(response.data);
     } catch (error) {
       console.error('Failed to load tasks:', error);
     } finally {
@@ -75,12 +74,8 @@ export default function TasksManager() {
 
     try {
       const response = await goalsAPI.getCurrent(displayProfileId);
-      // Only show approved goals to kids
-      if (!isParent && response.data && !response.data.parent_approved) {
-        setMonthlyGoal(null);
-      } else {
-        setMonthlyGoal(response.data);
-      }
+      // Show all goals - pending ones will have a badge
+      setMonthlyGoal(response.data);
     } catch (error) {
       console.error('Failed to load monthly goal:', error);
     }
@@ -90,9 +85,8 @@ export default function TasksManager() {
     if (!displayProfileId) return;
     try {
       const response = await goalsAPI.getByProfile(displayProfileId);
-      // Filter to only show approved goals to kids, parents see all
-      const filteredGoals = isParent ? response.data : response.data.filter(g => g.parent_approved);
-      setAllGoals(filteredGoals);
+      // Show all goals - pending ones will have a badge
+      setAllGoals(response.data);
     } catch (error) {
       console.error('Failed to load all goals:', error);
     }
@@ -731,15 +725,23 @@ export default function TasksManager() {
                   key={task.id}
                   className={clsx(
                     'p-4 border-2 rounded-lg transition-all',
-                    task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
-                    task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
-                    task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
-                    !task.earns_points && 'border-gray-300 bg-gray-50'
+                    !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
+                    task.parent_approved && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
+                    task.parent_approved && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
+                    task.parent_approved && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
+                    task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
                   )}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                        {!task.parent_approved && (
+                          <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
+                            ⏳ Pending Approval
+                          </span>
+                        )}
+                      </div>
                       {task.description && (
                         <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                       )}
@@ -759,19 +761,27 @@ export default function TasksManager() {
                       </div>
                     </div>
                     <div className="flex space-x-2 ml-4">
-                      <button
-                        onClick={() => setEditingTask(task)}
-                        className="btn btn-secondary btn-sm"
-                        title="Edit task"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleCompleteTask(task.id)}
-                        className="btn btn-success btn-sm"
-                      >
-                        <Check size={16} />
-                      </button>
+                      {(isParent || task.parent_approved) && (
+                        <button
+                          onClick={() => setEditingTask(task)}
+                          className="btn btn-secondary btn-sm"
+                          title="Edit task"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      )}
+                      {task.parent_approved ? (
+                        <button
+                          onClick={() => handleCompleteTask(task.id)}
+                          className="btn btn-success btn-sm"
+                        >
+                          <Check size={16} />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-orange-600 italic">
+                          Needs parent approval
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
