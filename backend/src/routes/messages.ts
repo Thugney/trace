@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, requireRole } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
+import { NotificationHelpers } from '../services/notifications';
 
 const router = express.Router();
 
@@ -34,6 +35,13 @@ router.post('/', authenticate, requireRole(['teacher', 'parent']), (req: AuthReq
     `).run(sender_id, recipient_id, subject, message);
 
     const newMessage = db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notification to recipient
+    const senderProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(sender_id);
+    if (senderProfile) {
+      NotificationHelpers.messageReceived(recipient_id, senderProfile.name, subject || message.substring(0, 50)).catch(console.error);
+    }
+
     res.status(201).json(newMessage);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

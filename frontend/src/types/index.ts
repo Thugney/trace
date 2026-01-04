@@ -236,3 +236,25 @@ export interface JourneyData {
     type: string;
   };
 }
+
+// Push Notification types
+export interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export interface Notification {
+  id: number;
+  profile_id: number;
+  type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
+        'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
+        'message_received' | 'reminder' | 'achievement' | 'general';
+  title: string;
+  message: string;
+  data?: any;
+  is_read: boolean;
+  created_at: string;
+}

@@ -1,6 +1,7 @@
 import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { NotificationHelpers } from '../services/notifications';
 
 const router = express.Router();
 
@@ -105,7 +106,16 @@ router.post('/', (req, res) => {
       approvedBy
     );
 
-    const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+    const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notification if child created a task (needs approval)
+    if (!parentApproved && created_by) {
+      const creator: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(created_by);
+      if (creator && creator.type === 'child') {
+        NotificationHelpers.taskCreatedByChild(created_by, creator.name, title).catch(console.error);
+      }
+    }
+
     res.status(201).json(newTask);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -229,6 +239,12 @@ router.post('/:id/complete', (req, res) => {
     const progress = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(task.profile_id);
+
+    // Send notification to parent that child completed a task
+    const profile: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(task.profile_id);
+    if (profile && profile.type === 'child') {
+      NotificationHelpers.taskCompleted(task.profile_id, profile.name, task.title, points).catch(console.error);
+    }
 
     res.json({
       task: completedTask,
@@ -409,6 +425,9 @@ router.post('/:id/approve', (req, res) => {
       return res.status(403).json({ error: 'Only parents or admins can approve tasks' });
     }
 
+    // Get task before approval for notification
+    const task: any = db.prepare('SELECT title, profile_id FROM tasks WHERE id = ?').get(id);
+
     db.prepare(`
       UPDATE tasks
       SET parent_approved = 1, approved_by = ?
@@ -416,6 +435,12 @@ router.post('/:id/approve', (req, res) => {
     `).run(approved_by, id);
 
     const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+    // Send notification to child that their task was approved
+    if (task) {
+      NotificationHelpers.taskApproved(task.profile_id, task.title).catch(console.error);
+    }
+
     res.json(updatedTask);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -438,10 +463,18 @@ router.post('/:id/reject', (req, res) => {
       return res.status(403).json({ error: 'Only parents or admins can reject tasks' });
     }
 
+    // Get task before deletion for notification
+    const task: any = db.prepare('SELECT title, profile_id FROM tasks WHERE id = ?').get(id);
+
     const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Send notification to child that their task was rejected
+    if (task) {
+      NotificationHelpers.taskRejected(task.profile_id, task.title).catch(console.error);
     }
 
     res.json({ message: 'Task rejected and deleted' });

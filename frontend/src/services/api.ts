@@ -14,7 +14,8 @@ import type {
   Note,
   MonthlyGoal,
   Message,
-  JourneyData
+  JourneyData,
+  Notification
 } from '../types';
 import type {
   SchoolClass,
@@ -323,6 +324,28 @@ export const messagesAPI = {
     api.delete(`/messages/${messageId}`),
   getParents: () =>
     api.get<Profile[]>('/messages/parents')
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getVapidPublicKey: () =>
+    api.get<{ publicKey: string }>('/notifications/vapid-public-key'),
+  subscribe: (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
+    api.post('/notifications/subscribe', { subscription }),
+  unsubscribe: (endpoint: string) =>
+    api.post('/notifications/unsubscribe', { endpoint }),
+  getNotifications: (limit?: number, unreadOnly?: boolean) =>
+    api.get<{ notifications: Notification[]; unreadCount: number }>('/notifications', {
+      params: { limit, unread: unreadOnly }
+    }),
+  getUnreadCount: () =>
+    api.get<{ count: number }>('/notifications/unread-count'),
+  markAsRead: (notificationId: number) =>
+    api.post(`/notifications/${notificationId}/read`),
+  markAllAsRead: () =>
+    api.post('/notifications/read-all'),
+  sendTest: () =>
+    api.post('/notifications/test')
 };
 
 export default api;

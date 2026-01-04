@@ -1,6 +1,7 @@
 import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { NotificationHelpers, sendPushNotification } from '../services/notifications';
 
 const router = express.Router();
 
@@ -73,6 +74,15 @@ router.post('/', (req, res) => {
     `).run(profile_id, month, goal_description, goal_points, goal_type || 'kroner', notes || null, created_by || null, parentApproved, approvedBy);
 
     const newGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notification if child created a goal (needs approval)
+    if (!parentApproved && created_by) {
+      const creator: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(created_by);
+      if (creator && creator.type === 'child') {
+        NotificationHelpers.goalCreatedByChild(created_by, creator.name, goal_description).catch(console.error);
+      }
+    }
+
     res.status(201).json(newGoal);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -84,6 +94,9 @@ router.put('/:id', (req, res) => {
   try {
     const { id } = req.params;
     const { goal_description, goal_points, goal_type, achieved, reward_given, notes } = req.body;
+
+    // Get goal before update to check if being marked as achieved
+    const beforeUpdate: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -122,7 +135,16 @@ router.put('/:id', (req, res) => {
       WHERE id = ?
     `).run(...values);
 
-    const updatedGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+    const updatedGoal: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+
+    // Send notification if goal was just marked as achieved
+    if (achieved && beforeUpdate && !beforeUpdate.achieved) {
+      const profile: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(updatedGoal.profile_id);
+      if (profile && profile.type === 'child') {
+        NotificationHelpers.goalAchieved(updatedGoal.profile_id, profile.name, updatedGoal.goal_description).catch(console.error);
+      }
+    }
+
     res.json(updatedGoal);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -220,6 +242,9 @@ router.post('/:id/approve', (req, res) => {
       return res.status(403).json({ error: 'Only parents or admins can approve goals' });
     }
 
+    // Get goal before approval for notification
+    const goal: any = db.prepare('SELECT goal_description, profile_id FROM monthly_goals WHERE id = ?').get(id);
+
     db.prepare(`
       UPDATE monthly_goals
       SET parent_approved = 1, approved_by = ?, updated_at = CURRENT_TIMESTAMP
@@ -227,6 +252,12 @@ router.post('/:id/approve', (req, res) => {
     `).run(approved_by, id);
 
     const updatedGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+
+    // Send notification to child that their goal was approved
+    if (goal) {
+      NotificationHelpers.goalApproved(goal.profile_id, goal.goal_description).catch(console.error);
+    }
+
     res.json(updatedGoal);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -249,10 +280,24 @@ router.post('/:id/reject', (req, res) => {
       return res.status(403).json({ error: 'Only parents or admins can reject goals' });
     }
 
+    // Get goal before deletion for notification
+    const goal: any = db.prepare('SELECT goal_description, profile_id FROM monthly_goals WHERE id = ?').get(id);
+
     const result = db.prepare('DELETE FROM monthly_goals WHERE id = ?').run(id);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Goal not found' });
+    }
+
+    // Send notification to child that their goal was rejected
+    if (goal) {
+      sendPushNotification(goal.profile_id, {
+        type: 'goal_rejected',
+        title: 'Goal Not Approved',
+        message: `Your goal "${goal.goal_description}" was not approved. Ask your parent why!`,
+        icon: '❌',
+        url: '/tasks'
+      }).catch(console.error);
     }
 
     res.json({ message: 'Goal rejected and deleted' });

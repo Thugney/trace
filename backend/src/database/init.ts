@@ -471,6 +471,41 @@ export function initDatabase() {
     )
   `);
 
+  // Push notification subscriptions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Notifications log (for in-app notifications too)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      data TEXT,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for notifications
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_push_subscriptions_profile ON push_subscriptions(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_profile ON notifications(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+  `);
+
   // Insert default achievements
   const defaultAchievements = [
     { name: 'First Steps', description: 'Complete your first assignment', icon: '🎯', category: 'assignment', points: 5, requirement_type: 'assignments_completed', requirement_value: 1 },

@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail, Map, Menu, X } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
+import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
 
 interface LayoutProps {
@@ -143,8 +144,9 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </div>
 
-            {/* Sign Out Button */}
-            <div className="flex items-center space-x-2">
+            {/* Notifications & Sign Out */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <NotificationBell />
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-600 hover:text-gray-900"
