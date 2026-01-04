@@ -179,11 +179,11 @@ function AppRoutes() {
           }
         />
 
-        {/* School Enrollment - Only parent and admin */}
+        {/* School Enrollment - Parent, teacher, and admin can manage enrollment */}
         <Route
           path="/school/enroll"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'teacher']}>
               <SchoolEnroll />
             </ProtectedRoute>
           }

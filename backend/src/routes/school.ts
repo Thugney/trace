@@ -1,6 +1,6 @@
 import express, { Response } from 'express';
 import db from '../database/init';
-import { authenticate, requireRole, verifyParentChild, optionalAuth, teacherOnly, parentOrAdmin, adminOnly } from '../middleware/auth';
+import { authenticate, requireRole, verifyParentChild, optionalAuth, teacherOnly, parentOrAdmin, parentOrAdminOrTeacher, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -60,8 +60,8 @@ router.get('/parents/:parentId/children', (req, res) => {
   }
 });
 
-// Enroll student in class (parents and admin only, with parent-child verification)
-router.post('/enrollments', parentOrAdmin, verifyParentChild('student_id'), (req: AuthRequest, res: Response) => {
+// Enroll student in class (parents, teachers, and admin - teachers can move students between classes)
+router.post('/enrollments', parentOrAdminOrTeacher, verifyParentChild('student_id'), (req: AuthRequest, res: Response) => {
   try {
     const { student_id, class_id } = req.body;
 
@@ -100,8 +100,8 @@ router.get('/students/:studentId/enrollments', (req, res) => {
   }
 });
 
-// Unenroll student from class (parents and admin only, with parent-child verification)
-router.delete('/enrollments/:studentId/:classId', parentOrAdmin, verifyParentChild('studentId'), (req: AuthRequest, res: Response) => {
+// Unenroll student from class (parents, teachers, and admin - teachers can move students between classes)
+router.delete('/enrollments/:studentId/:classId', parentOrAdminOrTeacher, verifyParentChild('studentId'), (req: AuthRequest, res: Response) => {
   try {
     const { studentId, classId } = req.params;
 
@@ -644,6 +644,300 @@ router.get('/students/:studentId/quiz-results', authenticate, verifyParentChild(
     `).all(studentId, studentId);
 
     res.json(results);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// GAMIFICATION ROUTES
+// ============================================
+
+// Helper function to check and auto-award achievements
+const checkAndAwardAchievements = (studentId: number) => {
+  try {
+    // Get student stats
+    const stats: any = db.prepare(`
+      SELECT
+        COUNT(DISTINCT ss.id) as completed_assignments,
+        COUNT(DISTINCT CASE WHEN ss.status = 'approved' THEN ss.id END) as approved_assignments,
+        COUNT(DISTINCT CASE WHEN sa.type = 'psalm' AND ss.status = 'approved' THEN ss.id END) as psalm_completed,
+        COUNT(DISTINCT CASE WHEN sa.type = 'alphabet' AND ss.status = 'approved' THEN ss.id END) as alphabet_completed,
+        COUNT(DISTINCT CASE WHEN sa.type = 'video' AND ss.status = 'approved' THEN ss.id END) as video_completed
+      FROM school_submissions ss
+      JOIN school_assignments sa ON ss.assignment_id = sa.id
+      WHERE ss.student_id = ?
+    `).get(studentId);
+
+    // Get quiz stats
+    const quizStats: any = db.prepare(`
+      SELECT
+        COUNT(DISTINCT assignment_id) as quizzes_taken,
+        MAX(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as has_perfect_score
+      FROM student_quiz_answers
+      WHERE student_id = ?
+    `).get(studentId);
+
+    // Check for 100% quiz score
+    const perfectQuiz: any = db.prepare(`
+      SELECT assignment_id,
+        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct,
+        COUNT(*) as total
+      FROM student_quiz_answers
+      WHERE student_id = ?
+      GROUP BY assignment_id
+      HAVING correct = total
+    `).all(studentId);
+
+    // Get student's current points
+    const studentPoints: any = db.prepare(`
+      SELECT COALESCE(points, 0) as points FROM student_school_points WHERE student_id = ?
+    `).get(studentId);
+    const currentPoints = studentPoints?.points || 0;
+
+    // Get all achievements
+    const achievements: any[] = db.prepare('SELECT * FROM school_achievements').all();
+
+    // Check each achievement
+    const awardAchievement = db.prepare(`
+      INSERT OR IGNORE INTO student_achievements (student_id, achievement_id)
+      VALUES (?, ?)
+    `);
+
+    const newlyAwarded: any[] = [];
+
+    for (const ach of achievements) {
+      let shouldAward = false;
+
+      switch (ach.requirement_type) {
+        case 'assignments_completed':
+          shouldAward = stats.approved_assignments >= ach.requirement_value;
+          break;
+        case 'quiz_score':
+          shouldAward = perfectQuiz.length > 0 && ach.requirement_value === 100;
+          break;
+        case 'special':
+          // Check specific special achievements
+          if (ach.name === 'Psalm Singer') {
+            shouldAward = stats.psalm_completed >= ach.requirement_value;
+          } else if (ach.name === 'Geez Scholar') {
+            shouldAward = stats.alphabet_completed >= ach.requirement_value;
+          } else if (ach.name === 'Video Watcher') {
+            shouldAward = stats.video_completed >= ach.requirement_value;
+          } else if (ach.name === 'Rising Star') {
+            shouldAward = currentPoints >= 50;
+          } else if (ach.name === 'Super Student') {
+            shouldAward = currentPoints >= 100;
+          } else if (ach.name === 'Church Scholar') {
+            shouldAward = currentPoints >= 200;
+          }
+          break;
+      }
+
+      if (shouldAward) {
+        const result = awardAchievement.run(studentId, ach.id);
+        if (result.changes > 0) {
+          newlyAwarded.push(ach);
+          // Add achievement points
+          db.prepare(`
+            INSERT INTO student_school_points (student_id, points) VALUES (?, ?)
+            ON CONFLICT(student_id) DO UPDATE SET
+              points = points + ?,
+              level = CASE WHEN points + ? >= 200 THEN 5
+                          WHEN points + ? >= 100 THEN 4
+                          WHEN points + ? >= 50 THEN 3
+                          WHEN points + ? >= 20 THEN 2
+                          ELSE 1 END,
+              updated_at = CURRENT_TIMESTAMP
+          `).run(studentId, ach.points, ach.points, ach.points, ach.points, ach.points, ach.points);
+        }
+      }
+    }
+
+    return newlyAwarded;
+  } catch (error) {
+    console.error('Error checking achievements:', error);
+    return [];
+  }
+};
+
+// Get all available achievements
+router.get('/achievements', (req, res) => {
+  try {
+    const achievements = db.prepare('SELECT * FROM school_achievements ORDER BY points ASC').all();
+    res.json(achievements);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get student's earned achievements
+router.get('/students/:studentId/achievements', (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // First check and award any new achievements
+    checkAndAwardAchievements(Number(studentId));
+
+    const achievements = db.prepare(`
+      SELECT sa.*, sea.earned_at, p.name as awarded_by_name, sea.notes
+      FROM student_achievements sea
+      JOIN school_achievements sa ON sea.achievement_id = sa.id
+      LEFT JOIN profiles p ON sea.awarded_by = p.id
+      WHERE sea.student_id = ?
+      ORDER BY sea.earned_at DESC
+    `).all(studentId);
+
+    res.json(achievements);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Award achievement manually (teacher/admin only)
+router.post('/achievements/award', teacherOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { student_id, achievement_id, notes } = req.body;
+
+    if (!student_id || !achievement_id) {
+      return res.status(400).json({ error: 'student_id and achievement_id are required' });
+    }
+
+    // Check if already awarded
+    const existing: any = db.prepare(`
+      SELECT * FROM student_achievements WHERE student_id = ? AND achievement_id = ?
+    `).get(student_id, achievement_id);
+
+    if (existing) {
+      return res.status(409).json({ error: 'Achievement already awarded to this student' });
+    }
+
+    // Get achievement points
+    const achievement: any = db.prepare('SELECT points FROM school_achievements WHERE id = ?').get(achievement_id);
+    if (!achievement) {
+      return res.status(404).json({ error: 'Achievement not found' });
+    }
+
+    // Award the achievement
+    db.prepare(`
+      INSERT INTO student_achievements (student_id, achievement_id, awarded_by, notes)
+      VALUES (?, ?, ?, ?)
+    `).run(student_id, achievement_id, req.profile?.id, notes);
+
+    // Add points
+    db.prepare(`
+      INSERT INTO student_school_points (student_id, points) VALUES (?, ?)
+      ON CONFLICT(student_id) DO UPDATE SET
+        points = points + ?,
+        level = CASE WHEN points + ? >= 200 THEN 5
+                    WHEN points + ? >= 100 THEN 4
+                    WHEN points + ? >= 50 THEN 3
+                    WHEN points + ? >= 20 THEN 2
+                    ELSE 1 END,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(student_id, achievement.points, achievement.points, achievement.points, achievement.points, achievement.points, achievement.points);
+
+    res.status(201).json({ message: 'Achievement awarded successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get student's points and level
+router.get('/students/:studentId/points', (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    let points: any = db.prepare(`
+      SELECT * FROM student_school_points WHERE student_id = ?
+    `).get(studentId);
+
+    if (!points) {
+      points = { student_id: studentId, points: 0, level: 1 };
+    }
+
+    // Get level name
+    const levelNames: Record<number, string> = {
+      1: 'Beginner',
+      2: 'Learner',
+      3: 'Achiever',
+      4: 'Expert',
+      5: 'Master'
+    };
+    points.level_name = levelNames[points.level] || 'Beginner';
+
+    // Calculate points to next level
+    const levelThresholds = [0, 20, 50, 100, 200];
+    const nextLevel = Math.min(points.level + 1, 5);
+    points.points_to_next_level = levelThresholds[nextLevel - 1] - points.points;
+    if (points.points_to_next_level < 0) points.points_to_next_level = 0;
+
+    res.json(points);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add points to student (teacher/admin only)
+router.post('/students/:studentId/points', teacherOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId } = req.params;
+    const { points, reason } = req.body;
+
+    if (!points || typeof points !== 'number') {
+      return res.status(400).json({ error: 'Points (number) required' });
+    }
+
+    db.prepare(`
+      INSERT INTO student_school_points (student_id, points) VALUES (?, ?)
+      ON CONFLICT(student_id) DO UPDATE SET
+        points = points + ?,
+        level = CASE WHEN points + ? >= 200 THEN 5
+                    WHEN points + ? >= 100 THEN 4
+                    WHEN points + ? >= 50 THEN 3
+                    WHEN points + ? >= 20 THEN 2
+                    ELSE 1 END,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(studentId, points, points, points, points, points, points);
+
+    // Check for new achievements after adding points
+    const newAchievements = checkAndAwardAchievements(Number(studentId));
+
+    const updated: any = db.prepare('SELECT * FROM student_school_points WHERE student_id = ?').get(studentId);
+
+    res.json({
+      ...updated,
+      new_achievements: newAchievements,
+      reason
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get leaderboard (top students by points)
+router.get('/leaderboard', (req, res) => {
+  try {
+    const limit = Number(req.query.limit) || 10;
+
+    const leaderboard = db.prepare(`
+      SELECT
+        p.id,
+        p.name,
+        p.avatar,
+        COALESCE(ssp.points, 0) as points,
+        COALESCE(ssp.level, 1) as level,
+        COUNT(DISTINCT sa.id) as achievements_count
+      FROM profiles p
+      LEFT JOIN student_school_points ssp ON p.id = ssp.student_id
+      LEFT JOIN student_achievements sa ON p.id = sa.student_id
+      WHERE p.type = 'child'
+      GROUP BY p.id
+      ORDER BY points DESC, achievements_count DESC
+      LIMIT ?
+    `).all(limit);
+
+    res.json(leaderboard);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

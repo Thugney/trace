@@ -10,7 +10,9 @@ import {
   FileText,
   Send,
   AlertCircle,
-  UserPlus
+  UserPlus,
+  Trophy,
+  Star
 } from 'lucide-react';
 import StudentQuizView from '../components/StudentQuizView';
 
@@ -28,6 +30,10 @@ export default function SchoolStudent() {
 
   const [showQuiz, setShowQuiz] = useState(false);
   const [selectedQuizAssignment, setSelectedQuizAssignment] = useState<SchoolAssignment | null>(null);
+
+  // Gamification state
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [points, setPoints] = useState<{ points: number; level: number; level_name: string; points_to_next_level: number } | null>(null);
 
 
 
@@ -48,6 +54,14 @@ export default function SchoolStudent() {
       // Load assignments
       const assignmentsResponse = await schoolAPI.getStudentAssignments(currentProfile.id);
       setAssignments(assignmentsResponse.data);
+
+      // Load gamification data
+      const [achievementsResponse, pointsResponse] = await Promise.all([
+        schoolAPI.getStudentAchievements(currentProfile.id),
+        schoolAPI.getStudentPoints(currentProfile.id)
+      ]);
+      setAchievements(achievementsResponse.data);
+      setPoints(pointsResponse.data);
     } catch (error) {
       console.error('Failed to load student data:', error);
     } finally {
@@ -144,6 +158,66 @@ export default function SchoolStudent() {
           </Link>
         )}
       </div>
+
+      {/* Points & Level Progress */}
+      {points && (
+        <div className="mb-8 card p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white/20 rounded-full p-3">
+                <Star size={32} className="text-yellow-300" />
+              </div>
+              <div>
+                <div className="text-sm opacity-90">Level {points.level}</div>
+                <div className="text-2xl font-bold">{points.level_name}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold">{points.points}</div>
+              <div className="text-sm opacity-90">Total Points</div>
+            </div>
+          </div>
+          {points.points_to_next_level > 0 && (
+            <div className="mt-4">
+              <div className="flex justify-between text-sm mb-1">
+                <span>Progress to next level</span>
+                <span>{points.points_to_next_level} points to go</span>
+              </div>
+              <div className="bg-white/20 rounded-full h-2">
+                <div
+                  className="bg-yellow-300 h-2 rounded-full transition-all"
+                  style={{
+                    width: `${Math.max(5, 100 - (points.points_to_next_level / (points.level === 1 ? 20 : points.level === 2 ? 30 : points.level === 3 ? 50 : 100)) * 100)}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Achievements */}
+      {achievements.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center space-x-2 mb-4">
+            <Trophy size={24} className="text-yellow-500" />
+            <h2 className="text-xl font-semibold text-gray-900">My Achievements</h2>
+            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+              {achievements.length} earned
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {achievements.map((ach) => (
+              <div key={ach.id} className="card p-4 text-center hover:shadow-lg transition-shadow">
+                <div className="text-4xl mb-2">{ach.icon}</div>
+                <h3 className="font-semibold text-gray-900 text-sm">{ach.name}</h3>
+                <p className="text-xs text-gray-500 mt-1">{ach.description}</p>
+                <div className="mt-2 text-xs text-purple-600 font-medium">+{ach.points} pts</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Enrolled Classes */}
       {enrollments.length > 0 && (

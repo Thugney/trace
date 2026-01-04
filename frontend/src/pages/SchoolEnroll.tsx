@@ -12,6 +12,7 @@ export default function SchoolEnroll() {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const isAdmin = currentProfile?.type === 'admin';
+  const isTeacher = currentProfile?.type === 'teacher';
 
   useEffect(() => {
     loadData();
@@ -36,8 +37,8 @@ export default function SchoolEnroll() {
       setClasses(classesResponse.data);
 
       // Load children based on role
-      if (currentProfile.type === 'admin') {
-        // Admin sees ALL children in the system
+      if (currentProfile.type === 'admin' || currentProfile.type === 'teacher') {
+        // Admin and Teacher see ALL children in the system
         const allProfilesResponse = await profilesAPI.getAll();
         const allChildren = allProfilesResponse.data.filter(p => p.type === 'child');
 
@@ -135,12 +136,12 @@ export default function SchoolEnroll() {
     return classes.find(c => age >= (c.age_min || 0) && age <= (c.age_max || 100));
   };
 
-  if (!currentProfile || (currentProfile.type !== 'parent' && currentProfile.type !== 'admin')) {
+  if (!currentProfile || (currentProfile.type !== 'parent' && currentProfile.type !== 'admin' && currentProfile.type !== 'teacher')) {
     return (
       <div className="max-w-4xl mx-auto p-4 md:p-8">
         <div className="card p-8 text-center">
           <GraduationCap size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600">Only parents and administrators can enroll children in classes.</p>
+          <p className="text-gray-600">Only parents, teachers, and administrators can manage class enrollment.</p>
         </div>
       </div>
     );
@@ -150,11 +151,12 @@ export default function SchoolEnroll() {
     <div className="max-w-6xl mx-auto p-4 md:p-8">
       <div className="mb-8">
         <div className="flex items-center space-x-3">
-          {isAdmin && <Shield className="text-red-600" size={32} />}
+          {(isAdmin || isTeacher) && <Shield className={isAdmin ? "text-red-600" : "text-blue-600"} size={32} />}
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Enroll Children in Church School
+              {isTeacher ? 'Manage Student Enrollment' : 'Enroll Children in Church School'}
               {isAdmin && <span className="ml-2 text-sm text-red-600 font-normal">(Admin Mode)</span>}
+              {isTeacher && <span className="ml-2 text-sm text-blue-600 font-normal">(Teacher Mode)</span>}
             </h1>
             <p className="text-gray-600 mt-1">Tigrinya Church School - Saturday Classes</p>
           </div>
@@ -204,7 +206,7 @@ export default function SchoolEnroll() {
           {/* Enroll Children */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {isAdmin ? 'All Children in System' : 'Your Children'}
+              {(isAdmin || isTeacher) ? 'All Students' : 'Your Children'}
             </h2>
             <div className="space-y-4">
               {myChildren.map((child) => {

@@ -239,6 +239,15 @@ export const parentOrAdmin = [
 ];
 
 /**
+ * Parent, Admin, or Teacher Middleware
+ * For school enrollment management - teachers can move students between classes
+ */
+export const parentOrAdminOrTeacher = [
+  authenticate,
+  requireRole(['parent', 'admin', 'teacher'])
+];
+
+/**
  * Teacher Only Middleware
  * For teacher-specific endpoints
  */

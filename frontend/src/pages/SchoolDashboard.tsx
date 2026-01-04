@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { schoolAPI } from '../services/api';
 import {
@@ -227,14 +228,25 @@ export default function SchoolDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Tigrinya Church School</h1>
           <p className="text-gray-600 mt-1">Manage classes, assignments, and student progress</p>
         </div>
-        {currentProfile.type === 'teacher' && activeTab === 'assignments' && (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="btn btn-primary flex items-center"
-          >
-            <Plus size={20} className="mr-2" />
-            New Assignment
-          </button>
+        {currentProfile.type === 'teacher' && (
+          <div className="flex items-center space-x-3">
+            <Link
+              to="/school/enroll"
+              className="btn btn-secondary flex items-center"
+            >
+              <Users size={20} className="mr-2" />
+              Manage Enrollment
+            </Link>
+            {activeTab === 'assignments' && (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="btn btn-primary flex items-center"
+              >
+                <Plus size={20} className="mr-2" />
+                New Assignment
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -509,57 +521,59 @@ export default function SchoolDashboard() {
               <p className="text-gray-600">No student progress data available yet.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Assignments
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Approved
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Completion Rate
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {studentsProgress.map((progress) => (
-                    <tr key={progress.student_id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">{progress.student_name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {progress.total_assignments}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {progress.submitted_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {progress.approved_count}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
-                            <div
-                              className="bg-green-600 h-2 rounded-full"
-                              style={{ width: `${progress.completion_rate}%` }}
-                            />
-                          </div>
-                          <span className="text-sm text-gray-700">{progress.completion_rate}%</span>
-                        </div>
-                      </td>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Student
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Total Assignments
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Submitted
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Approved
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Completion Rate
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {studentsProgress.map((progress) => (
+                      <tr key={progress.student_id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="font-medium text-gray-900">{progress.student_name}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {progress.total_assignments}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {progress.submitted_count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {progress.approved_count}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
+                              <div
+                                className="bg-green-600 h-2 rounded-full"
+                                style={{ width: `${progress.completion_rate}%` }}
+                              />
+                            </div>
+                            <span className="text-sm text-gray-700">{progress.completion_rate}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

@@ -268,7 +268,27 @@ export const schoolAPI = {
     api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`),
 
   getAllQuizResults: (studentId: number) =>
-    api.get<any[]>(`/school/students/${studentId}/quiz-results`)
+    api.get<any[]>(`/school/students/${studentId}/quiz-results`),
+
+  // Gamification - Achievements
+  getAchievements: () =>
+    api.get<any[]>('/school/achievements'),
+  getStudentAchievements: (studentId: number) =>
+    api.get<any[]>(`/school/students/${studentId}/achievements`),
+  awardAchievement: (student_id: number, achievement_id: number, notes?: string) =>
+    api.post('/school/achievements/award', { student_id, achievement_id, notes }),
+
+  // Gamification - Points
+  getStudentPoints: (studentId: number) =>
+    api.get<{ points: number; level: number; level_name: string; points_to_next_level: number }>(
+      `/school/students/${studentId}/points`
+    ),
+  addStudentPoints: (studentId: number, points: number, reason?: string) =>
+    api.post(`/school/students/${studentId}/points`, { points, reason }),
+
+  // Leaderboard
+  getLeaderboard: (limit?: number) =>
+    api.get<any[]>(`/school/leaderboard${limit ? `?limit=${limit}` : ''}`)
 };
 
 // Messages API

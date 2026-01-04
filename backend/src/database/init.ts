@@ -427,6 +427,73 @@ export function initDatabase() {
     )
   `);
 
+  // School achievements/badges definitions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      category TEXT CHECK(category IN ('quiz', 'assignment', 'attendance', 'special')) DEFAULT 'assignment',
+      points INTEGER DEFAULT 10,
+      requirement_type TEXT CHECK(requirement_type IN ('quiz_score', 'assignments_completed', 'quizzes_passed', 'streak', 'special')) DEFAULT 'special',
+      requirement_value INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Student earned achievements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      awarded_by INTEGER,
+      notes TEXT,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES school_achievements(id) ON DELETE CASCADE,
+      FOREIGN KEY (awarded_by) REFERENCES profiles(id),
+      UNIQUE(student_id, achievement_id)
+    )
+  `);
+
+  // Student points tracking for school
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_school_points (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      points INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(student_id)
+    )
+  `);
+
+  // Insert default achievements
+  const defaultAchievements = [
+    { name: 'First Steps', description: 'Complete your first assignment', icon: '🎯', category: 'assignment', points: 5, requirement_type: 'assignments_completed', requirement_value: 1 },
+    { name: 'Quiz Master', description: 'Score 100% on a quiz', icon: '🏆', category: 'quiz', points: 20, requirement_type: 'quiz_score', requirement_value: 100 },
+    { name: 'Consistent Learner', description: 'Complete 5 assignments', icon: '📚', category: 'assignment', points: 25, requirement_type: 'assignments_completed', requirement_value: 5 },
+    { name: 'Psalm Singer', description: 'Complete 3 psalm assignments', icon: '🎵', category: 'assignment', points: 15, requirement_type: 'special', requirement_value: 3 },
+    { name: 'Geez Scholar', description: 'Complete 5 alphabet assignments', icon: '✍️', category: 'assignment', points: 20, requirement_type: 'special', requirement_value: 5 },
+    { name: 'Video Watcher', description: 'Complete 3 video lessons', icon: '🎬', category: 'assignment', points: 10, requirement_type: 'special', requirement_value: 3 },
+    { name: 'Perfect Week', description: 'Submit all assignments in a week', icon: '⭐', category: 'streak', points: 30, requirement_type: 'streak', requirement_value: 7 },
+    { name: 'Rising Star', description: 'Earn 50 points', icon: '🌟', category: 'special', points: 10, requirement_type: 'special', requirement_value: 50 },
+    { name: 'Super Student', description: 'Earn 100 points', icon: '💫', category: 'special', points: 25, requirement_type: 'special', requirement_value: 100 },
+    { name: 'Church Scholar', description: 'Earn 200 points', icon: '👑', category: 'special', points: 50, requirement_type: 'special', requirement_value: 200 }
+  ];
+
+  const insertAchievement = db.prepare(`
+    INSERT OR IGNORE INTO school_achievements (name, description, icon, category, points, requirement_type, requirement_value)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of defaultAchievements) {
+    insertAchievement.run(ach.name, ach.description, ach.icon, ach.category, ach.points, ach.requirement_type, ach.requirement_value);
+  }
+
   // Insert default school classes
   const defaultClasses = [
     { name: 'First Class', description: 'Youngest students learning basics', age_min: 5, age_max: 7 },
