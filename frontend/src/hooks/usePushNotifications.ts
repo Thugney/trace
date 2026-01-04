@@ -79,14 +79,8 @@ export function usePushNotifications() {
         return false;
       }
 
-      // Register the push service worker
-      let registration = await navigator.serviceWorker.getRegistration();
-
-      if (!registration) {
-        // Register the push service worker if not already registered
-        registration = await navigator.serviceWorker.register('/sw-push.js');
-        await navigator.serviceWorker.ready;
-      }
+      // Wait for the PWA service worker to be ready
+      const registration = await navigator.serviceWorker.ready;
 
       // Get VAPID public key from server
       const { data: { publicKey } } = await notificationsAPI.getVapidPublicKey();

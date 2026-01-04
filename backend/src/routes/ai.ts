@@ -95,8 +95,8 @@ const AI_TOOLS = [
           },
           category: {
             type: 'string',
-            enum: ['chore', 'homework', 'health', 'creative', 'social', 'other'],
-            description: 'Category of the task'
+            enum: ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'watch-movies', 'other'],
+            description: 'Category of the task: read-book (reading), tigrinya (language learning), clean-room (bedroom cleaning), clean-kitchen (kitchen chores), school (homework/study), watch-movies (screen time), other (anything else)'
           },
           difficulty: {
             type: 'string',
@@ -112,7 +112,7 @@ const AI_TOOLS = [
             description: 'Due date in YYYY-MM-DD format (optional)'
           }
         },
-        required: ['title', 'category', 'difficulty', 'points']
+        required: ['title', 'difficulty']
       }
     }
   },
@@ -217,6 +217,17 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
 
       case 'create_task': {
         console.log(`[AI Tool] Creating task: "${args.title}" for profile ${profileId}`);
+
+        // Default category to 'other' if not provided
+        const category = args.category || 'other';
+
+        // Auto-calculate points based on difficulty if not provided
+        let points = args.points;
+        if (!points) {
+          const pointsMap: Record<string, number> = { easy: 10, medium: 20, hard: 30 };
+          points = pointsMap[args.difficulty] || 10;
+        }
+
         const result = db.prepare(`
           INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date, created_by, parent_approved, approved_by)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
@@ -224,17 +235,17 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           profileId,
           args.title,
           args.description || '',
-          args.category,
+          category,
           args.difficulty,
-          args.points,
+          points,
           args.due_date || null,
           profileId  // created_by = the child profile
         );
         console.log(`[AI Tool] Task created with id: ${result.lastInsertRowid}`);
         return {
           success: true,
-          message: `Created task "${args.title}" (${args.points} points) - awaiting parent approval`,
-          data: { id: result.lastInsertRowid, ...args }
+          message: `Created task "${args.title}" (${points} points, ${category}) - awaiting parent approval`,
+          data: { id: result.lastInsertRowid, ...args, category, points }
         };
       }
 
