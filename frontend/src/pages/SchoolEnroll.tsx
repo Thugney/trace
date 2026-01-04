@@ -11,6 +11,7 @@ export default function SchoolEnroll() {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [teacherClass, setTeacherClass] = useState<{ class_id: number; class_name: string } | null>(null);
   const isAdmin = currentProfile?.type === 'admin';
   const isTeacher = currentProfile?.type === 'teacher';
 
@@ -37,8 +38,8 @@ export default function SchoolEnroll() {
       setClasses(classesResponse.data);
 
       // Load children based on role
-      if (currentProfile.type === 'admin' || currentProfile.type === 'teacher') {
-        // Admin and Teacher see ALL children in the system
+      if (currentProfile.type === 'admin') {
+        // Admin sees ALL children in the system
         const allProfilesResponse = await profilesAPI.getAll();
         const allChildren = allProfilesResponse.data.filter(p => p.type === 'child');
 
@@ -60,6 +61,25 @@ export default function SchoolEnroll() {
           })
         );
         setMyChildren(childrenWithEnrollment);
+      } else if (currentProfile.type === 'teacher') {
+        // Teacher sees only students from their assigned class
+        try {
+          const teacherClassResponse = await schoolAPI.getTeacherClass();
+          setTeacherClass(teacherClassResponse.data);
+
+          // Get students enrolled in teacher's class
+          const studentsResponse = await schoolAPI.getTeacherStudents();
+          const childrenWithEnrollment = studentsResponse.data.map((child: any) => ({
+            ...child,
+            enrolled_class_ids: [teacherClassResponse.data.class_id]
+          }));
+          setMyChildren(childrenWithEnrollment);
+        } catch (error: any) {
+          if (error.response?.status === 404) {
+            setErrorMessage('No class assigned to you. Please contact admin.');
+          }
+          setMyChildren([]);
+        }
       } else if (currentProfile.type === 'parent') {
         // Parent sees only their own children
         const childrenResponse = await schoolAPI.getParentChildren(currentProfile.id);
@@ -154,11 +174,16 @@ export default function SchoolEnroll() {
           {(isAdmin || isTeacher) && <Shield className={isAdmin ? "text-red-600" : "text-blue-600"} size={32} />}
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {isTeacher ? 'Manage Student Enrollment' : 'Enroll Children in Church School'}
+              {isTeacher ? 'My Class Students' : 'Enroll Children in Church School'}
               {isAdmin && <span className="ml-2 text-sm text-red-600 font-normal">(Admin Mode)</span>}
-              {isTeacher && <span className="ml-2 text-sm text-blue-600 font-normal">(Teacher Mode)</span>}
             </h1>
-            <p className="text-gray-600 mt-1">Tigrinya Church School - Saturday Classes</p>
+            <p className="text-gray-600 mt-1">
+              {isTeacher && teacherClass ? (
+                <>Teaching: <span className="font-semibold text-blue-600">{teacherClass.class_name}</span></>
+              ) : (
+                'Tigrinya Church School - Saturday Classes'
+              )}
+            </p>
           </div>
         </div>
       </div>
@@ -187,21 +212,23 @@ export default function SchoolEnroll() {
         </div>
       ) : (
         <div className="space-y-8">
-          {/* Available Classes Info */}
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Classes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {classes.map((cls) => (
-                <div key={cls.id} className="card p-4 bg-gradient-to-br from-primary-50 to-purple-50">
-                  <h3 className="font-semibold text-gray-900">{cls.name}</h3>
-                  <p className="text-sm text-gray-700 mt-1">{cls.description}</p>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Ages {cls.age_min} - {cls.age_max}
-                  </p>
-                </div>
-              ))}
+          {/* Available Classes Info - hide for teachers (they only see their class) */}
+          {!isTeacher && (
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Available Classes</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {classes.map((cls) => (
+                  <div key={cls.id} className="card p-4 bg-gradient-to-br from-primary-50 to-purple-50">
+                    <h3 className="font-semibold text-gray-900">{cls.name}</h3>
+                    <p className="text-sm text-gray-700 mt-1">{cls.description}</p>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Ages {cls.age_min} - {cls.age_max}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Enroll Children */}
           <div>

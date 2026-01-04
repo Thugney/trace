@@ -69,10 +69,30 @@ export default function SchoolDashboard() {
 
   const loadClasses = async () => {
     try {
-      const response = await schoolAPI.getClasses();
-      setClasses(response.data);
-      if (response.data.length > 0 && !selectedClass) {
-        setSelectedClass(response.data[0].id);
+      // For teachers, only show their assigned class
+      if (currentProfile?.type === 'teacher') {
+        try {
+          const teacherClassResponse = await schoolAPI.getTeacherClass();
+          const assignedClass = {
+            id: teacherClassResponse.data.class_id,
+            name: teacherClassResponse.data.class_name,
+            description: teacherClassResponse.data.description,
+            age_min: teacherClassResponse.data.age_min,
+            age_max: teacherClassResponse.data.age_max
+          };
+          setClasses([assignedClass as SchoolClass]);
+          setSelectedClass(assignedClass.id);
+        } catch (error) {
+          console.error('No class assigned to teacher');
+          setClasses([]);
+        }
+      } else {
+        // Admin sees all classes
+        const response = await schoolAPI.getClasses();
+        setClasses(response.data);
+        if (response.data.length > 0 && !selectedClass) {
+          setSelectedClass(response.data[0].id);
+        }
       }
     } catch (error) {
       console.error('Failed to load classes:', error);

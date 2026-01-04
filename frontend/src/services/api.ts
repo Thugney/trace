@@ -288,7 +288,19 @@ export const schoolAPI = {
 
   // Leaderboard
   getLeaderboard: (limit?: number) =>
-    api.get<any[]>(`/school/leaderboard${limit ? `?limit=${limit}` : ''}`)
+    api.get<any[]>(`/school/leaderboard${limit ? `?limit=${limit}` : ''}`),
+
+  // Teacher class management
+  getTeacherClass: () =>
+    api.get<{ class_id: number; class_name: string; description: string; age_min: number; age_max: number }>('/school/teacher/my-class'),
+  getTeacherStudents: () =>
+    api.get<any[]>('/school/teacher/students'),
+
+  // Admin: Teacher assignments
+  getTeachers: () =>
+    api.get<any[]>('/school/teachers'),
+  assignTeacherToClass: (teacherId: number, classId: number | null) =>
+    api.post(`/school/teachers/${teacherId}/assign-class`, { class_id: classId })
 };
 
 // Messages API

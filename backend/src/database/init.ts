@@ -733,6 +733,19 @@ export function initDatabase() {
     console.error('Migration error (tasks approval):', error.message);
   }
 
+  // Migration: Add assigned_class_id to profiles for teachers
+  try {
+    const profileColumns = db.prepare("PRAGMA table_info(profiles)").all() as { name: string }[];
+    const hasAssignedClassId = profileColumns.some(col => col.name === 'assigned_class_id');
+
+    if (!hasAssignedClassId) {
+      db.prepare('ALTER TABLE profiles ADD COLUMN assigned_class_id INTEGER REFERENCES school_classes(id)').run();
+      console.log('✅ Added assigned_class_id column to profiles for teacher class assignment');
+    }
+  } catch (error: any) {
+    console.error('Migration error (assigned_class_id):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

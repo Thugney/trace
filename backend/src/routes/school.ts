@@ -44,6 +44,56 @@ router.get('/classes/:id/students', (req, res) => {
   }
 });
 
+// Get teacher's assigned class
+router.get('/teacher/my-class', authenticate, requireRole(['teacher']), (req: AuthRequest, res: Response) => {
+  try {
+    const teacher: any = db.prepare(`
+      SELECT p.assigned_class_id, sc.name as class_name, sc.description, sc.age_min, sc.age_max
+      FROM profiles p
+      LEFT JOIN school_classes sc ON p.assigned_class_id = sc.id
+      WHERE p.id = ?
+    `).get(req.profile?.id);
+
+    if (!teacher?.assigned_class_id) {
+      return res.status(404).json({ error: 'No class assigned to this teacher' });
+    }
+
+    res.json({
+      class_id: teacher.assigned_class_id,
+      class_name: teacher.class_name,
+      description: teacher.description,
+      age_min: teacher.age_min,
+      age_max: teacher.age_max
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get students for teacher's class (for enrollment management)
+router.get('/teacher/students', authenticate, requireRole(['teacher']), (req: AuthRequest, res: Response) => {
+  try {
+    const teacher: any = db.prepare('SELECT assigned_class_id FROM profiles WHERE id = ?').get(req.profile?.id);
+
+    if (!teacher?.assigned_class_id) {
+      return res.json([]); // No class assigned, return empty
+    }
+
+    // Get all children enrolled in teacher's class
+    const students = db.prepare(`
+      SELECT p.*, e.enrolled_at, e.class_id
+      FROM profiles p
+      JOIN school_enrollments e ON p.id = e.student_id
+      WHERE e.class_id = ? AND p.type = 'child'
+      ORDER BY p.name ASC
+    `).all(teacher.assigned_class_id);
+
+    res.json(students);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get parent's own children (for enrollment)
 router.get('/parents/:parentId/children', (req, res) => {
   try {
@@ -384,6 +434,49 @@ router.get('/submissions/:submissionId/feedback', (req, res) => {
   }
 });
 
+// Get all students with their progress (for teachers - filtered by assigned class)
+// NOTE: This route MUST come before /students/:studentId/progress to avoid matching "all" as studentId
+router.get('/students/all/progress', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    let classFilter = '';
+    let params: any[] = [];
+
+    // Teachers only see students from their assigned class
+    if (req.profile?.type === 'teacher') {
+      const teacher: any = db.prepare('SELECT assigned_class_id FROM profiles WHERE id = ?').get(req.profile.id);
+      if (teacher?.assigned_class_id) {
+        classFilter = 'AND e.class_id = ?';
+        params.push(teacher.assigned_class_id);
+      }
+    }
+
+    const studentsProgress = db.prepare(`
+      SELECT
+        p.id,
+        p.name,
+        p.avatar,
+        p.age,
+        sc.name as class_name,
+        sc.id as class_id,
+        COUNT(DISTINCT sa.id) as total_assignments,
+        COUNT(DISTINCT ss.id) as submitted_assignments,
+        COUNT(DISTINCT CASE WHEN ss.status = 'approved' THEN ss.id END) as approved_assignments
+      FROM profiles p
+      LEFT JOIN school_enrollments e ON p.id = e.student_id
+      LEFT JOIN school_classes sc ON e.class_id = sc.id
+      LEFT JOIN school_assignments sa ON sc.id = sa.class_id
+      LEFT JOIN school_submissions ss ON sa.id = ss.assignment_id AND ss.student_id = p.id
+      WHERE p.type = 'child' ${classFilter}
+      GROUP BY p.id, p.name, p.avatar, p.age, sc.name, sc.id
+      ORDER BY sc.age_min ASC, p.name ASC
+    `).all(...params);
+
+    res.json(studentsProgress);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get student progress overview
 router.get('/students/:studentId/progress', (req, res) => {
   try {
@@ -402,35 +495,6 @@ router.get('/students/:studentId/progress', (req, res) => {
     `).get(req.params.studentId, req.params.studentId);
 
     res.json(progress);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get all students with their progress (for teachers)
-router.get('/students/all/progress', (req, res) => {
-  try {
-    const studentsProgress = db.prepare(`
-      SELECT
-        p.id,
-        p.name,
-        p.avatar,
-        p.age,
-        sc.name as class_name,
-        COUNT(DISTINCT sa.id) as total_assignments,
-        COUNT(DISTINCT ss.id) as submitted_assignments,
-        COUNT(DISTINCT CASE WHEN ss.status = 'approved' THEN ss.id END) as approved_assignments
-      FROM profiles p
-      LEFT JOIN school_enrollments e ON p.id = e.student_id
-      LEFT JOIN school_classes sc ON e.class_id = sc.id
-      LEFT JOIN school_assignments sa ON sc.id = sa.class_id
-      LEFT JOIN school_submissions ss ON sa.id = ss.assignment_id AND ss.student_id = p.id
-      WHERE p.type = 'child'
-      GROUP BY p.id, p.name, p.avatar, p.age, sc.name
-      ORDER BY sc.age_min ASC, p.name ASC
-    `).all();
-
-    res.json(studentsProgress);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -938,6 +1002,59 @@ router.get('/leaderboard', (req, res) => {
     `).all(limit);
 
     res.json(leaderboard);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// ADMIN: TEACHER CLASS ASSIGNMENT
+// ============================================
+
+// Assign teacher to a class (admin only)
+router.post('/teachers/:teacherId/assign-class', adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { teacherId } = req.params;
+    const { class_id } = req.body;
+
+    // Verify teacher exists and is a teacher
+    const teacher: any = db.prepare('SELECT id, type FROM profiles WHERE id = ?').get(teacherId);
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+    if (teacher.type !== 'teacher') {
+      return res.status(400).json({ error: 'Profile is not a teacher' });
+    }
+
+    // Verify class exists
+    if (class_id) {
+      const classExists = db.prepare('SELECT id FROM school_classes WHERE id = ?').get(class_id);
+      if (!classExists) {
+        return res.status(404).json({ error: 'Class not found' });
+      }
+    }
+
+    // Update teacher's assigned class
+    db.prepare('UPDATE profiles SET assigned_class_id = ? WHERE id = ?').run(class_id || null, teacherId);
+
+    res.json({ message: 'Teacher assigned to class successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all teachers with their assigned classes (admin only)
+router.get('/teachers', adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const teachers = db.prepare(`
+      SELECT p.id, p.name, p.avatar, p.assigned_class_id, sc.name as class_name
+      FROM profiles p
+      LEFT JOIN school_classes sc ON p.assigned_class_id = sc.id
+      WHERE p.type = 'teacher'
+      ORDER BY p.name ASC
+    `).all();
+
+    res.json(teachers);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
