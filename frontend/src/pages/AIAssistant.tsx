@@ -57,7 +57,15 @@ export default function AIAssistant() {
   const handleSendMessage = async () => {
     if (!message.trim() || !currentProfile || loading) return;
 
-    const userMessage = message;
+    const userMessage = message.trim();
+
+    // Prevent sending duplicate messages
+    const lastConv = conversations[conversations.length - 1];
+    if (lastConv && lastConv.user_message === userMessage && Date.now() - new Date(lastConv.created_at).getTime() < 5000) {
+      console.log('[AI Chat] Blocked duplicate message within 5 seconds');
+      return;
+    }
+
     setMessage('');
     setLoading(true);
     setStreamingMessage('');

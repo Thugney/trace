@@ -1,11 +1,49 @@
 import express, { Response } from 'express';
 import db from '../database/init';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { authenticate, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
+
+// Configure multer for avatar uploads
+const AVATAR_DIR = process.env.AVATAR_DIR || path.join(__dirname, '../../data/avatars');
+
+// Ensure avatar directory exists
+if (!fs.existsSync(AVATAR_DIR)) {
+  fs.mkdirSync(AVATAR_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, AVATAR_DIR);
+  },
+  filename: (req, file, cb) => {
+    const profileId = req.params.id;
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `avatar-${profileId}-${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+    }
+  }
+});
 
 // Get all profiles - FILTERED BY USER TYPE FOR SECURITY
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
@@ -625,6 +663,82 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('[ERROR] Get history failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Upload avatar
+router.post('/:id/avatar', authenticate, upload.single('avatar'), async (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+    const { id } = req.params;
+    const targetId = parseInt(id);
+
+    // Authorization: admin can update anyone, parent can update self + kids, others only self
+    const targetProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(targetId);
+    if (!targetProfile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    let canUpdate = false;
+    if (userProfile.type === 'admin') {
+      canUpdate = true;
+    } else if (userProfile.type === 'parent') {
+      canUpdate = (targetProfile.id === userProfile.id || targetProfile.parent_id === userProfile.id);
+    } else {
+      canUpdate = (targetProfile.id === userProfile.id);
+    }
+
+    if (!canUpdate) {
+      return res.status(403).json({ error: 'Access denied: You can only update your own avatar or your children\'s avatars' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Delete old avatar file if it exists
+    if (targetProfile.avatar && targetProfile.avatar.startsWith('/api/profiles/')) {
+      const oldFilename = targetProfile.avatar.split('/').pop();
+      const oldFilePath = path.join(AVATAR_DIR, oldFilename || '');
+      if (fs.existsSync(oldFilePath)) {
+        fs.unlinkSync(oldFilePath);
+      }
+    }
+
+    // Update profile with new avatar URL
+    const avatarUrl = `/api/profiles/${targetId}/avatar/${req.file.filename}`;
+    db.prepare('UPDATE profiles SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(avatarUrl, targetId);
+
+    console.log(`[Avatar] Uploaded avatar for profile ${targetId}: ${req.file.filename}`);
+
+    res.json({
+      success: true,
+      avatar: avatarUrl,
+      message: 'Avatar uploaded successfully'
+    });
+  } catch (error: any) {
+    console.error('[ERROR] Avatar upload failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Serve avatar images
+router.get('/:id/avatar/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(AVATAR_DIR, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Avatar not found' });
+    }
+
+    // Set cache headers
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+    res.sendFile(filePath);
+  } catch (error: any) {
+    console.error('[ERROR] Serve avatar failed:', error);
     res.status(500).json({ error: error.message });
   }
 });

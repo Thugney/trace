@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera } from 'lucide-react';
 
 export default function Settings() {
   const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
@@ -29,6 +29,9 @@ export default function Settings() {
   // Edit Profile modal state (Admin only)
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<any>(null);
+
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -317,6 +320,37 @@ export default function Settings() {
     return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, profileId: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Invalid file type. Please upload JPEG, PNG, GIF, or WebP.');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      await profilesAPI.uploadAvatar(profileId, file);
+      setSuccessMessage('Avatar uploaded successfully!');
+      await refreshProfiles();
+    } catch (error: any) {
+      console.error('Failed to upload avatar:', error);
+      alert(error.response?.data?.error || 'Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+      // Clear the file input
+      e.target.value = '';
+    }
+  };
+
   if (currentProfile?.type === 'child') {
     // Kids only see limited settings
     return (
@@ -327,6 +361,40 @@ export default function Settings() {
         </div>
 
         <div className="card">
+          {/* Avatar Upload Section */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative">
+              {currentProfile?.avatar?.startsWith('/api/') ? (
+                <img
+                  src={currentProfile.avatar}
+                  alt="Avatar"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-4xl border-4 border-primary-200">
+                  {currentProfile?.avatar || '👤'}
+                </div>
+              )}
+              <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+                <Camera size={16} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => handleAvatarUpload(e, currentProfile.id)}
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                />
+              </label>
+            </div>
+            {uploadingAvatar && (
+              <div className="mt-2 flex items-center text-sm text-gray-600">
+                <div className="spinner mr-2"></div>
+                Uploading...
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2">Click the camera to upload a photo</p>
+          </div>
+
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
               <label htmlFor="child-name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -344,13 +412,13 @@ export default function Settings() {
 
             <div>
               <label htmlFor="child-avatar" className="block text-sm font-medium text-gray-700 mb-1">
-                Avatar (Emoji)
+                Avatar (Emoji) - or upload a photo above
               </label>
               <input
                 id="child-avatar"
                 type="text"
                 name="avatar"
-                defaultValue={currentProfile?.avatar}
+                defaultValue={currentProfile?.avatar?.startsWith('/api/') ? '' : currentProfile?.avatar}
                 className="input"
                 placeholder="👦"
               />
@@ -407,6 +475,40 @@ export default function Settings() {
               Profile Settings
             </h2>
 
+            {/* Avatar Upload Section */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                {currentProfile?.avatar?.startsWith('/api/') ? (
+                  <img
+                    src={currentProfile.avatar}
+                    alt="Avatar"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-4xl border-4 border-primary-200">
+                    {currentProfile?.avatar || '👤'}
+                  </div>
+                )}
+                <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+                  <Camera size={16} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={(e) => currentProfile && handleAvatarUpload(e, currentProfile.id)}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
+              {uploadingAvatar && (
+                <div className="mt-2 flex items-center text-sm text-gray-600">
+                  <div className="spinner mr-2"></div>
+                  Uploading...
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-2">Click the camera to upload a photo</p>
+            </div>
+
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
                 <label htmlFor="parent-name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -424,13 +526,13 @@ export default function Settings() {
 
               <div>
                 <label htmlFor="parent-avatar" className="block text-sm font-medium text-gray-700 mb-1">
-                  Avatar (Emoji)
+                  Avatar (Emoji) - or upload a photo above
                 </label>
                 <input
                   id="parent-avatar"
                   type="text"
                   name="avatar"
-                  defaultValue={currentProfile?.avatar}
+                  defaultValue={currentProfile?.avatar?.startsWith('/api/') ? '' : currentProfile?.avatar}
                   className="input"
                   placeholder="👨‍👩‍👧‍👦"
                 />
