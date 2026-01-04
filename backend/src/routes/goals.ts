@@ -1,5 +1,6 @@
-import express from 'express';
+import express, { Response } from 'express';
 import db from '../database/init';
+import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -128,15 +129,37 @@ router.put('/:id', (req, res) => {
   }
 });
 
-// Delete monthly goal
-router.delete('/:id', (req, res) => {
+// Delete goal - with authorization (owner, parent of owner, or admin)
+router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const result = db.prepare('DELETE FROM monthly_goals WHERE id = ?').run(req.params.id);
+    const userProfile = req.profile!;
 
-    if (result.changes === 0) {
+    // Get goal to check ownership
+    const goal: any = db.prepare('SELECT profile_id FROM monthly_goals WHERE id = ?').get(req.params.id);
+    if (!goal) {
       return res.status(404).json({ error: 'Goal not found' });
     }
 
+    // Authorization: admin can delete any, owner can delete own, parent can delete child's
+    let canDelete = false;
+    if (userProfile.type === 'admin') {
+      canDelete = true;
+    } else if (userProfile.id === goal.profile_id) {
+      // Owner can delete their own goal
+      canDelete = true;
+    } else if (userProfile.type === 'parent') {
+      // Parent can delete their child's goal
+      const goalOwner: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(goal.profile_id);
+      if (goalOwner && goalOwner.parent_id === userProfile.id) {
+        canDelete = true;
+      }
+    }
+
+    if (!canDelete) {
+      return res.status(403).json({ error: 'Access denied: You can only delete your own goals or your children\'s goals' });
+    }
+
+    const result = db.prepare('DELETE FROM monthly_goals WHERE id = ?').run(req.params.id);
     res.json({ message: 'Goal deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

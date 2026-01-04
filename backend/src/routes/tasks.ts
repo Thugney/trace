@@ -1,5 +1,6 @@
-import express from 'express';
+import express, { Response } from 'express';
 import db from '../database/init';
+import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -240,15 +241,37 @@ router.post('/:id/complete', (req, res) => {
   }
 });
 
-// Delete task
-router.delete('/:id', (req, res) => {
+// Delete task - with authorization (owner, parent of owner, or admin)
+router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
+    const userProfile = req.profile!;
 
-    if (result.changes === 0) {
+    // Get task to check ownership
+    const task: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(req.params.id);
+    if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // Authorization: admin can delete any, owner can delete own, parent can delete child's
+    let canDelete = false;
+    if (userProfile.type === 'admin') {
+      canDelete = true;
+    } else if (userProfile.id === task.profile_id) {
+      // Owner can delete their own task
+      canDelete = true;
+    } else if (userProfile.type === 'parent') {
+      // Parent can delete their child's task
+      const taskOwner: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(task.profile_id);
+      if (taskOwner && taskOwner.parent_id === userProfile.id) {
+        canDelete = true;
+      }
+    }
+
+    if (!canDelete) {
+      return res.status(403).json({ error: 'Access denied: You can only delete your own tasks or your children\'s tasks' });
+    }
+
+    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
     res.json({ message: 'Task deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
