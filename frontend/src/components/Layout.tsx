@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail, Map } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail, Map, Menu, X } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -12,6 +12,7 @@ export default function Layout({ children }: LayoutProps) {
   const { currentProfile, setCurrentProfile } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -26,6 +27,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/admin', icon: Users, label: 'User Management' },
         { path: '/school', icon: GraduationCap, label: 'School System' },
+        { path: '/journey', icon: Map, label: 'My Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
     }
@@ -36,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/diet', icon: Utensils, label: 'Family Diet' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/school', icon: GraduationCap, label: 'School' },
-        { path: '/journey', icon: Map, label: 'My Journey' },
+        { path: '/journey', icon: Map, label: 'Family Journey' },
         { path: '/messages', icon: Mail, label: 'Messages' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
         { path: '/settings', icon: Settings, label: 'Settings' }
@@ -47,6 +49,7 @@ export default function Layout({ children }: LayoutProps) {
       return [
         { path: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/school', icon: GraduationCap, label: 'My Classes' },
+        { path: '/journey', icon: Map, label: 'My Journey' },
         { path: '/messages', icon: Mail, label: 'Messages' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
@@ -89,6 +92,11 @@ export default function Layout({ children }: LayoutProps) {
     window.location.reload();
   };
 
+  const handleNavClick = (path: string) => {
+    setMobileMenuOpen(false);
+    navigate(path);
+  };
+
   const getThemeClass = () => {
     if (!currentProfile || currentProfile.type === 'parent') return '';
     const age = currentProfile.age || 0;
@@ -98,12 +106,21 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className={clsx('min-h-screen pb-20 md:pb-0', getThemeClass())}>
+    <div className={clsx('min-h-screen', getThemeClass())}>
       {/* Header */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center space-x-2 sm:space-x-4">
+              {/* Hamburger Menu Button - Mobile Only */}
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </button>
+
               <h1 className="text-lg sm:text-xl font-bold text-primary-600">Family Learning Hub</h1>
               {currentProfile && (
                 <div className="hidden sm:flex items-center space-x-2 text-sm">
@@ -140,6 +157,85 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </header>
+
+      {/* Mobile Slide-out Menu */}
+      <div
+        className={clsx(
+          'fixed inset-0 z-50 md:hidden transition-opacity duration-300',
+          mobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+      >
+        {/* Overlay */}
+        <div
+          className={clsx(
+            'absolute inset-0 bg-black/50 transition-opacity duration-300',
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          )}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        {/* Drawer */}
+        <div
+          className={clsx(
+            'absolute left-0 top-0 h-full w-72 bg-white shadow-xl transform transition-transform duration-300 ease-out',
+            mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary-500 to-primary-600">
+            <div className="flex items-center space-x-3">
+              <span className="text-3xl">{currentProfile?.avatar || '👤'}</span>
+              <div className="text-white">
+                <p className="font-semibold">{currentProfile?.name}</p>
+                <p className="text-xs text-primary-100 capitalize">{currentProfile?.type}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          {/* Navigation Items */}
+          <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-180px)]">
+            {visibleNavItems.map(({ path, icon: Icon, label }) => (
+              <button
+                key={path}
+                onClick={() => handleNavClick(path)}
+                className={clsx(
+                  'w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all text-left',
+                  isActive(path)
+                    ? 'bg-primary-100 text-primary-700 font-semibold shadow-sm'
+                    : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                )}
+              >
+                <Icon size={22} className={isActive(path) ? 'text-primary-600' : 'text-gray-500'} />
+                <span className="text-base">{label}</span>
+                {isActive(path) && (
+                  <span className="ml-auto w-2 h-2 rounded-full bg-primary-500" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Drawer Footer */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors"
+            >
+              <LogOut size={20} />
+              <span className="font-medium">Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
 
       <div className="flex max-w-7xl mx-auto">
         {/* Desktop Sidebar Navigation */}
@@ -182,27 +278,6 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="flex justify-around items-center h-16">
-          {visibleNavItems.slice(0, 5).map(({ path, icon: Icon, label }) => (
-            <Link
-              key={path}
-              to={path}
-              className={clsx(
-                'flex flex-col items-center justify-center flex-1 h-full transition-colors',
-                isActive(path)
-                  ? 'text-primary-600 bg-primary-50'
-                  : 'text-gray-600 hover:text-gray-900'
-              )}
-            >
-              <Icon size={20} />
-              <span className="text-xs mt-1">{label}</span>
-            </Link>
-          ))}
-        </div>
-      </nav>
     </div>
   );
 }
