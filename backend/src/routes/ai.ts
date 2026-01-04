@@ -7,6 +7,258 @@ const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
+// AI Tool definitions for function calling
+const AI_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'add_diet_entry',
+      description: 'Add a meal or food item to the user\'s diet log with nutritional information. Use this when the user asks for healthy meal suggestions, recipes, or wants to track what they eat.',
+      parameters: {
+        type: 'object',
+        properties: {
+          meal_type: {
+            type: 'string',
+            enum: ['breakfast', 'lunch', 'dinner', 'snack'],
+            description: 'Type of meal'
+          },
+          food_items: {
+            type: 'string',
+            description: 'Description of food items eaten or recipe name'
+          },
+          calories: {
+            type: 'number',
+            description: 'Estimated calories for the meal'
+          },
+          protein: {
+            type: 'number',
+            description: 'Estimated protein in grams'
+          },
+          carbs: {
+            type: 'number',
+            description: 'Estimated carbohydrates in grams'
+          },
+          fat: {
+            type: 'number',
+            description: 'Estimated fat in grams'
+          },
+          notes: {
+            type: 'string',
+            description: 'Recipe instructions or additional notes about the meal'
+          }
+        },
+        required: ['meal_type', 'food_items', 'calories']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_note',
+      description: 'Create a new note for the user. Use this when the user wants to save information, reminders, or any text they want to remember.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the note'
+          },
+          content: {
+            type: 'string',
+            description: 'Content/body of the note'
+          },
+          color: {
+            type: 'string',
+            description: 'Color for the note (optional)',
+            enum: ['yellow', 'blue', 'green', 'pink', 'purple', 'orange']
+          }
+        },
+        required: ['title', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_task',
+      description: 'Create a new task or chore for the user. Use this when the user wants to add something to their to-do list or needs help organizing activities.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: {
+            type: 'string',
+            description: 'Title of the task'
+          },
+          description: {
+            type: 'string',
+            description: 'Detailed description of the task'
+          },
+          category: {
+            type: 'string',
+            enum: ['chore', 'homework', 'health', 'creative', 'social', 'other'],
+            description: 'Category of the task'
+          },
+          difficulty: {
+            type: 'string',
+            enum: ['easy', 'medium', 'hard'],
+            description: 'Difficulty level'
+          },
+          points: {
+            type: 'number',
+            description: 'Points awarded for completing (5-50 based on difficulty)'
+          },
+          due_date: {
+            type: 'string',
+            description: 'Due date in YYYY-MM-DD format (optional)'
+          }
+        },
+        required: ['title', 'category', 'difficulty', 'points']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'set_monthly_goal',
+      description: 'Set or update the user\'s monthly goal. Use this when the user wants to set a goal for the current month.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal_description: {
+            type: 'string',
+            description: 'Description of the monthly goal'
+          },
+          goal_points: {
+            type: 'number',
+            description: 'Target points to achieve this goal (typically 100-500)'
+          },
+          reward: {
+            type: 'string',
+            description: 'Reward for achieving the goal (optional)'
+          }
+        },
+        required: ['goal_description', 'goal_points']
+      }
+    }
+  }
+];
+
+// Execute AI tool functions
+function executeAITool(toolName: string, args: any, profileId: number): { success: boolean; message: string; data?: any } {
+  try {
+    switch (toolName) {
+      case 'add_diet_entry': {
+        // First, create a food item for this AI-generated meal
+        const foodResult = db.prepare(`
+          INSERT INTO food_items (name, calories, protein, carbs, fat, source)
+          VALUES (?, ?, ?, ?, ?, 'ai_generated')
+        `).run(
+          args.food_items,
+          args.calories || 0,
+          args.protein || 0,
+          args.carbs || 0,
+          args.fat || 0
+        );
+
+        // Now log the meal with the food_id
+        const result = db.prepare(`
+          INSERT INTO meal_logs (profile_id, food_id, meal_type, food_items, portion_size, calories_consumed, protein_consumed, carbs_consumed, fat_consumed, notes)
+          VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
+        `).run(
+          profileId,
+          foodResult.lastInsertRowid,
+          args.meal_type,
+          args.food_items,
+          args.calories || 0,
+          args.protein || 0,
+          args.carbs || 0,
+          args.fat || 0,
+          args.notes || ''
+        );
+        return {
+          success: true,
+          message: `Added "${args.food_items}" to your ${args.meal_type} log (${args.calories} calories)`,
+          data: { id: result.lastInsertRowid, food_id: foodResult.lastInsertRowid, ...args }
+        };
+      }
+
+      case 'create_note': {
+        const result = db.prepare(`
+          INSERT INTO notes (profile_id, title, content, color)
+          VALUES (?, ?, ?, ?)
+        `).run(
+          profileId,
+          args.title,
+          args.content,
+          args.color || 'yellow'
+        );
+        return {
+          success: true,
+          message: `Created note "${args.title}"`,
+          data: { id: result.lastInsertRowid, ...args }
+        };
+      }
+
+      case 'create_task': {
+        const result = db.prepare(`
+          INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          profileId,
+          args.title,
+          args.description || '',
+          args.category,
+          args.difficulty,
+          args.points,
+          args.due_date || null
+        );
+        return {
+          success: true,
+          message: `Created task "${args.title}" (${args.points} points)`,
+          data: { id: result.lastInsertRowid, ...args }
+        };
+      }
+
+      case 'set_monthly_goal': {
+        const currentMonth = new Date().toISOString().slice(0, 7);
+
+        // Check if goal exists for this month
+        const existing: any = db.prepare(`
+          SELECT id FROM monthly_goals WHERE profile_id = ? AND month = ?
+        `).get(profileId, currentMonth);
+
+        if (existing) {
+          db.prepare(`
+            UPDATE monthly_goals SET goal_description = ?, goal_points = ?, reward = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(args.goal_description, args.goal_points, args.reward || '', existing.id);
+          return {
+            success: true,
+            message: `Updated your monthly goal: "${args.goal_description}" (target: ${args.goal_points} points)`,
+            data: { id: existing.id, ...args, month: currentMonth }
+          };
+        } else {
+          const result = db.prepare(`
+            INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, reward)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(profileId, currentMonth, args.goal_description, args.goal_points, args.reward || '');
+          return {
+            success: true,
+            message: `Set your monthly goal: "${args.goal_description}" (target: ${args.goal_points} points)`,
+            data: { id: result.lastInsertRowid, ...args, month: currentMonth }
+          };
+        }
+      }
+
+      default:
+        return { success: false, message: `Unknown tool: ${toolName}` };
+    }
+  } catch (error: any) {
+    console.error(`[AI Tool] Error executing ${toolName}:`, error);
+    return { success: false, message: `Failed to execute ${toolName}: ${error.message}` };
+  }
+}
+
 // Helper: Get AI settings for profile (includes ai_enabled from profiles table)
 function getAISettings(profileId: number) {
   try {
@@ -390,6 +642,15 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
         systemPrompt += `\n\nFocus on task management, productivity, and age-appropriate activities for children.`;
       }
 
+      // Add tool usage instructions
+      systemPrompt += `\n\nIMPORTANT - You have access to tools that can help the user:
+- When the user asks for meal suggestions, recipes, or food ideas, use the add_diet_entry tool to save it to their diet log
+- When the user wants to remember something or save information, use the create_note tool
+- When the user wants to add a task, chore, or activity, use the create_task tool
+- When the user wants to set a monthly goal, use the set_monthly_goal tool
+
+ALWAYS use the appropriate tool when it makes sense to help the user. After using a tool, confirm what you did in your response.`;
+
       // Get recent conversation history
       const history = db.prepare(`
         SELECT user_message, ai_response FROM ai_conversations
@@ -415,12 +676,77 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
       messages.push({ role: 'user', content: message });
 
       try {
-        // Call Grok API with streaming
+        // First, call Grok API with tools (non-streaming to check for tool calls)
         const apiKey = getGrokApiKey();
+
+        // First API call - check for tool calls
+        const toolCheckResponse = await axios.post(
+          GROK_API_URL,
+          {
+            model: 'grok-3-mini',  // Use faster model for tool detection
+            messages,
+            tools: AI_TOOLS,
+            tool_choice: 'auto',
+            temperature: 0.7,
+            max_tokens: 500
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
+          }
+        );
+
+        const toolCheckMessage = toolCheckResponse.data.choices?.[0]?.message;
+        let toolResults: { toolName: string; result: any }[] = [];
+
+        // Check if the AI wants to call tools
+        if (toolCheckMessage?.tool_calls && toolCheckMessage.tool_calls.length > 0) {
+          console.log(`[AI Chat] Tool calls detected: ${toolCheckMessage.tool_calls.length}`);
+
+          // Execute each tool call
+          for (const toolCall of toolCheckMessage.tool_calls) {
+            const toolName = toolCall.function.name;
+            let toolArgs = {};
+            try {
+              toolArgs = JSON.parse(toolCall.function.arguments);
+            } catch (e) {
+              console.error('[AI Chat] Failed to parse tool arguments:', e);
+              continue;
+            }
+
+            console.log(`[AI Chat] Executing tool: ${toolName}`, toolArgs);
+            const result = executeAITool(toolName, toolArgs, profile_id);
+            toolResults.push({ toolName, result });
+            console.log(`[AI Chat] Tool result:`, result);
+          }
+
+          // Add tool results to messages for follow-up
+          messages.push({
+            role: 'assistant',
+            content: null,
+            tool_calls: toolCheckMessage.tool_calls
+          });
+
+          // Add tool results
+          for (let i = 0; i < toolCheckMessage.tool_calls.length; i++) {
+            const toolCall = toolCheckMessage.tool_calls[i];
+            const result = toolResults[i]?.result || { success: false, message: 'Tool execution failed' };
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify(result)
+            });
+          }
+        }
+
+        // Now make the final streaming call for the response
         const response = await axios.post(
           GROK_API_URL,
           {
-            model: 'grok-4-1-fast',  // Grok 4.1 Fast
+            model: 'grok-3-mini',  // Grok model
             messages,
             temperature: 0.7,
             max_tokens: 500,

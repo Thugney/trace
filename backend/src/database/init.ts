@@ -613,6 +613,35 @@ export function initDatabase() {
     console.error('Migration error (ai_enabled):', error.message);
   }
 
+  // Migration: Add diet_enabled column to profiles table for Diet access control
+  try {
+    const profileInfo: any[] = db.prepare('PRAGMA table_info(profiles)').all();
+    const hasDietEnabled = profileInfo.some((col: any) => col.name === 'diet_enabled');
+
+    if (!hasDietEnabled) {
+      console.log('🔄 Migrating profiles table: adding diet_enabled column for Diet access control...');
+      // Default: Diet disabled for everyone, admin can enable it per profile
+      db.prepare('ALTER TABLE profiles ADD COLUMN diet_enabled INTEGER DEFAULT 0').run();
+      console.log('✅ Migration completed: diet_enabled column added');
+    }
+  } catch (error: any) {
+    console.error('Migration error (diet_enabled):', error.message);
+  }
+
+  // Migration: Add food_items column to meal_logs for AI-generated meal entries
+  try {
+    const mealLogInfo: any[] = db.prepare('PRAGMA table_info(meal_logs)').all();
+    const hasFoodItems = mealLogInfo.some((col: any) => col.name === 'food_items');
+
+    if (!hasFoodItems) {
+      console.log('🔄 Migrating meal_logs table: adding food_items column for AI-generated entries...');
+      db.prepare('ALTER TABLE meal_logs ADD COLUMN food_items TEXT').run();
+      console.log('✅ Migration completed: food_items column added to meal_logs');
+    }
+  } catch (error: any) {
+    console.error('Migration error (meal_logs food_items):', error.message);
+  }
+
   // Migration: Hash any plain text PINs for security
   try {
     const profiles: any[] = db.prepare('SELECT id, name, pin FROM profiles WHERE pin IS NOT NULL').all();

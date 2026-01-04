@@ -153,36 +153,38 @@ export default function Notes() {
           {notes.map(note => (
             <div
               key={note.id}
-              className="p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow relative group"
+              className="p-4 rounded-xl shadow-md hover:shadow-lg transition-all relative group"
               style={{ backgroundColor: note.color }}
             >
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="font-bold text-gray-900 flex-1 pr-2 line-clamp-2">
-                  {note.title}
-                </h3>
-                <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => setEditingNote(note)}
-                    className="p-1 hover:bg-white/50 rounded"
-                    title="Edit"
-                  >
-                    <Edit2 size={16} className="text-gray-700" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteNote(note.id)}
-                    className="p-1 hover:bg-white/50 rounded"
-                    title="Delete"
-                  >
-                    <Trash2 size={16} className="text-red-600" />
-                  </button>
-                </div>
-              </div>
+              <h3 className="font-bold text-gray-900 pr-2 line-clamp-2 text-lg mb-2">
+                {note.title}
+              </h3>
               <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6">
                 {note.content}
               </p>
-              <p className="text-xs text-gray-500 mt-3">
-                {new Date(note.updated_at).toLocaleDateString()}
-              </p>
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-black/10">
+                <p className="text-xs text-gray-600">
+                  {new Date(note.updated_at).toLocaleDateString()}
+                </p>
+                <div className="flex space-x-1">
+                  <button
+                    onClick={() => setEditingNote(note)}
+                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                    title="Edit note"
+                    aria-label="Edit note"
+                  >
+                    <Edit2 size={18} className="text-gray-700" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteNote(note.id)}
+                    className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+                    title="Delete note"
+                    aria-label="Delete note"
+                  >
+                    <Trash2 size={18} className="text-red-600" />
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -230,9 +232,9 @@ export default function Notes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Color
+                  Pick a Color
                 </label>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                   {NOTE_COLORS.map(color => (
                     <label
                       key={color.value}
@@ -246,10 +248,12 @@ export default function Notes() {
                         className="sr-only peer"
                       />
                       <div
-                        className="w-full h-10 rounded-lg border-2 border-transparent peer-checked:border-gray-900 peer-checked:scale-110 transition-transform"
+                        className="w-full h-12 sm:h-10 rounded-xl border-3 border-transparent peer-checked:border-gray-900 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-gray-400 transition-all flex items-center justify-center"
                         style={{ backgroundColor: color.value }}
                         title={color.name}
-                      />
+                      >
+                        <span className="text-xs font-medium text-gray-700 sm:hidden">{color.name}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -316,9 +320,9 @@ export default function Notes() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Color
+                  Pick a Color
                 </label>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
                   {NOTE_COLORS.map(color => (
                     <label
                       key={color.value}
@@ -332,10 +336,12 @@ export default function Notes() {
                         className="sr-only peer"
                       />
                       <div
-                        className="w-full h-10 rounded-lg border-2 border-transparent peer-checked:border-gray-900 peer-checked:scale-110 transition-transform"
+                        className="w-full h-12 sm:h-10 rounded-xl border-3 border-transparent peer-checked:border-gray-900 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-gray-400 transition-all flex items-center justify-center"
                         style={{ backgroundColor: color.value }}
                         title={color.name}
-                      />
+                      >
+                        <span className="text-xs font-medium text-gray-700 sm:hidden">{color.name}</span>
+                      </div>
                     </label>
                   ))}
                 </div>

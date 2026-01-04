@@ -182,6 +182,22 @@ export default function AdminPanel() {
     }
   };
 
+  const handleToggleDiet = async (profile: Profile) => {
+    try {
+      const newDietEnabled = (profile as any).diet_enabled === 1 ? 0 : 1;
+      await profilesAPI.update(profile.id, { diet_enabled: newDietEnabled });
+      await loadAllProfiles();
+      await refreshProfiles();
+
+      // Show success message
+      const status = newDietEnabled === 1 ? 'enabled' : 'disabled';
+      alert(`✅ Diet Tracking ${status} for ${profile.name}!\n\n${profile.name} will need to log out and log back in to see the changes.`);
+    } catch (error) {
+      console.error('Failed to toggle Diet access:', error);
+      alert('❌ Failed to update Diet access. Please try again.');
+    }
+  };
+
   const startEdit = (profile: Profile) => {
     setEditingProfile(profile);
     setFormData({
@@ -466,6 +482,8 @@ export default function AdminPanel() {
                   profile={profile}
                   onEdit={startEdit}
                   onDelete={handleDeleteProfile}
+                  onToggleAI={handleToggleAI}
+                  onToggleDiet={handleToggleDiet}
                   isCurrentUser={profile.id === currentProfile?.id}
                   children={children.filter(c => c.parent_id === profile.id)}
                 />
@@ -491,6 +509,7 @@ export default function AdminPanel() {
                     onEdit={startEdit}
                     onDelete={handleDeleteProfile}
                     onToggleAI={handleToggleAI}
+                    onToggleDiet={handleToggleDiet}
                     isCurrentUser={profile.id === currentProfile?.id}
                     parentName={parent?.name}
                   />
@@ -532,13 +551,14 @@ interface ProfileRowProps {
   onEdit: (profile: Profile) => void;
   onDelete: (profile: Profile) => void;
   onToggleAI?: (profile: Profile) => void;
+  onToggleDiet?: (profile: Profile) => void;
   isCurrentUser: boolean;
   children?: Profile[];
   parentName?: string;
   assignedClassName?: string;
 }
 
-function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, children, parentName, assignedClassName }: ProfileRowProps) {
+function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, isCurrentUser, children, parentName, assignedClassName }: ProfileRowProps) {
   const getProfileIcon = (type: string) => {
     switch (type) {
       case 'admin': return <Shield className="text-red-600" size={20} />;
@@ -573,10 +593,15 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, chil
             {assignedClassName && <span className="text-green-600 font-medium">• Class: {assignedClassName}</span>}
             {profile.type === 'teacher' && !assignedClassName && <span className="text-orange-500">• No class assigned</span>}
             {profile.pin && <span>• 🔒 PIN Protected</span>}
-            {profile.type === 'child' && (
-              <span className={profile.ai_enabled === 1 ? 'text-purple-600' : 'text-gray-400'}>
-                • 🤖 AI {profile.ai_enabled === 1 ? 'Enabled' : 'Disabled'}
-              </span>
+            {(profile.type === 'child' || profile.type === 'parent') && (
+              <>
+                <span className={profile.ai_enabled === 1 ? 'text-purple-600' : 'text-gray-400'}>
+                  • 🤖 AI {profile.ai_enabled === 1 ? 'ON' : 'OFF'}
+                </span>
+                <span className={(profile as any).diet_enabled === 1 ? 'text-green-600' : 'text-gray-400'}>
+                  • 🥗 Diet {(profile as any).diet_enabled === 1 ? 'ON' : 'OFF'}
+                </span>
+              </>
             )}
           </div>
           {children && children.length > 0 && (
@@ -587,21 +612,37 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, chil
         </div>
       </div>
 
-      <div className="flex space-x-2">
-        {/* AI Access Toggle (only for children) - PROMINENT BUTTON */}
-        {profile.type === 'child' && onToggleAI && (
+      <div className="flex flex-wrap gap-2">
+        {/* AI Access Toggle (for children and parents) */}
+        {(profile.type === 'child' || profile.type === 'parent') && onToggleAI && (
           <button
             onClick={() => onToggleAI(profile)}
             className={clsx(
-              'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all',
+              'flex items-center space-x-1 px-3 py-2 rounded-lg font-medium transition-all text-sm',
               profile.ai_enabled === 1
                 ? 'text-white bg-purple-600 hover:bg-purple-700 shadow-md'
                 : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
             )}
             title={profile.ai_enabled === 1 ? 'Click to disable AI Assistant' : 'Click to enable AI Assistant'}
           >
-            <Bot size={18} />
-            <span>{profile.ai_enabled === 1 ? 'AI ON' : 'AI OFF'}</span>
+            <Bot size={16} />
+            <span>AI</span>
+          </button>
+        )}
+        {/* Diet Access Toggle (for children and parents) */}
+        {(profile.type === 'child' || profile.type === 'parent') && onToggleDiet && (
+          <button
+            onClick={() => onToggleDiet(profile)}
+            className={clsx(
+              'flex items-center space-x-1 px-3 py-2 rounded-lg font-medium transition-all text-sm',
+              (profile as any).diet_enabled === 1
+                ? 'text-white bg-green-600 hover:bg-green-700 shadow-md'
+                : 'text-gray-700 bg-gray-200 hover:bg-gray-300'
+            )}
+            title={(profile as any).diet_enabled === 1 ? 'Click to disable Diet' : 'Click to enable Diet'}
+          >
+            <span>🥗</span>
+            <span>Diet</span>
           </button>
         )}
         <button

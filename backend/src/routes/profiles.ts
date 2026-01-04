@@ -191,6 +191,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       updates.push('ai_enabled = ?');
       values.push(ai_enabled);
     }
+    if ((req.body as any).diet_enabled !== undefined) {
+      updates.push('diet_enabled = ?');
+      values.push((req.body as any).diet_enabled);
+    }
     if (assigned_class_id !== undefined) {
       updates.push('assigned_class_id = ?');
       values.push(assigned_class_id);
@@ -313,6 +317,7 @@ router.post('/login', async (req, res) => {
         gender: profile.gender,
         parent_id: profile.parent_id,
         ai_enabled: profile.ai_enabled,
+        diet_enabled: profile.diet_enabled,
         username: profile.username
       }
     });

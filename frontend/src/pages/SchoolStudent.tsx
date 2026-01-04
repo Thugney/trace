@@ -12,7 +12,11 @@ import {
   AlertCircle,
   UserPlus,
   Trophy,
-  Star
+  Star,
+  Sparkles,
+  Play,
+  Download,
+  ClipboardList
 } from 'lucide-react';
 import StudentQuizView from '../components/StudentQuizView';
 
@@ -35,8 +39,6 @@ export default function SchoolStudent() {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [points, setPoints] = useState<{ points: number; level: number; level_name: string; points_to_next_level: number } | null>(null);
 
-
-
   useEffect(() => {
     if (currentProfile) {
       loadStudentData();
@@ -47,15 +49,12 @@ export default function SchoolStudent() {
     if (!currentProfile) return;
     setLoading(true);
     try {
-      // Load enrollments
       const enrollResponse = await schoolAPI.getStudentEnrollments(currentProfile.id);
       setEnrollments(enrollResponse.data);
 
-      // Load assignments
       const assignmentsResponse = await schoolAPI.getStudentAssignments(currentProfile.id);
       setAssignments(assignmentsResponse.data);
 
-      // Load gamification data
       const [achievementsResponse, pointsResponse] = await Promise.all([
         schoolAPI.getStudentAchievements(currentProfile.id),
         schoolAPI.getStudentPoints(currentProfile.id)
@@ -82,7 +81,7 @@ export default function SchoolStudent() {
 
       setSelectedAssignment(null);
       setSubmissionNotes('');
-      loadStudentData(); // Reload to update submission status
+      loadStudentData();
     } catch (error: any) {
       console.error('Failed to submit work:', error);
       alert(error.response?.data?.error || 'Failed to submit work. Please try again.');
@@ -92,22 +91,26 @@ export default function SchoolStudent() {
   const getAssignmentTypeIcon = (type: string) => {
     switch (type) {
       case 'psalm':
-        return <BookOpen size={18} className="text-purple-600" />;
+        return <BookOpen size={24} className="text-green-600" />;
       case 'video':
-        return <Youtube size={18} className="text-red-600" />;
+        return <Youtube size={24} className="text-red-500" />;
       case 'alphabet':
-        return <FileText size={18} className="text-blue-600" />;
+        return <FileText size={24} className="text-orange-500" />;
+      case 'quiz':
+        return <ClipboardList size={24} className="text-purple-600" />;
+      case 'homework':
+        return <FileText size={24} className="text-blue-600" />;
       default:
-        return <FileText size={18} className="text-gray-600" />;
+        return <FileText size={24} className="text-gray-600" />;
     }
   };
 
   const getStatusBadge = (assignment: any) => {
     if (!assignment.has_submitted) {
       return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-          <AlertCircle size={12} className="mr-1" />
-          Not Submitted
+        <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-300">
+          <AlertCircle size={16} className="mr-2" />
+          To Do
         </span>
       );
     }
@@ -115,79 +118,95 @@ export default function SchoolStudent() {
     switch (assignment.submission_status) {
       case 'approved':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle size={12} className="mr-1" />
-            Approved
+          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-800 border-2 border-green-300">
+            <CheckCircle size={16} className="mr-2" />
+            Great Job!
           </span>
         );
       case 'needs_revision':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-            <AlertCircle size={12} className="mr-1" />
-            Needs Revision
+          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-orange-100 text-orange-800 border-2 border-orange-300">
+            <AlertCircle size={16} className="mr-2" />
+            Try Again
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <Clock size={12} className="mr-1" />
-            Submitted
+          <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold bg-blue-100 text-blue-800 border-2 border-blue-300">
+            <Clock size={16} className="mr-2" />
+            Waiting...
           </span>
         );
     }
   };
 
   if (!currentProfile) {
-    return <div className="p-8 text-center">Please log in to view your assignments.</div>;
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📚</div>
+          <p className="text-xl text-gray-600">Please log in to see your assignments!</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">My School Assignments</h1>
-          <p className="text-gray-600 mt-1">Tigrinya Church School</p>
+    <div className="max-w-4xl mx-auto p-4 md:p-6">
+      {/* Fun Header */}
+      <div className="mb-6 text-center md:text-left">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-3">
+              <span className="text-4xl">📖</span>
+              My School Work
+            </h1>
+            <p className="text-gray-600 mt-1 text-lg">Tigrinya Church School</p>
+          </div>
+          {currentProfile?.type === 'parent' && (
+            <Link
+              to="/school/enroll"
+              className="btn btn-primary text-lg py-3 px-6"
+            >
+              <UserPlus size={24} className="mr-2" />
+              Enroll Children
+            </Link>
+          )}
         </div>
-        {currentProfile?.type === 'parent' && (
-          <Link
-            to="/school/enroll"
-            className="btn btn-primary flex items-center"
-          >
-            <UserPlus size={20} className="mr-2" />
-            Enroll Children
-          </Link>
-        )}
       </div>
 
-      {/* Points & Level Progress */}
+      {/* Points & Level - Big and Fun */}
       {points && (
-        <div className="mb-8 card p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white/20 rounded-full p-3">
-                <Star size={32} className="text-yellow-300" />
+        <div className="mb-6 rounded-2xl p-6 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 text-white shadow-xl">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/20 rounded-2xl p-4">
+                <Star size={40} className="text-yellow-300" fill="currentColor" />
               </div>
-              <div>
-                <div className="text-sm opacity-90">Level {points.level}</div>
-                <div className="text-2xl font-bold">{points.level_name}</div>
+              <div className="text-center sm:text-left">
+                <div className="text-sm opacity-90 uppercase tracking-wide">Level {points.level}</div>
+                <div className="text-2xl md:text-3xl font-bold">{points.level_name}</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold">{points.points}</div>
+            <div className="text-center bg-white/10 rounded-2xl px-6 py-3">
+              <div className="text-4xl md:text-5xl font-bold">{points.points}</div>
               <div className="text-sm opacity-90">Total Points</div>
             </div>
           </div>
           {points.points_to_next_level > 0 && (
-            <div className="mt-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span>Progress to next level</span>
-                <span>{points.points_to_next_level} points to go</span>
+            <div className="mt-5">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="flex items-center gap-1">
+                  <Sparkles size={16} />
+                  Keep going!
+                </span>
+                <span className="font-bold">{points.points_to_next_level} points to level up!</span>
               </div>
-              <div className="bg-white/20 rounded-full h-2">
+              <div className="bg-white/20 rounded-full h-4 overflow-hidden">
                 <div
-                  className="bg-yellow-300 h-2 rounded-full transition-all"
+                  className="bg-yellow-300 h-4 rounded-full transition-all duration-500"
                   style={{
-                    width: `${Math.max(5, 100 - (points.points_to_next_level / (points.level === 1 ? 20 : points.level === 2 ? 30 : points.level === 3 ? 50 : 100)) * 100)}%`
+                    width: `${Math.max(10, 100 - (points.points_to_next_level / (points.level === 1 ? 20 : points.level === 2 ? 30 : points.level === 3 ? 50 : 100)) * 100)}%`
                   }}
                 />
               </div>
@@ -196,39 +215,48 @@ export default function SchoolStudent() {
         </div>
       )}
 
-      {/* Achievements */}
+      {/* Achievements - Fun Badges */}
       {achievements.length > 0 && (
-        <div className="mb-8">
-          <div className="flex items-center space-x-2 mb-4">
-            <Trophy size={24} className="text-yellow-500" />
-            <h2 className="text-xl font-semibold text-gray-900">My Achievements</h2>
-            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
-              {achievements.length} earned
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy size={28} className="text-yellow-500" />
+            <h2 className="text-xl font-bold text-gray-900">My Achievements</h2>
+            <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold">
+              {achievements.length} earned!
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {achievements.map((ach) => (
-              <div key={ach.id} className="card p-4 text-center hover:shadow-lg transition-shadow">
-                <div className="text-4xl mb-2">{ach.icon}</div>
-                <h3 className="font-semibold text-gray-900 text-sm">{ach.name}</h3>
-                <p className="text-xs text-gray-500 mt-1">{ach.description}</p>
-                <div className="mt-2 text-xs text-purple-600 font-medium">+{ach.points} pts</div>
+              <div
+                key={ach.id}
+                className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-4 text-center border-2 border-yellow-200 hover:scale-105 transition-transform"
+              >
+                <div className="text-5xl mb-2">{ach.icon}</div>
+                <h3 className="font-bold text-gray-900">{ach.name}</h3>
+                <div className="mt-2 text-sm text-purple-600 font-bold bg-purple-100 rounded-full px-3 py-1 inline-block">
+                  +{ach.points} pts
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Enrolled Classes */}
+      {/* My Classes */}
       {enrollments.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">My Classes</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <span className="text-2xl">🏫</span> My Classes
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {enrollments.map((enrollment) => (
-              <div key={enrollment.id} className="card p-4">
-                <h3 className="font-semibold text-gray-900">{enrollment.class_name}</h3>
+              <div
+                key={enrollment.id}
+                className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200"
+              >
+                <h3 className="font-bold text-lg text-gray-900">{enrollment.class_name}</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  Enrolled: {new Date(enrollment.enrolled_at).toLocaleDateString()}
+                  Joined: {new Date(enrollment.enrolled_at).toLocaleDateString()}
                 </p>
               </div>
             ))}
@@ -236,57 +264,96 @@ export default function SchoolStudent() {
         </div>
       )}
 
-      {/* Assignments */}
+      {/* Assignments - Big Cards for Kids */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Assignments</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="text-2xl">📋</span> My Assignments
+        </h2>
         {loading ? (
-          <div className="text-center py-8">Loading...</div>
+          <div className="text-center py-12">
+            <div className="text-6xl animate-bounce mb-4">📚</div>
+            <p className="text-lg text-gray-600">Loading your assignments...</p>
+          </div>
         ) : assignments.length === 0 ? (
-          <div className="card p-8 text-center">
-            <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600">No assignments yet.</p>
+          <div className="bg-gray-50 rounded-2xl p-8 text-center border-2 border-dashed border-gray-300">
+            <div className="text-6xl mb-4">🎉</div>
+            <p className="text-xl text-gray-600">No assignments yet - enjoy your break!</p>
           </div>
         ) : (
           <div className="space-y-4">
             {assignments.map((assignment) => (
-              <div key={assignment.id} className="card p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
+              <div
+                key={assignment.id}
+                className={`rounded-2xl p-5 border-2 transition-all ${
+                  assignment.has_submitted && assignment.submission_status === 'approved'
+                    ? 'bg-green-50 border-green-200'
+                    : assignment.has_submitted
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-white border-gray-200 hover:border-primary-300 hover:shadow-lg'
+                }`}
+              >
+                {/* Header with type icon and status */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-3 rounded-xl ${
+                      assignment.type === 'quiz' ? 'bg-purple-100' :
+                      assignment.type === 'video' ? 'bg-red-100' :
+                      assignment.type === 'psalm' ? 'bg-green-100' :
+                      assignment.type === 'alphabet' ? 'bg-orange-100' :
+                      'bg-blue-100'
+                    }`}>
                       {getAssignmentTypeIcon(assignment.type)}
-                      <h3 className="text-xl font-semibold text-gray-900">{assignment.title}</h3>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{assignment.class_name}</p>
-                    {assignment.description && (
-                      <p className="text-gray-700 mb-3">{assignment.description}</p>
-                    )}
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                      <span className="capitalize">{assignment.type.replace('_', ' ')}</span>
-                      {assignment.due_date && (
-                        <span className="flex items-center">
-                          <Clock size={14} className="mr-1" />
-                          Due: {new Date(assignment.due_date).toLocaleDateString()}
-                        </span>
-                      )}
+                    <div>
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900">{assignment.title}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {assignment.class_name} • <span className="capitalize">{assignment.type.replace('_', ' ')}</span>
+                      </p>
                     </div>
                   </div>
-                  <div>{getStatusBadge(assignment)}</div>
+                  <div className="self-start">{getStatusBadge(assignment)}</div>
                 </div>
 
-                {assignment.youtube_link && (
-                  <div className="mb-4">
-                    <a
-                      href={assignment.youtube_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-red-600 hover:text-red-700 font-medium"
-                    >
-                      <Youtube size={20} className="mr-2" />
-                      Watch Video Lesson
-                    </a>
+                {/* Description */}
+                {assignment.description && (
+                  <p className="text-gray-700 mb-4 text-base leading-relaxed">{assignment.description}</p>
+                )}
+
+                {/* Due date */}
+                {assignment.due_date && (
+                  <div className="flex items-center gap-2 text-gray-600 mb-4 bg-gray-100 rounded-lg px-3 py-2 inline-flex">
+                    <Clock size={18} />
+                    <span className="font-medium">Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
                   </div>
                 )}
 
+                {/* Video Link - Big and Clear */}
+                {assignment.youtube_link && (
+                  <a
+                    href={assignment.youtube_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-3 w-full py-4 px-6 mb-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-lg transition-colors"
+                  >
+                    <Play size={24} fill="currentColor" />
+                    Watch Video Lesson
+                  </a>
+                )}
+
+                {/* Attachment Download */}
+                {assignment.attachment_url && (
+                  <a
+                    href={assignment.attachment_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-3 w-full py-4 px-6 mb-4 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-lg transition-colors"
+                  >
+                    <Download size={24} />
+                    Download Materials
+                  </a>
+                )}
+
+                {/* Action Buttons - Big for Kids */}
                 {!assignment.has_submitted && (
                   <>
                     {assignment.type === 'quiz' ? (
@@ -295,17 +362,18 @@ export default function SchoolStudent() {
                           setSelectedQuizAssignment(assignment);
                           setShowQuiz(true);
                         }}
-                        className="btn btn-primary w-full sm:w-auto"
+                        className="w-full py-4 px-6 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-colors"
                       >
-                        Take Quiz
+                        <ClipboardList size={24} />
+                        Start Quiz
                       </button>
                     ) : (
                       <button
                         onClick={() => setSelectedAssignment(assignment)}
-                        className="btn btn-primary w-full sm:w-auto"
+                        className="w-full py-4 px-6 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-colors"
                       >
-                        <Send size={16} className="mr-2" />
-                        Submit Work
+                        <Send size={24} />
+                        Submit My Work
                       </button>
                     )}
                   </>
@@ -314,22 +382,20 @@ export default function SchoolStudent() {
                 {assignment.has_submitted && assignment.submission_status === 'needs_revision' && assignment.type !== 'quiz' && (
                   <button
                     onClick={() => setSelectedAssignment(assignment)}
-                    className="btn bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
+                    className="w-full py-4 px-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-colors"
                   >
-                    <Send size={16} className="mr-2" />
-                    Resubmit Work
+                    <Send size={24} />
+                    Try Again
                   </button>
                 )}
 
                 {assignment.type === 'quiz' && assignment.has_submitted && (
                   <button
-                    onClick={() => {
-                      // For now, reload or navigate to results; implement results later
-                      loadStudentData();
-                    }}
-                    className="btn btn-secondary w-full sm:w-auto"
+                    onClick={() => loadStudentData()}
+                    className="w-full py-4 px-6 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-colors"
                   >
-                    View Results
+                    <CheckCircle size={24} />
+                    Quiz Completed!
                   </button>
                 )}
               </div>
@@ -340,8 +406,8 @@ export default function SchoolStudent() {
 
       {/* Quiz Modal */}
       {showQuiz && selectedQuizAssignment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <StudentQuizView
               assignmentId={selectedQuizAssignment.id}
               studentId={currentProfile?.id || 0}
@@ -359,32 +425,36 @@ export default function SchoolStudent() {
         </div>
       )}
 
-      {/* Submit Work Modal */}
+      {/* Submit Work Modal - Kid Friendly */}
       {selectedAssignment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full">
-            <h2 className="text-2xl font-bold mb-4">Submit Work</h2>
-            <p className="text-gray-700 mb-4">
-              Assignment: <span className="font-semibold">{selectedAssignment.title}</span>
-            </p>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">📝</div>
+              <h2 className="text-2xl font-bold text-gray-900">Submit Your Work</h2>
+              <p className="text-gray-600 mt-2">{selectedAssignment.title}</p>
+            </div>
 
-            <form onSubmit={handleSubmitWork} className="space-y-4">
+            <form onSubmit={handleSubmitWork} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optional)
+                <label className="block text-lg font-medium text-gray-700 mb-2">
+                  Tell your teacher about your work (optional)
                 </label>
                 <textarea
                   value={submissionNotes}
                   onChange={(e) => setSubmissionNotes(e.target.value)}
-                  className="input"
+                  className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
                   rows={4}
-                  placeholder="Add any notes about your submission here..."
+                  placeholder="I learned that..."
                 />
               </div>
 
-              <div className="flex space-x-3">
-                <button type="submit" className="btn btn-primary flex-1">
-                  <Send size={16} className="mr-2" />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 py-4 px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Send size={24} />
                   Submit
                 </button>
                 <button
@@ -393,7 +463,7 @@ export default function SchoolStudent() {
                     setSelectedAssignment(null);
                     setSubmissionNotes('');
                   }}
-                  className="btn btn-secondary flex-1"
+                  className="flex-1 py-4 px-6 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold text-lg transition-colors"
                 >
                   Cancel
                 </button>
