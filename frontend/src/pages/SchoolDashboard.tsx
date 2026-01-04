@@ -12,14 +12,15 @@ import {
   FileText,
   Award,
   Trash2,
-  Send
+  Send,
+  Download,
+  ClipboardList
 } from 'lucide-react';
-import QuizCreationForm from '../components/QuizCreationForm';
+import AssignmentCreationForm from '../components/AssignmentCreationForm';
 import type {
   SchoolClass,
   SchoolAssignment,
-  StudentProgress,
-  AssignmentType
+  StudentProgress
 } from '../types/school';
 
 type TabType = 'assignments' | 'students' | 'submissions';
@@ -39,21 +40,10 @@ export default function SchoolDashboard() {
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
 
   // Form states
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    type: 'homework' as AssignmentType,
-    youtube_link: '',
-    due_date: ''
-  });
-
   const [feedbackData, setFeedbackData] = useState({
     comment: '',
     rating: 'very_good' as 'excellent' | 'very_good' | 'good' | 'needs_improvement'
   });
-
-  const [showQuizForm, setShowQuizForm] = useState(false);
-  const [quizAssignmentId, setQuizAssignmentId] = useState<number | null>(null);
   useEffect(() => {
     loadClasses();
     if (currentProfile?.type === 'teacher') {
@@ -126,45 +116,6 @@ export default function SchoolDashboard() {
     }
   };
 
-  const handleCreateAssignment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentProfile || !selectedClass) return;
-
-    try {
-      // Save the type before resetting form
-      const assignmentType = formData.type;
-
-      const response = await schoolAPI.createAssignment({
-        class_id: selectedClass,
-        teacher_id: currentProfile.id,
-        title: formData.title,
-        description: formData.description || undefined,
-        type: formData.type,
-        youtube_link: formData.youtube_link || undefined,
-        due_date: formData.due_date || undefined
-      });
-
-      setShowCreateForm(false);
-      setFormData({
-        title: '',
-        description: '',
-        type: 'homework',
-        youtube_link: '',
-        due_date: ''
-      });
-
-      // Check the saved type (not the reset formData)
-      if (assignmentType === 'quiz') {
-        setQuizAssignmentId(response.data.id);
-        setShowQuizForm(true);
-      } else {
-        loadClassData();
-      }
-    } catch (error) {
-      console.error('Failed to create assignment:', error);
-    }
-  };
-
   const handleDeleteAssignment = async (id: number) => {
     if (!confirm('Are you sure you want to delete this assignment?')) return;
 
@@ -212,10 +163,14 @@ export default function SchoolDashboard() {
   const getAssignmentTypeIcon = (type: string) => {
     switch (type) {
       case 'psalm':
-        return <BookOpen size={18} className="text-purple-600" />;
+        return <BookOpen size={18} className="text-green-600" />;
       case 'video':
         return <Youtube size={18} className="text-red-600" />;
       case 'alphabet':
+        return <FileText size={18} className="text-orange-600" />;
+      case 'quiz':
+        return <ClipboardList size={18} className="text-purple-600" />;
+      case 'homework':
         return <FileText size={18} className="text-blue-600" />;
       default:
         return <FileText size={18} className="text-gray-600" />;
@@ -334,107 +289,17 @@ export default function SchoolDashboard() {
       </div>
 
       {/* Create Assignment Form */}
-      {showCreateForm && (
+      {showCreateForm && currentProfile && selectedClass && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">Create New Assignment</h2>
-            <form onSubmit={handleCreateAssignment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as AssignmentType })}
-                  className="input"
-                >
-                  <option value="homework">Homework</option>
-                  <option value="psalm">Psalm</option>
-                  <option value="alphabet">Alphabet Practice</option>
-                  <option value="video">Video Lesson</option>
-                  <option value="other">Other</option>
-<option value="quiz">Quiz</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="input"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  YouTube Link (optional)
-                </label>
-                <input
-                  type="url"
-                  value={formData.youtube_link}
-                  onChange={(e) => setFormData({ ...formData, youtube_link: e.target.value })}
-                  className="input"
-                  placeholder="https://youtube.com/watch?v=..."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Due Date (optional)
-                </label>
-                <input
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="input"
-                />
-              </div>
-
-              <div className="flex space-x-3 pt-4">
-                <button type="submit" className="btn btn-primary flex-1">
-                  Create Assignment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="btn btn-secondary flex-1"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Quiz Creation Modal */}
-      {showQuizForm && quizAssignmentId && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <QuizCreationForm
-              assignmentId={quizAssignmentId}
-              onSuccess={() => {
-                setShowQuizForm(false);
-                setQuizAssignmentId(null);
-                loadClassData();
-              }}
-              onCancel={() => {
-                setShowQuizForm(false);
-                setQuizAssignmentId(null);
-              }}
-            />
-          </div>
+          <AssignmentCreationForm
+            classId={selectedClass}
+            teacherId={currentProfile.id}
+            onSuccess={() => {
+              setShowCreateForm(false);
+              loadClassData();
+            }}
+            onCancel={() => setShowCreateForm(false)}
+          />
         </div>
       )}
 
@@ -477,6 +342,17 @@ export default function SchoolDashboard() {
                         >
                           <Youtube size={14} className="mr-1" />
                           Watch Video
+                        </a>
+                      )}
+                      {assignment.attachment_url && (
+                        <a
+                          href={assignment.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:text-blue-700"
+                        >
+                          <Download size={14} className="mr-1" />
+                          Download Materials
                         </a>
                       )}
                     </div>

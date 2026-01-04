@@ -81,7 +81,7 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
-    const { name, type, age, gender, avatar, settings, pin, password, username, parent_id } = req.body;
+    const { name, type, age, gender, avatar, settings, pin, password, username, parent_id, assigned_class_id } = req.body;
 
     if (!name || !type) {
       return res.status(400).json({ error: 'Name and type are required' });
@@ -111,10 +111,16 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     // Hash password if provided (for adults - security: never store plain text)
     const hashedPassword = password ? await bcrypt.hash(password, SALT_ROUNDS) : null;
 
+    // For teachers, validate assigned_class_id
+    let finalAssignedClassId = null;
+    if (type === 'teacher' && assigned_class_id) {
+      finalAssignedClassId = assigned_class_id;
+    }
+
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null);
+      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id, assigned_class_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null, finalAssignedClassId);
 
     const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newProfile);
@@ -127,7 +133,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
-    const { name, age, gender, avatar, settings, pin, password, username, ai_enabled, parent_id, type } = req.body;
+    const { name, age, gender, avatar, settings, pin, password, username, ai_enabled, parent_id, type, assigned_class_id } = req.body;
     const { id } = req.params;
 
     // Get the profile being updated
@@ -184,6 +190,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     if (ai_enabled !== undefined) {
       updates.push('ai_enabled = ?');
       values.push(ai_enabled);
+    }
+    if (assigned_class_id !== undefined) {
+      updates.push('assigned_class_id = ?');
+      values.push(assigned_class_id);
     }
     if (settings !== undefined) {
       updates.push('settings = ?');

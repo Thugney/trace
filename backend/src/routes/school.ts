@@ -1,9 +1,100 @@
 import express, { Response } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import db from '../database/init';
 import { authenticate, requireRole, verifyParentChild, optionalAuth, teacherOnly, parentOrAdmin, parentOrAdminOrTeacher, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
+
+// File upload configuration
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../data/uploads');
+
+// Ensure upload directory exists
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    // Generate unique filename with timestamp and original extension
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `assignment-${uniqueSuffix}${ext}`);
+  }
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/jpeg',
+    'image/png',
+    'image/gif'
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, Word documents, and images are allowed.'));
+  }
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// File upload endpoint
+router.post('/upload', authenticate, requireRole(['teacher', 'admin']), upload.single('file'), (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Return the URL path for the uploaded file
+    const fileUrl = `/api/school/files/${req.file.filename}`;
+
+    res.json({
+      url: fileUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Serve uploaded files
+router.get('/files/:filename', (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(UPLOAD_DIR, filename);
+
+    // Security: prevent directory traversal
+    if (!filePath.startsWith(UPLOAD_DIR)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.sendFile(filePath);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get all classes
 router.get('/classes', (req, res) => {

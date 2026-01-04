@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI } from '../services/api';
+import { profilesAPI, schoolAPI } from '../services/api';
 import { Profile } from '../types';
+import { SchoolClass } from '../types/school';
 import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby, Bot } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function AdminPanel() {
   const { currentProfile, refreshProfiles } = useProfile();
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
+  const [schoolClasses, setSchoolClasses] = useState<SchoolClass[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
@@ -18,12 +20,23 @@ export default function AdminPanel() {
     gender: 'other' as 'male' | 'female' | 'other',
     avatar: '',
     pin: '',
-    parent_id: ''
+    parent_id: '',
+    assigned_class_id: ''
   });
 
   useEffect(() => {
     loadAllProfiles();
+    loadSchoolClasses();
   }, []);
+
+  const loadSchoolClasses = async () => {
+    try {
+      const response = await schoolAPI.getClasses();
+      setSchoolClasses(response.data);
+    } catch (error) {
+      console.error('Failed to load school classes:', error);
+    }
+  };
 
   const loadAllProfiles = async () => {
     try {
@@ -58,6 +71,11 @@ export default function AdminPanel() {
         data.parent_id = parseInt(formData.parent_id);
       }
 
+      // Add assigned_class_id if teacher and class selected
+      if (formData.type === 'teacher' && formData.assigned_class_id) {
+        (data as any).assigned_class_id = parseInt(formData.assigned_class_id);
+      }
+
       await profilesAPI.create(data);
       await loadAllProfiles();
       await refreshProfiles();
@@ -70,7 +88,8 @@ export default function AdminPanel() {
         gender: 'other',
         avatar: '',
         pin: '',
-        parent_id: ''
+        parent_id: '',
+        assigned_class_id: ''
       });
       setShowCreateForm(false);
     } catch (error) {
@@ -101,6 +120,11 @@ export default function AdminPanel() {
         data.parent_id = parseInt(formData.parent_id);
       }
 
+      // Add assigned_class_id if teacher
+      if (formData.type === 'teacher') {
+        (data as any).assigned_class_id = formData.assigned_class_id ? parseInt(formData.assigned_class_id) : null;
+      }
+
       // Only update PIN if a new one is provided
       if (formData.pin) {
         data.pin = formData.pin;
@@ -118,7 +142,8 @@ export default function AdminPanel() {
         gender: 'other',
         avatar: '',
         pin: '',
-        parent_id: ''
+        parent_id: '',
+        assigned_class_id: ''
       });
     } catch (error) {
       console.error('Failed to update profile:', error);
@@ -166,7 +191,8 @@ export default function AdminPanel() {
       gender: profile.gender || 'other',
       avatar: profile.avatar || '',
       pin: '', // Don't pre-fill PIN for security
-      parent_id: profile.parent_id?.toString() || ''
+      parent_id: profile.parent_id?.toString() || '',
+      assigned_class_id: (profile as any).assigned_class_id?.toString() || ''
     });
     setShowCreateForm(false);
   };
@@ -180,7 +206,8 @@ export default function AdminPanel() {
       gender: 'other',
       avatar: '',
       pin: '',
-      parent_id: ''
+      parent_id: '',
+      assigned_class_id: ''
     });
   };
 
@@ -296,6 +323,26 @@ export default function AdminPanel() {
                 </>
               )}
 
+              {formData.type === 'teacher' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Class *</label>
+                  <select
+                    required
+                    value={formData.assigned_class_id}
+                    onChange={(e) => setFormData({ ...formData, assigned_class_id: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Select a class</option>
+                    {schoolClasses.map(cls => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.name} (Ages {cls.age_min}-{cls.age_max})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Teacher will only see students enrolled in this class</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
                 <select
@@ -388,15 +435,19 @@ export default function AdminPanel() {
               Teachers ({teachers.length})
             </h2>
             <div className="space-y-2">
-              {teachers.map(profile => (
-                <ProfileRow
-                  key={profile.id}
-                  profile={profile}
-                  onEdit={startEdit}
-                  onDelete={handleDeleteProfile}
-                  isCurrentUser={profile.id === currentProfile?.id}
-                />
-              ))}
+              {teachers.map(profile => {
+                const assignedClass = schoolClasses.find(c => c.id === (profile as any).assigned_class_id);
+                return (
+                  <ProfileRow
+                    key={profile.id}
+                    profile={profile}
+                    onEdit={startEdit}
+                    onDelete={handleDeleteProfile}
+                    isCurrentUser={profile.id === currentProfile?.id}
+                    assignedClassName={assignedClass?.name}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
@@ -484,9 +535,10 @@ interface ProfileRowProps {
   isCurrentUser: boolean;
   children?: Profile[];
   parentName?: string;
+  assignedClassName?: string;
 }
 
-function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, children, parentName }: ProfileRowProps) {
+function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, children, parentName, assignedClassName }: ProfileRowProps) {
   const getProfileIcon = (type: string) => {
     switch (type) {
       case 'admin': return <Shield className="text-red-600" size={20} />;
@@ -518,6 +570,8 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, isCurrentUser, chil
             {profile.age && <span>Age: {profile.age}</span>}
             {profile.gender && <span>• {profile.gender}</span>}
             {parentName && <span>• Parent: {parentName}</span>}
+            {assignedClassName && <span className="text-green-600 font-medium">• Class: {assignedClassName}</span>}
+            {profile.type === 'teacher' && !assignedClassName && <span className="text-orange-500">• No class assigned</span>}
             {profile.pin && <span>• 🔒 PIN Protected</span>}
             {profile.type === 'child' && (
               <span className={profile.ai_enabled === 1 ? 'text-purple-600' : 'text-gray-400'}>
