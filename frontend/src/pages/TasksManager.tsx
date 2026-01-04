@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2 } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function TasksManager() {
@@ -339,6 +339,33 @@ export default function TasksManager() {
     }
   };
 
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    try {
+      await tasksAPI.delete(taskId);
+      await loadTasks();
+      alert('Task deleted');
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      alert('Failed to delete task');
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: number) => {
+    if (!confirm('Are you sure you want to delete this goal?')) return;
+
+    try {
+      await goalsAPI.delete(goalId);
+      await loadMonthlyGoal();
+      await loadAllGoals();
+      alert('Goal deleted');
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+      alert('Failed to delete goal');
+    }
+  };
+
   if (!currentProfile) {
     return (
       <div className="text-center py-12">
@@ -594,13 +621,24 @@ export default function TasksManager() {
                       </div>
                     </div>
                     {!goal.achieved && (
-                      <button
-                        onClick={() => setEditingGoal(goal)}
-                        className="btn btn-secondary btn-sm ml-4"
-                        title="Edit goal"
-                      >
-                        <Edit2 size={16} />
-                      </button>
+                      <div className="flex space-x-2 ml-4">
+                        <button
+                          onClick={() => setEditingGoal(goal)}
+                          className="btn btn-secondary btn-sm"
+                          title="Edit goal"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        {isParent && (
+                          <button
+                            onClick={() => handleDeleteGoal(goal.id)}
+                            className="btn btn-secondary btn-sm text-red-600 hover:bg-red-100"
+                            title="Delete goal"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
                   {goal.parent_approved && !goal.achieved && (
@@ -768,6 +806,15 @@ export default function TasksManager() {
                           title="Edit task"
                         >
                           <Edit2 size={16} />
+                        </button>
+                      )}
+                      {isParent && (
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="btn btn-secondary btn-sm text-red-600 hover:bg-red-100"
+                          title="Delete task"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       )}
                       {task.parent_approved ? (

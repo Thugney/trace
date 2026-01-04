@@ -311,7 +311,7 @@ export function initDatabase() {
     )
   `);
 
-  // School Assignments (homework, psalms, videos)
+  // School Assignments (homework, psalms, videos, quizzes)
   db.exec(`
     CREATE TABLE IF NOT EXISTS school_assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -319,7 +319,7 @@ export function initDatabase() {
       teacher_id INTEGER NOT NULL,
       title TEXT NOT NULL,
       description TEXT,
-      type TEXT CHECK(type IN ('homework', 'psalm', 'alphabet', 'video', 'other')) DEFAULT 'homework',
+      type TEXT CHECK(type IN ('homework', 'psalm', 'alphabet', 'video', 'quiz', 'other')) DEFAULT 'homework',
       youtube_link TEXT,
       attachment_url TEXT,
       due_date DATE,
@@ -896,6 +896,57 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (notes category):', error.message);
+  }
+
+  // Migration: Add 'quiz' type to school_assignments CHECK constraint
+  try {
+    // Try to insert a 'quiz' type assignment - if it fails, we need to migrate
+    try {
+      const testResult = db.prepare(`
+        INSERT INTO school_assignments (class_id, teacher_id, title, type)
+        VALUES (1, 1, 'test_migration_quiz_check', 'quiz')
+      `).run();
+      // Clean up test row
+      db.prepare('DELETE FROM school_assignments WHERE title = ?').run('test_migration_quiz_check');
+      console.log('✓ school_assignments table already supports quiz type');
+    } catch (checkError: any) {
+      if (checkError.message.includes('CHECK constraint')) {
+        console.log('🔄 Migrating school_assignments table: adding quiz type support...');
+
+        // Create new table with quiz in CHECK constraint
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS school_assignments_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            class_id INTEGER NOT NULL,
+            teacher_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            type TEXT CHECK(type IN ('homework', 'psalm', 'alphabet', 'video', 'quiz', 'other')) DEFAULT 'homework',
+            youtube_link TEXT,
+            attachment_url TEXT,
+            due_date DATE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+            FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE
+          )
+        `);
+
+        // Copy data
+        db.exec(`
+          INSERT INTO school_assignments_new
+          SELECT * FROM school_assignments
+        `);
+
+        // Drop old table and rename
+        db.exec('DROP TABLE school_assignments');
+        db.exec('ALTER TABLE school_assignments_new RENAME TO school_assignments');
+
+        console.log('✅ Migration completed: school_assignments now supports quiz type');
+      }
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_assignments quiz type):', error.message);
   }
 
   console.log('✅ Database initialized successfully');

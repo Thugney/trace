@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, BellRing } from 'lucide-react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { notificationsAPI } from '../services/api';
 import type { Notification } from '../types';
@@ -9,6 +9,7 @@ export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -19,6 +20,19 @@ export function NotificationBell() {
     subscribe,
     unsubscribe
   } = usePushNotifications();
+
+  // Auto-prompt for notification permission if not set
+  useEffect(() => {
+    const hasSeenPrompt = localStorage.getItem('notification_prompt_shown');
+    if (isSupported && permission === 'default' && !hasSeenPrompt && !pushLoading) {
+      // Show the permission prompt after a short delay
+      const timer = setTimeout(() => {
+        setShowPermissionPrompt(true);
+        localStorage.setItem('notification_prompt_shown', 'true');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, permission, pushLoading]);
 
   // Load notifications and unread count
   const loadNotifications = async () => {
@@ -87,6 +101,18 @@ export function NotificationBell() {
     setLoading(false);
   };
 
+  // Handle permission prompt response
+  const handleEnableNotifications = async () => {
+    setShowPermissionPrompt(false);
+    setLoading(true);
+    await subscribe();
+    setLoading(false);
+  };
+
+  const handleDismissPrompt = () => {
+    setShowPermissionPrompt(false);
+  };
+
   // Get notification icon/emoji based on type
   const getNotificationIcon = (type: string) => {
     const icons: Record<string, string> = {
@@ -123,20 +149,51 @@ export function NotificationBell() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      {/* Bell Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-        aria-label="Notifications"
-      >
-        <Bell className="w-6 h-6" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-      </button>
+    <>
+      {/* Permission Prompt Banner */}
+      {showPermissionPrompt && (
+        <div className="fixed top-16 left-0 right-0 z-50 mx-auto max-w-lg px-4">
+          <div className="bg-indigo-600 text-white rounded-lg shadow-lg p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <BellRing className="w-6 h-6 animate-bounce" />
+              <div>
+                <p className="font-semibold">Enable Notifications?</p>
+                <p className="text-sm text-indigo-200">Get alerts for tasks, goals, and messages</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleEnableNotifications}
+                disabled={loading}
+                className="px-4 py-2 bg-white text-indigo-600 rounded-lg font-medium hover:bg-indigo-50 transition-colors"
+              >
+                Enable
+              </button>
+              <button
+                onClick={handleDismissPrompt}
+                className="px-3 py-2 text-indigo-200 hover:text-white transition-colors"
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="relative" ref={dropdownRef}>
+        {/* Bell Button */}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Notifications"
+        >
+          <Bell className="w-6 h-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
 
       {/* Dropdown */}
       {isOpen && (
@@ -235,7 +292,8 @@ export function NotificationBell() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

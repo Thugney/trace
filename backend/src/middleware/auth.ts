@@ -249,9 +249,9 @@ export const parentOrAdminOrTeacher = [
 
 /**
  * Teacher Only Middleware
- * For teacher-specific endpoints
+ * For teacher-specific endpoints (admin can also access)
  */
 export const teacherOnly = [
   authenticate,
-  requireRole(['teacher'])
+  requireRole(['teacher', 'admin'])
 ];

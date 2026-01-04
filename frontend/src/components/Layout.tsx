@@ -50,7 +50,6 @@ export default function Layout({ children }: LayoutProps) {
       return [
         { path: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/school', icon: GraduationCap, label: 'My Classes' },
-        { path: '/journey', icon: Map, label: 'My Journey' },
         { path: '/messages', icon: Mail, label: 'Messages' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
