@@ -481,4 +481,126 @@ router.get('/:id/stats', (req, res) => {
   }
 });
 
+// Get profile history (My Journey)
+router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { period } = req.query; // week, month, year, all
+
+    // Calculate date range based on period
+    let startDate: string;
+    let endDate: string = new Date().toISOString();
+
+    const now = new Date();
+    switch (period) {
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        startDate = weekAgo.toISOString();
+        break;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        startDate = monthAgo.toISOString();
+        break;
+      case 'year':
+        const yearAgo = new Date(now);
+        yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+        startDate = yearAgo.toISOString();
+        break;
+      case 'all':
+      default:
+        startDate = '2000-01-01T00:00:00.000Z'; // Far past date
+        break;
+    }
+
+    // Get completed tasks in period
+    const completedTasks: any[] = db.prepare(`
+      SELECT id, title, category, points, completed_at as date
+      FROM tasks
+      WHERE profile_id = ? AND completed = 1
+        AND completed_at >= ? AND completed_at <= ?
+      ORDER BY completed_at DESC
+    `).all(id, startDate, endDate);
+
+    // Get progress/points earned in period
+    const progressEntries: any[] = db.prepare(`
+      SELECT id, points_earned, stars_earned, logged_at as date
+      FROM progress
+      WHERE profile_id = ?
+        AND logged_at >= ? AND logged_at <= ?
+      ORDER BY logged_at DESC
+    `).all(id, startDate, endDate);
+
+    // Get achieved goals in period
+    const achievedGoals: any[] = db.prepare(`
+      SELECT id, goal_description as title, goal_points as points, month, updated_at as date
+      FROM monthly_goals
+      WHERE profile_id = ? AND achieved = 1
+        AND updated_at >= ? AND updated_at <= ?
+      ORDER BY updated_at DESC
+    `).all(id, startDate, endDate);
+
+    // Get meals logged in period
+    const mealsLogged: any[] = db.prepare(`
+      SELECT id, meal_type, food_items, calories_consumed, logged_at as date
+      FROM meal_logs
+      WHERE profile_id = ?
+        AND logged_at >= ? AND logged_at <= ?
+      ORDER BY logged_at DESC
+    `).all(id, startDate, endDate);
+
+    // Calculate summary stats
+    const totalPoints = progressEntries.reduce((sum, p) => sum + (p.points_earned || 0), 0);
+    const totalStars = progressEntries.reduce((sum, p) => sum + (p.stars_earned || 0), 0);
+    const tasksCompleted = completedTasks.length;
+    const goalsAchieved = achievedGoals.length;
+    const mealsCount = mealsLogged.length;
+
+    // Build timeline (combine all events, sort by date)
+    const timeline: any[] = [];
+
+    completedTasks.forEach(task => {
+      timeline.push({
+        type: 'task_completed',
+        title: task.title,
+        points: task.points,
+        category: task.category,
+        date: task.date
+      });
+    });
+
+    achievedGoals.forEach(goal => {
+      timeline.push({
+        type: 'goal_achieved',
+        title: goal.title,
+        points: goal.points,
+        date: goal.date
+      });
+    });
+
+    // Sort timeline by date (newest first)
+    timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    res.json({
+      summary: {
+        total_points: totalPoints,
+        total_stars: totalStars,
+        tasks_completed: tasksCompleted,
+        goals_achieved: goalsAchieved,
+        meals_logged: mealsCount
+      },
+      timeline: timeline.slice(0, 50), // Limit to 50 most recent events
+      period: {
+        start: startDate.split('T')[0],
+        end: endDate.split('T')[0],
+        type: period || 'all'
+      }
+    });
+  } catch (error: any) {
+    console.error('[ERROR] Get history failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -211,3 +211,28 @@ export interface Message {
   recipient_type?: string;
   recipient_avatar?: string;
 }
+
+// My Journey types
+export interface JourneyEvent {
+  type: 'task_completed' | 'goal_achieved';
+  title: string;
+  points?: number;
+  category?: string;
+  date: string;
+}
+
+export interface JourneyData {
+  summary: {
+    total_points: number;
+    total_stars: number;
+    tasks_completed: number;
+    goals_achieved: number;
+    meals_logged: number;
+  };
+  timeline: JourneyEvent[];
+  period: {
+    start: string;
+    end: string;
+    type: string;
+  };
+}

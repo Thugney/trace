@@ -13,7 +13,8 @@ import type {
   AIConversation,
   Note,
   MonthlyGoal,
-  Message
+  Message,
+  JourneyData
 } from '../types';
 import type {
   SchoolClass,
@@ -60,6 +61,7 @@ export const profilesAPI = {
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
   delete: (id: number) => api.delete(`/profiles/${id}`),
   getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
+  getHistory: (id: number, period: string) => api.get<JourneyData>(`/profiles/${id}/history`, { params: { period } }),
   verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
   setPIN: (id: number, pin: string, currentPin?: string) => api.post<{ message: string }>(`/profiles/${id}/set-pin`, { pin, currentPin }),
   resetPassword: (profileId: number, newPin: string, parentId: number) => api.post<{ message: string }>(`/profiles/${profileId}/reset-password`, { newPin, parentId })

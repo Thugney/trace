@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail } from 'lucide-react';
+import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail, Map } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import clsx from 'clsx';
 
@@ -36,6 +36,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/diet', icon: Utensils, label: 'Family Diet' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/school', icon: GraduationCap, label: 'School' },
+        { path: '/journey', icon: Map, label: 'My Journey' },
         { path: '/messages', icon: Mail, label: 'Messages' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
         { path: '/settings', icon: Settings, label: 'Settings' }
@@ -56,6 +57,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/child/dashboard', icon: Home, label: 'Home' },
         { path: '/tasks', icon: CheckSquare, label: 'My Tasks' },
         { path: '/school', icon: GraduationCap, label: 'School' },
+        { path: '/journey', icon: Map, label: 'My Journey' },
         { path: '/notes', icon: StickyNote, label: 'Notes' }
       ];
 
