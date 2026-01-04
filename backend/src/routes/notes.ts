@@ -45,7 +45,7 @@ router.get('/note/:id', (req, res) => {
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
-    const { profile_id, title, content, color } = req.body;
+    const { profile_id, title, content, color, category } = req.body;
 
     if (!profile_id || !title) {
       return res.status(400).json({ error: 'Profile ID and title are required' });
@@ -61,9 +61,9 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO notes (profile_id, title, content, color)
-      VALUES (?, ?, ?, ?)
-    `).run(profile_id, title, content || '', color || '#ffffff');
+      INSERT INTO notes (profile_id, title, content, color, category)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(profile_id, title, content || '', color || '#ffffff', category || null);
 
     const newNote = db.prepare('SELECT * FROM notes WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newNote);
@@ -78,7 +78,7 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
     const { id } = req.params;
-    const { title, content, color } = req.body;
+    const { title, content, color, category } = req.body;
 
     // Check note ownership
     const note: any = db.prepare('SELECT profile_id FROM notes WHERE id = ?').get(id);
@@ -108,6 +108,10 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
     if (color !== undefined) {
       updates.push('color = ?');
       values.push(color);
+    }
+    if (category !== undefined) {
+      updates.push('category = ?');
+      values.push(category);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');

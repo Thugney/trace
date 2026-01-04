@@ -810,6 +810,94 @@ export function initDatabase() {
     console.error('Migration error (assigned_class_id):', error.message);
   }
 
+  // Migration: Remove category CHECK constraint from tasks table to allow custom categories
+  try {
+    // Check if current table has the strict CHECK constraint by checking column info
+    const tasksInfo: any[] = db.prepare('PRAGMA table_info(tasks)').all();
+    const categoryCol = tasksInfo.find((col: any) => col.name === 'category');
+
+    // If category column exists, we need to recreate the table without the CHECK constraint
+    // We'll detect this by trying to insert a custom category - if it fails, we migrate
+    try {
+      // Test if we can insert custom category
+      const testResult = db.prepare(`
+        INSERT INTO tasks (profile_id, title, category, points, difficulty)
+        VALUES (1, 'test_migration_check', 'custom-test-category', 10, 'easy')
+      `).run();
+      // Clean up test row
+      db.prepare('DELETE FROM tasks WHERE title = ?').run('test_migration_check');
+      console.log('✓ Tasks table already supports custom categories');
+    } catch (checkError: any) {
+      if (checkError.message.includes('CHECK constraint')) {
+        console.log('🔄 Migrating tasks table: removing category CHECK constraint to allow custom categories...');
+
+        // Create new table without category CHECK constraint
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS tasks_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            category TEXT,
+            points INTEGER DEFAULT 10,
+            difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')) DEFAULT 'easy',
+            earns_points BOOLEAN DEFAULT 1,
+            is_recurring BOOLEAN DEFAULT 0,
+            recurrence_pattern TEXT,
+            due_date DATETIME,
+            completed BOOLEAN DEFAULT 0,
+            completed_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_by INTEGER,
+            parent_approved BOOLEAN DEFAULT 0,
+            approved_by INTEGER,
+            FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by) REFERENCES profiles(id),
+            FOREIGN KEY (approved_by) REFERENCES profiles(id)
+          )
+        `);
+
+        // Copy data
+        db.exec(`
+          INSERT INTO tasks_new
+          SELECT id, profile_id, title, description, category, points, difficulty, earns_points,
+                 is_recurring, recurrence_pattern, due_date, completed, completed_at, created_at,
+                 created_by, parent_approved, approved_by
+          FROM tasks
+        `);
+
+        // Drop old table and rename
+        db.exec('DROP TABLE tasks');
+        db.exec('ALTER TABLE tasks_new RENAME TO tasks');
+
+        // Recreate indexes
+        db.exec(`
+          CREATE INDEX IF NOT EXISTS idx_tasks_profile ON tasks(profile_id);
+          CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
+          CREATE INDEX IF NOT EXISTS idx_tasks_parent_approved ON tasks(parent_approved);
+        `);
+
+        console.log('✅ Migration completed: tasks table now supports custom categories');
+      }
+    }
+  } catch (error: any) {
+    console.error('Migration error (tasks category constraint):', error.message);
+  }
+
+  // Migration: Add category column to notes table
+  try {
+    const notesInfo: any[] = db.prepare('PRAGMA table_info(notes)').all();
+    const hasCategory = notesInfo.some((col: any) => col.name === 'category');
+
+    if (!hasCategory) {
+      console.log('🔄 Migrating notes table: adding category column...');
+      db.prepare('ALTER TABLE notes ADD COLUMN category TEXT').run();
+      console.log('✅ Migration completed: category column added to notes');
+    }
+  } catch (error: any) {
+    console.error('Migration error (notes category):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 

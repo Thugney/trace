@@ -55,7 +55,7 @@ const AI_TOOLS = [
     type: 'function',
     function: {
       name: 'create_note',
-      description: 'Create a new note for the user. Use this when the user wants to save information, reminders, or any text they want to remember.',
+      description: 'Create a new note for the user. Use this when the user wants to save information, reminders, recipes, ideas, or any text they want to remember.',
       parameters: {
         type: 'object',
         properties: {
@@ -66,6 +66,10 @@ const AI_TOOLS = [
           content: {
             type: 'string',
             description: 'Content/body of the note'
+          },
+          category: {
+            type: 'string',
+            description: 'Category for the note. Can be any descriptive category like: recipe, idea, reminder, shopping-list, journal, study-notes, health, goals, or any other appropriate category'
           },
           color: {
             type: 'string',
@@ -95,8 +99,7 @@ const AI_TOOLS = [
           },
           category: {
             type: 'string',
-            enum: ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school', 'watch-movies', 'other'],
-            description: 'Category of the task: read-book (reading), tigrinya (language learning), clean-room (bedroom cleaning), clean-kitchen (kitchen chores), school (homework/study), watch-movies (screen time), other (anything else)'
+            description: 'Category of the task. Can be any descriptive category like: reading, homework, cleaning, exercise, music, art, cooking, language-learning, chores, health, creative, social, or any other appropriate category'
           },
           difficulty: {
             type: 'string',
@@ -196,22 +199,24 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           'orange': '#fed7aa'
         };
         const hexColor = colorMap[args.color] || '#fef08a'; // Default to yellow
+        const category = args.category || 'general';
 
         console.log(`[AI Tool] Creating note: "${args.title}" for profile ${profileId}`);
         const result = db.prepare(`
-          INSERT INTO notes (profile_id, title, content, color)
-          VALUES (?, ?, ?, ?)
+          INSERT INTO notes (profile_id, title, content, color, category)
+          VALUES (?, ?, ?, ?, ?)
         `).run(
           profileId,
           args.title,
           args.content,
-          hexColor
+          hexColor,
+          category
         );
         console.log(`[AI Tool] Note created with id: ${result.lastInsertRowid}`);
         return {
           success: true,
-          message: `Created note "${args.title}"`,
-          data: { id: result.lastInsertRowid, ...args }
+          message: `Created note "${args.title}" (${category})`,
+          data: { id: result.lastInsertRowid, ...args, category }
         };
       }
 

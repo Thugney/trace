@@ -82,6 +82,13 @@ export const dietAPI = {
     portion_unit?: string;
     notes?: string;
   }) => api.post<MealLog>('/diet/log', data),
+  updateMealLog: (id: number, data: {
+    meal_type?: string;
+    portion_size?: number;
+    portion_unit?: string;
+    notes?: string;
+  }) => api.put<MealLog>(`/diet/log/${id}`, data),
+  deleteMealLog: (id: number) => api.delete(`/diet/log/${id}`),
   getLogs: (profileId: number, date?: string, meal_type?: string) =>
     api.get<MealLog[]>(`/diet/logs/${profileId}`, { params: { date, meal_type } }),
   getNutritionSummary: (profileId: number, date?: string) =>
