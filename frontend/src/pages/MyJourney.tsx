@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
-import { JourneyData, JourneyEvent } from '../types';
-import { Calendar } from 'lucide-react';
+import { JourneyData, JourneyEvent, Profile } from '../types';
+import { Calendar, Users, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 
 type PeriodType = 'week' | 'month' | 'year' | 'all';
@@ -12,18 +12,56 @@ export default function MyJourney() {
   const [journeyData, setJourneyData] = useState<JourneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month');
+  const [familyProfiles, setFamilyProfiles] = useState<Profile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null);
+  const [showProfileSelector, setShowProfileSelector] = useState(false);
 
+  const isParentOrAdmin = currentProfile?.type === 'parent' || currentProfile?.type === 'admin';
+
+  // Load family profiles for parent/admin
   useEffect(() => {
     if (!currentProfile) return;
-    loadHistory();
-  }, [currentProfile, selectedPeriod]);
+
+    if (isParentOrAdmin) {
+      loadFamilyProfiles();
+    } else {
+      setSelectedProfileId(currentProfile.id);
+    }
+  }, [currentProfile]);
+
+  // Load history when profile or period changes
+  useEffect(() => {
+    if (selectedProfileId) {
+      loadHistory();
+    }
+  }, [selectedProfileId, selectedPeriod]);
+
+  const loadFamilyProfiles = async () => {
+    try {
+      const response = await profilesAPI.getAll();
+      const profiles = response.data;
+      setFamilyProfiles(profiles);
+      // Default to first child if parent, otherwise self
+      const children = profiles.filter((p: Profile) => p.type === 'child');
+      if (children.length > 0) {
+        setSelectedProfileId(children[0].id);
+      } else if (currentProfile) {
+        setSelectedProfileId(currentProfile.id);
+      }
+    } catch (error) {
+      console.error('Failed to load family profiles:', error);
+      if (currentProfile) {
+        setSelectedProfileId(currentProfile.id);
+      }
+    }
+  };
 
   const loadHistory = async () => {
-    if (!currentProfile) return;
+    if (!selectedProfileId) return;
 
     try {
       setLoading(true);
-      const response = await profilesAPI.getHistory(currentProfile.id, selectedPeriod);
+      const response = await profilesAPI.getHistory(selectedProfileId, selectedPeriod);
       setJourneyData(response.data);
     } catch (error) {
       console.error('Failed to load history:', error);
@@ -31,6 +69,8 @@ export default function MyJourney() {
       setLoading(false);
     }
   };
+
+  const selectedProfile = familyProfiles.find(p => p.id === selectedProfileId) || currentProfile;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -84,12 +124,71 @@ export default function MyJourney() {
       <div className="mb-6 text-center">
         <div className="text-6xl mb-3">🗺️</div>
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          My Journey
+          {isParentOrAdmin ? 'Family Journey' : 'My Journey'}
         </h1>
         <p className="text-lg text-gray-600">
-          See how far you've come, {currentProfile?.name}!
+          {isParentOrAdmin
+            ? `Viewing ${selectedProfile?.name}'s progress`
+            : `See how far you've come, ${currentProfile?.name}!`
+          }
         </p>
       </div>
+
+      {/* Profile Selector for Parents/Admins */}
+      {isParentOrAdmin && familyProfiles.length > 0 && (
+        <div className="mb-6">
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileSelector(!showProfileSelector)}
+              className="w-full md:w-auto mx-auto flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:border-primary-300 transition-all"
+            >
+              <Users className="text-primary-600" size={20} />
+              <span className="text-2xl">{selectedProfile?.avatar || '👤'}</span>
+              <span className="font-semibold text-gray-800">{selectedProfile?.name}</span>
+              {selectedProfile?.type === 'child' && selectedProfile?.age && (
+                <span className="text-gray-500 text-sm">({selectedProfile.age} years)</span>
+              )}
+              <ChevronDown className={clsx(
+                'text-gray-400 transition-transform',
+                showProfileSelector && 'rotate-180'
+              )} size={20} />
+            </button>
+
+            {showProfileSelector && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 bg-white border-2 border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                <div className="p-2 bg-gray-50 border-b text-xs font-semibold text-gray-500 uppercase">
+                  Select Profile
+                </div>
+                {familyProfiles.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={() => {
+                      setSelectedProfileId(profile.id);
+                      setShowProfileSelector(false);
+                    }}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left',
+                      selectedProfileId === profile.id && 'bg-primary-50 border-l-4 border-primary-500'
+                    )}
+                  >
+                    <span className="text-2xl">{profile.avatar || '👤'}</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800">{profile.name}</p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        {profile.type}
+                        {profile.type === 'child' && profile.age && ` • ${profile.age} years`}
+                      </p>
+                    </div>
+                    {selectedProfileId === profile.id && (
+                      <span className="text-primary-600">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Period Selector */}
       <div className="flex justify-center gap-2 mb-6">
@@ -154,7 +253,10 @@ export default function MyJourney() {
                 Amazing Progress!
               </h3>
               <p className="text-gray-700">
-                You've completed {summary.tasks_completed} tasks {getPeriodLabel(selectedPeriod).toLowerCase()}!
+                {isParentOrAdmin && selectedProfile?.id !== currentProfile?.id
+                  ? `${selectedProfile?.name} has completed ${summary.tasks_completed} tasks`
+                  : `You've completed ${summary.tasks_completed} tasks`
+                } {getPeriodLabel(selectedPeriod).toLowerCase()}!
               </p>
             </div>
           </div>
@@ -165,7 +267,10 @@ export default function MyJourney() {
       <div className="rounded-2xl p-5 bg-white border-2 border-gray-200 shadow-sm">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <Calendar className="text-primary-600" size={24} />
-          Your Achievements
+          {isParentOrAdmin && selectedProfile?.id !== currentProfile?.id
+            ? `${selectedProfile?.name}'s Achievements`
+            : 'Your Achievements'
+          }
         </h2>
 
         {journeyData?.timeline && journeyData.timeline.length > 0 ? (
@@ -211,7 +316,10 @@ export default function MyJourney() {
               No achievements yet!
             </p>
             <p className="text-gray-600">
-              Complete tasks and goals to see them here
+              {isParentOrAdmin && selectedProfile?.id !== currentProfile?.id
+                ? `${selectedProfile?.name} hasn't completed any tasks or goals yet`
+                : 'Complete tasks and goals to see them here'
+              }
             </p>
           </div>
         )}
