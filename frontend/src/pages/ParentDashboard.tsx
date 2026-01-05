@@ -101,8 +101,10 @@ export default function ParentDashboard() {
       setGeneratingForChild(childId);
       await aiGamificationAPI.generateChallenges(childId, 3);
       await loadAISuggestions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to generate challenges:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to generate challenges';
+      alert(`Error: ${errorMsg}`);
     } finally {
       setGeneratingForChild(null);
     }

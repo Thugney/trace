@@ -1,8 +1,12 @@
 import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
+import { authenticate, requireRole } from '../middleware/auth';
 
 const router = express.Router();
+
+// All routes require authentication
+router.use(authenticate);
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 
@@ -274,10 +278,12 @@ function collectBehaviorData(profileId: number) {
 // ==================== AI CHALLENGE GENERATION ====================
 
 // Generate personalized challenges using AI (unrestricted)
-router.post('/generate/:profileId', async (req, res) => {
+router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req, res) => {
   try {
     const { profileId } = req.params;
     const { count = 3 } = req.body;
+
+    console.log(`[AI Gamification] Generating ${count} challenges for profile ${profileId}`);
 
     // Get behavior data
     const behaviorData = collectBehaviorData(parseInt(profileId));
@@ -388,8 +394,11 @@ router.post('/generate/:profileId', async (req, res) => {
     });
 
   } catch (error: any) {
-    console.error('AI generation error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('[AI Gamification] Generation error:', error.message);
+    if (error.response?.data) {
+      console.error('[AI Gamification] API response:', error.response.data);
+    }
+    res.status(500).json({ error: error.message || 'Failed to generate challenges' });
   }
 });
 
