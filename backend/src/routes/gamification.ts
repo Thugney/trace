@@ -283,7 +283,8 @@ router.get('/leaderboard/:parentId', (req, res) => {
         points: points?.points || 0,
         tasksCompleted: tasks?.count || 0,
         currentStreak: streak?.current_streak || 0,
-        achievements: achievements?.count || 0
+        achievements: achievements?.count || 0,
+        rank: 0
       };
     });
 
