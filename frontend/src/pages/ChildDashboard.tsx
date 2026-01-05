@@ -142,13 +142,13 @@ export default function ChildDashboard() {
           goalsAPI.getActive(currentProfile.id)
         ]);
         setStats(statsRes.data);
-        setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
-        setStreaks(gamificationRes.data.streaks);
-        setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
-        setChallenges(challengesRes.data);
-        setWeeklySummary(weeklyRes.data);
-        setGoalHistory(goalHistoryRes.data);
-        setActiveGoals(activeGoalsRes.data);
+        setWaterData({ total_ml: waterRes.data?.total_ml || 0, goal_ml: waterRes.data?.goal_ml || 2000 });
+        setStreaks(gamificationRes.data?.streaks || {});
+        setAchievements({ earned: achievementsRes.data?.earned || [], total_count: achievementsRes.data?.total_count || 0 });
+        setChallenges(challengesRes.data || []);
+        setWeeklySummary(weeklyRes.data || null);
+        setGoalHistory(goalHistoryRes.data || { goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
+        setActiveGoals(activeGoalsRes.data || []);
 
         // Load leaderboard if child has a parent
         if (currentProfile.parent_id) {
