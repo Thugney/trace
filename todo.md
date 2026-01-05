@@ -19,12 +19,12 @@
 - [x] Estimated time - Added time estimates (5-120 minutes) selector
 - [x] Subtasks/checklist - Break big tasks into smaller steps - Added subtasks CRUD API and database table
 2. Note Taking Form Analysis Missing Features:
- Categories/folders - Organize notes by topic (School, Personal, Ideas)
+- [x] Categories/folders - Organize notes by topic (School, Personal, Ideas, Homework, Journal, Lists) - Added category selector and filter UI
 - [x] Rich text formatting - Bold, lists, headings - Added markdown toolbar with DOMPurify sanitization
 - [] Attachments - Add photos, drawings
 - [] Tags/labels - For searching
 - [x] Pin important notes - Added is_pinned field, pinned notes sort first, UI with pin indicator
-- [] Reminders - "Remind me about this note on Friday"
+- [x] Reminders - "Remind me about this note on Friday" - Added reminder_at field with date picker UI
 - [] Note templates - Homework template, journal template
 
 3. Diet Tracking Analysis Critical Issues:
@@ -75,7 +75,7 @@ What's Missing for Effective Kid Gamification:
 - [x] Daily Challenges - Added daily_challenges table, auto-generated challenges, progress tracking, claim rewards in ChildDashboard
 - [] Level-up rewards - Visual celebration when reaching new level
 - [] Sound effects/animations - Satisfying completion feedback
-- [] Weekly summaries - "This week you earned 150 points! 🎉"
+- [x] Weekly summaries - "This week you earned 150 points! 🎉" - Added weekly-summary API and UI in ChildDashboard with stats and daily activity chart
 
 8. How Features Should Work Together
 Here's how a well-integrated family app connects everything:

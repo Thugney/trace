@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { notesAPI } from '../services/api';
 import { Note } from '../types';
-import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter } from 'lucide-react';
+import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter, Bell, Clock } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
 const NOTE_CATEGORIES = [
@@ -144,6 +144,7 @@ export default function Notes() {
 
     const formData = new FormData(e.currentTarget);
     const category = formData.get('category') as string;
+    const reminder_at = formData.get('reminder_at') as string;
 
     try {
       await notesAPI.create({
@@ -151,7 +152,8 @@ export default function Notes() {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
         color: formData.get('color') as string,
-        category: category || undefined
+        category: category || undefined,
+        reminder_at: reminder_at || undefined
       });
 
       setShowAddNote(false);
@@ -168,13 +170,15 @@ export default function Notes() {
 
     const formData = new FormData(e.currentTarget);
     const category = formData.get('category') as string;
+    const reminder_at = formData.get('reminder_at') as string;
 
     try {
       await notesAPI.update(editingNote.id, {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
         color: formData.get('color') as string,
-        category: category || undefined
+        category: category || undefined,
+        reminder_at: reminder_at || undefined
       });
 
       await loadNotes();
@@ -315,16 +319,24 @@ export default function Notes() {
                   <Pin size={14} className="text-white" />
                 </div>
               )}
-              {note.category && (
-                <div className="mb-2">
+              <div className="mb-2 flex flex-wrap gap-1">
+                {note.category && (
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                     NOTE_CATEGORIES.find(c => c.name === note.category)?.color || 'bg-gray-100 text-gray-600'
                   }`}>
                     {NOTE_CATEGORIES.find(c => c.name === note.category)?.icon}
                     {note.category}
                   </span>
-                </div>
-              )}
+                )}
+                {note.reminder_at && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    new Date(note.reminder_at) <= new Date() ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    <Bell size={12} />
+                    {new Date(note.reminder_at).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
               <h3 className="font-bold text-gray-900 pr-2 line-clamp-2 text-lg mb-2">
                 {note.title}
               </h3>
@@ -432,6 +444,25 @@ export default function Notes() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reminder
+                </label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-500" />
+                  <input
+                    type="date"
+                    name="reminder_at"
+                    min={new Date().toISOString().split('T')[0]}
+                    className="input flex-1"
+                    placeholder="Set a reminder date"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Optional: Get reminded about this note on a specific date
                 </p>
               </div>
 
@@ -547,6 +578,26 @@ export default function Notes() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reminder
+                </label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-500" />
+                  <input
+                    type="date"
+                    name="reminder_at"
+                    min={new Date().toISOString().split('T')[0]}
+                    defaultValue={editingNote.reminder_at?.split('T')[0] || ''}
+                    className="input flex-1"
+                    placeholder="Set a reminder date"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Optional: Get reminded about this note on a specific date
                 </p>
               </div>
 

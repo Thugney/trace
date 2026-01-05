@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, gamificationAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
 
 interface DailyChallenge {
   id: number;
@@ -15,6 +15,20 @@ interface DailyChallenge {
   current_progress: number;
 }
 
+interface WeeklySummary {
+  weekStart: string;
+  weekEnd: string;
+  summary: {
+    tasksCompleted: number;
+    pointsEarned: number;
+    challengesCompleted: number;
+    waterIntakeMl: number;
+    achievementsEarned: number;
+  };
+  tasksByCategory: { category: string; count: number }[];
+  dailyBreakdown: { date: string; tasks_completed: number }[];
+}
+
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -24,6 +38,7 @@ export default function ChildDashboard() {
   const [achievements, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
   const [waterAmount, setWaterAmount] = useState(250);
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -31,18 +46,20 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
           gamificationAPI.getProfileAchievements(currentProfile.id),
-          gamificationAPI.getChallenges(currentProfile.id)
+          gamificationAPI.getChallenges(currentProfile.id),
+          gamificationAPI.getWeeklySummary(currentProfile.id)
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
         setStreaks(gamificationRes.data.streaks);
         setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
         setChallenges(challengesRes.data);
+        setWeeklySummary(weeklyRes.data);
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -324,6 +341,69 @@ export default function ChildDashboard() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Weekly Summary */}
+      {weeklySummary && (
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-200 mb-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Calendar className="text-indigo-600" size={24} />
+            This Week's Progress 📊
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+            <div className="bg-white p-3 rounded-xl border border-indigo-200 text-center">
+              <div className="text-2xl font-bold text-green-600">{weeklySummary.summary.tasksCompleted}</div>
+              <p className="text-xs text-gray-600">Tasks Done</p>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-indigo-200 text-center">
+              <div className="text-2xl font-bold text-purple-600">{weeklySummary.summary.pointsEarned}</div>
+              <p className="text-xs text-gray-600">Points</p>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-indigo-200 text-center">
+              <div className="text-2xl font-bold text-yellow-600">{weeklySummary.summary.challengesCompleted}</div>
+              <p className="text-xs text-gray-600">Challenges</p>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-indigo-200 text-center">
+              <div className="text-2xl font-bold text-blue-600">{(weeklySummary.summary.waterIntakeMl / 1000).toFixed(1)}L</div>
+              <p className="text-xs text-gray-600">Water</p>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-indigo-200 text-center">
+              <div className="text-2xl font-bold text-pink-600">{weeklySummary.summary.achievementsEarned}</div>
+              <p className="text-xs text-gray-600">Achievements</p>
+            </div>
+          </div>
+          {/* Daily Activity Chart */}
+          {weeklySummary.dailyBreakdown.length > 0 && (
+            <div className="bg-white p-3 rounded-xl border border-indigo-200">
+              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <TrendingUp size={16} className="text-indigo-500" />
+                Daily Activity
+              </p>
+              <div className="flex items-end gap-1 h-16">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, idx) => {
+                  const date = new Date(weeklySummary.weekStart);
+                  date.setDate(date.getDate() + idx);
+                  const dateStr = date.toISOString().split('T')[0];
+                  const dayData = weeklySummary.dailyBreakdown.find(d => d.date === dateStr);
+                  const count = dayData?.tasks_completed || 0;
+                  const maxCount = Math.max(...weeklySummary.dailyBreakdown.map(d => d.tasks_completed), 1);
+                  const height = count > 0 ? Math.max(20, (count / maxCount) * 100) : 8;
+
+                  return (
+                    <div key={day} className="flex-1 flex flex-col items-center">
+                      <div
+                        className={`w-full rounded-t transition-all ${count > 0 ? 'bg-indigo-500' : 'bg-gray-200'}`}
+                        style={{ height: `${height}%` }}
+                        title={`${day}: ${count} tasks`}
+                      />
+                      <span className="text-[10px] text-gray-500 mt-1">{day[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

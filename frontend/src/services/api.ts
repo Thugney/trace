@@ -207,6 +207,7 @@ export const notesAPI = {
   getByProfile: (profileId: number, category?: string) =>
     api.get<Note[]>(`/notes/${profileId}`, { params: { category } }),
   getCategories: (profileId: number) => api.get<string[]>(`/notes/${profileId}/categories`),
+  getReminders: (profileId: number) => api.get<Note[]>(`/notes/${profileId}/reminders`),
   getOne: (id: number) => api.get<Note>(`/notes/note/${id}`),
   create: (data: Partial<Note>) => api.post<Note>('/notes', data),
   update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
@@ -409,7 +410,24 @@ export const gamificationAPI = {
       current_progress: number;
     }[]>(`/gamification/challenges/${profileId}`),
   completeChallenge: (challengeId: number) =>
-    api.post<{ message: string; bonusPoints: number }>(`/gamification/challenges/${challengeId}/complete`)
+    api.post<{ message: string; bonusPoints: number }>(`/gamification/challenges/${challengeId}/complete`),
+
+  // Weekly Summary
+  getWeeklySummary: (profileId: number) =>
+    api.get<{
+      weekStart: string;
+      weekEnd: string;
+      summary: {
+        tasksCompleted: number;
+        pointsEarned: number;
+        challengesCompleted: number;
+        waterIntakeMl: number;
+        achievementsEarned: number;
+      };
+      tasksByCategory: { category: string; count: number }[];
+      dailyBreakdown: { date: string; tasks_completed: number }[];
+      streaks: Record<string, { current: number; longest: number }>;
+    }>(`/gamification/weekly-summary/${profileId}`)
 };
 
 // Notifications API

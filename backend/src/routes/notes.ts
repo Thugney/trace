@@ -50,6 +50,37 @@ router.get('/:profileId/categories', authenticate, (req: AuthRequest, res: Respo
   }
 });
 
+// Get notes with reminders due today or upcoming
+router.get('/:profileId/reminders', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const userProfile = req.profile!;
+    const targetProfileId = parseInt(profileId);
+
+    // Authorization check
+    if (userProfile.type !== 'admin' && userProfile.id !== targetProfileId) {
+      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(targetProfileId);
+      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    // Get notes with reminders that are today or in the future
+    const today = new Date().toISOString().split('T')[0];
+    const notes = db.prepare(`
+      SELECT * FROM notes
+      WHERE profile_id = ?
+        AND reminder_at IS NOT NULL
+        AND reminder_at >= ?
+      ORDER BY reminder_at ASC
+    `).all(profileId, today);
+
+    res.json(notes);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get single note
 router.get('/note/:id', (req, res) => {
   try {
@@ -67,7 +98,7 @@ router.get('/note/:id', (req, res) => {
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
-    const { profile_id, title, content, color, category } = req.body;
+    const { profile_id, title, content, color, category, reminder_at } = req.body;
 
     if (!profile_id || !title) {
       return res.status(400).json({ error: 'Profile ID and title are required' });
@@ -83,9 +114,9 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO notes (profile_id, title, content, color, category)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(profile_id, title, content || '', color || '#ffffff', category || null);
+      INSERT INTO notes (profile_id, title, content, color, category, reminder_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(profile_id, title, content || '', color || '#ffffff', category || null, reminder_at || null);
 
     const newNote = db.prepare('SELECT * FROM notes WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newNote);
@@ -138,6 +169,10 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
     if (req.body.is_pinned !== undefined) {
       updates.push('is_pinned = ?');
       values.push(req.body.is_pinned ? 1 : 0);
+    }
+    if (req.body.reminder_at !== undefined) {
+      updates.push('reminder_at = ?');
+      values.push(req.body.reminder_at || null);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');

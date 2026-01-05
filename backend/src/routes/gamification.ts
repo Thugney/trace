@@ -510,6 +510,105 @@ function calculateChallengeProgress(profileId: number, challengeType: string, ta
   }
 }
 
+// ==================== WEEKLY SUMMARY ====================
+
+// Get weekly summary for a profile
+router.get('/weekly-summary/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    // Calculate week start (Monday) and end (Sunday)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() + mondayOffset);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+
+    // Tasks completed this week
+    const tasksCompleted: any = db.prepare(`
+      SELECT COUNT(*) as count FROM tasks
+      WHERE profile_id = ? AND completed = 1
+      AND DATE(completed_at) BETWEEN DATE(?) AND DATE(?)
+    `).get(profileId, weekStartStr, weekEndStr);
+
+    // Points earned this week
+    const pointsEarned: any = db.prepare(`
+      SELECT SUM(points_earned) as total FROM progress
+      WHERE profile_id = ? AND DATE(logged_at) BETWEEN DATE(?) AND DATE(?)
+    `).get(profileId, weekStartStr, weekEndStr);
+
+    // Challenges completed this week
+    const challengesCompleted: any = db.prepare(`
+      SELECT COUNT(*) as count FROM daily_challenges
+      WHERE profile_id = ? AND completed = 1
+      AND DATE(completed_at) BETWEEN DATE(?) AND DATE(?)
+    `).get(profileId, weekStartStr, weekEndStr);
+
+    // Water intake this week
+    const waterIntake: any = db.prepare(`
+      SELECT SUM(amount_ml) as total FROM water_intake
+      WHERE profile_id = ? AND DATE(logged_at) BETWEEN DATE(?) AND DATE(?)
+    `).get(profileId, weekStartStr, weekEndStr);
+
+    // Achievements earned this week
+    const achievementsEarned: any = db.prepare(`
+      SELECT COUNT(*) as count FROM profile_achievements
+      WHERE profile_id = ? AND DATE(earned_at) BETWEEN DATE(?) AND DATE(?)
+    `).get(profileId, weekStartStr, weekEndStr);
+
+    // Tasks by category this week
+    const tasksByCategory = db.prepare(`
+      SELECT category, COUNT(*) as count FROM tasks
+      WHERE profile_id = ? AND completed = 1
+      AND DATE(completed_at) BETWEEN DATE(?) AND DATE(?)
+      AND category IS NOT NULL
+      GROUP BY category ORDER BY count DESC
+    `).all(profileId, weekStartStr, weekEndStr);
+
+    // Daily breakdown
+    const dailyBreakdown = db.prepare(`
+      SELECT DATE(completed_at) as date, COUNT(*) as tasks_completed
+      FROM tasks
+      WHERE profile_id = ? AND completed = 1
+      AND DATE(completed_at) BETWEEN DATE(?) AND DATE(?)
+      GROUP BY DATE(completed_at)
+      ORDER BY date
+    `).all(profileId, weekStartStr, weekEndStr);
+
+    // Current streaks
+    const streaks = db.prepare(`
+      SELECT streak_type, current_streak, longest_streak FROM streaks WHERE profile_id = ?
+    `).all(profileId);
+
+    res.json({
+      weekStart: weekStartStr,
+      weekEnd: weekEndStr,
+      summary: {
+        tasksCompleted: tasksCompleted?.count || 0,
+        pointsEarned: pointsEarned?.total || 0,
+        challengesCompleted: challengesCompleted?.count || 0,
+        waterIntakeMl: waterIntake?.total || 0,
+        achievementsEarned: achievementsEarned?.count || 0
+      },
+      tasksByCategory,
+      dailyBreakdown,
+      streaks: streaks.reduce((acc: any, s: any) => {
+        acc[s.streak_type] = { current: s.current_streak, longest: s.longest_streak };
+        return acc;
+      }, {})
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Export helper to be used from tasks route
 export function updateTaskStreak(profileId: number) {
   updateStreak(profileId, 'tasks');
