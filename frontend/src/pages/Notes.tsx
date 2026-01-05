@@ -582,9 +582,9 @@ export default function Notes() {
 
       {/* Add Note Modal */}
       {showAddNote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-2xl w-full">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="card max-w-2xl w-full my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 -mt-2 pt-2 z-10 border-b">
               <h2 className="text-2xl font-bold">New Note</h2>
               <button
                 onClick={() => {
@@ -593,13 +593,13 @@ export default function Notes() {
                   setNewNoteTags([]);
                   setTagInput('');
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleAddNote} className="space-y-4">
+            <form onSubmit={handleAddNote} className="space-y-4 pb-2">
               {/* Template Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -813,19 +813,19 @@ export default function Notes() {
 
       {/* Edit Note Modal */}
       {editingNote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-2xl w-full">
-            <div className="flex items-center justify-between mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="card max-w-2xl w-full my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white pb-2 -mt-2 pt-2 z-10 border-b">
               <h2 className="text-2xl font-bold">Edit Note</h2>
               <button
                 onClick={() => setEditingNote(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <form onSubmit={handleUpdateNote} className="space-y-4">
+            <form onSubmit={handleUpdateNote} className="space-y-4 pb-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
