@@ -68,8 +68,13 @@ export const profilesAPI = {
   uploadAvatar: (id: number, file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    // Don't set Content-Type manually - axios sets it automatically with proper boundary for FormData
-    return api.post<{ success: boolean; avatar: string; message: string }>(`/profiles/${id}/avatar`, formData);
+    // Must explicitly set Content-Type to undefined to override axios default 'application/json'
+    // This allows axios to auto-set 'multipart/form-data' with the correct boundary
+    return api.post<{ success: boolean; avatar: string; message: string }>(
+      `/profiles/${id}/avatar`,
+      formData,
+      { headers: { 'Content-Type': undefined } }
+    );
   }
 };
 
