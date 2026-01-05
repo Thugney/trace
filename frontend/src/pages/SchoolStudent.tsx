@@ -319,13 +319,27 @@ export default function SchoolStudent() {
                   <p className="text-gray-700 mb-4 text-base leading-relaxed">{assignment.description}</p>
                 )}
 
-                {/* Due date */}
-                {assignment.due_date && (
-                  <div className="flex items-center gap-2 text-gray-600 mb-4 bg-gray-100 rounded-lg px-3 py-2 inline-flex">
-                    <Clock size={18} />
-                    <span className="font-medium">Due: {new Date(assignment.due_date).toLocaleDateString()}</span>
-                  </div>
-                )}
+                {/* Due date with overdue indicator */}
+                {assignment.due_date && (() => {
+                  const dueDate = new Date(assignment.due_date);
+                  const now = new Date();
+                  const isOverdue = dueDate < now && !assignment.has_submitted;
+                  const isDueSoon = !isOverdue && dueDate.getTime() - now.getTime() < 24 * 60 * 60 * 1000 && !assignment.has_submitted;
+
+                  return (
+                    <div className={`flex items-center gap-2 mb-4 rounded-lg px-3 py-2 inline-flex ${
+                      isOverdue ? 'bg-red-100 text-red-700' :
+                      isDueSoon ? 'bg-amber-100 text-amber-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Clock size={18} />
+                      <span className="font-medium">
+                        {isOverdue ? '⚠️ OVERDUE! Was due: ' : isDueSoon ? '⏰ Due soon: ' : 'Due: '}
+                        {dueDate.toLocaleDateString()}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Video Link - Big and Clear */}
                 {assignment.youtube_link && (

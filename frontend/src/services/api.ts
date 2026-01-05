@@ -25,7 +25,6 @@ import type {
   SchoolFeedback,
   StudentProgress,
   QuizQuestion,
-  QuizAnswer,
   QuizSubmission,
   QuizResult
 } from '../types/school';
@@ -348,7 +347,7 @@ export const schoolAPI = {
     api.get<QuizQuestion[]>(`/school/assignments/${assignmentId}/quiz`),
 
   submitQuiz: (submission: QuizSubmission) =>
-    api.post<QuizAnswer[]>(`/school/quiz/submit`, submission),
+    api.post<any>(`/school/quiz/submit`, submission),
 
   getQuizResults: (assignmentId: number, studentId: number) =>
     api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`),

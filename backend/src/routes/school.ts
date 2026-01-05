@@ -703,11 +703,42 @@ router.post('/quiz/submit', authenticate, requireRole(['child', 'parent']), veri
     const totalQuestions = questions.length;
     const score = Math.round((correctCount / totalQuestions) * 100);
 
+    // Award points based on quiz score
+    let pointsAwarded = 0;
+    if (score >= 100) {
+      pointsAwarded = 15; // Perfect score bonus
+    } else if (score >= 80) {
+      pointsAwarded = 10;
+    } else if (score >= 60) {
+      pointsAwarded = 5;
+    } else if (score >= 40) {
+      pointsAwarded = 2;
+    }
+
+    if (pointsAwarded > 0) {
+      db.prepare(`
+        INSERT INTO student_school_points (student_id, points) VALUES (?, ?)
+        ON CONFLICT(student_id) DO UPDATE SET
+          points = points + ?,
+          level = CASE WHEN points + ? >= 200 THEN 5
+                      WHEN points + ? >= 100 THEN 4
+                      WHEN points + ? >= 50 THEN 3
+                      WHEN points + ? >= 20 THEN 2
+                      ELSE 1 END,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(student_id, pointsAwarded, pointsAwarded, pointsAwarded, pointsAwarded, pointsAwarded, pointsAwarded);
+    }
+
+    // Check and award any new achievements
+    const newAchievements = checkAndAwardAchievements(Number(student_id));
+
     res.json({
       score,
       correct: correctCount,
       total: totalQuestions,
-      results: results.filter(r => r !== null)
+      results: results.filter(r => r !== null),
+      points_awarded: pointsAwarded,
+      new_achievements: newAchievements
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

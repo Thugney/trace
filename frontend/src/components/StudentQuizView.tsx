@@ -1,7 +1,15 @@
 import { useState, useEffect } from 'react';
 import { schoolAPI } from '../services/api';
 import type { QuizQuestion, QuizSubmission } from '../types/school';
-import { X, Send } from 'lucide-react';
+import { X, Send, Star, Award } from 'lucide-react';
+
+interface QuizResult {
+  score: number;
+  correct: number;
+  total: number;
+  points_awarded?: number;
+  new_achievements?: Array<{ name: string; icon: string; points: number }>;
+}
 
 interface StudentQuizViewProps {
   assignmentId: number;
@@ -16,6 +24,7 @@ export default function StudentQuizView({ assignmentId, studentId, onSuccess, on
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const timeLeft = 0; // Optional timer, set to 0 if no timer
 
   useEffect(() => {
@@ -72,14 +81,86 @@ export default function StudentQuizView({ assignmentId, studentId, onSuccess, on
           selected_answer: answers[q.id] as 'a' | 'b' | 'c' | 'd'
         }))
       };
-      await schoolAPI.submitQuiz(submission);
-      if (onSuccess) onSuccess();
+      const response = await schoolAPI.submitQuiz(submission);
+      setQuizResult(response.data as QuizResult);
     } catch (err) {
       setError('Failed to submit quiz. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  // Results screen after quiz submission
+  if (quizResult) {
+    const isPerfect = quizResult.score === 100;
+    const isGreat = quizResult.score >= 80;
+    const isGood = quizResult.score >= 60;
+
+    return (
+      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center">
+        {/* Score Display */}
+        <div className={`w-32 h-32 mx-auto rounded-full flex items-center justify-center mb-6 ${
+          isPerfect ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
+          isGreat ? 'bg-gradient-to-br from-green-400 to-emerald-500' :
+          isGood ? 'bg-gradient-to-br from-blue-400 to-indigo-500' :
+          'bg-gradient-to-br from-gray-400 to-slate-500'
+        }`}>
+          <div className="text-white">
+            <div className="text-4xl font-bold">{quizResult.score}%</div>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-2">
+          {isPerfect ? '🎉 Perfect Score!' :
+           isGreat ? '🌟 Great Job!' :
+           isGood ? '👍 Good Work!' :
+           '💪 Keep Practicing!'}
+        </h2>
+
+        <p className="text-gray-600 mb-6">
+          You got {quizResult.correct} out of {quizResult.total} questions correct
+        </p>
+
+        {/* Points Awarded */}
+        {quizResult.points_awarded && quizResult.points_awarded > 0 && (
+          <div className="bg-indigo-50 rounded-xl p-4 mb-4 flex items-center justify-center gap-3">
+            <Star className="text-indigo-600" size={24} />
+            <span className="text-lg font-semibold text-indigo-700">
+              +{quizResult.points_awarded} Points Earned!
+            </span>
+          </div>
+        )}
+
+        {/* New Achievements */}
+        {quizResult.new_achievements && quizResult.new_achievements.length > 0 && (
+          <div className="bg-amber-50 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Award className="text-amber-600" size={24} />
+              <span className="font-semibold text-amber-700">New Achievement{quizResult.new_achievements.length > 1 ? 's' : ''}!</span>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {quizResult.new_achievements.map((ach, idx) => (
+                <div key={idx} className="bg-white rounded-lg px-3 py-2 shadow-sm flex items-center gap-2">
+                  <span className="text-2xl">{ach.icon}</span>
+                  <div className="text-left">
+                    <div className="font-medium text-sm">{ach.name}</div>
+                    <div className="text-xs text-amber-600">+{ach.points} pts</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onSuccess}
+          className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors"
+        >
+          Continue
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="spinner"></div></div>;
