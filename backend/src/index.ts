@@ -22,6 +22,10 @@ dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
+// Trust proxy - required when behind nginx/reverse proxy (e.g., Synology)
+// This allows express-rate-limit to correctly identify users by IP
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(compression());
