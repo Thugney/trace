@@ -25,7 +25,6 @@ export default function StudentQuizView({ assignmentId, studentId, onSuccess, on
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
-  const timeLeft = 0; // Optional timer, set to 0 if no timer
 
   useEffect(() => {
     loadQuiz();
@@ -163,75 +162,180 @@ export default function StudentQuizView({ assignmentId, studentId, onSuccess, on
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="spinner"></div></div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-64 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl">
+        <div className="spinner mb-4"></div>
+        <p className="text-indigo-600 font-medium">Loading your quiz...</p>
+      </div>
+    );
   }
 
   if (error && questions.length === 0) {
-    return <div className="text-red-600 text-center p-4">{error}</div>;
+    return (
+      <div className="bg-red-50 rounded-2xl p-8 text-center">
+        <div className="text-4xl mb-4">😕</div>
+        <p className="text-red-600 font-medium">{error}</p>
+        <button onClick={onCancel} className="mt-4 text-red-500 hover:text-red-700">Go Back</button>
+      </div>
+    );
   }
 
+  // Calculate progress
+  const answeredCount = Object.values(answers).filter(a => a !== '').length;
+  const progressPercent = (answeredCount / questions.length) * 100;
+
+  // Option colors for visual variety
+  const optionColors = {
+    a: { bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200', selected: 'bg-blue-500 border-blue-500 text-white', ring: 'ring-blue-500' },
+    b: { bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200', selected: 'bg-emerald-500 border-emerald-500 text-white', ring: 'ring-emerald-500' },
+    c: { bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200', selected: 'bg-amber-500 border-amber-500 text-white', ring: 'ring-amber-500' },
+    d: { bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200', selected: 'bg-purple-500 border-purple-500 text-white', ring: 'ring-purple-500' }
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Take Quiz</h2>
-        <button onClick={onCancel} className="text-gray-500 hover:text-gray-700">
-          <X size={24} />
-        </button>
+    <div className="bg-gradient-to-br from-slate-50 to-indigo-50 rounded-2xl shadow-xl overflow-hidden max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📝</span>
+            <h2 className="text-2xl font-bold">Quiz Time!</h2>
+          </div>
+          <button
+            onClick={onCancel}
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Progress</span>
+            <span>{answeredCount} of {questions.length} answered</span>
+          </div>
+          <div className="h-3 bg-white/30 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+
+      {/* Questions */}
+      <form onSubmit={handleSubmit} className="p-6 space-y-8">
         {questions.map((question, index) => (
-          <div key={question.id} className="border border-gray-200 rounded-lg p-4 space-y-4">
-            <h3 className="font-semibold text-gray-900">Question {index + 1}</h3>
-            <p className="text-gray-700 mb-4">{question.question_text}</p>
-            <div className="space-y-2">
+          <div
+            key={question.id}
+            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+          >
+            {/* Question header */}
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+                {index + 1}
+              </div>
+              <p className="text-lg text-slate-800 font-medium leading-relaxed pt-1">
+                {question.question_text}
+              </p>
+            </div>
+
+            {/* Answer options */}
+            <div className="grid gap-3 sm:grid-cols-2">
               {(['a', 'b', 'c', 'd'] as const).map((option) => {
                 const optionKey = `option_${option}` as keyof QuizQuestion;
                 const optionText = question[optionKey] as string | null;
+                const isSelected = answers[question.id] === option;
+                const colors = optionColors[option];
 
                 if (!optionText) return null;
 
                 return (
-                  <label key={option} className="flex items-center space-x-3 p-3 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer">
+                  <label
+                    key={option}
+                    className={`
+                      relative flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer
+                      transition-all duration-200 transform hover:scale-[1.02]
+                      ${isSelected ? colors.selected : colors.bg}
+                      ${isSelected ? 'ring-2 ring-offset-2 ' + colors.ring : ''}
+                    `}
+                  >
                     <input
                       type="radio"
                       name={`question-${question.id}`}
                       value={option}
-                      checked={answers[question.id] === option}
+                      checked={isSelected}
                       onChange={() => updateAnswer(question.id, option)}
-                      className="rounded"
+                      className="sr-only"
                       required
                     />
-                    <span className="text-sm">{option.toUpperCase()}. {optionText}</span>
+                    <span className={`
+                      w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0
+                      ${isSelected ? 'bg-white/30' : 'bg-white border-2 border-current'}
+                    `}>
+                      {option.toUpperCase()}
+                    </span>
+                    <span className="font-medium">{optionText}</span>
+                    {isSelected && (
+                      <span className="absolute right-3 text-xl">✓</span>
+                    )}
                   </label>
                 );
               })}
             </div>
           </div>
         ))}
-        {error && <div className="text-red-600 text-sm">{error}</div>}
-        <div className="flex justify-end space-x-3 pt-4">
+
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-xl flex items-center gap-3">
+            <span className="text-2xl">⚠️</span>
+            <span className="font-medium">{error}</span>
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md"
+            className="flex-1 py-4 px-6 text-slate-600 hover:text-slate-800 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl font-semibold transition-all"
           >
             Cancel
           </button>
           <button
             type="submit"
-            disabled={submitting}
-            className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={submitting || answeredCount < questions.length}
+            className={`
+              flex-1 py-4 px-6 rounded-xl font-bold text-lg transition-all
+              flex items-center justify-center gap-3
+              ${answeredCount === questions.length
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/30'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }
+            `}
           >
-            <Send size={20} />
-            <span>{submitting ? 'Submitting...' : 'Submit Quiz'}</span>
+            {submitting ? (
+              <>
+                <div className="spinner !w-5 !h-5 !border-white !border-t-transparent"></div>
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <>
+                <Send size={22} />
+                <span>Submit Quiz</span>
+              </>
+            )}
           </button>
         </div>
+
+        {answeredCount < questions.length && (
+          <p className="text-center text-sm text-slate-500">
+            Answer all questions to submit ({questions.length - answeredCount} remaining)
+          </p>
+        )}
       </form>
-      {timeLeft > 0 && (
-        <div className="mt-4 text-center text-sm text-gray-500">
-          Time left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
-        </div>
-      )}
     </div>
   );
 }
