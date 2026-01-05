@@ -543,15 +543,22 @@ router.get('/students/all/progress', authenticate, (req: AuthRequest, res: Respo
 
     const studentsProgress = db.prepare(`
       SELECT
-        p.id,
-        p.name,
+        p.id as student_id,
+        p.name as student_name,
         p.avatar,
         p.age,
         sc.name as class_name,
         sc.id as class_id,
         COUNT(DISTINCT sa.id) as total_assignments,
-        COUNT(DISTINCT ss.id) as submitted_assignments,
-        COUNT(DISTINCT CASE WHEN ss.status = 'approved' THEN ss.id END) as approved_assignments
+        COUNT(DISTINCT ss.id) as submitted_count,
+        COUNT(DISTINCT CASE WHEN ss.status = 'approved' THEN ss.id END) as approved_count,
+        COUNT(DISTINCT CASE WHEN ss.status = 'needs_revision' THEN ss.id END) as needs_revision_count,
+        COUNT(DISTINCT sa.id) - COUNT(DISTINCT ss.id) as pending_count,
+        CASE
+          WHEN COUNT(DISTINCT sa.id) > 0
+          THEN ROUND(COUNT(DISTINCT ss.id) * 100.0 / COUNT(DISTINCT sa.id), 0)
+          ELSE 0
+        END as completion_rate
       FROM profiles p
       LEFT JOIN school_enrollments e ON p.id = e.student_id
       LEFT JOIN school_classes sc ON e.class_id = sc.id

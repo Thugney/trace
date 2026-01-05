@@ -198,27 +198,28 @@ export default function SchoolDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
-      <div className="flex items-center justify-between mb-8">
+      {/* Header - responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tigrinya Church School</h1>
-          <p className="text-gray-600 mt-1">Manage classes, assignments, and student progress</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tigrinya Church School</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Manage classes, assignments, and student progress</p>
         </div>
         {currentProfile.type === 'teacher' && (
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/school/enroll"
-              className="btn btn-secondary flex items-center"
+              className="btn btn-secondary flex items-center text-sm"
             >
-              <Users size={20} className="mr-2" />
-              Manage Enrollment
+              <Users size={18} className="mr-1.5" />
+              <span className="hidden sm:inline">Manage</span> Enrollment
             </Link>
             {activeTab === 'assignments' && (
               <button
                 onClick={() => setShowCreateForm(true)}
-                className="btn btn-primary flex items-center"
+                className="btn btn-primary flex items-center text-sm"
               >
-                <Plus size={20} className="mr-2" />
-                New Assignment
+                <Plus size={18} className="mr-1.5" />
+                <span className="hidden sm:inline">New</span> Assignment
               </button>
             )}
           </div>
@@ -249,40 +250,40 @@ export default function SchoolDashboard() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-6 border-b border-gray-200">
-        <div className="flex space-x-8">
+      {/* Tabs - responsive */}
+      <div className="mb-6 border-b border-gray-200 overflow-x-auto">
+        <div className="flex space-x-4 sm:space-x-8 min-w-max">
           <button
             onClick={() => setActiveTab('assignments')}
-            className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
+            className={`pb-3 sm:pb-4 px-1 border-b-2 font-medium transition-colors flex items-center text-sm sm:text-base whitespace-nowrap ${
               activeTab === 'assignments'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <FileText size={20} className="inline mr-2" />
+            <FileText size={18} className="mr-1.5 sm:mr-2" />
             Assignments
           </button>
           <button
             onClick={() => setActiveTab('students')}
-            className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
+            className={`pb-3 sm:pb-4 px-1 border-b-2 font-medium transition-colors flex items-center text-sm sm:text-base whitespace-nowrap ${
               activeTab === 'students'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <Users size={20} className="inline mr-2" />
+            <Users size={18} className="mr-1.5 sm:mr-2" />
             Students
           </button>
           <button
             onClick={() => setActiveTab('submissions')}
-            className={`pb-4 px-1 border-b-2 font-medium transition-colors ${
+            className={`pb-3 sm:pb-4 px-1 border-b-2 font-medium transition-colors flex items-center text-sm sm:text-base whitespace-nowrap ${
               activeTab === 'submissions'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            <CheckCircle size={20} className="inline mr-2" />
+            <CheckCircle size={18} className="mr-1.5 sm:mr-2" />
             Progress
           </button>
         </div>
@@ -417,60 +418,112 @@ export default function SchoolDashboard() {
               <p className="text-gray-600">No student progress data available yet.</p>
             </div>
           ) : (
-            <div className="card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Total Assignments
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Submitted
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Approved
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Completion Rate
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {studentsProgress.map((progress) => (
-                      <tr key={progress.student_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{progress.student_name}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {progress.total_assignments}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {progress.submitted_count}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {progress.approved_count}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
-                              <div
-                                className="bg-green-600 h-2 rounded-full"
-                                style={{ width: `${progress.completion_rate}%` }}
-                              />
-                            </div>
-                            <span className="text-sm text-gray-700">{progress.completion_rate}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <>
+              {/* Mobile view - cards */}
+              <div className="block md:hidden space-y-3">
+                {studentsProgress.map((progress: any) => (
+                  <div key={progress.student_id} className="card p-4">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <span className="text-3xl">{progress.avatar || '👤'}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 truncate">{progress.student_name || 'Unknown'}</h3>
+                        {progress.class_name && (
+                          <p className="text-sm text-gray-500">{progress.class_name}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold text-green-600">{progress.completion_rate || 0}%</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div
+                        className="bg-green-600 h-2 rounded-full transition-all"
+                        style={{ width: `${progress.completion_rate || 0}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-sm">
+                      <div className="bg-blue-50 rounded-lg p-2">
+                        <div className="font-bold text-blue-700">{progress.total_assignments || 0}</div>
+                        <div className="text-xs text-blue-600">Total</div>
+                      </div>
+                      <div className="bg-yellow-50 rounded-lg p-2">
+                        <div className="font-bold text-yellow-700">{progress.submitted_count || 0}</div>
+                        <div className="text-xs text-yellow-600">Submitted</div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-2">
+                        <div className="font-bold text-green-700">{progress.approved_count || 0}</div>
+                        <div className="text-xs text-green-600">Approved</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+
+              {/* Desktop view - table */}
+              <div className="hidden md:block card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Student
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Class
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Submitted
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Approved
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Progress
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {studentsProgress.map((progress: any) => (
+                        <tr key={progress.student_id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-2xl">{progress.avatar || '👤'}</span>
+                              <span className="font-medium text-gray-900">{progress.student_name || 'Unknown'}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {progress.class_name || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {progress.total_assignments || 0}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {progress.submitted_count || 0}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {progress.approved_count || 0}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2 min-w-[80px]">
+                                <div
+                                  className="bg-green-600 h-2 rounded-full"
+                                  style={{ width: `${progress.completion_rate || 0}%` }}
+                                />
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">{progress.completion_rate || 0}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
