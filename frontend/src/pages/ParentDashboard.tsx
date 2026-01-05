@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
+import { useToast } from '../components/Toast';
 import { profilesAPI, schoolAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
 import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap, Clock, FileCheck, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
+  const toast = useToast();
   const [children, setChildren] = useState<Profile[]>([]);
   const [childrenStats, setChildrenStats] = useState<any[]>([]);
   const [childrenSchoolProgress, setChildrenSchoolProgress] = useState<any[]>([]);
@@ -101,10 +103,11 @@ export default function ParentDashboard() {
       setGeneratingForChild(childId);
       await aiGamificationAPI.generateChallenges(childId, 3);
       await loadAISuggestions();
+      toast.success('AI challenges generated! Review them below.');
     } catch (error: any) {
       console.error('Failed to generate challenges:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to generate challenges';
-      alert(`Error: ${errorMsg}`);
+      toast.error(errorMsg);
     } finally {
       setGeneratingForChild(null);
     }
@@ -115,8 +118,10 @@ export default function ParentDashboard() {
     try {
       await aiGamificationAPI.approveSuggestion(suggestion.id, currentProfile.id);
       setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+      toast.success(`Challenge "${suggestion.title}" approved!`);
     } catch (error) {
       console.error('Failed to approve suggestion:', error);
+      toast.error('Failed to approve challenge');
     }
   };
 
@@ -125,8 +130,10 @@ export default function ParentDashboard() {
     try {
       await aiGamificationAPI.rejectSuggestion(suggestion.id, currentProfile.id, 'Parent rejected');
       setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+      toast.info('Challenge rejected');
     } catch (error) {
       console.error('Failed to reject suggestion:', error);
+      toast.error('Failed to reject challenge');
     }
   };
 
