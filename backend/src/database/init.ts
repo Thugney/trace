@@ -963,7 +963,49 @@ export function initDatabase() {
     console.error('Migration error (notes tags):', error.message);
   }
 
-  console.log('✅ Database initialized successfully');
+  // Migration: Add goal_category, reward_image, current_points to monthly_goals table
+  try {
+    const goalsInfo: any[] = db.prepare('PRAGMA table_info(monthly_goals)').all();
+    const hasCategory = goalsInfo.some((col: any) => col.name === 'goal_category');
+    const hasRewardImage = goalsInfo.some((col: any) => col.name === 'reward_image');
+    const hasCurrentPoints = goalsInfo.some((col: any) => col.name === 'current_points');
+
+    if (!hasCategory) {
+      console.log('Migrating monthly_goals table: adding goal_category column...');
+      db.prepare("ALTER TABLE monthly_goals ADD COLUMN goal_category TEXT DEFAULT 'monthly'").run();
+      console.log('Migration completed: goal_category column added');
+    }
+
+    if (!hasRewardImage) {
+      console.log('Migrating monthly_goals table: adding reward_image column...');
+      db.prepare('ALTER TABLE monthly_goals ADD COLUMN reward_image TEXT').run();
+      console.log('Migration completed: reward_image column added');
+    }
+
+    if (!hasCurrentPoints) {
+      console.log('Migrating monthly_goals table: adding current_points column...');
+      db.prepare('ALTER TABLE monthly_goals ADD COLUMN current_points INTEGER DEFAULT 0').run();
+      console.log('Migration completed: current_points column added');
+    }
+  } catch (error: any) {
+    console.error('Migration error (monthly_goals enhancements):', error.message);
+  }
+
+  // Create goal_milestones table for milestone rewards
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS goal_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      goal_id INTEGER NOT NULL,
+      milestone_points INTEGER NOT NULL,
+      milestone_reward TEXT NOT NULL,
+      achieved BOOLEAN DEFAULT 0,
+      achieved_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (goal_id) REFERENCES monthly_goals(id) ON DELETE CASCADE
+    )
+  `);
+
+  console.log('Database initialized successfully');
 }
 
 export default db;

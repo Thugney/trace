@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, gamificationAPI, goalsAPI } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI, GoalWithMilestones } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock } from 'lucide-react';
 
 // Avatar categories with emojis
 const AVATAR_CATEGORIES = [
@@ -122,6 +122,8 @@ export default function ChildDashboard() {
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [goalHistory, setGoalHistory] = useState<{ goals: any[]; stats: { totalAchieved: number; totalPointsEarned: number } }>({ goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
   const [showGoalHistory, setShowGoalHistory] = useState(false);
+  const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
+  const [activeGoalCategory, setActiveGoalCategory] = useState<string>('all');
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -129,14 +131,15 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes, activeGoalsRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
           gamificationAPI.getProfileAchievements(currentProfile.id),
           gamificationAPI.getChallenges(currentProfile.id),
           gamificationAPI.getWeeklySummary(currentProfile.id),
-          goalsAPI.getHistory(currentProfile.id, 10)
+          goalsAPI.getHistory(currentProfile.id, 10),
+          goalsAPI.getActive(currentProfile.id)
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
@@ -145,6 +148,7 @@ export default function ChildDashboard() {
         setChallenges(challengesRes.data);
         setWeeklySummary(weeklyRes.data);
         setGoalHistory(goalHistoryRes.data);
+        setActiveGoals(activeGoalsRes.data);
 
         // Load leaderboard if child has a parent
         if (currentProfile.parent_id) {
@@ -541,6 +545,135 @@ export default function ChildDashboard() {
           <p className="text-gray-600">Complete tasks and drink water to earn achievements!</p>
         )}
       </div>
+
+      {/* Active Goals - Multiple Simultaneous Goals */}
+      {activeGoals.length > 0 && (
+        <div className="rounded-2xl p-5 bg-gradient-to-r from-violet-100 to-fuchsia-100 border-2 border-violet-300 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Target className="text-violet-600" size={24} />
+              My Goals ({activeGoals.length})
+            </h3>
+            {/* Category Filter */}
+            <div className="flex gap-1">
+              {['all', 'weekly', 'monthly', 'long-term'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveGoalCategory(cat)}
+                  className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    activeGoalCategory === cat
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-white/70 text-violet-700 hover:bg-white'
+                  }`}
+                >
+                  {cat === 'all' ? 'All' : cat === 'long-term' ? 'Long' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-4">
+            {activeGoals
+              .filter(goal => activeGoalCategory === 'all' || goal.goal_category === activeGoalCategory)
+              .map((goal) => {
+                const progress = goal.goal_points > 0
+                  ? Math.min(100, ((goal.current_points || 0) / goal.goal_points) * 100)
+                  : 0;
+                const categoryColors: Record<string, string> = {
+                  weekly: 'bg-blue-100 text-blue-700 border-blue-300',
+                  monthly: 'bg-green-100 text-green-700 border-green-300',
+                  'long-term': 'bg-purple-100 text-purple-700 border-purple-300'
+                };
+                const categoryEmoji: Record<string, string> = {
+                  weekly: '7d',
+                  monthly: '30d',
+                  'long-term': '90d+'
+                };
+
+                return (
+                  <div key={goal.id} className="bg-white rounded-xl p-4 border border-violet-200 shadow-sm">
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* Reward Image / Emoji */}
+                      <div className="text-4xl flex-shrink-0">
+                        {goal.reward_image || (goal.goal_type === 'kroner' ? '💰' : goal.goal_type === 'toy' ? '🎁' : goal.goal_type === 'activity' ? '🎪' : '🎯')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <h4 className="font-bold text-gray-900">{goal.goal_description}</h4>
+                          {goal.goal_category && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${categoryColors[goal.goal_category] || 'bg-gray-100 text-gray-700'}`}>
+                              <Clock size={10} className="inline mr-1" />
+                              {categoryEmoji[goal.goal_category]}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-semibold text-violet-600">{goal.current_points || 0}</span>
+                          <span>/</span>
+                          <span>{goal.goal_points} points</span>
+                          {goal.total_milestones && goal.total_milestones > 0 && (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <Gift size={14} />
+                              {goal.milestones_achieved || 0}/{goal.total_milestones}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-3">
+                      <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                          className="bg-gradient-to-r from-violet-500 to-fuchsia-500 h-3 rounded-full transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs mt-1">
+                        <span className="text-gray-500">{Math.round(progress)}% complete</span>
+                        <span className="text-violet-600 font-medium">{goal.goal_points - (goal.current_points || 0)} to go</span>
+                      </div>
+                    </div>
+
+                    {/* Milestones */}
+                    {goal.milestones && goal.milestones.length > 0 && (
+                      <div className="border-t border-violet-100 pt-3">
+                        <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center gap-1">
+                          <Gift size={12} className="text-amber-500" />
+                          Milestone Rewards
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {goal.milestones.map((milestone) => (
+                            <div
+                              key={milestone.id}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 ${
+                                milestone.achieved
+                                  ? 'bg-green-100 text-green-700 border border-green-300'
+                                  : (goal.current_points || 0) >= milestone.milestone_points * 0.8
+                                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  : 'bg-gray-50 text-gray-500 border border-gray-200'
+                              }`}
+                              title={`${milestone.milestone_points} points: ${milestone.milestone_reward}`}
+                            >
+                              {milestone.achieved ? (
+                                <CheckCircle size={12} className="text-green-600" />
+                              ) : (
+                                <span className="text-[10px]">{milestone.milestone_points}pts</span>
+                              )}
+                              <span>{milestone.milestone_reward}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+          {activeGoals.filter(goal => activeGoalCategory === 'all' || goal.goal_category === activeGoalCategory).length === 0 && (
+            <p className="text-center text-gray-500 py-4">No goals in this category</p>
+          )}
+        </div>
+      )}
 
       {/* Goal History */}
       <div className="rounded-2xl p-5 bg-gradient-to-r from-emerald-100 to-teal-100 border-2 border-emerald-300 mb-6">

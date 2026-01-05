@@ -28,7 +28,7 @@ router.get('/:profileId', (req, res) => {
   }
 });
 
-// Get current month's goal
+// Get current month's goal (legacy - returns single goal)
 router.get('/:profileId/current', (req, res) => {
   try {
     const { profileId } = req.params;
@@ -39,6 +39,44 @@ router.get('/:profileId/current', (req, res) => {
     ).get(profileId, currentMonth);
 
     res.json(goal || null);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all active (non-achieved) goals for a profile - supports multiple simultaneous goals
+router.get('/:profileId/active', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { category } = req.query;
+
+    let query = `
+      SELECT mg.*,
+        (SELECT COUNT(*) FROM goal_milestones gm WHERE gm.goal_id = mg.id AND gm.achieved = 1) as milestones_achieved,
+        (SELECT COUNT(*) FROM goal_milestones gm WHERE gm.goal_id = mg.id) as total_milestones
+      FROM monthly_goals mg
+      WHERE mg.profile_id = ? AND mg.achieved = 0 AND mg.parent_approved = 1
+    `;
+    const params: any[] = [profileId];
+
+    if (category && category !== 'all') {
+      query += ' AND mg.goal_category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY mg.created_at DESC';
+
+    const goals = db.prepare(query).all(...params);
+
+    // Get milestones for each goal
+    const goalsWithMilestones = goals.map((goal: any) => {
+      const milestones = db.prepare(
+        'SELECT * FROM goal_milestones WHERE goal_id = ? ORDER BY milestone_points ASC'
+      ).all(goal.id);
+      return { ...goal, milestones };
+    });
+
+    res.json(goalsWithMilestones);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -83,7 +121,7 @@ router.get('/:profileId/history', (req, res) => {
 // Create monthly goal
 router.post('/', (req, res) => {
   try {
-    const { profile_id, month, goal_description, goal_points, goal_type, notes, created_by } = req.body;
+    const { profile_id, month, goal_description, goal_points, goal_type, goal_category, reward_image, notes, created_by, milestones } = req.body;
 
     if (!profile_id || !month || !goal_description || !goal_points) {
       return res.status(400).json({
@@ -105,11 +143,39 @@ router.post('/', (req, res) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, goal_type, notes, created_by, parent_approved, approved_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(profile_id, month, goal_description, goal_points, goal_type || 'kroner', notes || null, created_by || null, parentApproved, approvedBy);
+      INSERT INTO monthly_goals (profile_id, month, goal_description, goal_points, goal_type, goal_category, reward_image, notes, created_by, parent_approved, approved_by, current_points)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+    `).run(
+      profile_id,
+      month,
+      goal_description,
+      goal_points,
+      goal_type || 'kroner',
+      goal_category || 'monthly',
+      reward_image || null,
+      notes || null,
+      created_by || null,
+      parentApproved,
+      approvedBy
+    );
 
-    const newGoal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(result.lastInsertRowid);
+    const goalId = result.lastInsertRowid;
+
+    // Create milestones if provided
+    if (milestones && Array.isArray(milestones)) {
+      const insertMilestone = db.prepare(`
+        INSERT INTO goal_milestones (goal_id, milestone_points, milestone_reward)
+        VALUES (?, ?, ?)
+      `);
+      for (const milestone of milestones) {
+        if (milestone.points && milestone.reward) {
+          insertMilestone.run(goalId, milestone.points, milestone.reward);
+        }
+      }
+    }
+
+    const newGoal: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(goalId);
+    const goalMilestones = db.prepare('SELECT * FROM goal_milestones WHERE goal_id = ? ORDER BY milestone_points ASC').all(goalId);
 
     // Send notification if child created a goal (needs approval)
     if (!parentApproved && created_by) {
@@ -119,7 +185,7 @@ router.post('/', (req, res) => {
       }
     }
 
-    res.status(201).json(newGoal);
+    res.status(201).json({ ...newGoal, milestones: goalMilestones });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -129,7 +195,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const { goal_description, goal_points, goal_type, achieved, reward_given, notes } = req.body;
+    const { goal_description, goal_points, goal_type, goal_category, reward_image, achieved, reward_given, notes } = req.body;
 
     // Get goal before update to check if being marked as achieved
     const beforeUpdate: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
@@ -148,6 +214,14 @@ router.put('/:id', (req, res) => {
     if (goal_type !== undefined) {
       updates.push('goal_type = ?');
       values.push(goal_type);
+    }
+    if (goal_category !== undefined) {
+      updates.push('goal_category = ?');
+      values.push(goal_category);
+    }
+    if (reward_image !== undefined) {
+      updates.push('reward_image = ?');
+      values.push(reward_image);
     }
     if (achieved !== undefined) {
       updates.push('achieved = ?');
@@ -257,6 +331,133 @@ router.post('/:profileId/bonus-points', (req, res) => {
       message: 'Bonus points awarded!',
       progress: bonusEntry
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add progress to a goal (points toward goal completion)
+router.post('/:id/add-progress', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { points, reason } = req.body;
+
+    if (!points || points <= 0) {
+      return res.status(400).json({ error: 'Points must be a positive number' });
+    }
+
+    // Get current goal
+    const goal: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+    if (!goal) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+
+    if (goal.achieved) {
+      return res.status(400).json({ error: 'Goal is already achieved' });
+    }
+
+    const newPoints = (goal.current_points || 0) + points;
+    const goalAchieved = newPoints >= goal.goal_points;
+
+    // Update goal progress
+    db.prepare(`
+      UPDATE monthly_goals
+      SET current_points = ?, achieved = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(newPoints, goalAchieved ? 1 : 0, id);
+
+    // Check for newly achieved milestones
+    const newlyAchievedMilestones = db.prepare(`
+      UPDATE goal_milestones
+      SET achieved = 1, achieved_at = CURRENT_TIMESTAMP
+      WHERE goal_id = ? AND milestone_points <= ? AND achieved = 0
+    `).run(id, newPoints);
+
+    // Get updated goal with milestones
+    const updatedGoal: any = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+    const milestones = db.prepare('SELECT * FROM goal_milestones WHERE goal_id = ? ORDER BY milestone_points ASC').all(id);
+
+    // Get just-achieved milestones for notification
+    const justAchieved = db.prepare(`
+      SELECT * FROM goal_milestones
+      WHERE goal_id = ? AND achieved = 1 AND achieved_at >= datetime('now', '-1 minute')
+      ORDER BY milestone_points ASC
+    `).all(id);
+
+    // Send notification if goal was just achieved
+    if (goalAchieved && !goal.achieved) {
+      const profile: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(updatedGoal.profile_id);
+      if (profile && profile.type === 'child') {
+        NotificationHelpers.goalAchieved(updatedGoal.profile_id, profile.name, updatedGoal.goal_description).catch(console.error);
+      }
+    }
+
+    res.json({
+      goal: { ...updatedGoal, milestones },
+      pointsAdded: points,
+      newTotal: newPoints,
+      goalAchieved,
+      milestonesAchieved: justAchieved,
+      reason
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get milestones for a goal
+router.get('/:id/milestones', (req, res) => {
+  try {
+    const { id } = req.params;
+    const milestones = db.prepare(`
+      SELECT * FROM goal_milestones WHERE goal_id = ? ORDER BY milestone_points ASC
+    `).all(id);
+    res.json(milestones);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add milestone to a goal
+router.post('/:id/milestones', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { milestone_points, milestone_reward } = req.body;
+
+    if (!milestone_points || !milestone_reward) {
+      return res.status(400).json({ error: 'milestone_points and milestone_reward are required' });
+    }
+
+    // Check goal exists
+    const goal = db.prepare('SELECT * FROM monthly_goals WHERE id = ?').get(id);
+    if (!goal) {
+      return res.status(404).json({ error: 'Goal not found' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO goal_milestones (goal_id, milestone_points, milestone_reward)
+      VALUES (?, ?, ?)
+    `).run(id, milestone_points, milestone_reward);
+
+    const newMilestone = db.prepare('SELECT * FROM goal_milestones WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(newMilestone);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete milestone
+router.delete('/:goalId/milestones/:milestoneId', (req, res) => {
+  try {
+    const { goalId, milestoneId } = req.params;
+
+    const result = db.prepare('DELETE FROM goal_milestones WHERE id = ? AND goal_id = ?').run(milestoneId, goalId);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    res.json({ message: 'Milestone deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

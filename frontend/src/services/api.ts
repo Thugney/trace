@@ -215,19 +215,52 @@ export const notesAPI = {
   delete: (id: number) => api.delete(`/notes/${id}`)
 };
 
+// Milestone type for goals
+export interface GoalMilestone {
+  id: number;
+  goal_id: number;
+  milestone_points: number;
+  milestone_reward: string;
+  achieved: boolean;
+  achieved_at?: string;
+  created_at: string;
+}
+
+// Extended MonthlyGoal with new fields
+export interface GoalWithMilestones extends MonthlyGoal {
+  goal_category?: 'weekly' | 'monthly' | 'long-term';
+  reward_image?: string;
+  current_points?: number;
+  milestones?: GoalMilestone[];
+  milestones_achieved?: number;
+  total_milestones?: number;
+}
+
 // Monthly Goals
 export const goalsAPI = {
   getByProfile: (profileId: number, month?: string) =>
     api.get<MonthlyGoal[]>(`/goals/${profileId}`, { params: { month } }),
   getCurrent: (profileId: number) => api.get<MonthlyGoal | null>(`/goals/${profileId}/current`),
+  getActive: (profileId: number, category?: string) =>
+    api.get<GoalWithMilestones[]>(`/goals/${profileId}/active`, { params: { category } }),
   getHistory: (profileId: number, limit?: number) =>
     api.get<{ goals: MonthlyGoal[]; stats: { totalAchieved: number; totalPointsEarned: number; lastAchievement: string | null } }>(
       `/goals/${profileId}/history`,
       { params: { limit } }
     ),
-  create: (data: Partial<MonthlyGoal>) => api.post<MonthlyGoal>('/goals', data),
-  update: (id: number, data: Partial<MonthlyGoal>) => api.put<MonthlyGoal>(`/goals/${id}`, data),
+  create: (data: Partial<GoalWithMilestones> & { milestones?: { points: number; reward: string }[] }) =>
+    api.post<GoalWithMilestones>('/goals', data),
+  update: (id: number, data: Partial<GoalWithMilestones>) => api.put<MonthlyGoal>(`/goals/${id}`, data),
   delete: (id: number) => api.delete(`/goals/${id}`),
+  addProgress: (id: number, points: number, reason?: string) =>
+    api.post<{
+      goal: GoalWithMilestones;
+      pointsAdded: number;
+      newTotal: number;
+      goalAchieved: boolean;
+      milestonesAchieved: GoalMilestone[];
+      reason?: string;
+    }>(`/goals/${id}/add-progress`, { points, reason }),
   awardBonusPoints: (profileId: number, points: number, stars: number, reason: string) =>
     api.post<{ message: string; progress: Progress }>(`/goals/${profileId}/bonus-points`, {
       points,
@@ -239,7 +272,14 @@ export const goalsAPI = {
   reject: (id: number, rejected_by: number) =>
     api.post<{ message: string }>(`/goals/${id}/reject`, { rejected_by }),
   getPending: (parentId: number) =>
-    api.get<MonthlyGoal[]>(`/goals/pending/${parentId}`)
+    api.get<MonthlyGoal[]>(`/goals/pending/${parentId}`),
+  // Milestones
+  getMilestones: (goalId: number) =>
+    api.get<GoalMilestone[]>(`/goals/${goalId}/milestones`),
+  addMilestone: (goalId: number, milestone_points: number, milestone_reward: string) =>
+    api.post<GoalMilestone>(`/goals/${goalId}/milestones`, { milestone_points, milestone_reward }),
+  deleteMilestone: (goalId: number, milestoneId: number) =>
+    api.delete(`/goals/${goalId}/milestones/${milestoneId}`)
 };
 
 // School (Tigrinya Church School)

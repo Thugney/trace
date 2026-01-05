@@ -52,17 +52,17 @@ Currently it looks like a calorie logger, not a diet tracker. A true diet tracke
 - [] No meal templates - "Save this as typical breakfast"
 6. Monthly Goal Setup Analysis
 How Goal Setup Actually Works (or should work):
-- [] Child sets a goal ("Earn 100 kroner" or "Get new toy")
-- [] Child specifies points needed (e.g., 500 points)
-- [] Child completes tasks to earn points toward goal
-- [] When points reach target, goal is achieved
-- [] Parent verifies and provides reward
-Missing Features:
- Progress visualization - Progress bar showing how close to goal
-- [] Multiple simultaneous goals - Kids might want several things
-- [] Goal categories - Short-term (weekly), Medium-term (monthly), Long-term
-- [] Reward images - Let kids add a picture of what they want
-- [] Milestone rewards - "At 250 points, you get a small treat"
+- [x] Child sets a goal ("Earn 100 kroner" or "Get new toy") - Goals API with create endpoint
+- [x] Child specifies points needed (e.g., 500 points) - goal_points field
+- [x] Child completes tasks to earn points toward goal - add-progress endpoint
+- [x] When points reach target, goal is achieved - Auto-achievement on progress
+- [x] Parent verifies and provides reward - Parent approval flow
+6.1 Missing Features:
+- [x] Progress visualization - Progress bar showing how close to goal - Added in ChildDashboard active goals section
+- [x] Multiple simultaneous goals - Kids might want several things - Added active goals endpoint with category filter
+- [x] Goal categories - Short-term (weekly), Medium-term (monthly), Long-term - Added goal_category column and UI filter
+- [x] Reward images - Let kids add a picture of what they want - Added reward_image column and emoji display
+- [x] Milestone rewards - "At 250 points, you get a small treat" - Added goal_milestones table with progress tracking
 - [x] Goal history - "Goals you've achieved!" - Added goals/history API endpoint, goal history section in ChildDashboard with achieved goals list and stats
 
 7. Gamification Analysis for Kids
