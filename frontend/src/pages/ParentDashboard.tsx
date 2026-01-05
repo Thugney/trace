@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, schoolAPI } from '../services/api';
+import { profilesAPI, schoolAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap, Clock, FileCheck } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Utensils, BookOpen, Award, GraduationCap, Clock, FileCheck, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw } from 'lucide-react';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
@@ -11,10 +11,19 @@ export default function ParentDashboard() {
   const [childrenStats, setChildrenStats] = useState<any[]>([]);
   const [childrenSchoolProgress, setChildrenSchoolProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiSuggestions, setAiSuggestions] = useState<(AISuggestion & { child_name: string })[]>([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [generatingForChild, setGeneratingForChild] = useState<number | null>(null);
 
   useEffect(() => {
     loadFamilyData();
   }, [currentProfile]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadAISuggestions();
+    }
+  }, [currentProfile?.id]);
 
   const loadFamilyData = async () => {
     if (!currentProfile) return;
@@ -70,6 +79,61 @@ export default function ParentDashboard() {
       console.error('Failed to load family data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAISuggestions = async () => {
+    if (!currentProfile) return;
+    try {
+      setLoadingAI(true);
+      const response = await aiGamificationAPI.getPendingSuggestions(currentProfile.id);
+      setAiSuggestions(response.data);
+    } catch (error) {
+      console.error('Failed to load AI suggestions:', error);
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
+  const generateChallenges = async (childId: number) => {
+    if (!currentProfile) return;
+    try {
+      setGeneratingForChild(childId);
+      await aiGamificationAPI.generateChallenges(childId, 3);
+      await loadAISuggestions();
+    } catch (error) {
+      console.error('Failed to generate challenges:', error);
+    } finally {
+      setGeneratingForChild(null);
+    }
+  };
+
+  const approveSuggestion = async (suggestion: AISuggestion) => {
+    if (!currentProfile) return;
+    try {
+      await aiGamificationAPI.approveSuggestion(suggestion.id, currentProfile.id);
+      setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    } catch (error) {
+      console.error('Failed to approve suggestion:', error);
+    }
+  };
+
+  const rejectSuggestion = async (suggestion: AISuggestion) => {
+    if (!currentProfile) return;
+    try {
+      await aiGamificationAPI.rejectSuggestion(suggestion.id, currentProfile.id, 'Parent rejected');
+      setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
+    } catch (error) {
+      console.error('Failed to reject suggestion:', error);
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'easy': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'hard': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -304,6 +368,131 @@ export default function ParentDashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI-Generated Challenges */}
+      {children.length > 0 && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="text-purple-600" size={24} />
+              <h2 className="text-2xl font-bold text-gray-900">AI Personalized Challenges</h2>
+            </div>
+            <button
+              onClick={loadAISuggestions}
+              disabled={loadingAI}
+              className="btn btn-sm btn-secondary flex items-center space-x-1"
+            >
+              <RefreshCw size={16} className={loadingAI ? 'animate-spin' : ''} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
+          {/* Generate Challenges for Children */}
+          <div className="card mb-4 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
+            <div className="flex items-start space-x-3">
+              <Brain className="text-purple-600 flex-shrink-0 mt-1" size={24} />
+              <div className="flex-1">
+                <h3 className="font-semibold text-purple-900 mb-1">Generate AI Challenges</h3>
+                <p className="text-sm text-purple-700 mb-3">
+                  AI analyzes each child's behavior patterns, strengths, and areas to improve to create personalized challenges.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {children.map((child) => (
+                    <button
+                      key={child.id}
+                      onClick={() => generateChallenges(child.id)}
+                      disabled={generatingForChild === child.id}
+                      className="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center space-x-1"
+                    >
+                      {generatingForChild === child.id ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Zap size={14} />
+                          <span>Generate for {child.name}</span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending AI Suggestions */}
+          {aiSuggestions.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
+                <Target size={18} className="text-orange-500" />
+                <span>Pending Approval ({aiSuggestions.length})</span>
+              </h3>
+              {aiSuggestions.map((suggestion) => (
+                <div key={suggestion.id} className="card border-l-4 border-l-purple-500">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-lg font-semibold text-gray-900">{suggestion.title}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${getDifficultyColor(suggestion.difficulty)}`}>
+                          {suggestion.difficulty}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                          {suggestion.points_reward} pts
+                        </span>
+                        {suggestion.bonus_multiplier > 1 && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                            {suggestion.bonus_multiplier}x bonus
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
+                      {suggestion.reasoning && (
+                        <p className="text-xs text-purple-600 italic mb-2">
+                          <Brain size={12} className="inline mr-1" />
+                          AI reasoning: {suggestion.reasoning}
+                        </p>
+                      )}
+                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <span>For: <strong>{suggestion.child_name}</strong></span>
+                        <span>Duration: {suggestion.duration_days} days</span>
+                        {suggestion.target_value && suggestion.target_value > 1 && (
+                          <span>Target: {suggestion.target_value}x</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => approveSuggestion(suggestion)}
+                        className="btn btn-sm bg-green-600 hover:bg-green-700 text-white flex items-center space-x-1"
+                      >
+                        <ThumbsUp size={14} />
+                        <span>Approve</span>
+                      </button>
+                      <button
+                        onClick={() => rejectSuggestion(suggestion)}
+                        className="btn btn-sm bg-red-100 hover:bg-red-200 text-red-700 flex items-center space-x-1"
+                      >
+                        <ThumbsDown size={14} />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card bg-gray-50 text-center py-8">
+              <Sparkles size={32} className="mx-auto text-gray-400 mb-3" />
+              <p className="text-gray-600 mb-2">No pending AI suggestions</p>
+              <p className="text-sm text-gray-500">
+                Click "Generate" above to create personalized challenges for your children
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Children's School Progress */}
       {childrenSchoolProgress.length > 0 && (

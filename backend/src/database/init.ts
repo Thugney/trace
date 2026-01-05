@@ -1180,6 +1180,131 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_mystery_rewards_profile ON mystery_rewards(profile_id);
   `);
 
+  // ==================== AI PERSONALIZED GAMIFICATION ====================
+
+  // AI-generated suggestions awaiting parent approval
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_suggestions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      suggestion_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      reasoning TEXT,
+      difficulty TEXT DEFAULT 'medium',
+      points_reward INTEGER DEFAULT 0,
+      bonus_multiplier REAL DEFAULT 1.0,
+      target_value INTEGER,
+      duration_days INTEGER DEFAULT 7,
+      expires_at DATETIME,
+      status TEXT DEFAULT 'pending',
+      parent_response TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      reviewed_by INTEGER,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Custom challenges (approved AI suggestions or parent-created)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      challenge_type TEXT DEFAULT 'custom',
+      target_value INTEGER DEFAULT 1,
+      current_progress INTEGER DEFAULT 0,
+      points_reward INTEGER DEFAULT 0,
+      bonus_multiplier REAL DEFAULT 1.0,
+      difficulty TEXT DEFAULT 'medium',
+      is_ai_generated BOOLEAN DEFAULT 0,
+      ai_suggestion_id INTEGER,
+      created_by INTEGER,
+      starts_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL,
+      FOREIGN KEY (ai_suggestion_id) REFERENCES ai_suggestions(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Custom achievements (parent-created or AI-suggested)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT DEFAULT '🏆',
+      points_reward INTEGER DEFAULT 0,
+      requirement_description TEXT,
+      is_global BOOLEAN DEFAULT 0,
+      is_ai_generated BOOLEAN DEFAULT 0,
+      ai_suggestion_id INTEGER,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL,
+      FOREIGN KEY (ai_suggestion_id) REFERENCES ai_suggestions(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Track earned custom achievements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_achievement_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned BOOLEAN DEFAULT 0,
+      earned_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES custom_achievements(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, achievement_id)
+    )
+  `);
+
+  // Behavior analysis cache (stores computed insights)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS behavior_insights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL UNIQUE,
+      insights_json TEXT NOT NULL,
+      last_analyzed DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Parent focus areas (what parents want AI to emphasize)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS parent_focus_areas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      focus_type TEXT NOT NULL,
+      priority INTEGER DEFAULT 1,
+      notes TEXT,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create indexes for AI gamification tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ai_suggestions_profile ON ai_suggestions(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_ai_suggestions_status ON ai_suggestions(status);
+    CREATE INDEX IF NOT EXISTS idx_custom_challenges_profile ON custom_challenges(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_custom_achievements_profile ON custom_achievements(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_behavior_insights_profile ON behavior_insights(profile_id);
+  `);
+
   console.log('Database initialized successfully');
 }
 

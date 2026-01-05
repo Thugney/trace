@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, gamificationAPI, goalsAPI, GoalWithMilestones } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, GoalWithMilestones, CustomChallenge } from '../services/api';
 import { ProfileStats } from '../types';
 import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
 import playSounds from '../utils/sounds';
@@ -145,6 +145,9 @@ export default function ChildDashboard() {
   const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
   const [activeGoalCategory, setActiveGoalCategory] = useState<string>('all');
 
+  // AI Custom Challenges state
+  const [customChallenges, setCustomChallenges] = useState<CustomChallenge[]>([]);
+
   // Daily Login Bonus state
   const [showLoginBonus, setShowLoginBonus] = useState(false);
   const [loginBonusData, setLoginBonusData] = useState<{
@@ -169,7 +172,7 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes, activeGoalsRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes, activeGoalsRes, customChallengesRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
@@ -177,7 +180,8 @@ export default function ChildDashboard() {
           gamificationAPI.getChallenges(currentProfile.id),
           gamificationAPI.getWeeklySummary(currentProfile.id),
           goalsAPI.getHistory(currentProfile.id, 10),
-          goalsAPI.getActive(currentProfile.id)
+          goalsAPI.getActive(currentProfile.id),
+          aiGamificationAPI.getChallenges(currentProfile.id).catch(() => ({ data: [] }))
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data?.total_ml || 0, goal_ml: waterRes.data?.goal_ml || 2000 });
@@ -187,6 +191,7 @@ export default function ChildDashboard() {
         setWeeklySummary(weeklyRes.data || null);
         setGoalHistory(goalHistoryRes.data || { goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
         setActiveGoals(activeGoalsRes.data || []);
+        setCustomChallenges(customChallengesRes.data || []);
 
         // Load leaderboard if child has a parent
         if (currentProfile.parent_id) {
@@ -306,6 +311,28 @@ export default function ChildDashboard() {
       }
     } catch (error) {
       console.error('Failed to claim challenge:', error);
+    }
+  };
+
+  const updateCustomChallengeProgress = async (challengeId: number) => {
+    try {
+      const result = await aiGamificationAPI.updateChallengeProgress(challengeId);
+      if (result.data.just_completed) {
+        playSounds.challengeComplete();
+      } else {
+        playSounds.pointsEarned();
+      }
+      // Refresh custom challenges and stats
+      if (currentProfile) {
+        const [challengesRes, statsRes] = await Promise.all([
+          aiGamificationAPI.getChallenges(currentProfile.id),
+          profilesAPI.getStats(currentProfile.id)
+        ]);
+        setCustomChallenges(challengesRes.data);
+        setStats(statsRes.data);
+      }
+    } catch (error) {
+      console.error('Failed to update custom challenge:', error);
     }
   };
 
@@ -978,6 +1005,102 @@ export default function ChildDashboard() {
                         <div
                           className={`h-2 rounded-full transition-all ${
                             isComplete ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                        {challenge.current_progress}/{challenge.target_value}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* AI Personalized Challenges */}
+      {customChallenges.length > 0 && (
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 mb-6">
+          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Sparkles className="text-purple-600" size={24} />
+            Special Challenges For You 🎯
+          </h3>
+          <p className="text-sm text-purple-700 mb-3">These challenges were created just for you based on your progress!</p>
+          <div className="space-y-3">
+            {customChallenges.map((challenge) => {
+              const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+              const isComplete = challenge.current_progress >= challenge.target_value;
+              const totalReward = Math.round(challenge.points_reward * challenge.bonus_multiplier);
+              const daysLeft = challenge.expires_at
+                ? Math.max(0, Math.ceil((new Date(challenge.expires_at).getTime() - Date.now()) / 86400000))
+                : null;
+
+              return (
+                <div
+                  key={challenge.id}
+                  className={`p-4 rounded-xl border-2 ${
+                    challenge.completed
+                      ? 'bg-green-100 border-green-300'
+                      : isComplete
+                      ? 'bg-purple-100 border-purple-400 animate-pulse'
+                      : 'bg-white border-purple-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className={`font-semibold ${challenge.completed ? 'text-green-700' : 'text-gray-900'}`}>
+                          {challenge.completed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
+                          {challenge.title}
+                        </p>
+                        {challenge.is_ai_generated && (
+                          <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded-full">
+                            AI
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-1">{challenge.description}</p>
+                      <div className="flex items-center gap-3 text-xs">
+                        <span className="text-purple-600 font-medium">+{totalReward} points</span>
+                        {challenge.bonus_multiplier > 1 && (
+                          <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded">
+                            {challenge.bonus_multiplier}x bonus!
+                          </span>
+                        )}
+                        <span className={`px-1.5 py-0.5 rounded ${
+                          challenge.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                          challenge.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {challenge.difficulty}
+                        </span>
+                        {daysLeft !== null && daysLeft > 0 && !challenge.completed && (
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <Clock size={12} />
+                            {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!challenge.completed && challenge.target_value > 1 && (
+                      <button
+                        onClick={() => updateCustomChallengeProgress(challenge.id)}
+                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold flex items-center gap-1"
+                      >
+                        <CheckCircle size={14} />
+                        +1
+                      </button>
+                    )}
+                  </div>
+                  {!challenge.completed && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2.5">
+                        <div
+                          className={`h-2.5 rounded-full transition-all ${
+                            isComplete ? 'bg-green-500' : 'bg-purple-500'
                           }`}
                           style={{ width: `${progress}%` }}
                         />

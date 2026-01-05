@@ -534,6 +534,190 @@ export const gamificationAPI = {
     }>(`/gamification/streak-freeze/${profileId}`, { streak_type })
 };
 
+// AI Gamification API - Personalized AI-driven challenges
+export const aiGamificationAPI = {
+  // Behavior analysis
+  analyzeBehavior: (profileId: number) =>
+    api.get<{
+      profile_id: number;
+      analyzed_at: string;
+      summary: {
+        total_tasks: number;
+        completed_tasks: number;
+        pending_tasks: number;
+        completion_rate: string | number;
+        total_points: number;
+        current_level: number;
+        weekly_points: number;
+        task_velocity: string;
+        achievements_earned: number;
+      };
+      patterns: {
+        avoided_categories: string[];
+        loved_categories: string[];
+        most_active_hour: string | null;
+        most_active_day: string | null;
+        avg_tasks_per_day: string;
+        prefers_morning: boolean | null;
+        prefers_weekends: boolean | null;
+      };
+      streaks: {
+        task_current: number;
+        task_longest: number;
+        water_current: number;
+        water_longest: number;
+        at_risk: boolean;
+      };
+      goals: {
+        total: number;
+        achieved: number;
+        active: number;
+        pending_approval: number;
+      };
+      challenges: {
+        weekly_total: number;
+        weekly_completed: number;
+        completion_rate: string | number;
+      };
+      water: {
+        days_logged: number;
+        avg_daily_ml: number;
+        streak: number;
+      };
+      login: {
+        consecutive_days: number;
+        total_logins: number;
+      };
+      categories: Array<{
+        category: string;
+        total: number;
+        completed: number;
+        avg_points: number | null;
+      }>;
+      recent_completed: Array<{
+        title: string;
+        category: string;
+        points: number;
+        completed_at: string;
+      }>;
+      recent_pending: Array<{
+        title: string;
+        category: string;
+        due_date: string | null;
+        days_pending: number;
+      }>;
+    }>(`/ai-gamification/analyze/${profileId}`),
+
+  // Generate AI challenges
+  generateChallenges: (profileId: number, count?: number) =>
+    api.post<{
+      suggestions: AISuggestion[];
+      behavior_summary: any;
+      patterns: any;
+    }>(`/ai-gamification/generate/${profileId}`, { count: count || 3 }),
+
+  // Get pending suggestions for parent approval
+  getPendingSuggestions: (parentId: number) =>
+    api.get<(AISuggestion & { child_name: string })[]>(`/ai-gamification/suggestions/pending/${parentId}`),
+
+  // Approve a suggestion
+  approveSuggestion: (id: number, parentId: number, modifications?: {
+    title?: string;
+    description?: string;
+    points_reward?: number;
+    duration_days?: number;
+  }) => api.post<{ message: string; challenge: CustomChallenge }>(
+    `/ai-gamification/suggestions/${id}/approve`,
+    { parent_id: parentId, modifications }
+  ),
+
+  // Reject a suggestion
+  rejectSuggestion: (id: number, parentId: number, reason?: string) =>
+    api.post<{ message: string }>(`/ai-gamification/suggestions/${id}/reject`, { parent_id: parentId, reason }),
+
+  // Get active custom challenges for a profile
+  getChallenges: (profileId: number) =>
+    api.get<CustomChallenge[]>(`/ai-gamification/challenges/${profileId}`),
+
+  // Create a custom challenge (parent-created)
+  createChallenge: (data: {
+    profile_id: number;
+    title: string;
+    description?: string;
+    target_value?: number;
+    points_reward?: number;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    duration_days?: number;
+    created_by: number;
+  }) => api.post<CustomChallenge>('/ai-gamification/challenges', data),
+
+  // Update challenge progress
+  updateChallengeProgress: (challengeId: number, increment?: number) =>
+    api.post<{
+      challenge: CustomChallenge;
+      just_completed: boolean;
+    }>(`/ai-gamification/challenges/${challengeId}/progress`, { increment: increment || 1 }),
+
+  // Get focus areas for a child
+  getFocusAreas: (profileId: number) =>
+    api.get<FocusArea[]>(`/ai-gamification/focus/${profileId}`),
+
+  // Set focus areas for a child
+  setFocusAreas: (profileId: number, focusAreas: { type: string; notes?: string }[], createdBy: number) =>
+    api.post<FocusArea[]>(`/ai-gamification/focus/${profileId}`, { focus_areas: focusAreas, created_by: createdBy })
+};
+
+// Types for AI Gamification
+export interface AISuggestion {
+  id: number;
+  profile_id: number;
+  suggestion_type: string;
+  title: string;
+  description: string;
+  reasoning: string | null;
+  difficulty: 'easy' | 'medium' | 'hard';
+  points_reward: number;
+  bonus_multiplier: number;
+  target_value: number | null;
+  duration_days: number;
+  expires_at: string | null;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  reviewed_at: string | null;
+  reviewed_by: number | null;
+  parent_response: string | null;
+  created_at: string;
+}
+
+export interface CustomChallenge {
+  id: number;
+  profile_id: number;
+  title: string;
+  description: string;
+  challenge_type: string;
+  target_value: number;
+  current_progress: number;
+  points_reward: number;
+  bonus_multiplier: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  completed: boolean;
+  completed_at: string | null;
+  is_ai_generated: boolean;
+  ai_suggestion_id: number | null;
+  created_by: number;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface FocusArea {
+  id: number;
+  profile_id: number;
+  focus_type: string;
+  priority: number;
+  notes: string | null;
+  created_by: number;
+  created_at: string;
+}
+
 // Notifications API
 export const notificationsAPI = {
   getVapidPublicKey: () =>
