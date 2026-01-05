@@ -1,4 +1,4 @@
-import express, { Response } from 'express';
+import express, { Response, NextFunction } from 'express';
 import db from '../database/init';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
@@ -14,8 +14,20 @@ const SALT_ROUNDS = 10;
 const AVATAR_DIR = process.env.AVATAR_DIR || path.join(__dirname, '../../data/avatars');
 
 // Ensure avatar directory exists
-if (!fs.existsSync(AVATAR_DIR)) {
-  fs.mkdirSync(AVATAR_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(AVATAR_DIR)) {
+    fs.mkdirSync(AVATAR_DIR, { recursive: true });
+    console.log(`[Avatar] Created avatar directory: ${AVATAR_DIR}`);
+  } else {
+    console.log(`[Avatar] Avatar directory exists: ${AVATAR_DIR}`);
+  }
+  // Test write permissions
+  const testFile = path.join(AVATAR_DIR, '.write-test');
+  fs.writeFileSync(testFile, 'test');
+  fs.unlinkSync(testFile);
+  console.log(`[Avatar] Directory is writable`);
+} catch (err: any) {
+  console.error(`[Avatar] ERROR: Cannot create/write to avatar directory: ${AVATAR_DIR}`, err.message);
 }
 
 const storage = multer.diskStorage({
@@ -667,9 +679,23 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
   }
 });
 
-// Upload avatar
-router.post('/:id/avatar', authenticate, upload.single('avatar'), async (req: AuthRequest, res: Response) => {
+// Upload avatar with multer error handling
+router.post('/:id/avatar', authenticate, (req: AuthRequest, res: Response, next: NextFunction) => {
+  upload.single('avatar')(req, res, (err: any) => {
+    if (err) {
+      console.error('[Avatar] Multer error:', err.message);
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 5MB.' });
+      }
+      return res.status(400).json({ error: err.message || 'File upload failed' });
+    }
+    next();
+  });
+}, async (req: AuthRequest, res: Response) => {
   try {
+    console.log(`[Avatar] Upload request received for profile ${req.params.id}`);
+    console.log(`[Avatar] File received:`, req.file ? { filename: req.file.filename, size: req.file.size } : 'No file');
+
     const userProfile = req.profile!;
     const { id } = req.params;
     const targetId = parseInt(id);
