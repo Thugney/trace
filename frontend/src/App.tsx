@@ -219,11 +219,11 @@ function AppRoutes() {
           }
         />
 
-        {/* Settings - Only parent, admin */}
+        {/* Settings - Everyone except teachers use their own settings */}
         <Route
           path="/settings"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child', 'teacher']}>
               <Settings />
             </ProtectedRoute>
           }

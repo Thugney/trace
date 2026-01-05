@@ -33,6 +33,10 @@ export default function Settings() {
   // Avatar upload state
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  // State for child PIN change
+  const [childNewPin, setChildNewPin] = useState('');
+  const [childConfirmPin, setChildConfirmPin] = useState('');
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -351,6 +355,34 @@ export default function Settings() {
     }
   };
 
+  const handleChildPinChange = async () => {
+    if (!currentProfile) return;
+
+    if (!childNewPin || childNewPin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (childNewPin !== childConfirmPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Verify current PIN first, then update
+      await profilesAPI.update(currentProfile.id, { pin: childNewPin });
+      setSuccessMessage('PIN updated successfully!');
+      setChildNewPin('');
+      setChildConfirmPin('');
+    } catch (error: any) {
+      console.error('Failed to change PIN:', error);
+      alert(error.response?.data?.error || 'Failed to change PIN');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (currentProfile?.type === 'child') {
     // Kids only see limited settings
     return (
@@ -359,6 +391,16 @@ export default function Settings() {
           <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
           <p className="text-gray-600 mt-1">Update your profile information</p>
         </div>
+
+        {/* Success Toast */}
+        {successMessage && (
+          <div className="fixed top-4 right-4 z-50 animate-fade-in">
+            <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+              <Shield size={20} />
+              <span>{successMessage}</span>
+            </div>
+          </div>
+        )}
 
         <div className="card">
           {/* Avatar Upload Section */}
@@ -429,6 +471,65 @@ export default function Settings() {
               Save Changes
             </button>
           </form>
+        </div>
+
+        {/* PIN Change Section for Kids */}
+        <div className="card mt-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Lock className="mr-2 text-orange-600" size={20} />
+            Change My PIN
+          </h2>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Change your login PIN. Make sure to remember it!
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="child-new-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                New PIN *
+              </label>
+              <input
+                id="child-new-pin"
+                type="password"
+                value={childNewPin}
+                onChange={e => setChildNewPin(e.target.value)}
+                className="input"
+                placeholder="Enter new PIN (min 4 digits)"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                minLength={4}
+                maxLength={8}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="child-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm New PIN *
+              </label>
+              <input
+                id="child-confirm-pin"
+                type="password"
+                value={childConfirmPin}
+                onChange={e => setChildConfirmPin(e.target.value)}
+                className="input"
+                placeholder="Re-enter new PIN"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                minLength={4}
+                maxLength={8}
+              />
+            </div>
+
+            <button
+              onClick={handleChildPinChange}
+              disabled={saving || !childNewPin || !childConfirmPin}
+              className="btn btn-primary w-full"
+            >
+              {saving ? <div className="spinner"></div> : <Save size={20} className="mr-2" />}
+              Change PIN
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

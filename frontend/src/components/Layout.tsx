@@ -68,6 +68,7 @@ export default function Layout({ children }: LayoutProps) {
       if (currentProfile.ai_enabled === 1) {
         items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });
       }
+      items.push({ path: '/settings', icon: Settings, label: 'Settings' });
       return items;
     }
 
