@@ -169,6 +169,19 @@ export default function ChildDashboard() {
     loadStats();
   }, [currentProfile]);
 
+  // Detect level up - MUST be before any conditional returns to follow Rules of Hooks
+  useEffect(() => {
+    if (stats?.progress?.level && prevLevel !== null && stats.progress.level > prevLevel) {
+      setNewLevel(stats.progress.level);
+      setShowLevelUp(true);
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowLevelUp(false), 5000);
+    }
+    if (stats?.progress?.level) {
+      setPrevLevel(stats.progress.level);
+    }
+  }, [stats?.progress?.level, prevLevel]);
+
   const logWater = async (amount: number) => {
     if (!currentProfile) return;
     try {
@@ -223,24 +236,11 @@ export default function ChildDashboard() {
     );
   }
 
-  const level = stats?.progress.level || 1;
-  const totalPoints = stats?.progress.total_points || 0;
-  const totalStars = stats?.progress.total_stars || 0;
-  const completedTasks = stats?.tasks.completed_tasks || 0;
-  const totalTasks = stats?.tasks.total_tasks || 0;
-
-  // Detect level up
-  useEffect(() => {
-    if (stats?.progress.level && prevLevel !== null && stats.progress.level > prevLevel) {
-      setNewLevel(stats.progress.level);
-      setShowLevelUp(true);
-      // Auto-hide after 5 seconds
-      setTimeout(() => setShowLevelUp(false), 5000);
-    }
-    if (stats?.progress.level) {
-      setPrevLevel(stats.progress.level);
-    }
-  }, [stats?.progress.level, prevLevel]);
+  const level = stats?.progress?.level || 1;
+  const totalPoints = stats?.progress?.total_points || 0;
+  const totalStars = stats?.progress?.total_stars || 0;
+  const completedTasks = stats?.tasks?.completed_tasks || 0;
+  const totalTasks = stats?.tasks?.total_tasks || 0;
 
   return (
     <div className="max-w-4xl mx-auto">
