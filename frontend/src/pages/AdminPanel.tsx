@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, schoolAPI } from '../services/api';
+import { profilesAPI, schoolAPI, aiAPI } from '../services/api';
 import { Profile } from '../types';
 import { SchoolClass } from '../types/school';
-import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby, Bot } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, User, GraduationCap, Baby, Bot, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function AdminPanel() {
@@ -195,6 +195,19 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Failed to toggle Diet access:', error);
       alert('❌ Failed to update Diet access. Please try again.');
+    }
+  };
+
+  const handleUpdateMessageLimit = async (profile: Profile, limitType: 'limited' | 'extended' | 'unlimited') => {
+    try {
+      await aiAPI.updateMessageLimit(profile.id, limitType);
+
+      // Show success message
+      const limitDesc = limitType === 'limited' ? '5/day' : limitType === 'extended' ? '20/day' : 'unlimited';
+      alert(`✅ AI message limit updated for ${profile.name}!\n\nNew limit: ${limitDesc}`);
+    } catch (error) {
+      console.error('Failed to update message limit:', error);
+      alert('❌ Failed to update message limit. Please try again.');
     }
   };
 
@@ -510,6 +523,7 @@ export default function AdminPanel() {
                     onDelete={handleDeleteProfile}
                     onToggleAI={handleToggleAI}
                     onToggleDiet={handleToggleDiet}
+                    onUpdateMessageLimit={handleUpdateMessageLimit}
                     isCurrentUser={profile.id === currentProfile?.id}
                     parentName={parent?.name}
                   />
@@ -552,13 +566,16 @@ interface ProfileRowProps {
   onDelete: (profile: Profile) => void;
   onToggleAI?: (profile: Profile) => void;
   onToggleDiet?: (profile: Profile) => void;
+  onUpdateMessageLimit?: (profile: Profile, limitType: 'limited' | 'extended' | 'unlimited') => void;
   isCurrentUser: boolean;
   children?: Profile[];
   parentName?: string;
   assignedClassName?: string;
 }
 
-function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, isCurrentUser, children, parentName, assignedClassName }: ProfileRowProps) {
+function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, onUpdateMessageLimit, isCurrentUser, children, parentName, assignedClassName }: ProfileRowProps) {
+  const [showLimitDropdown, setShowLimitDropdown] = useState(false);
+
   const getProfileIcon = (type: string) => {
     switch (type) {
       case 'admin': return <Shield className="text-red-600" size={20} />;
@@ -628,6 +645,41 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, isCur
             <Bot size={16} />
             <span>AI</span>
           </button>
+        )}
+        {/* AI Message Limit (for children with AI enabled) */}
+        {profile.type === 'child' && profile.ai_enabled === 1 && onUpdateMessageLimit && (
+          <div className="relative">
+            <button
+              onClick={() => setShowLimitDropdown(!showLimitDropdown)}
+              className="flex items-center space-x-1 px-3 py-2 rounded-lg font-medium transition-all text-sm text-white bg-indigo-600 hover:bg-indigo-700 shadow-md"
+              title="Set AI message limit per day"
+            >
+              <MessageSquare size={16} />
+              <span>Limit</span>
+            </button>
+            {showLimitDropdown && (
+              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <button
+                  onClick={() => { onUpdateMessageLimit(profile, 'limited'); setShowLimitDropdown(false); }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-t-lg"
+                >
+                  Limited (5/day)
+                </button>
+                <button
+                  onClick={() => { onUpdateMessageLimit(profile, 'extended'); setShowLimitDropdown(false); }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                >
+                  Extended (20/day)
+                </button>
+                <button
+                  onClick={() => { onUpdateMessageLimit(profile, 'unlimited'); setShowLimitDropdown(false); }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-b-lg"
+                >
+                  Unlimited
+                </button>
+              </div>
+            )}
+          </div>
         )}
         {/* Diet Access Toggle (for children and parents) */}
         {(profile.type === 'child' || profile.type === 'parent') && onToggleDiet && (

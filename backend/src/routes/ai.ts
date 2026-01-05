@@ -1083,4 +1083,96 @@ router.get('/status', (req, res) => {
   });
 });
 
+// Get message count and remaining messages for a profile
+router.get('/message-count/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Get today's message count
+    const messageCount: any = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM ai_conversations
+      WHERE profile_id = ? AND DATE(created_at) = DATE(?)
+    `).get(profileId, today);
+
+    // Get AI settings for this profile
+    const settings = getAISettings(parseInt(profileId));
+    const limit = settings.max_messages_per_day || 20;
+    const used = messageCount?.count || 0;
+
+    // Determine limit type
+    let limitType: 'limited' | 'extended' | 'unlimited';
+    if (limit >= 9999) {
+      limitType = 'unlimited';
+    } else if (limit >= 20) {
+      limitType = 'extended';
+    } else {
+      limitType = 'limited';
+    }
+
+    res.json({
+      messagesUsed: used,
+      messagesLimit: limit,
+      messagesRemaining: Math.max(0, limit - used),
+      limitType,
+      aiEnabled: settings.ai_enabled === 1
+    });
+  } catch (error: any) {
+    console.error('[AI] Error getting message count:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update AI message limit for a profile (admin only)
+router.put('/message-limit/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { limitType } = req.body;
+
+    // Map limit type to actual number
+    let maxMessages: number;
+    switch (limitType) {
+      case 'limited':
+        maxMessages = 5;
+        break;
+      case 'extended':
+        maxMessages = 20;
+        break;
+      case 'unlimited':
+        maxMessages = 9999;
+        break;
+      default:
+        return res.status(400).json({ error: 'Invalid limit type. Must be: limited, extended, or unlimited' });
+    }
+
+    // Ensure AI settings exist for this profile
+    const existing = db.prepare('SELECT id FROM ai_settings WHERE profile_id = ?').get(profileId);
+    if (!existing) {
+      db.prepare(`
+        INSERT INTO ai_settings (profile_id, strict_mode, max_messages_per_day, content_filter_level)
+        VALUES (?, 1, ?, 'strict')
+      `).run(profileId, maxMessages);
+    } else {
+      db.prepare(`
+        UPDATE ai_settings
+        SET max_messages_per_day = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE profile_id = ?
+      `).run(maxMessages, profileId);
+    }
+
+    console.log(`[AI] Updated message limit for profile ${profileId}: ${limitType} (${maxMessages} messages/day)`);
+
+    res.json({
+      success: true,
+      limitType,
+      maxMessages,
+      message: `Message limit updated to ${limitType} (${maxMessages === 9999 ? 'unlimited' : maxMessages + ' per day'})`
+    });
+  } catch (error: any) {
+    console.error('[AI] Error updating message limit:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

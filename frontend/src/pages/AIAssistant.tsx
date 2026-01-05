@@ -6,6 +6,14 @@ import { Send, Sparkles, Trash2, Lightbulb, Info } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
+interface MessageCount {
+  messagesUsed: number;
+  messagesLimit: number;
+  messagesRemaining: number;
+  limitType: 'limited' | 'extended' | 'unlimited';
+  aiEnabled: boolean;
+}
+
 export default function AIAssistant() {
   const { currentProfile, isParent } = useProfile();
   const [message, setMessage] = useState('');
@@ -14,11 +22,18 @@ export default function AIAssistant() {
   const [streamingMessage, setStreamingMessage] = useState('');
   const [context, setContext] = useState<'diet' | 'tasks' | 'general'>('general');
   const [apiStatus, setApiStatus] = useState<{ apiConfigured: boolean; fallbackMode: boolean } | null>(null);
+  const [messageCount, setMessageCount] = useState<MessageCount | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     checkAPIStatus();
   }, []);
+
+  useEffect(() => {
+    if (currentProfile) {
+      loadMessageCount();
+    }
+  }, [currentProfile]);
 
   useEffect(() => {
     if (currentProfile) {
@@ -40,6 +55,16 @@ export default function AIAssistant() {
       setApiStatus(response.data);
     } catch (error) {
       console.error('Failed to check API status:', error);
+    }
+  };
+
+  const loadMessageCount = async () => {
+    if (!currentProfile) return;
+    try {
+      const response = await aiAPI.getMessageCount(currentProfile.id);
+      setMessageCount(response.data);
+    } catch (error) {
+      console.error('Failed to load message count:', error);
     }
   };
 
@@ -102,6 +127,8 @@ export default function AIAssistant() {
 
             // Reload conversations to get the saved one
             loadConversations();
+            // Reload message count to update remaining
+            loadMessageCount();
           } else if (data.content) {
             // Append new token
             fullResponse += data.content;
@@ -196,13 +223,29 @@ export default function AIAssistant() {
             <Sparkles className="text-purple-600" size={24} />
             <h1 className="text-2xl font-bold text-gray-900">AI Assistant</h1>
           </div>
-          {apiStatus && (
-            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-              apiStatus.apiConfigured ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-            }`}>
-              {apiStatus.apiConfigured ? '✓ AI Powered' : '⚡ Limited Mode'}
-            </div>
-          )}
+          <div className="flex items-center space-x-2">
+            {/* Message count indicator */}
+            {messageCount && messageCount.limitType !== 'unlimited' && (
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                messageCount.messagesRemaining > 3
+                  ? 'bg-blue-100 text-blue-800'
+                  : messageCount.messagesRemaining > 0
+                    ? 'bg-orange-100 text-orange-800'
+                    : 'bg-red-100 text-red-800'
+              }`}>
+                {messageCount.messagesRemaining > 0
+                  ? `${messageCount.messagesRemaining} messages left today`
+                  : 'No messages left today'}
+              </div>
+            )}
+            {apiStatus && (
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                apiStatus.apiConfigured ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {apiStatus.apiConfigured ? '✓ AI Powered' : '⚡ Limited Mode'}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Context Selector */}
@@ -323,19 +366,33 @@ export default function AIAssistant() {
 
       {/* Input */}
       <div className="bg-white border-t border-gray-200 p-4">
+        {/* Limit reached warning */}
+        {messageCount && messageCount.messagesRemaining <= 0 && messageCount.limitType !== 'unlimited' && (
+          <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <Info size={16} className="text-red-600 mt-0.5" />
+              <p className="text-sm text-red-800">
+                <strong>Daily limit reached!</strong> You've used all {messageCount.messagesLimit} messages for today.
+                Your limit will reset tomorrow.
+              </p>
+            </div>
+          </div>
+        )}
         <div className="flex space-x-2">
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-            placeholder="Type your message..."
+            placeholder={messageCount && messageCount.messagesRemaining <= 0 && messageCount.limitType !== 'unlimited'
+              ? "Daily message limit reached..."
+              : "Type your message..."}
             className="input flex-1"
-            disabled={loading}
+            disabled={loading || (messageCount?.messagesRemaining === 0 && messageCount?.limitType !== 'unlimited')}
           />
           <button
             onClick={handleSendMessage}
-            disabled={loading || !message.trim()}
+            disabled={loading || !message.trim() || (messageCount?.messagesRemaining === 0 && messageCount?.limitType !== 'unlimited')}
             className="btn btn-primary"
           >
             <Send size={20} />

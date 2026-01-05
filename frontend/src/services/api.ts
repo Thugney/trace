@@ -169,7 +169,19 @@ export const aiAPI = {
     api.delete(`/ai/conversations/${profileId}`, { params: { context } }),
   getStatus: () => api.get<{ apiConfigured: boolean; fallbackMode: boolean }>('/ai/status'),
   getSettings: (profileId: number) => api.get(`/ai/settings/${profileId}`),
-  updateSettings: (profileId: number, settings: any) => api.put(`/ai/settings/${profileId}`, settings)
+  updateSettings: (profileId: number, settings: any) => api.put(`/ai/settings/${profileId}`, settings),
+  getMessageCount: (profileId: number) => api.get<{
+    messagesUsed: number;
+    messagesLimit: number;
+    messagesRemaining: number;
+    limitType: 'limited' | 'extended' | 'unlimited';
+    aiEnabled: boolean;
+  }>(`/ai/message-count/${profileId}`),
+  updateMessageLimit: (profileId: number, limitType: 'limited' | 'extended' | 'unlimited') =>
+    api.put<{ success: boolean; limitType: string; maxMessages: number; message: string }>(
+      `/ai/message-limit/${profileId}`,
+      { limitType }
+    )
 };
 
 // Settings
