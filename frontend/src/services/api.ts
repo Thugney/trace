@@ -204,7 +204,9 @@ export const settingsAPI = {
 
 // Notes
 export const notesAPI = {
-  getByProfile: (profileId: number) => api.get<Note[]>(`/notes/${profileId}`),
+  getByProfile: (profileId: number, category?: string) =>
+    api.get<Note[]>(`/notes/${profileId}`, { params: { category } }),
+  getCategories: (profileId: number) => api.get<string[]>(`/notes/${profileId}/categories`),
   getOne: (id: number) => api.get<Note>(`/notes/note/${id}`),
   create: (data: Partial<Note>) => api.post<Note>('/notes', data),
   update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
@@ -393,7 +395,21 @@ export const gamificationAPI = {
       achievements_earned: number;
       streaks: Record<string, { current: number; longest: number }>;
       water_today_ml: number;
-    }>(`/gamification/stats/${profileId}`)
+    }>(`/gamification/stats/${profileId}`),
+
+  // Daily Challenges
+  getChallenges: (profileId: number) =>
+    api.get<{
+      id: number;
+      challenge_type: string;
+      description: string;
+      target_value: number;
+      bonus_points: number;
+      completed: number;
+      current_progress: number;
+    }[]>(`/gamification/challenges/${profileId}`),
+  completeChallenge: (challengeId: number) =>
+    api.post<{ message: string; bonusPoints: number }>(`/gamification/challenges/${challengeId}/complete`)
 };
 
 // Notifications API

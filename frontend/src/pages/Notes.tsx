@@ -2,8 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { notesAPI } from '../services/api';
 import { Note } from '../types';
-import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading } from 'lucide-react';
+import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter } from 'lucide-react';
 import DOMPurify from 'dompurify';
+
+const NOTE_CATEGORIES = [
+  { name: 'School', icon: '📚', color: 'bg-blue-100 text-blue-700' },
+  { name: 'Personal', icon: '📝', color: 'bg-green-100 text-green-700' },
+  { name: 'Ideas', icon: '💡', color: 'bg-yellow-100 text-yellow-700' },
+  { name: 'Homework', icon: '✏️', color: 'bg-purple-100 text-purple-700' },
+  { name: 'Journal', icon: '📖', color: 'bg-pink-100 text-pink-700' },
+  { name: 'Lists', icon: '📋', color: 'bg-orange-100 text-orange-700' }
+];
 
 const NOTE_COLORS = [
   { name: 'Yellow', value: '#fef08a' },
@@ -102,6 +111,7 @@ export default function Notes() {
   const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const addTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -109,14 +119,17 @@ export default function Notes() {
     if (currentProfile) {
       loadNotes();
     }
-  }, [currentProfile]);
+  }, [currentProfile, selectedCategory]);
 
   const loadNotes = async () => {
     if (!currentProfile) return;
 
     try {
       setLoading(true);
-      const response = await notesAPI.getByProfile(currentProfile.id);
+      const response = await notesAPI.getByProfile(
+        currentProfile.id,
+        selectedCategory !== 'all' ? selectedCategory : undefined
+      );
       setNotes(response.data);
     } catch (error) {
       console.error('Failed to load notes:', error);
@@ -130,13 +143,15 @@ export default function Notes() {
     if (!currentProfile) return;
 
     const formData = new FormData(e.currentTarget);
+    const category = formData.get('category') as string;
 
     try {
       await notesAPI.create({
         profile_id: currentProfile.id,
         title: formData.get('title') as string,
         content: formData.get('content') as string,
-        color: formData.get('color') as string
+        color: formData.get('color') as string,
+        category: category || undefined
       });
 
       setShowAddNote(false);
@@ -152,12 +167,14 @@ export default function Notes() {
     if (!editingNote) return;
 
     const formData = new FormData(e.currentTarget);
+    const category = formData.get('category') as string;
 
     try {
       await notesAPI.update(editingNote.id, {
         title: formData.get('title') as string,
         content: formData.get('content') as string,
-        color: formData.get('color') as string
+        color: formData.get('color') as string,
+        category: category || undefined
       });
 
       await loadNotes();
@@ -235,6 +252,40 @@ export default function Notes() {
         </button>
       </div>
 
+      {/* Category Filter */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Filter size={16} className="text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Filter by category:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSelectedCategory('all')}
+            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              selectedCategory === 'all'
+                ? 'bg-gray-800 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Notes
+          </button>
+          {NOTE_CATEGORIES.map(cat => (
+            <button
+              key={cat.name}
+              onClick={() => setSelectedCategory(cat.name)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1 ${
+                selectedCategory === cat.name
+                  ? 'bg-gray-800 text-white'
+                  : `${cat.color} hover:opacity-80`
+              }`}
+            >
+              <span>{cat.icon}</span>
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Notes Grid */}
       {sortedNotes.length === 0 ? (
         <div className="card text-center p-12">
@@ -262,6 +313,16 @@ export default function Notes() {
               {note.is_pinned && (
                 <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-1 shadow">
                   <Pin size={14} className="text-white" />
+                </div>
+              )}
+              {note.category && (
+                <div className="mb-2">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    NOTE_CATEGORIES.find(c => c.name === note.category)?.color || 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {NOTE_CATEGORIES.find(c => c.name === note.category)?.icon}
+                    {note.category}
+                  </span>
                 </div>
               )}
               <h3 className="font-bold text-gray-900 pr-2 line-clamp-2 text-lg mb-2">
@@ -334,6 +395,28 @@ export default function Notes() {
                   placeholder="Note title..."
                   autoFocus
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <input type="radio" name="category" value="" defaultChecked className="sr-only peer" />
+                    <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-block">
+                      None
+                    </span>
+                  </label>
+                  {NOTE_CATEGORIES.map(cat => (
+                    <label key={cat.name} className="cursor-pointer">
+                      <input type="radio" name="category" value={cat.name} className="sr-only peer" />
+                      <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${cat.color} peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-flex items-center gap-1`}>
+                        {cat.icon} {cat.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -426,6 +509,28 @@ export default function Notes() {
                   className="input"
                   placeholder="Note title..."
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="cursor-pointer">
+                    <input type="radio" name="category" value="" defaultChecked={!editingNote.category} className="sr-only peer" />
+                    <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-block">
+                      None
+                    </span>
+                  </label>
+                  {NOTE_CATEGORIES.map(cat => (
+                    <label key={cat.name} className="cursor-pointer">
+                      <input type="radio" name="category" value={cat.name} defaultChecked={editingNote.category === cat.name} className="sr-only peer" />
+                      <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${cat.color} peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-flex items-center gap-1`}>
+                        {cat.icon} {cat.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div>

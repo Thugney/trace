@@ -339,6 +339,177 @@ function checkAchievements(profileId: number) {
   });
 }
 
+// ==================== DAILY CHALLENGES ====================
+
+// Challenge types with their requirements
+const CHALLENGE_TYPES = [
+  { type: 'complete_tasks', description: 'Complete {n} tasks today', minTasks: 1, maxTasks: 5, bonusPoints: 10 },
+  { type: 'drink_water', description: 'Drink {n}ml of water today', minMl: 500, maxMl: 1500, bonusPoints: 5 },
+  { type: 'all_categories', description: 'Complete tasks in {n} different categories', minCats: 2, maxCats: 3, bonusPoints: 15 },
+  { type: 'early_bird', description: 'Complete a task before 10 AM', bonusPoints: 10 },
+  { type: 'streak_keeper', description: 'Keep your task streak going', bonusPoints: 5 }
+];
+
+// Get daily challenges for a profile
+router.get('/challenges/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Check if challenges exist for today
+    let challenges: any[] = db.prepare(`
+      SELECT * FROM daily_challenges
+      WHERE profile_id = ? AND DATE(created_at) = DATE(?)
+      ORDER BY id
+    `).all(profileId, today);
+
+    // If no challenges, generate new ones
+    if (challenges.length === 0) {
+      challenges = generateDailyChallenges(parseInt(profileId));
+    }
+
+    // Calculate progress for each challenge
+    challenges = challenges.map((challenge: any) => {
+      const progress = calculateChallengeProgress(parseInt(profileId), challenge.challenge_type, challenge.target_value, today);
+      return { ...challenge, current_progress: progress };
+    });
+
+    res.json(challenges);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Complete a challenge and award bonus points
+router.post('/challenges/:challengeId/complete', (req, res) => {
+  try {
+    const { challengeId } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM daily_challenges WHERE id = ?').get(challengeId);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    if (challenge.completed) {
+      return res.status(400).json({ error: 'Challenge already completed' });
+    }
+
+    // Mark as completed
+    db.prepare(`
+      UPDATE daily_challenges SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?
+    `).run(challengeId);
+
+    // Award bonus points
+    const currentProgress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(challenge.profile_id);
+
+    if (currentProgress) {
+      const newPoints = currentProgress.total_points + challenge.bonus_points;
+      const newLevel = Math.floor(newPoints / 100) + 1;
+      db.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, 0, ?, ?, ?)
+      `).run(challenge.profile_id, challenge.bonus_points, newLevel, newPoints, currentProgress.total_stars);
+    }
+
+    res.json({ message: 'Challenge completed!', bonusPoints: challenge.bonus_points });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+function generateDailyChallenges(profileId: number): any[] {
+  const today = new Date().toISOString().split('T')[0];
+  const challenges: any[] = [];
+
+  // Pick 3 random challenge types
+  const shuffled = [...CHALLENGE_TYPES].sort(() => Math.random() - 0.5);
+  const selectedTypes = shuffled.slice(0, 3);
+
+  selectedTypes.forEach(challengeType => {
+    let targetValue = 0;
+    let description = challengeType.description;
+
+    switch (challengeType.type) {
+      case 'complete_tasks':
+        targetValue = Math.floor(Math.random() * (challengeType.maxTasks! - challengeType.minTasks! + 1)) + challengeType.minTasks!;
+        description = description.replace('{n}', targetValue.toString());
+        break;
+      case 'drink_water':
+        targetValue = Math.floor((Math.random() * (challengeType.maxMl! - challengeType.minMl! + 1) + challengeType.minMl!) / 100) * 100;
+        description = description.replace('{n}', targetValue.toString());
+        break;
+      case 'all_categories':
+        targetValue = Math.floor(Math.random() * (challengeType.maxCats! - challengeType.minCats! + 1)) + challengeType.minCats!;
+        description = description.replace('{n}', targetValue.toString());
+        break;
+      default:
+        targetValue = 1;
+    }
+
+    const result = db.prepare(`
+      INSERT INTO daily_challenges (profile_id, challenge_type, description, target_value, bonus_points)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(profileId, challengeType.type, description, targetValue, challengeType.bonusPoints);
+
+    challenges.push({
+      id: result.lastInsertRowid,
+      profile_id: profileId,
+      challenge_type: challengeType.type,
+      description,
+      target_value: targetValue,
+      bonus_points: challengeType.bonusPoints,
+      completed: 0,
+      created_at: today
+    });
+  });
+
+  return challenges;
+}
+
+function calculateChallengeProgress(profileId: number, challengeType: string, targetValue: number, today: string): number {
+  switch (challengeType) {
+    case 'complete_tasks': {
+      const result: any = db.prepare(`
+        SELECT COUNT(*) as count FROM tasks
+        WHERE profile_id = ? AND completed = 1 AND DATE(completed_at) = DATE(?)
+      `).get(profileId, today);
+      return result?.count || 0;
+    }
+    case 'drink_water': {
+      const result: any = db.prepare(`
+        SELECT SUM(amount_ml) as total FROM water_intake
+        WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
+      `).get(profileId, today);
+      return result?.total || 0;
+    }
+    case 'all_categories': {
+      const result: any = db.prepare(`
+        SELECT COUNT(DISTINCT category) as count FROM tasks
+        WHERE profile_id = ? AND completed = 1 AND DATE(completed_at) = DATE(?)
+      `).get(profileId, today);
+      return result?.count || 0;
+    }
+    case 'early_bird': {
+      const result: any = db.prepare(`
+        SELECT COUNT(*) as count FROM tasks
+        WHERE profile_id = ? AND completed = 1 AND DATE(completed_at) = DATE(?)
+        AND TIME(completed_at) < '10:00:00'
+      `).get(profileId, today);
+      return result?.count || 0;
+    }
+    case 'streak_keeper': {
+      const streak: any = db.prepare(`
+        SELECT current_streak FROM streaks WHERE profile_id = ? AND streak_type = 'tasks'
+      `).get(profileId);
+      return streak?.current_streak > 0 ? 1 : 0;
+    }
+    default:
+      return 0;
+  }
+}
+
 // Export helper to be used from tasks route
 export function updateTaskStreak(profileId: number) {
   updateStreak(profileId, 'tasks');

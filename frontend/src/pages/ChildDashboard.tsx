@@ -3,7 +3,17 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, gamificationAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle } from 'lucide-react';
+
+interface DailyChallenge {
+  id: number;
+  challenge_type: string;
+  description: string;
+  target_value: number;
+  bonus_points: number;
+  completed: number;
+  current_progress: number;
+}
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
@@ -13,6 +23,7 @@ export default function ChildDashboard() {
   const [streaks, setStreaks] = useState<Record<string, { current: number; longest: number }>>({});
   const [achievements, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
   const [waterAmount, setWaterAmount] = useState(250);
+  const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -20,16 +31,18 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
-          gamificationAPI.getProfileAchievements(currentProfile.id)
+          gamificationAPI.getProfileAchievements(currentProfile.id),
+          gamificationAPI.getChallenges(currentProfile.id)
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
         setStreaks(gamificationRes.data.streaks);
         setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
+        setChallenges(challengesRes.data);
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -46,8 +59,28 @@ export default function ChildDashboard() {
       await gamificationAPI.logWater(currentProfile.id, amount);
       const waterRes = await gamificationAPI.getWater(currentProfile.id);
       setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
+      // Refresh challenges as water progress may have changed
+      const challengesRes = await gamificationAPI.getChallenges(currentProfile.id);
+      setChallenges(challengesRes.data);
     } catch (error) {
       console.error('Failed to log water:', error);
+    }
+  };
+
+  const claimChallenge = async (challengeId: number) => {
+    try {
+      await gamificationAPI.completeChallenge(challengeId);
+      // Refresh challenges and stats
+      if (currentProfile) {
+        const [challengesRes, statsRes] = await Promise.all([
+          gamificationAPI.getChallenges(currentProfile.id),
+          profilesAPI.getStats(currentProfile.id)
+        ]);
+        setChallenges(challengesRes.data);
+        setStats(statsRes.data);
+      }
+    } catch (error) {
+      console.error('Failed to claim challenge:', error);
     }
   };
 
@@ -228,6 +261,71 @@ export default function ChildDashboard() {
           <p className="text-gray-600">Complete tasks and drink water to earn achievements!</p>
         )}
       </div>
+
+      {/* Daily Challenges */}
+      {challenges.length > 0 && (
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-300 mb-6">
+          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Zap className="text-yellow-600" size={24} />
+            Daily Challenges ⚡
+          </h3>
+          <div className="space-y-3">
+            {challenges.map((challenge) => {
+              const progress = challenge.challenge_type === 'drink_water'
+                ? Math.min(100, (challenge.current_progress / challenge.target_value) * 100)
+                : Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+              const isComplete = challenge.current_progress >= challenge.target_value;
+              const isClaimed = challenge.completed === 1;
+
+              return (
+                <div
+                  key={challenge.id}
+                  className={`p-3 rounded-xl border-2 ${
+                    isClaimed
+                      ? 'bg-green-100 border-green-300'
+                      : isComplete
+                      ? 'bg-yellow-100 border-yellow-400'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1">
+                      <p className={`font-medium ${isClaimed ? 'text-green-700' : 'text-gray-800'}`}>
+                        {isClaimed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
+                        {challenge.description}
+                      </p>
+                      <p className="text-xs text-gray-500">+{challenge.bonus_points} bonus points</p>
+                    </div>
+                    {isComplete && !isClaimed && (
+                      <button
+                        onClick={() => claimChallenge(challenge.id)}
+                        className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-bold animate-pulse"
+                      >
+                        Claim!
+                      </button>
+                    )}
+                  </div>
+                  {!isClaimed && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full transition-all ${
+                            isComplete ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                        {challenge.current_progress}/{challenge.target_value}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* What's Next - Quick Actions */}
       <div className="mb-6">

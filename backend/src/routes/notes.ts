@@ -8,6 +8,7 @@ const router = express.Router();
 router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const { profileId } = req.params;
+    const { category } = req.query;
     const userProfile = req.profile!;
 
     // Authorization: users can only access their own notes (or admin/parent can access kids' notes)
@@ -19,10 +20,31 @@ router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
       }
     }
 
-    const notes = db.prepare(
-      'SELECT * FROM notes WHERE profile_id = ? ORDER BY is_pinned DESC, updated_at DESC'
-    ).all(profileId);
+    let query = 'SELECT * FROM notes WHERE profile_id = ?';
+    const params: any[] = [profileId];
+
+    if (category && category !== 'all') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY is_pinned DESC, updated_at DESC';
+
+    const notes = db.prepare(query).all(...params);
     res.json(notes);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all categories for a profile
+router.get('/:profileId/categories', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const categories = db.prepare(
+      'SELECT DISTINCT category FROM notes WHERE profile_id = ? AND category IS NOT NULL AND category != "" ORDER BY category'
+    ).all(profileId);
+    res.json(categories.map((c: any) => c.category));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -72,7 +72,7 @@ What's Missing for Effective Kid Gamification:
 - [x] Badges/Achievements - Added achievements table with 12 achievements, profile_achievements tracking, display in ChildDashboard
 - [] Leaderboard - Sibling competition (optional)
 - [] Avatar/Character - Kids love customizing a character that levels up
-- [] Daily Challenges - "Complete 3 tasks today for bonus points!"
+- [x] Daily Challenges - Added daily_challenges table, auto-generated challenges, progress tracking, claim rewards in ChildDashboard
 - [] Level-up rewards - Visual celebration when reaching new level
 - [] Sound effects/animations - Satisfying completion feedback
 - [] Weekly summaries - "This week you earned 150 points! 🎉"
