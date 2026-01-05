@@ -16,7 +16,8 @@ import {
   Sparkles,
   Play,
   Download,
-  ClipboardList
+  ClipboardList,
+  X
 } from 'lucide-react';
 import StudentQuizView from '../components/StudentQuizView';
 
@@ -441,45 +442,94 @@ export default function SchoolStudent() {
 
       {/* Submit Work Modal - Kid Friendly */}
       {selectedAssignment && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
-            <div className="text-center mb-6">
-              <div className="text-5xl mb-3">📝</div>
-              <h2 className="text-2xl font-bold text-gray-900">Submit Your Work</h2>
-              <p className="text-gray-600 mt-2">{selectedAssignment.title}</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-gradient-to-br from-slate-50 to-emerald-50 rounded-2xl shadow-2xl overflow-hidden max-w-lg w-full">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">
+                    {selectedAssignment.type === 'video' ? '🎬' :
+                     selectedAssignment.type === 'psalm' ? '🎵' :
+                     selectedAssignment.type === 'alphabet' ? '🔤' :
+                     selectedAssignment.type === 'homework' ? '📚' : '✏️'}
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-bold">Submit Your Work!</h2>
+                    <p className="text-emerald-100 text-sm">{selectedAssignment.title}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedAssignment(null);
+                    setSubmissionNotes('');
+                  }}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmitWork} className="space-y-5">
-              <div>
-                <label className="block text-lg font-medium text-gray-700 mb-2">
-                  Tell your teacher about your work (optional)
+            {/* Form */}
+            <form onSubmit={handleSubmitWork} className="p-6 space-y-6">
+              {/* Assignment Info Card */}
+              <div className="bg-white rounded-xl p-4 border border-emerald-100 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold shrink-0">
+                    <CheckCircle size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">You're about to submit:</p>
+                    <p className="text-slate-600 text-sm mt-1">{selectedAssignment.description || selectedAssignment.title}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes Input */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-lg font-medium text-slate-700">
+                  <span className="text-2xl">💭</span>
+                  Tell your teacher about your work
                 </label>
                 <textarea
                   value={submissionNotes}
                   onChange={(e) => setSubmissionNotes(e.target.value)}
-                  className="w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-colors"
+                  className="w-full p-4 text-lg border-2 border-slate-200 rounded-xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100 transition-all resize-none"
                   rows={4}
-                  placeholder="I learned that..."
+                  placeholder="I learned that... / I did... / I watched..."
                 />
+                <p className="text-sm text-slate-500 flex items-center gap-1">
+                  <span>✨</span> Optional - but your teacher loves to hear from you!
+                </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  type="submit"
-                  className="flex-1 py-4 px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-colors"
-                >
-                  <Send size={24} />
-                  Submit
-                </button>
+              {/* Fun encouragement */}
+              <div className="bg-amber-50 rounded-xl p-4 flex items-center gap-3 border border-amber-200">
+                <span className="text-3xl">🌟</span>
+                <p className="text-amber-800 font-medium">
+                  Great job completing your work! Your teacher will review it soon.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedAssignment(null);
                     setSubmissionNotes('');
                   }}
-                  className="flex-1 py-4 px-6 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-xl font-bold text-lg transition-colors"
+                  className="flex-1 py-4 px-6 text-slate-600 hover:text-slate-800 bg-white border-2 border-slate-200 hover:border-slate-300 rounded-xl font-semibold text-lg transition-all"
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg shadow-emerald-500/30"
+                >
+                  <Send size={22} />
+                  Submit My Work!
                 </button>
               </div>
             </form>
