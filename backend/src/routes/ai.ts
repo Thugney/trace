@@ -85,30 +85,30 @@ const AI_TOOLS = [
     type: 'function',
     function: {
       name: 'create_task',
-      description: 'Create a new task or chore for the user. Use this when the user wants to add something to their to-do list or needs help organizing activities.',
+      description: 'Create a new task or chore for the user. ALWAYS use this tool when the user mentions creating, adding, or wanting to do a task. Categories are COMPLETELY FLEXIBLE - use any descriptive word.',
       parameters: {
         type: 'object',
         properties: {
           title: {
             type: 'string',
-            description: 'Title of the task'
+            description: 'Title of the task (required)'
           },
           description: {
             type: 'string',
-            description: 'Detailed description of the task'
+            description: 'Detailed description of the task (optional)'
           },
           category: {
             type: 'string',
-            description: 'Category of the task. Can be any descriptive category like: reading, homework, cleaning, exercise, music, art, cooking, language-learning, chores, health, creative, social, or any other appropriate category'
+            description: 'FREE-FORM category string. Use ANY word that describes the task type. Examples: reading, habits, self-improvement, exercise, homework, cleaning, cooking, meditation, learning, creative, health, fitness, study, music, art, chores, outdoor, indoor, mindfulness, productivity. There are NO restrictions - any category name works.'
           },
           difficulty: {
             type: 'string',
             enum: ['easy', 'medium', 'hard'],
-            description: 'Difficulty level'
+            description: 'Difficulty level (required): easy=10pts, medium=20pts, hard=30pts'
           },
           points: {
             type: 'number',
-            description: 'Points awarded for completing (5-50 based on difficulty)'
+            description: 'Points awarded for completing. If not provided, auto-calculated from difficulty.'
           },
           due_date: {
             type: 'string',
@@ -222,9 +222,21 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
 
       case 'create_task': {
         console.log(`[AI Tool] Creating task: "${args.title}" for profile ${profileId}`);
+        console.log(`[AI Tool] Task args received:`, JSON.stringify(args));
 
-        // Default category to 'other' if not provided
+        // Validate required fields
+        if (!args.title) {
+          console.error('[AI Tool] create_task missing required field: title');
+          return { success: false, message: 'Task title is required' };
+        }
+        if (!args.difficulty) {
+          console.log('[AI Tool] No difficulty provided, defaulting to easy');
+          args.difficulty = 'easy';
+        }
+
+        // Default category to 'other' if not provided - ANY category string is valid
         const category = args.category || 'other';
+        console.log(`[AI Tool] Using category: "${category}"`);
 
         // Auto-calculate points based on difficulty if not provided
         let points = args.points;
@@ -233,25 +245,53 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           points = pointsMap[args.difficulty] || 10;
         }
 
-        const result = db.prepare(`
-          INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date, created_by, parent_approved, approved_by)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
-        `).run(
-          profileId,
-          args.title,
-          args.description || '',
-          category,
-          args.difficulty,
-          points,
-          args.due_date || null,
-          profileId  // created_by = the child profile
-        );
-        console.log(`[AI Tool] Task created with id: ${result.lastInsertRowid}`);
-        return {
-          success: true,
-          message: `Created task "${args.title}" (${points} points, ${category}) - awaiting parent approval`,
-          data: { id: result.lastInsertRowid, ...args, category, points }
-        };
+        try {
+          const result = db.prepare(`
+            INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date, created_by, parent_approved, approved_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
+          `).run(
+            profileId,
+            args.title,
+            args.description || '',
+            category,
+            args.difficulty,
+            points,
+            args.due_date || null,
+            profileId  // created_by = the child profile
+          );
+          console.log(`[AI Tool] Task created successfully with id: ${result.lastInsertRowid}, category: ${category}`);
+          return {
+            success: true,
+            message: `Created task "${args.title}" (${points} points, ${category}) - awaiting parent approval`,
+            data: { id: result.lastInsertRowid, ...args, category, points }
+          };
+        } catch (dbError: any) {
+          console.error(`[AI Tool] Database error creating task:`, dbError.message);
+          console.error(`[AI Tool] This might be a category constraint issue if using old database`);
+          // Try with fallback category if there's a constraint error
+          if (dbError.message.includes('CHECK constraint')) {
+            console.log(`[AI Tool] Retrying with category 'other' due to database constraint`);
+            const fallbackResult = db.prepare(`
+              INSERT INTO tasks (profile_id, title, description, category, difficulty, points, due_date, created_by, parent_approved, approved_by)
+              VALUES (?, ?, ?, 'other', ?, ?, ?, ?, 0, NULL)
+            `).run(
+              profileId,
+              args.title,
+              args.description || '',
+              args.difficulty,
+              points,
+              args.due_date || null,
+              profileId
+            );
+            console.log(`[AI Tool] Task created with fallback category 'other', id: ${fallbackResult.lastInsertRowid}`);
+            return {
+              success: true,
+              message: `Created task "${args.title}" (${points} points) - awaiting parent approval`,
+              data: { id: fallbackResult.lastInsertRowid, ...args, category: 'other', points }
+            };
+          }
+          throw dbError;
+        }
       }
 
       case 'set_monthly_goal': {
@@ -684,20 +724,29 @@ ${profileContext.recentNotes.slice(0, 5).map((n: any) => `- ${n.content.substrin
       }
 
       // Add tool usage instructions
-      systemPrompt += `\n\nIMPORTANT - You have access to tools that can help the user:
-- add_diet_entry: Log meals/food to the user's diet tracker
+      systemPrompt += `\n\nCRITICAL - TOOL USAGE INSTRUCTIONS:
+
+You have these tools available:
+- add_diet_entry: Log meals/food to the diet tracker
 - create_note: Save notes, reminders, recipes, ideas
-- create_task: Create tasks, chores, or activities (ANY category is allowed - reading, homework, cleaning, exercise, habits, etc.)
+- create_task: Create tasks, chores, or activities
 - set_monthly_goal: Set monthly goals
 
-TOOL USAGE RULES:
-1. When the user asks to create/add a task, ALWAYS use the create_task tool immediately
-2. The category can be ANY descriptive text (e.g., "reading", "habits", "self-improvement", "exercise")
-3. Do NOT ask for confirmation before using tools - just use them
-4. After using a tool, briefly confirm what you created
-5. If a tool fails, apologize once and offer to try something else
+MANDATORY RULES FOR create_task:
+1. ALWAYS use the create_task tool when user wants to add/create ANY task
+2. Category is FREE-FORM TEXT - use ANY descriptive word (reading, habits, self-improvement, exercise, meditation, study, fitness, cooking, creative, etc.)
+3. There are ZERO restrictions on category names - any word works
+4. Do NOT refuse or say you cannot create a task due to category
+5. Do NOT ask for confirmation - just create the task immediately
+6. If user doesn't specify difficulty, default to "easy"
 
-Example: "Add a task to read Atomic Habits" -> Use create_task with title="Read Atomic Habits chapter", category="reading", difficulty="easy"`;
+EXAMPLES:
+- "Add task to read Atomic Habits" -> create_task(title="Read Atomic Habits chapter", category="reading", difficulty="easy")
+- "Create task for meditation" -> create_task(title="Morning meditation session", category="meditation", difficulty="easy")
+- "Add a habit tracking task" -> create_task(title="Track daily habits", category="habits", difficulty="easy")
+- "I want to practice piano" -> create_task(title="Practice piano", category="music", difficulty="medium")
+
+NEVER say "I cannot create this task" or "this category is not valid" - ALL categories work!`;
 
       // Get recent conversation history
       const history = db.prepare(`

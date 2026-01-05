@@ -1,62 +1,59 @@
 # Trace Project - Development Tasks
 
-## Current Sprint - PRIORITY: Fix Critical Login Bug
+## Environment: ALPHA (Windows Local Dev with Database)
 
-### Critical Backend Tasks
-- [x] Fix: Login issue - When a kid (Beti) creates a task/goal requiring parent approval, parent login becomes slow/unresponsive. Debug authentication flow and session management during approval requests.
-- [x] Investigate: Check backend logs for errors during approval creation
-- [x] Debug: Trace authentication middleware when approval notifications are sent
-- [x] Fix: Identify and resolve bottleneck in approval notification/session handling
-- [x] Test: Reproduce - create task as kid, then attempt immediate parent login
-- [x] Verify: Parent can login immediately after kid creates approval-required task
-- [ ] Test: Run `docker-compose exec backend npm test` after fixes
+### Critical  Tasks
+- [x] notification isnt working - Fixed: Updated nginx config to not cache service worker (sw.js)
+- [x] AI is still stricted, by categories - Fixed: Improved AI prompt and tool description to allow any category, added fallback handling
 
-### AI Assistant Feature (Admin-Controlled)
-- [x] Feature: Add AI assistant enable/disable setting per kid (admin Robel controls)
-- [x] Backend: Create API endpoint PUT /api/kids/:id/ai-assistant to toggle access
-- [x] Database: Add `ai_assistant_enabled` boolean field to kid user schema
-- [x] Backend: Modify AI assistant endpoints to check kid's enabled status
-- [x] Test: API returns 403 when disabled kid tries to access AI assistant
+### Local Testing (Alpha Environment)
+- [x] Test: `docker-compose up -d` starts all services
+- [x] Test: Backend responds at http://localhost:3001
+- [x] Test: Frontend loads at http://localhost:3000
+- [ ] Test: Database file at ./data/family.db is being updated
+- [ ] Test: Login flow works (create test users if needed)
+- [ ] Test: Create task as kid → parent login immediately
+- [ ] Test: AI assistant toggle works end-to-end
+- [ ] Check: No errors in `docker-compose logs`
+- [ ] Verify: All functionality works with local database
 
-### Frontend Tasks
-- [x] Feature: Add AI assistant toggle switch in admin settings for each kid
-- [x] UI: Create settings page/modal showing list of kids with toggles
-- [x] Frontend: API integration to save AI assistant enabled/disabled state
-- [x] UI: Show/hide AI assistant interface based on kid's enabled status
-- [ ] Fix: Test and improve login UI responsiveness during approval requests
-- [ ] Test: Run `docker-compose exec frontend npm test` and ensure all tests pass
-- [ ] UI: Verify responsive design works properly
+### Code Quality
+- [ ] Run: Backend linting passes (`docker-compose exec backend npm run lint`)
+- [ ] Run: Frontend linting passes (`docker-compose exec frontend npm run lint`)
+- [ ] Run: Backend tests pass (`docker-compose exec backend npm test`)
+- [ ] Run: Frontend tests pass (`docker-compose exec frontend npm test`)
+- [x] Review: TypeScript compilation has no errors
+- [x] Review: Proper error handling in all new code (added fallback for AI category constraint)
 
-### Docker & DevOps
-- [ ] Verify: `docker-compose up -d` runs without errors
-- [ ] Verify: All containers are healthy (`docker-compose ps`)
-- [ ] Test: Backend API responds at http://localhost:3001
-- [ ] Test: Frontend loads at http://localhost:3000
-- [ ] Check: Database container is running and accessible
+### Git & Deployment to Beta (Synology)
+- [ ] Backup: Run `.\backup-db.ps1` to backup local database
+- [ ] Review: `git status` shows only intended changes
+- [ ] Commit: Login fix - "Fix: Resolve parent login delay during approval requests"
+- [ ] Commit: AI assistant DB - "Database: Add ai_assistant_enabled field migration"
+- [ ] Commit: AI assistant API - "Feature: Add admin API for AI assistant toggle"
+- [ ] Commit: AI assistant UI - "Feature: Add admin UI to control AI assistant per kid"
+- [ ] Push: `git push origin main`
+- [ ] Document: Update README.md with new features
+- [ ] Synology: Pull latest code and test in beta environment
 
-### Git & Deployment
-- [ ] Pull: Ensure latest code from git is pulled (`git pull origin main`)
-- [ ] Review: Check `git status` for uncommitted changes after each feature
-- [ ] Commit: Login fix - "Fix: Resolve parent login delay during kid approval requests"
-- [ ] Commit: AI assistant backend - "Feature: Add backend API for per-kid AI assistant control"
-- [ ] Commit: AI assistant frontend - "Feature: Add admin UI to toggle AI assistant per kid"
-- [ ] Document: Update README.md with AI assistant settings instructions
-- [ ] Ready: Ensure code is ready for Synology deployment
+## Testing Workflow
 
-## Testing Checklist (run after each feature)
-- [ ] Backend unit tests pass (`docker-compose exec backend npm test`)
-- [ ] Frontend builds successfully
-- [ ] Docker containers start cleanly (`docker-compose ps` shows all "Up")
-- [ ] No console errors in browser (check DevTools)
-- [ ] API endpoints respond correctly (test with curl or Postman)
-- [ ] Critical test: Kid creates task ? Parent logs in immediately (no delay)
-- [ ] AI assistant: Toggle on/off for different kids works correctly
+**Alpha (Local Windows):**
+1. Make code changes
+2. Test in local Docker with local database
+3. Verify all features work
+4. Run tests and linting
+5. Commit when working
+
+**Beta (Synology):**
+1. Pull from git
+2. Deploy to Synology
+3. Final verification with production-like setup
+4. Monitor for issues
 
 ## Notes
-- **START WITH**: `git pull origin main` to get latest code
-- Test locally in Docker before committing
-- Use descriptive commit messages
-- Each completed feature should be committed separately
-- Verify on Synology after pushing
-- Working on Windows OS with Node and Docker
-- **PRIORITY ORDER**: 1) Pull latest code, 2) Fix login issue, 3) AI assistant feature
+- Local database in ./data/family.db is NOT committed to git
+- docker-compose.override.yml is for local dev only (not committed)
+- Always backup database before major changes
+- Test complete workflows locally before pushing
+- Each feature should work 100% in Alpha before pushing to Beta
