@@ -857,12 +857,32 @@ export function initDatabase() {
           )
         `);
 
-        // Copy data
+        // Copy data - check which columns exist in old table
+        const oldTasksInfo: any[] = db.prepare('PRAGMA table_info(tasks)').all();
+        const oldColumns = oldTasksInfo.map((col: any) => col.name);
+
+        // Build column list based on what exists
+        const hasEarnsPoints = oldColumns.includes('earns_points');
+        const hasIsRecurring = oldColumns.includes('is_recurring');
+        const hasRecurrencePattern = oldColumns.includes('recurrence_pattern');
+        const hasDueDate = oldColumns.includes('due_date');
+        const hasCreatedBy = oldColumns.includes('created_by');
+        const hasParentApproved = oldColumns.includes('parent_approved');
+        const hasApprovedBy = oldColumns.includes('approved_by');
+
         db.exec(`
-          INSERT INTO tasks_new
-          SELECT id, profile_id, title, description, category, points, difficulty, earns_points,
-                 is_recurring, recurrence_pattern, due_date, completed, completed_at, created_at,
-                 created_by, parent_approved, approved_by
+          INSERT INTO tasks_new (id, profile_id, title, description, category, points, difficulty,
+                 earns_points, is_recurring, recurrence_pattern, due_date, completed, completed_at,
+                 created_at, created_by, parent_approved, approved_by)
+          SELECT id, profile_id, title, description, category, points, difficulty,
+                 ${hasEarnsPoints ? 'earns_points' : '1'},
+                 ${hasIsRecurring ? 'is_recurring' : '0'},
+                 ${hasRecurrencePattern ? 'recurrence_pattern' : 'NULL'},
+                 ${hasDueDate ? 'due_date' : 'NULL'},
+                 completed, completed_at, created_at,
+                 ${hasCreatedBy ? 'created_by' : 'NULL'},
+                 ${hasParentApproved ? 'parent_approved' : '0'},
+                 ${hasApprovedBy ? 'approved_by' : 'NULL'}
           FROM tasks
         `);
 
