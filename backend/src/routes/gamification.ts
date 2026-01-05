@@ -701,6 +701,289 @@ router.get('/weekly-summary/:profileId', (req, res) => {
   }
 });
 
+// ==================== DAILY LOGIN BONUS ====================
+
+// Daily bonus structure: Day 1=5, Day 2=10, Day 3=15, Day 4=20, Day 5=25, Day 6=35, Day 7=50
+const DAILY_BONUS_POINTS = [5, 10, 15, 20, 25, 35, 50];
+
+// Check and claim daily login bonus
+router.get('/login-bonus/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Check if already claimed today
+    const todayBonus: any = db.prepare(`
+      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+    `).get(profileId, today);
+
+    if (todayBonus) {
+      return res.json({
+        claimed: true,
+        consecutive_days: todayBonus.consecutive_days,
+        points_earned: todayBonus.points_earned,
+        next_bonus: DAILY_BONUS_POINTS[Math.min(todayBonus.consecutive_days, 6)]
+      });
+    }
+
+    // Check yesterday for streak
+    const yesterdayBonus: any = db.prepare(`
+      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+    `).get(profileId, yesterday);
+
+    const consecutiveDays = yesterdayBonus ? (yesterdayBonus.consecutive_days % 7) + 1 : 1;
+    const pointsToEarn = DAILY_BONUS_POINTS[consecutiveDays - 1];
+
+    res.json({
+      claimed: false,
+      consecutive_days: consecutiveDays,
+      points_to_earn: pointsToEarn,
+      streak_from_yesterday: !!yesterdayBonus
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Claim daily login bonus
+router.post('/login-bonus/:profileId/claim', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+    // Check if already claimed
+    const existing: any = db.prepare(`
+      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+    `).get(profileId, today);
+
+    if (existing) {
+      return res.status(400).json({ error: 'Already claimed today', claimed: true });
+    }
+
+    // Check streak
+    const yesterdayBonus: any = db.prepare(`
+      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+    `).get(profileId, yesterday);
+
+    const consecutiveDays = yesterdayBonus ? (yesterdayBonus.consecutive_days % 7) + 1 : 1;
+    const pointsToEarn = DAILY_BONUS_POINTS[consecutiveDays - 1];
+
+    // Insert login bonus
+    db.prepare(`
+      INSERT INTO login_bonuses (profile_id, login_date, consecutive_days, points_earned)
+      VALUES (?, ?, ?, ?)
+    `).run(profileId, today, consecutiveDays, pointsToEarn);
+
+    // Award points
+    const currentProgress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    const currentPoints = currentProgress?.total_points || 0;
+    const currentStars = currentProgress?.total_stars || 0;
+    const newPoints = currentPoints + pointsToEarn;
+    const newLevel = Math.floor(newPoints / 100) + 1;
+
+    db.prepare(`
+      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+      VALUES (?, ?, 0, ?, ?, ?)
+    `).run(profileId, pointsToEarn, newLevel, newPoints, currentStars);
+
+    // Check achievements after awarding points
+    checkAchievements(parseInt(profileId));
+
+    res.json({
+      success: true,
+      points_earned: pointsToEarn,
+      consecutive_days: consecutiveDays,
+      total_points: newPoints,
+      next_bonus: DAILY_BONUS_POINTS[consecutiveDays % 7],
+      is_week_complete: consecutiveDays === 7
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== MYSTERY REWARDS ====================
+
+// Check for mystery reward on task completion (call this from tasks route)
+export function checkMysteryReward(profileId: number, taskId: number, basePoints: number): { multiplier: number; bonusPoints: number; rewardType: string } | null {
+  // 15% chance for mystery reward
+  if (Math.random() > 0.15) {
+    return null;
+  }
+
+  const rewardTypes = [
+    { type: 'double_points', multiplier: 2.0, bonus: 0, weight: 40 },
+    { type: 'bonus_50', multiplier: 1.0, bonus: 50, weight: 25 },
+    { type: 'bonus_25', multiplier: 1.0, bonus: 25, weight: 35 },
+    { type: 'triple_points', multiplier: 3.0, bonus: 0, weight: 10 },
+    { type: 'jackpot', multiplier: 1.0, bonus: 100, weight: 5 }
+  ];
+
+  // Weighted random selection
+  const totalWeight = rewardTypes.reduce((sum, r) => sum + r.weight, 0);
+  let random = Math.random() * totalWeight;
+  let selectedReward = rewardTypes[0];
+
+  for (const reward of rewardTypes) {
+    random -= reward.weight;
+    if (random <= 0) {
+      selectedReward = reward;
+      break;
+    }
+  }
+
+  const bonusPoints = selectedReward.bonus + Math.floor(basePoints * (selectedReward.multiplier - 1));
+
+  // Log the mystery reward
+  db.prepare(`
+    INSERT INTO mystery_rewards (profile_id, reward_type, multiplier, bonus_points, task_id)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(profileId, selectedReward.type, selectedReward.multiplier, bonusPoints, taskId);
+
+  return {
+    multiplier: selectedReward.multiplier,
+    bonusPoints: bonusPoints,
+    rewardType: selectedReward.type
+  };
+}
+
+// Get recent mystery rewards for a profile
+router.get('/mystery-rewards/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const rewards = db.prepare(`
+      SELECT mr.*, t.title as task_title
+      FROM mystery_rewards mr
+      LEFT JOIN tasks t ON mr.task_id = t.id
+      WHERE mr.profile_id = ?
+      ORDER BY mr.earned_at DESC
+      LIMIT 10
+    `).all(profileId);
+
+    // Get totals
+    const totals: any = db.prepare(`
+      SELECT COUNT(*) as count, SUM(bonus_points) as total_bonus
+      FROM mystery_rewards
+      WHERE profile_id = ?
+    `).get(profileId);
+
+    res.json({
+      recent: rewards,
+      total_count: totals?.count || 0,
+      total_bonus_earned: totals?.total_bonus || 0
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== STREAK PROTECTION ====================
+
+// Get streak freeze status
+router.get('/streak-freeze/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    // Check freezes used this week
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+
+    const usedThisWeek: any = db.prepare(`
+      SELECT COUNT(*) as count FROM streak_freezes
+      WHERE profile_id = ? AND freeze_date >= ?
+    `).get(profileId, weekStartStr);
+
+    // Get current points
+    const progress: any = db.prepare(`
+      SELECT total_points FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    const freezeCost = 50; // Cost in points
+
+    res.json({
+      freezes_used_this_week: usedThisWeek?.count || 0,
+      max_freezes_per_week: 1,
+      can_freeze: (usedThisWeek?.count || 0) < 1 && (progress?.total_points || 0) >= freezeCost,
+      freeze_cost: freezeCost,
+      current_points: progress?.total_points || 0
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Use streak freeze
+router.post('/streak-freeze/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { streak_type } = req.body;
+    const today = new Date().toISOString().split('T')[0];
+
+    if (!streak_type || !['tasks', 'water'].includes(streak_type)) {
+      return res.status(400).json({ error: 'Invalid streak_type. Must be "tasks" or "water"' });
+    }
+
+    // Check if already used this week
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekStartStr = weekStart.toISOString().split('T')[0];
+
+    const usedThisWeek: any = db.prepare(`
+      SELECT COUNT(*) as count FROM streak_freezes
+      WHERE profile_id = ? AND freeze_date >= ?
+    `).get(profileId, weekStartStr);
+
+    if ((usedThisWeek?.count || 0) >= 1) {
+      return res.status(400).json({ error: 'Already used streak freeze this week' });
+    }
+
+    // Check points
+    const freezeCost = 50;
+    const progress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    if ((progress?.total_points || 0) < freezeCost) {
+      return res.status(400).json({ error: 'Not enough points', required: freezeCost, current: progress?.total_points || 0 });
+    }
+
+    // Deduct points
+    const newPoints = progress.total_points - freezeCost;
+    const newLevel = Math.floor(newPoints / 100) + 1;
+    db.prepare(`
+      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+      VALUES (?, ?, 0, ?, ?, ?)
+    `).run(profileId, -freezeCost, newLevel, newPoints, progress.total_stars);
+
+    // Record the freeze
+    db.prepare(`
+      INSERT INTO streak_freezes (profile_id, freeze_date, streak_type)
+      VALUES (?, ?, ?)
+    `).run(profileId, today, streak_type);
+
+    // Update streak last_activity_date to today (protects streak)
+    db.prepare(`
+      UPDATE streaks SET last_activity_date = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE profile_id = ? AND streak_type = ?
+    `).run(today, profileId, streak_type);
+
+    res.json({
+      success: true,
+      message: `${streak_type} streak protected!`,
+      points_spent: freezeCost,
+      remaining_points: newPoints
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Export helper to be used from tasks route
 export function updateTaskStreak(profileId: number) {
   updateStreak(profileId, 'tasks');

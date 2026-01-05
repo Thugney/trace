@@ -1117,6 +1117,69 @@ export function initDatabase() {
     )
   `);
 
+  // Daily login bonuses table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS login_bonuses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      login_date TEXT NOT NULL,
+      consecutive_days INTEGER DEFAULT 1,
+      points_earned INTEGER NOT NULL,
+      claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, login_date)
+    )
+  `);
+
+  // Streak freezes (protect streaks when sick/busy)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS streak_freezes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      freeze_date TEXT NOT NULL,
+      streak_type TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Power-ups inventory
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS power_ups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      power_up_type TEXT NOT NULL,
+      quantity INTEGER DEFAULT 1,
+      expires_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Mystery rewards log (for random bonus tracking)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS mystery_rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      reward_type TEXT NOT NULL,
+      multiplier REAL DEFAULT 1.0,
+      bonus_points INTEGER DEFAULT 0,
+      task_id INTEGER,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create indexes for new tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_login_bonuses_profile ON login_bonuses(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_login_bonuses_date ON login_bonuses(login_date);
+    CREATE INDEX IF NOT EXISTS idx_streak_freezes_profile ON streak_freezes(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_power_ups_profile ON power_ups(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_mystery_rewards_profile ON mystery_rewards(profile_id);
+  `);
+
   console.log('Database initialized successfully');
 }
 

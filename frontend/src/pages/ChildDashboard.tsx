@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, gamificationAPI, goalsAPI, GoalWithMilestones } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
+import playSounds from '../utils/sounds';
 
 // Avatar categories with emojis
 const AVATAR_CATEGORIES = [
@@ -125,6 +126,24 @@ export default function ChildDashboard() {
   const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
   const [activeGoalCategory, setActiveGoalCategory] = useState<string>('all');
 
+  // Daily Login Bonus state
+  const [showLoginBonus, setShowLoginBonus] = useState(false);
+  const [loginBonusData, setLoginBonusData] = useState<{
+    claimed: boolean;
+    consecutive_days: number;
+    points_to_earn?: number;
+    points_earned?: number;
+  } | null>(null);
+  const [claimingBonus, setClaimingBonus] = useState(false);
+  const [bonusClaimed, setBonusClaimed] = useState(false);
+
+  // Streak freeze state (for future streak protection UI)
+  const [, setStreakFreezeData] = useState<{
+    can_freeze: boolean;
+    freeze_cost: number;
+    freezes_used_this_week: number;
+  } | null>(null);
+
   useEffect(() => {
     if (!currentProfile) return;
 
@@ -174,6 +193,7 @@ export default function ChildDashboard() {
     if (stats?.progress?.level && prevLevel !== null && stats.progress.level > prevLevel) {
       setNewLevel(stats.progress.level);
       setShowLevelUp(true);
+      playSounds.levelUp();
       // Auto-hide after 5 seconds
       setTimeout(() => setShowLevelUp(false), 5000);
     }
@@ -182,10 +202,66 @@ export default function ChildDashboard() {
     }
   }, [stats?.progress?.level, prevLevel]);
 
+  // Check for daily login bonus - runs once when dashboard loads
+  useEffect(() => {
+    if (!currentProfile || loading) return;
+
+    const checkLoginBonus = async () => {
+      try {
+        const [bonusRes, freezeRes] = await Promise.all([
+          gamificationAPI.getLoginBonus(currentProfile.id),
+          gamificationAPI.getStreakFreeze(currentProfile.id)
+        ]);
+        setLoginBonusData(bonusRes.data);
+        setStreakFreezeData(freezeRes.data);
+
+        // Show popup if bonus not claimed today
+        if (!bonusRes.data.claimed) {
+          setShowLoginBonus(true);
+        }
+      } catch (error) {
+        console.error('Failed to check login bonus:', error);
+      }
+    };
+
+    checkLoginBonus();
+  }, [currentProfile, loading]);
+
+  // Claim login bonus handler
+  const claimLoginBonus = async () => {
+    if (!currentProfile || claimingBonus) return;
+    try {
+      setClaimingBonus(true);
+      const res = await gamificationAPI.claimLoginBonus(currentProfile.id);
+      setLoginBonusData({
+        claimed: true,
+        consecutive_days: res.data.consecutive_days,
+        points_earned: res.data.points_earned
+      });
+      setBonusClaimed(true);
+      playSounds.bonusClaimed();
+
+      // Refresh stats after claiming
+      const statsRes = await profilesAPI.getStats(currentProfile.id);
+      setStats(statsRes.data);
+
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        setShowLoginBonus(false);
+        setBonusClaimed(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to claim login bonus:', error);
+    } finally {
+      setClaimingBonus(false);
+    }
+  };
+
   const logWater = async (amount: number) => {
     if (!currentProfile) return;
     try {
       await gamificationAPI.logWater(currentProfile.id, amount);
+      playSounds.waterLogged();
       const waterRes = await gamificationAPI.getWater(currentProfile.id);
       setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
       // Refresh challenges as water progress may have changed
@@ -199,6 +275,7 @@ export default function ChildDashboard() {
   const claimChallenge = async (challengeId: number) => {
     try {
       await gamificationAPI.completeChallenge(challengeId);
+      playSounds.challengeComplete();
       // Refresh challenges and stats
       if (currentProfile) {
         const [challengesRes, statsRes] = await Promise.all([
@@ -282,6 +359,107 @@ export default function ChildDashboard() {
             >
               Awesome! 🌟
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Login Bonus Modal */}
+      {showLoginBonus && loginBonusData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
+          <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full mx-4 overflow-hidden">
+            {/* Sparkle effect */}
+            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+              {[...Array(12)].map((_, i) => (
+                <Sparkles
+                  key={i}
+                  className="absolute text-yellow-300 animate-pulse"
+                  size={16}
+                  style={{
+                    left: `${10 + Math.random() * 80}%`,
+                    top: `${10 + Math.random() * 80}%`,
+                    animationDelay: `${Math.random() * 2}s`
+                  }}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowLoginBonus(false)}
+              className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
+            >
+              <X size={24} />
+            </button>
+
+            {bonusClaimed ? (
+              <>
+                <div className="text-7xl mb-4 animate-bounce">🎁</div>
+                <h2 className="text-2xl font-black text-white mb-2 drop-shadow-lg">
+                  Bonus Claimed!
+                </h2>
+                <div className="text-4xl font-black text-yellow-200 drop-shadow-lg mb-2">
+                  +{loginBonusData.points_earned} points
+                </div>
+                <p className="text-white/90">
+                  Day {loginBonusData.consecutive_days} streak! 🔥
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-6xl mb-3">🌟</div>
+                <h2 className="text-2xl font-black text-white mb-1 drop-shadow-lg">
+                  Daily Bonus!
+                </h2>
+                <p className="text-white/80 text-sm mb-3">
+                  Day {loginBonusData.consecutive_days} of 7
+                </p>
+
+                {/* Streak visualization */}
+                <div className="flex justify-center gap-1 mb-4">
+                  {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                    <div
+                      key={day}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        day < loginBonusData.consecutive_days
+                          ? 'bg-yellow-400 text-yellow-900'
+                          : day === loginBonusData.consecutive_days
+                          ? 'bg-white text-teal-600 ring-2 ring-yellow-300 scale-110'
+                          : 'bg-white/30 text-white/60'
+                      }`}
+                    >
+                      {day === 7 ? '🏆' : day}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-white/20 rounded-xl p-4 mb-4">
+                  <p className="text-white/80 text-sm">Today's Reward</p>
+                  <div className="text-3xl font-black text-yellow-200 drop-shadow">
+                    +{loginBonusData.points_to_earn} points
+                  </div>
+                  {loginBonusData.consecutive_days === 7 && (
+                    <p className="text-yellow-200 text-sm mt-1">🎉 Week complete bonus!</p>
+                  )}
+                </div>
+
+                <button
+                  onClick={claimLoginBonus}
+                  disabled={claimingBonus}
+                  className="w-full px-6 py-3 bg-yellow-400 text-teal-800 rounded-full font-bold text-lg hover:bg-yellow-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {claimingBonus ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                      Claiming...
+                    </>
+                  ) : (
+                    <>
+                      <Gift size={20} />
+                      Claim Bonus!
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

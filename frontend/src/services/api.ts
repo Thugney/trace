@@ -486,7 +486,52 @@ export const gamificationAPI = {
       currentStreak: number;
       achievements: number;
       rank: number;
-    }[]>(`/gamification/leaderboard/${parentId}`, { params: { period } })
+    }[]>(`/gamification/leaderboard/${parentId}`, { params: { period } }),
+
+  // Daily Login Bonus
+  getLoginBonus: (profileId: number) =>
+    api.get<{
+      claimed: boolean;
+      consecutive_days: number;
+      points_earned?: number;
+      points_to_earn?: number;
+      next_bonus?: number;
+      streak_from_yesterday?: boolean;
+    }>(`/gamification/login-bonus/${profileId}`),
+  claimLoginBonus: (profileId: number) =>
+    api.post<{
+      success: boolean;
+      points_earned: number;
+      consecutive_days: number;
+      total_points: number;
+      next_bonus: number;
+      is_week_complete: boolean;
+    }>(`/gamification/login-bonus/${profileId}/claim`),
+
+  // Mystery Rewards
+  getMysteryRewards: (profileId: number) =>
+    api.get<{
+      recent: any[];
+      total_count: number;
+      total_bonus_earned: number;
+    }>(`/gamification/mystery-rewards/${profileId}`),
+
+  // Streak Freeze
+  getStreakFreeze: (profileId: number) =>
+    api.get<{
+      freezes_used_this_week: number;
+      max_freezes_per_week: number;
+      can_freeze: boolean;
+      freeze_cost: number;
+      current_points: number;
+    }>(`/gamification/streak-freeze/${profileId}`),
+  useStreakFreeze: (profileId: number, streak_type: 'tasks' | 'water') =>
+    api.post<{
+      success: boolean;
+      message: string;
+      points_spent: number;
+      remaining_points: number;
+    }>(`/gamification/streak-freeze/${profileId}`, { streak_type })
 };
 
 // Notifications API

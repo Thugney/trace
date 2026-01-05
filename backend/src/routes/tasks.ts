@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { NotificationHelpers } from '../services/notifications';
+import { checkMysteryReward } from './gamification';
 
 const router = express.Router();
 
@@ -230,8 +231,13 @@ router.post('/:id/complete', (req, res) => {
     `).run(id);
 
     // Award points to profile
-    const points = task.points || 10;
+    const basePoints = task.points || 10;
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+
+    // Check for mystery reward (15% chance for bonus)
+    const mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), basePoints);
+    const bonusPoints = mysteryReward ? mysteryReward.bonusPoints : 0;
+    const points = basePoints + bonusPoints;
 
     // Get current progress
     const currentProgress: any = db.prepare(`
@@ -296,7 +302,12 @@ router.post('/:id/complete', (req, res) => {
       progress,
       pointsEarned: points,
       starsEarned: stars,
-      nextRecurringTask: nextTask
+      nextRecurringTask: nextTask,
+      mysteryReward: mysteryReward ? {
+        type: mysteryReward.rewardType,
+        multiplier: mysteryReward.multiplier,
+        bonusPoints: mysteryReward.bonusPoints
+      } : null
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
