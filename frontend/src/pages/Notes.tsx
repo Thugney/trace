@@ -23,6 +23,91 @@ const NOTE_COLORS = [
   { name: 'Orange', value: '#fed7aa' }
 ];
 
+const NOTE_TEMPLATES = [
+  {
+    name: 'Blank',
+    icon: '📄',
+    title: '',
+    content: '',
+    category: ''
+  },
+  {
+    name: 'Homework',
+    icon: '✏️',
+    title: 'Homework - [Subject]',
+    content: `## Assignment
+-
+
+## Due Date
+
+
+## Notes
+
+`,
+    category: 'Homework'
+  },
+  {
+    name: 'Journal',
+    icon: '📖',
+    title: 'Journal Entry',
+    content: `## Today's Date
+
+
+## How I'm Feeling
+
+
+## What Happened Today
+
+
+## What I'm Grateful For
+-
+-
+-
+
+## Goals for Tomorrow
+
+`,
+    category: 'Journal'
+  },
+  {
+    name: 'To-Do List',
+    icon: '📋',
+    title: 'My To-Do List',
+    content: `## Priority Tasks
+-
+-
+-
+
+## Other Tasks
+-
+-
+
+## Notes
+
+`,
+    category: 'Lists'
+  },
+  {
+    name: 'Study Notes',
+    icon: '📚',
+    title: 'Study Notes - [Topic]',
+    content: `## Key Concepts
+
+
+## Important Terms
+- **Term 1**: Definition
+- **Term 2**: Definition
+
+## Summary
+
+
+## Questions to Review
+
+`,
+    category: 'School'
+  }
+];
+
 // Simple markdown-to-HTML rendering with sanitization
 const renderMarkdown = (text: string): string => {
   if (!text) return '';
@@ -112,6 +197,7 @@ export default function Notes() {
   const [showAddNote, setShowAddNote] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedTemplate, setSelectedTemplate] = useState(NOTE_TEMPLATES[0]);
   const addTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -387,7 +473,10 @@ export default function Notes() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">New Note</h2>
               <button
-                onClick={() => setShowAddNote(false)}
+                onClick={() => {
+                  setShowAddNote(false);
+                  setSelectedTemplate(NOTE_TEMPLATES[0]);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <X size={24} />
@@ -395,6 +484,30 @@ export default function Notes() {
             </div>
 
             <form onSubmit={handleAddNote} className="space-y-4">
+              {/* Template Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start with a Template
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {NOTE_TEMPLATES.map((template) => (
+                    <button
+                      key={template.name}
+                      type="button"
+                      onClick={() => setSelectedTemplate(template)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1 ${
+                        selectedTemplate.name === template.name
+                          ? 'bg-primary-600 text-white ring-2 ring-primary-300'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span>{template.icon}</span>
+                      {template.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
@@ -405,6 +518,8 @@ export default function Notes() {
                   required
                   className="input"
                   placeholder="Note title..."
+                  defaultValue={selectedTemplate.title}
+                  key={selectedTemplate.name + '-title'}
                   autoFocus
                 />
               </div>
@@ -413,16 +528,16 @@ export default function Notes() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2" key={selectedTemplate.name + '-category'}>
                   <label className="cursor-pointer">
-                    <input type="radio" name="category" value="" defaultChecked className="sr-only peer" />
+                    <input type="radio" name="category" value="" defaultChecked={!selectedTemplate.category} className="sr-only peer" />
                     <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-block">
                       None
                     </span>
                   </label>
                   {NOTE_CATEGORIES.map(cat => (
                     <label key={cat.name} className="cursor-pointer">
-                      <input type="radio" name="category" value={cat.name} className="sr-only peer" />
+                      <input type="radio" name="category" value={cat.name} defaultChecked={selectedTemplate.category === cat.name} className="sr-only peer" />
                       <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${cat.color} peer-checked:bg-gray-800 peer-checked:text-white transition-colors inline-flex items-center gap-1`}>
                         {cat.icon} {cat.name}
                       </span>
@@ -441,6 +556,8 @@ export default function Notes() {
                   name="content"
                   className="input min-h-[200px] font-mono"
                   placeholder="Write your note here... Use **bold**, *italic*, ## Heading, - list"
+                  defaultValue={selectedTemplate.content}
+                  key={selectedTemplate.name + '-content'}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
@@ -502,7 +619,10 @@ export default function Notes() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowAddNote(false)}
+                  onClick={() => {
+                    setShowAddNote(false);
+                    setSelectedTemplate(NOTE_TEMPLATES[0]);
+                  }}
                   className="btn btn-secondary flex-1"
                 >
                   Cancel

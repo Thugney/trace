@@ -427,7 +427,20 @@ export const gamificationAPI = {
       tasksByCategory: { category: string; count: number }[];
       dailyBreakdown: { date: string; tasks_completed: number }[];
       streaks: Record<string, { current: number; longest: number }>;
-    }>(`/gamification/weekly-summary/${profileId}`)
+    }>(`/gamification/weekly-summary/${profileId}`),
+
+  // Leaderboard
+  getLeaderboard: (parentId: number, period?: 'week' | 'month' | 'all') =>
+    api.get<{
+      id: number;
+      name: string;
+      avatar: string;
+      points: number;
+      tasksCompleted: number;
+      currentStreak: number;
+      achievements: number;
+      rank: number;
+    }[]>(`/gamification/leaderboard/${parentId}`, { params: { period } })
 };
 
 // Notifications API

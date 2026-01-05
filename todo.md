@@ -25,7 +25,7 @@
 - [] Tags/labels - For searching
 - [x] Pin important notes - Added is_pinned field, pinned notes sort first, UI with pin indicator
 - [x] Reminders - "Remind me about this note on Friday" - Added reminder_at field with date picker UI
-- [] Note templates - Homework template, journal template
+- [x] Note templates - Homework template, journal template - Added 5 templates (Blank, Homework, Journal, To-Do List, Study Notes) with auto-fill
 
 3. Diet Tracking Analysis Critical Issues:
  "Search Norwegian foods" - Is there actually a Norwegian food database connected? This needs an API or local database
@@ -70,10 +70,10 @@ Missing Features:
 What's Missing for Effective Kid Gamification:
 - [x] Streaks - Added task and water streaks with longest streak tracking - Shows in ChildDashboard
 - [x] Badges/Achievements - Added achievements table with 12 achievements, profile_achievements tracking, display in ChildDashboard
-- [] Leaderboard - Sibling competition (optional)
+- [x] Leaderboard - Sibling competition - Added family leaderboard with weekly/monthly/all-time periods, shows rankings with points/tasks/streaks
 - [] Avatar/Character - Kids love customizing a character that levels up
 - [x] Daily Challenges - Added daily_challenges table, auto-generated challenges, progress tracking, claim rewards in ChildDashboard
-- [] Level-up rewards - Visual celebration when reaching new level
+- [x] Level-up rewards - Visual celebration when reaching new level - Added confetti animation modal with level display
 - [] Sound effects/animations - Satisfying completion feedback
 - [x] Weekly summaries - "This week you earned 150 points! 🎉" - Added weekly-summary API and UI in ChildDashboard with stats and daily activity chart
 

@@ -210,6 +210,97 @@ router.get('/stats/:profileId', (req, res) => {
   }
 });
 
+// ==================== LEADERBOARD ====================
+
+// Get family leaderboard (all kids for a parent)
+router.get('/leaderboard/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+    const { period } = req.query; // 'week', 'month', 'all'
+
+    // Get all kids for this parent
+    const kids: any[] = db.prepare(`
+      SELECT id, name, avatar FROM profiles
+      WHERE parent_id = ? AND type = 'child'
+    `).all(parentId);
+
+    if (kids.length === 0) {
+      return res.json([]);
+    }
+
+    // Calculate date range for period
+    let dateFilter = '';
+    const now = new Date();
+    if (period === 'week') {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      dateFilter = `AND DATE(logged_at) >= DATE('${weekStart.toISOString().split('T')[0]}')`;
+    } else if (period === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateFilter = `AND DATE(logged_at) >= DATE('${monthStart.toISOString().split('T')[0]}')`;
+    }
+
+    // Get stats for each kid
+    const leaderboard = kids.map((kid: any) => {
+      // Get points for period
+      const points: any = period === 'all'
+        ? db.prepare(`
+            SELECT total_points as points FROM progress
+            WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+          `).get(kid.id)
+        : db.prepare(`
+            SELECT SUM(points_earned) as points FROM progress
+            WHERE profile_id = ? ${dateFilter}
+          `).get(kid.id);
+
+      // Get tasks completed for period
+      const tasks: any = period === 'all'
+        ? db.prepare(`
+            SELECT COUNT(*) as count FROM tasks
+            WHERE profile_id = ? AND completed = 1
+          `).get(kid.id)
+        : db.prepare(`
+            SELECT COUNT(*) as count FROM tasks
+            WHERE profile_id = ? AND completed = 1
+            ${dateFilter.replace('logged_at', 'completed_at')}
+          `).get(kid.id);
+
+      // Get current streak
+      const streak: any = db.prepare(`
+        SELECT current_streak FROM streaks
+        WHERE profile_id = ? AND streak_type = 'tasks'
+      `).get(kid.id);
+
+      // Get achievements count
+      const achievements: any = db.prepare(`
+        SELECT COUNT(*) as count FROM profile_achievements WHERE profile_id = ?
+      `).get(kid.id);
+
+      return {
+        id: kid.id,
+        name: kid.name,
+        avatar: kid.avatar || '👤',
+        points: points?.points || 0,
+        tasksCompleted: tasks?.count || 0,
+        currentStreak: streak?.current_streak || 0,
+        achievements: achievements?.count || 0
+      };
+    });
+
+    // Sort by points descending
+    leaderboard.sort((a, b) => b.points - a.points);
+
+    // Add rank
+    leaderboard.forEach((entry, index) => {
+      entry.rank = index + 1;
+    });
+
+    res.json(leaderboard);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== HELPER FUNCTIONS ====================
 
 function updateStreak(profileId: number, streakType: string) {

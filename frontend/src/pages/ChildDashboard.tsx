@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, gamificationAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal } from 'lucide-react';
 
 interface DailyChallenge {
   id: number;
@@ -29,6 +29,17 @@ interface WeeklySummary {
   dailyBreakdown: { date: string; tasks_completed: number }[];
 }
 
+interface LeaderboardEntry {
+  id: number;
+  name: string;
+  avatar: string;
+  points: number;
+  tasksCompleted: number;
+  currentStreak: number;
+  achievements: number;
+  rank: number;
+}
+
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -39,6 +50,10 @@ export default function ChildDashboard() {
   const [waterAmount, setWaterAmount] = useState(250);
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [newLevel, setNewLevel] = useState(0);
+  const [prevLevel, setPrevLevel] = useState<number | null>(null);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -60,6 +75,16 @@ export default function ChildDashboard() {
         setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
         setChallenges(challengesRes.data);
         setWeeklySummary(weeklyRes.data);
+
+        // Load leaderboard if child has a parent
+        if (currentProfile.parent_id) {
+          try {
+            const leaderboardRes = await gamificationAPI.getLeaderboard(currentProfile.parent_id, 'week');
+            setLeaderboard(leaderboardRes.data);
+          } catch (e) {
+            console.error('Failed to load leaderboard:', e);
+          }
+        }
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -115,8 +140,63 @@ export default function ChildDashboard() {
   const completedTasks = stats?.tasks.completed_tasks || 0;
   const totalTasks = stats?.tasks.total_tasks || 0;
 
+  // Detect level up
+  useEffect(() => {
+    if (stats?.progress.level && prevLevel !== null && stats.progress.level > prevLevel) {
+      setNewLevel(stats.progress.level);
+      setShowLevelUp(true);
+      // Auto-hide after 5 seconds
+      setTimeout(() => setShowLevelUp(false), 5000);
+    }
+    if (stats?.progress.level) {
+      setPrevLevel(stats.progress.level);
+    }
+  }, [stats?.progress.level, prevLevel]);
+
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Level Up Celebration Modal */}
+      {showLevelUp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-pink-500 p-8 rounded-3xl shadow-2xl text-center transform animate-bounce-slow max-w-sm mx-4">
+            {/* Confetti effect */}
+            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-3 h-3 animate-confetti"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `-10%`,
+                    backgroundColor: ['#ff0', '#f0f', '#0ff', '#0f0', '#f00', '#00f'][i % 6],
+                    borderRadius: Math.random() > 0.5 ? '50%' : '0',
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${2 + Math.random() * 2}s`
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="text-8xl mb-4 animate-pulse">🎉</div>
+            <h2 className="text-4xl font-black text-white mb-2 drop-shadow-lg">
+              LEVEL UP!
+            </h2>
+            <div className="text-7xl font-black text-white drop-shadow-lg mb-4">
+              {newLevel}
+            </div>
+            <p className="text-xl text-white/90 mb-6">
+              Amazing work! Keep it going! 🚀
+            </p>
+            <button
+              onClick={() => setShowLevelUp(false)}
+              className="px-6 py-3 bg-white text-orange-600 rounded-full font-bold text-lg hover:bg-yellow-100 transition-colors shadow-lg"
+            >
+              Awesome! 🌟
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Friendly Header */}
       <div className="mb-6 text-center">
         <div className="text-7xl mb-3">{currentProfile?.avatar || '👤'}</div>
@@ -404,6 +484,59 @@ export default function ChildDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Family Leaderboard */}
+      {leaderboard.length > 1 && (
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 mb-6">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Users className="text-amber-600" size={24} />
+            Family Leaderboard 🏆
+          </h3>
+          <div className="space-y-2">
+            {leaderboard.map((entry) => {
+              const isCurrentUser = entry.id === currentProfile?.id;
+              const rankEmoji = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
+
+              return (
+                <div
+                  key={entry.id}
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                    isCurrentUser
+                      ? 'bg-amber-200 border-2 border-amber-400 shadow-md'
+                      : 'bg-white border border-amber-100'
+                  }`}
+                >
+                  <span className="text-2xl font-bold w-10 text-center">{rankEmoji}</span>
+                  <span className="text-3xl">{entry.avatar}</span>
+                  <div className="flex-1">
+                    <p className={`font-bold ${isCurrentUser ? 'text-amber-800' : 'text-gray-800'}`}>
+                      {entry.name} {isCurrentUser && '(You!)'}
+                    </p>
+                    <div className="flex gap-3 text-xs text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Trophy size={12} className="text-yellow-500" />
+                        {entry.points} pts
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <CheckCircle size={12} className="text-green-500" />
+                        {entry.tasksCompleted} tasks
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Flame size={12} className="text-orange-500" />
+                        {entry.currentStreak} streak
+                      </span>
+                    </div>
+                  </div>
+                  {entry.rank === 1 && (
+                    <Medal className="text-yellow-500" size={28} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-3 text-center">This week's standings</p>
         </div>
       )}
 
