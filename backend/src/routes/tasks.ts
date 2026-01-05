@@ -59,7 +59,9 @@ router.post('/', (req, res) => {
       is_recurring,
       recurrence_pattern,
       due_date,
-      created_by
+      created_by,
+      priority,
+      estimated_minutes
     } = req.body;
 
     if (!profile_id || !title) {
@@ -89,8 +91,9 @@ router.post('/', (req, res) => {
     const result = db.prepare(`
       INSERT INTO tasks (
         profile_id, title, description, category, points, difficulty,
-        is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+        priority, estimated_minutes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       profile_id,
       title,
@@ -103,7 +106,9 @@ router.post('/', (req, res) => {
       due_date || null,
       created_by || null,
       parentApproved,
-      approvedBy
+      approvedBy,
+      priority || 'medium',
+      estimated_minutes || null
     );
 
     const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
@@ -168,6 +173,14 @@ router.put('/:id', (req, res) => {
     if (recurrence_pattern !== undefined) {
       updates.push('recurrence_pattern = ?');
       values.push(recurrence_pattern);
+    }
+    if (req.body.priority !== undefined) {
+      updates.push('priority = ?');
+      values.push(req.body.priority);
+    }
+    if (req.body.estimated_minutes !== undefined) {
+      updates.push('estimated_minutes = ?');
+      values.push(req.body.estimated_minutes);
     }
     if (due_date !== undefined) {
       updates.push('due_date = ?');
@@ -246,16 +259,85 @@ router.post('/:id/complete', (req, res) => {
       NotificationHelpers.taskCompleted(task.profile_id, profile.name, task.title, points).catch(console.error);
     }
 
+    // Handle recurring tasks - create next occurrence
+    let nextTask = null;
+    if (task.is_recurring && task.recurrence_pattern) {
+      const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
+
+      const newTaskResult = db.prepare(`
+        INSERT INTO tasks (
+          profile_id, title, description, category, points, difficulty,
+          is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+          priority, estimated_minutes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        task.profile_id,
+        task.title,
+        task.description,
+        task.category,
+        task.points,
+        task.difficulty,
+        1, // is_recurring
+        task.recurrence_pattern,
+        nextDueDate,
+        task.created_by,
+        task.parent_approved,
+        task.approved_by,
+        task.priority || 'medium',
+        task.estimated_minutes
+      );
+
+      nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
+      console.log(`[Tasks] Created next recurring task: ${task.title}, due: ${nextDueDate}`);
+    }
+
     res.json({
       task: completedTask,
       progress,
       pointsEarned: points,
-      starsEarned: stars
+      starsEarned: stars,
+      nextRecurringTask: nextTask
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Helper function to calculate next due date for recurring tasks
+function calculateNextDueDate(currentDueDate: string | null, pattern: string): string {
+  const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
+  const today = new Date();
+
+  // If base date is in the past, start from today
+  if (baseDate < today) {
+    baseDate.setTime(today.getTime());
+  }
+
+  switch (pattern) {
+    case 'daily':
+      baseDate.setDate(baseDate.getDate() + 1);
+      break;
+    case 'weekdays':
+      // Move to next weekday
+      do {
+        baseDate.setDate(baseDate.getDate() + 1);
+      } while (baseDate.getDay() === 0 || baseDate.getDay() === 6);
+      break;
+    case 'weekly':
+      baseDate.setDate(baseDate.getDate() + 7);
+      break;
+    case 'biweekly':
+      baseDate.setDate(baseDate.getDate() + 14);
+      break;
+    case 'monthly':
+      baseDate.setMonth(baseDate.getMonth() + 1);
+      break;
+    default:
+      baseDate.setDate(baseDate.getDate() + 1);
+  }
+
+  return baseDate.toISOString().split('T')[0];
+}
 
 // Delete task - with authorization (owner, parent of owner, or admin)
 router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {

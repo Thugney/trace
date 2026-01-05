@@ -9,21 +9,21 @@
   - Implemented: Admin can set limits per child in Admin Panel (limited=5/day, extended=20/day, unlimited)
   - Kids see remaining messages count in AI chat header
   - Input is disabled when limit is reached with clear message
- Missing Features for Kids:
- Due date/deadline - Kids need to know WHEN tasks are due
-- [] Recurring tasks - "Make bed every morning" shouldn't need re-creation daily
-- [] Assign to specific child  to specific child - If you have multiple kids
-- [] Parent approval toggle - Does this task need verification? tasks with no reward dont need approval but still parent see everything
-- [] Visual icons for categories - Kids respond better to visuals than text
-- [] Priority level - High/Medium/Low with colors
-- [] Estimated time - "This takes about 15 minutes"
+ 1. Missing Features for Kids:
+- [x] Due date/deadline - Added to task form with calendar picker
+- [x] Recurring tasks - Implemented: daily, weekdays, weekly, biweekly, monthly with auto-creation on complete
+- [] Assign to specific child - If you have multiple kids (already works via child selector)
+- [] Parent approval toggle - Does this task need verification? (already implemented)
+- [x] Visual icons for categories - Added emoji icons for each category (📚, ✍️, 🛏️, etc.)
+- [x] Priority level - High/Medium/Low with color-coded borders and badges
+- [x] Estimated time - Added time estimates (5-120 minutes) selector
 - [] Subtasks/checklist - Break big tasks into smaller steps
 2. Note Taking Form Analysis Missing Features:
  Categories/folders - Organize notes by topic (School, Personal, Ideas)
 - [] Rich text formatting - Bold, lists, headings
 - [] Attachments - Add photos, drawings
 - [] Tags/labels - For searching
-- [] Pin important notes - Keep critical notes at top
+- [x] Pin important notes - Added is_pinned field, pinned notes sort first
 - [] Reminders - "Remind me about this note on Friday"
 - [] Note templates - Homework template, journal template
 

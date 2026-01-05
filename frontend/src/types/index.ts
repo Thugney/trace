@@ -79,12 +79,12 @@ export interface Task {
   profile_id: number;
   title: string;
   description?: string;
-  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'other';
+  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'homework' | 'exercise' | 'chore' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
   earns_points: boolean;
-  is_recurring: boolean;
-  recurrence_pattern?: string;
+  is_recurring: boolean | number;
+  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly';
   due_date?: string;
   completed: boolean;
   completed_at?: string;
@@ -94,6 +94,8 @@ export interface Task {
   created_at: string;
   child_name?: string;
   child_avatar?: string;
+  priority?: 'high' | 'medium' | 'low';
+  estimated_minutes?: number;
 }
 
 export interface Progress {
@@ -137,6 +139,8 @@ export interface Note {
   title: string;
   content: string;
   color: string;
+  category?: string;
+  is_pinned?: boolean | number;
   created_at: string;
   updated_at: string;
 }

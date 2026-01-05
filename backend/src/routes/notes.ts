@@ -20,7 +20,7 @@ router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     const notes = db.prepare(
-      'SELECT * FROM notes WHERE profile_id = ? ORDER BY updated_at DESC'
+      'SELECT * FROM notes WHERE profile_id = ? ORDER BY is_pinned DESC, updated_at DESC'
     ).all(profileId);
     res.json(notes);
   } catch (error: any) {
@@ -112,6 +112,10 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
     if (category !== undefined) {
       updates.push('category = ?');
       values.push(category);
+    }
+    if (req.body.is_pinned !== undefined) {
+      updates.push('is_pinned = ?');
+      values.push(req.body.is_pinned ? 1 : 0);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');

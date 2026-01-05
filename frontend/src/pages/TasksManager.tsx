@@ -2,8 +2,29 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar } from 'lucide-react';
 import clsx from 'clsx';
+
+// Category icons map
+const categoryIcons: Record<string, string> = {
+  'read-book': '📚',
+  'tigrinya': '✍️',
+  'clean-room': '🛏️',
+  'clean-kitchen': '🍽️',
+  'school': '🎒',
+  'watch-movies': '📺',
+  'homework': '📝',
+  'exercise': '🏃',
+  'chore': '🧹',
+  'other': '📌'
+};
+
+// Priority colors
+const priorityColors: Record<string, string> = {
+  high: 'text-red-600 bg-red-100',
+  medium: 'text-yellow-600 bg-yellow-100',
+  low: 'text-green-600 bg-green-100'
+};
 
 export default function TasksManager() {
   const { currentProfile, isParent, profiles } = useProfile();
@@ -136,6 +157,8 @@ export default function TasksManager() {
 
     const category = formData.get('category') as string;
     const isTracking = category === 'watch-movies';
+    const isRecurring = formData.get('is_recurring') === 'on';
+    const estimatedMinutes = formData.get('estimated_minutes') as string;
 
     try {
       await tasksAPI.create({
@@ -145,7 +168,12 @@ export default function TasksManager() {
         category: category as any,
         difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
         earns_points: !isTracking,
-        created_by: currentProfile?.id
+        created_by: currentProfile?.id,
+        priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
+        is_recurring: isRecurring,
+        recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
+        due_date: formData.get('due_date') as string || undefined,
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined
       });
 
       await loadTasks();
@@ -764,16 +792,23 @@ export default function TasksManager() {
                   className={clsx(
                     'p-4 border-2 rounded-lg transition-all',
                     !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
-                    task.parent_approved && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
-                    task.parent_approved && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
-                    task.parent_approved && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
+                    task.parent_approved && task.priority === 'high' && 'border-red-300 bg-red-50',
+                    task.parent_approved && task.priority === 'medium' && 'border-yellow-300 bg-yellow-50',
+                    task.parent_approved && task.priority === 'low' && 'border-green-300 bg-green-50',
+                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
+                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
+                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
                     task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
                   )}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
+                        <span className="text-xl">{categoryIcons[task.category] || '📌'}</span>
                         <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                        {task.is_recurring === 1 && (
+                          <span title="Recurring task"><Repeat size={14} className="text-blue-600" /></span>
+                        )}
                         {!task.parent_approved && (
                           <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
                             ⏳ Pending Approval
@@ -783,7 +818,7 @@ export default function TasksManager() {
                       {task.description && (
                         <p className="text-sm text-gray-600 mt-1">{task.description}</p>
                       )}
-                      <div className="flex items-center mt-2 space-x-2">
+                      <div className="flex flex-wrap items-center mt-2 gap-2">
                         {task.earns_points ? (
                           <>
                             <span className="badge badge-primary">{task.points} pts</span>
@@ -794,6 +829,23 @@ export default function TasksManager() {
                         ) : (
                           <span className="badge bg-gray-500 text-white">
                             📍 Tracking Only
+                          </span>
+                        )}
+                        {task.priority && task.priority !== 'medium' && (
+                          <span className={clsx('badge', priorityColors[task.priority])}>
+                            {task.priority === 'high' ? '🔴 High' : '🟢 Low'}
+                          </span>
+                        )}
+                        {task.due_date && (
+                          <span className="text-xs text-gray-600 flex items-center">
+                            <Calendar size={12} className="mr-1" />
+                            {new Date(task.due_date).toLocaleDateString()}
+                          </span>
+                        )}
+                        {task.estimated_minutes && (
+                          <span className="text-xs text-gray-600 flex items-center">
+                            <Clock size={12} className="mr-1" />
+                            {task.estimated_minutes} min
                           </span>
                         )}
                       </div>
@@ -943,6 +995,68 @@ export default function TasksManager() {
                   </p>
                 </div>
               )}
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <AlertTriangle size={16} className="inline mr-1" />
+                  Priority
+                </label>
+                <select name="priority" className="input" defaultValue="medium">
+                  <option value="high">🔴 High - Do first!</option>
+                  <option value="medium">🟡 Medium - Normal</option>
+                  <option value="low">🟢 Low - When you have time</option>
+                </select>
+              </div>
+
+              {/* Due Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Calendar size={16} className="inline mr-1" />
+                  Due Date (optional)
+                </label>
+                <input type="date" name="due_date" className="input" />
+              </div>
+
+              {/* Estimated Time */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Clock size={16} className="inline mr-1" />
+                  Estimated Time (minutes)
+                </label>
+                <select name="estimated_minutes" className="input">
+                  <option value="">Not set</option>
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                </select>
+              </div>
+
+              {/* Recurring Task */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input type="checkbox" name="is_recurring" className="w-5 h-5 rounded" />
+                  <Repeat size={16} className="text-blue-600" />
+                  <span className="font-medium text-gray-700">Make this a recurring task</span>
+                </label>
+                <div className="mt-3">
+                  <select name="recurrence_pattern" className="input">
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Weekdays only</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Recurring tasks automatically create a new copy when completed
+                  </p>
+                </div>
+              </div>
 
               <div className="flex space-x-3 pt-4">
                 <button type="submit" className="btn btn-primary flex-1">
