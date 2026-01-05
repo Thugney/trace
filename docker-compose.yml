@@ -15,6 +15,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/family.db
+      - AVATAR_DIR=/app/data/avatars
       - GROK_API_KEY=${GROK_API_KEY}
       - PORT=3001
     networks:
