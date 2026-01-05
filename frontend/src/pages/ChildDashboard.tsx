@@ -6,6 +6,25 @@ import { ProfileStats } from '../types';
 import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
 import playSounds from '../utils/sounds';
 
+// Goal type display helper - makes reward types kid-friendly
+const GOAL_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
+  'kroner': { label: 'Money', emoji: '💰' },
+  'money': { label: 'Money', emoji: '💰' },
+  'movie-night': { label: 'Movie Night', emoji: '🎬' },
+  'treat': { label: 'Special Treat', emoji: '🍭' },
+  'toy': { label: 'Toy or Gift', emoji: '🎁' },
+  'activity': { label: 'Fun Activity', emoji: '🎪' },
+  'game': { label: 'Game Time', emoji: '🎮' },
+  'outing': { label: 'Fun Outing', emoji: '🚗' },
+  'other': { label: 'Special Reward', emoji: '🎯' }
+};
+
+const getGoalTypeDisplay = (goalType: string | undefined) => {
+  if (!goalType) return { label: 'Reward', emoji: '🎯' };
+  const display = GOAL_TYPE_LABELS[goalType.toLowerCase()];
+  return display || { label: goalType, emoji: '🎯' };
+};
+
 // Avatar categories with emojis
 const AVATAR_CATEGORIES = [
   {
@@ -772,7 +791,7 @@ export default function ChildDashboard() {
                     <div className="flex items-start gap-3 mb-3">
                       {/* Reward Image / Emoji */}
                       <div className="text-4xl flex-shrink-0">
-                        {goal.reward_image || (goal.goal_type === 'kroner' ? '💰' : goal.goal_type === 'toy' ? '🎁' : goal.goal_type === 'activity' ? '🎪' : '🎯')}
+                        {goal.reward_image || getGoalTypeDisplay(goal.goal_type).emoji}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -891,12 +910,12 @@ export default function ChildDashboard() {
                 className="bg-white p-3 rounded-lg border border-emerald-200 flex items-center gap-3"
               >
                 <div className="text-2xl">
-                  {goal.goal_type === 'kroner' ? '💰' : goal.goal_type === 'toy' ? '🎁' : goal.goal_type === 'activity' ? '🎪' : '🎯'}
+                  {getGoalTypeDisplay(goal.goal_type).emoji}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-gray-800">{goal.goal_description}</p>
                   <p className="text-xs text-gray-500">
-                    {goal.goal_points} points • {new Date(goal.updated_at).toLocaleDateString()}
+                    {goal.goal_points} points • {getGoalTypeDisplay(goal.goal_type).label} • {new Date(goal.updated_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="text-emerald-500">

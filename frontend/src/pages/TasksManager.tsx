@@ -26,6 +26,24 @@ const priorityColors: Record<string, string> = {
   low: 'text-green-600 bg-green-100'
 };
 
+// Goal type labels for kid-friendly display
+const goalTypeLabels: Record<string, string> = {
+  'kroner': '💰 Money',
+  'money': '💰 Money',
+  'movie-night': '🎬 Movie Night',
+  'treat': '🍭 Special Treat',
+  'toy': '🎁 Toy or Gift',
+  'game': '🎮 Game Time',
+  'outing': '🚗 Fun Outing',
+  'activity': '🎪 Fun Activity',
+  'other': '🎯 Reward'
+};
+
+const getGoalTypeLabel = (type: string | undefined): string => {
+  if (!type) return '🎯 Reward';
+  return goalTypeLabels[type.toLowerCase()] || `🎯 ${type}`;
+};
+
 export default function TasksManager() {
   const { currentProfile, isParent, profiles } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -480,7 +498,7 @@ export default function TasksManager() {
                     <p className="text-gray-800 mb-2">{goal.goal_description}</p>
                     <div className="flex items-center text-sm text-gray-600">
                       <Star className="mr-1" size={16} />
-                      <span>{goal.goal_points} points • {goal.goal_type}</span>
+                      <span>{goal.goal_points} points • {getGoalTypeLabel(goal.goal_type)}</span>
                     </div>
                   </div>
                   <div className="flex space-x-2 ml-4">
@@ -599,7 +617,7 @@ export default function TasksManager() {
               </div>
               {monthlyGoal.achieved ? (
                 <div className="bg-white text-green-600 px-4 py-2 rounded-lg font-bold text-center">
-                  🎉 Goal Achieved! Reward: {monthlyGoal.goal_type}
+                  🎉 Goal Achieved! Reward: {getGoalTypeLabel(monthlyGoal.goal_type)}
                 </div>
               ) : goalProgress >= 100 ? (
                 <div className="bg-yellow-400 text-yellow-900 px-4 py-2 rounded-lg font-bold text-center">
@@ -645,7 +663,7 @@ export default function TasksManager() {
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
                         <span>📅 {new Date(goal.created_at).toLocaleDateString()}</span>
                         <span>🎯 {goal.goal_points} points</span>
-                        <span>🎁 {goal.goal_type}</span>
+                        <span>{getGoalTypeLabel(goal.goal_type)}</span>
                       </div>
                     </div>
                     {!goal.achieved && (
@@ -1100,14 +1118,16 @@ export default function TasksManager() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type of Reward
+                  What reward do you want? 🎁
                 </label>
                 <select name="type" className="input">
-                  <option value="kroner">Money (Kroner)</option>
-                  <option value="movie-night">Movie Night</option>
-                  <option value="treat">Special Treat</option>
-                  <option value="toy">Toy/Gift</option>
-                  <option value="other">Other</option>
+                  <option value="kroner">💰 Money (Kroner)</option>
+                  <option value="movie-night">🎬 Movie Night</option>
+                  <option value="treat">🍭 Special Treat</option>
+                  <option value="toy">🎁 Toy or Gift</option>
+                  <option value="game">🎮 Game Time</option>
+                  <option value="outing">🚗 Fun Outing</option>
+                  <option value="other">🎯 Other Reward</option>
                 </select>
               </div>
 
@@ -1336,14 +1356,16 @@ export default function TasksManager() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Type of Reward
+                  What reward do you want? 🎁
                 </label>
                 <select name="type" className="input" defaultValue={editingGoal.goal_type}>
-                  <option value="kroner">Money (Kroner)</option>
-                  <option value="movie-night">Movie Night</option>
-                  <option value="treat">Special Treat</option>
-                  <option value="toy">Toy/Gift</option>
-                  <option value="other">Other</option>
+                  <option value="kroner">💰 Money (Kroner)</option>
+                  <option value="movie-night">🎬 Movie Night</option>
+                  <option value="treat">🍭 Special Treat</option>
+                  <option value="toy">🎁 Toy or Gift</option>
+                  <option value="game">🎮 Game Time</option>
+                  <option value="outing">🚗 Fun Outing</option>
+                  <option value="other">🎯 Other Reward</option>
                 </select>
               </div>
 
