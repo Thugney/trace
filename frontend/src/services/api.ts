@@ -68,9 +68,8 @@ export const profilesAPI = {
   uploadAvatar: (id: number, file: File) => {
     const formData = new FormData();
     formData.append('avatar', file);
-    return api.post<{ success: boolean; avatar: string; message: string }>(`/profiles/${id}/avatar`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    // Don't set Content-Type manually - axios sets it automatically with proper boundary for FormData
+    return api.post<{ success: boolean; avatar: string; message: string }>(`/profiles/${id}/avatar`, formData);
   }
 };
 

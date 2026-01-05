@@ -342,12 +342,17 @@ export default function Settings() {
 
     setUploadingAvatar(true);
     try {
-      await profilesAPI.uploadAvatar(profileId, file);
+      const response = await profilesAPI.uploadAvatar(profileId, file);
+      console.log('Avatar upload response:', response.data);
       setSuccessMessage('Avatar uploaded successfully!');
       await refreshProfiles();
     } catch (error: any) {
       console.error('Failed to upload avatar:', error);
-      alert(error.response?.data?.error || 'Failed to upload avatar');
+      // Show detailed error message
+      const errorMsg = error.response?.data?.error
+        || error.message
+        || 'Failed to upload avatar. Please try again.';
+      alert(`Upload failed: ${errorMsg}`);
     } finally {
       setUploadingAvatar(false);
       // Clear the file input
