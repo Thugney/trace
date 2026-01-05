@@ -269,7 +269,7 @@ function checkAchievements(profileId: number) {
     SELECT COUNT(*) as count FROM monthly_goals WHERE profile_id = ? AND achieved = 1
   `).get(profileId);
 
-  const streaks = db.prepare(`
+  const streaks: any[] = db.prepare(`
     SELECT * FROM streaks WHERE profile_id = ?
   `).all(profileId);
 
