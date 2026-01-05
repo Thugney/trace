@@ -585,4 +585,128 @@ router.get('/pending/:parentId', (req, res) => {
   }
 });
 
+// ==================== SUBTASKS ====================
+
+// Get subtasks for a task
+router.get('/:taskId/subtasks', (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const subtasks = db.prepare(
+      'SELECT * FROM subtasks WHERE task_id = ? ORDER BY sort_order ASC, id ASC'
+    ).all(taskId);
+    res.json(subtasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add subtask to a task
+router.post('/:taskId/subtasks', (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { title, sort_order } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
+    // Get max sort_order for this task
+    const maxOrder: any = db.prepare(
+      'SELECT MAX(sort_order) as max FROM subtasks WHERE task_id = ?'
+    ).get(taskId);
+
+    const result = db.prepare(`
+      INSERT INTO subtasks (task_id, title, sort_order)
+      VALUES (?, ?, ?)
+    `).run(taskId, title, sort_order ?? (maxOrder?.max || 0) + 1);
+
+    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(subtask);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update subtask (toggle complete or edit title)
+router.put('/subtasks/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, completed, sort_order } = req.body;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (title !== undefined) {
+      updates.push('title = ?');
+      values.push(title);
+    }
+    if (completed !== undefined) {
+      updates.push('completed = ?');
+      values.push(completed ? 1 : 0);
+    }
+    if (sort_order !== undefined) {
+      updates.push('sort_order = ?');
+      values.push(sort_order);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
+    }
+
+    values.push(id);
+    db.prepare(`UPDATE subtasks SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+    const subtask = db.prepare('SELECT * FROM subtasks WHERE id = ?').get(id);
+    res.json(subtask);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete subtask
+router.delete('/subtasks/:id', (req, res) => {
+  try {
+    const result = db.prepare('DELETE FROM subtasks WHERE id = ?').run(req.params.id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+    res.json({ message: 'Subtask deleted' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk add subtasks to a task
+router.post('/:taskId/subtasks/bulk', (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { subtasks } = req.body;
+
+    if (!Array.isArray(subtasks) || subtasks.length === 0) {
+      return res.status(400).json({ error: 'subtasks array is required' });
+    }
+
+    const insertStmt = db.prepare(`
+      INSERT INTO subtasks (task_id, title, sort_order)
+      VALUES (?, ?, ?)
+    `);
+
+    const insertMany = db.transaction((items: { title: string; sort_order?: number }[]) => {
+      items.forEach((item, index) => {
+        insertStmt.run(taskId, item.title, item.sort_order ?? index);
+      });
+    });
+
+    insertMany(subtasks);
+
+    const allSubtasks = db.prepare(
+      'SELECT * FROM subtasks WHERE task_id = ? ORDER BY sort_order ASC'
+    ).all(taskId);
+
+    res.status(201).json(allSubtasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

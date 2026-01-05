@@ -17,35 +17,34 @@
 - [x] Visual icons for categories - Added emoji icons for each category (📚, ✍️, 🛏️, etc.)
 - [x] Priority level - High/Medium/Low with color-coded borders and badges
 - [x] Estimated time - Added time estimates (5-120 minutes) selector
-- [] Subtasks/checklist - Break big tasks into smaller steps
+- [x] Subtasks/checklist - Break big tasks into smaller steps - Added subtasks CRUD API and database table
 2. Note Taking Form Analysis Missing Features:
  Categories/folders - Organize notes by topic (School, Personal, Ideas)
-- [] Rich text formatting - Bold, lists, headings
+- [x] Rich text formatting - Bold, lists, headings - Added markdown toolbar with DOMPurify sanitization
 - [] Attachments - Add photos, drawings
 - [] Tags/labels - For searching
-- [x] Pin important notes - Added is_pinned field, pinned notes sort first
+- [x] Pin important notes - Added is_pinned field, pinned notes sort first, UI with pin indicator
 - [] Reminders - "Remind me about this note on Friday"
 - [] Note templates - Homework template, journal template
 
 3. Diet Tracking Analysis Critical Issues:
  "Search Norwegian foods" - Is there actually a Norwegian food database connected? This needs an API or local database
 - [] No meal planning feature - Just logging isn't enough for families
-- [] No water intake tracking - Important for kids' health
+- [x] No water intake tracking - Added water_intake table, gamification routes, and ChildDashboard water tracker UI
 - [] No nutritional goals - What's the target? Just showing zeros isn't helpful
 
 4. Is it really a diet tracker?
 Currently it looks like a calorie logger, not a diet tracker. A true diet tracker should include:
-Meal suggestions based on family preferences
-Nutritional targets by age (kids need different nutrients than adults)
-Allergy/restriction management
-Meal planning calendar
-Shopping list generation
-Recipe integration
- concerned about data persistence. Based on the Trace project context:
-
-If using SQLite (which your project uses), data persists in ./data/family.db
-When items are deleted, the dashboard should update to reflect changes
-If it doesn't reset, there's likely a bug in your state management or database queries
+-[] Meal suggestions based on family preferences
+- [] Nutritional targets by age (kids need different nutrients than adults)
+- [] Allergy/restriction management
+- [] Meal planning calendar
+- [] Shopping list generation
+### Recipe integration
+- [] concerned about data persistence. Based on the Trace project context:
+- [] If using SQLite (which your project uses), data persists in ./data/family.db
+- [] When items are deleted, the dashboard should update to reflect changes
+- [] If it doesn't reset, there's likely a bug in your state management or database queries
 
 5. Manual Food Entry Form Issues:
  No food favorites/history - Entering "breakfast" every day is tedious
@@ -54,11 +53,11 @@ If it doesn't reset, there's likely a bug in your state management or database q
 - [] No meal templates - "Save this as typical breakfast"
 6. Monthly Goal Setup Analysis
 How Goal Setup Actually Works (or should work):
-Child sets a goal ("Earn 100 kroner" or "Get new toy")
-Child specifies points needed (e.g., 500 points)
-Child completes tasks to earn points toward goal
-When points reach target, goal is achieved
-Parent verifies and provides reward
+- [] Child sets a goal ("Earn 100 kroner" or "Get new toy")
+- [] Child specifies points needed (e.g., 500 points)
+- [] Child completes tasks to earn points toward goal
+- [] When points reach target, goal is achieved
+- [] Parent verifies and provides reward
 Missing Features:
  Progress visualization - Progress bar showing how close to goal
 - [] Multiple simultaneous goals - Kids might want several things
@@ -69,7 +68,14 @@ Missing Features:
 
 7. Gamification Analysis for Kids
 What's Missing for Effective Kid Gamification:
-FeatureWhy It MattersStreaks"7-day task completion streak! 🔥"Badges/Achievements"Homework Hero", "Chore Champion"LeaderboardSibling competition (optional, can create conflict)Avatar/CharacterKids love customizing a character that levels upDaily Challenges"Complete 3 tasks today for bonus points!"Level-up rewardsVisual celebration when reaching new levelSound effects/animationsSatisfying completion feedbackWeekly summaries"This week you earned 150 points! 🎉"
+- [x] Streaks - Added task and water streaks with longest streak tracking - Shows in ChildDashboard
+- [x] Badges/Achievements - Added achievements table with 12 achievements, profile_achievements tracking, display in ChildDashboard
+- [] Leaderboard - Sibling competition (optional)
+- [] Avatar/Character - Kids love customizing a character that levels up
+- [] Daily Challenges - "Complete 3 tasks today for bonus points!"
+- [] Level-up rewards - Visual celebration when reaching new level
+- [] Sound effects/animations - Satisfying completion feedback
+- [] Weekly summaries - "This week you earned 150 points! 🎉"
 
 8. How Features Should Work Together
 Here's how a well-integrated family app connects everything:

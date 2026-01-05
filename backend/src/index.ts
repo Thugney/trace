@@ -15,6 +15,7 @@ import goalsRoutes from './routes/goals';
 import schoolRoutes from './routes/school';
 import messagesRoutes from './routes/messages';
 import notificationsRoutes from './routes/notifications';
+import gamificationRoutes from './routes/gamification';
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.use('/api/goals', goalsRoutes);
 app.use('/api/school', schoolRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/gamification', gamificationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

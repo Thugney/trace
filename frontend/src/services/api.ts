@@ -136,7 +136,15 @@ export const tasksAPI = {
     }>(`/tasks/progress/${profileId}`, { params: { limit } }),
   getRewards: (profileId: number) => api.get<Reward[]>(`/tasks/rewards/${profileId}`),
   createReward: (data: Partial<Reward>) => api.post<Reward>('/tasks/rewards', data),
-  claimReward: (id: number) => api.post<Reward>(`/tasks/rewards/${id}/claim`)
+  claimReward: (id: number) => api.post<Reward>(`/tasks/rewards/${id}/claim`),
+  // Subtasks
+  getSubtasks: (taskId: number) => api.get<any[]>(`/tasks/${taskId}/subtasks`),
+  addSubtask: (taskId: number, title: string) => api.post<any>(`/tasks/${taskId}/subtasks`, { title }),
+  updateSubtask: (subtaskId: number, data: { title?: string; completed?: boolean }) =>
+    api.put<any>(`/tasks/subtasks/${subtaskId}`, data),
+  deleteSubtask: (subtaskId: number) => api.delete(`/tasks/subtasks/${subtaskId}`),
+  bulkAddSubtasks: (taskId: number, subtasks: { title: string }[]) =>
+    api.post<any[]>(`/tasks/${taskId}/subtasks/bulk`, { subtasks })
 };
 
 // AI
@@ -350,6 +358,42 @@ export const messagesAPI = {
     api.delete(`/messages/${messageId}`),
   getParents: () =>
     api.get<Profile[]>('/messages/parents')
+};
+
+// Gamification API
+export const gamificationAPI = {
+  // Water intake
+  logWater: (profile_id: number, amount_ml: number) =>
+    api.post<any>('/gamification/water', { profile_id, amount_ml }),
+  getWater: (profileId: number, date?: string) =>
+    api.get<{ entries: any[]; total_ml: number; date: string; goal_ml: number }>(
+      `/gamification/water/${profileId}`,
+      { params: { date } }
+    ),
+  deleteWater: (id: number) => api.delete(`/gamification/water/${id}`),
+
+  // Streaks
+  getStreaks: (profileId: number) => api.get<any[]>(`/gamification/streaks/${profileId}`),
+
+  // Achievements
+  getAllAchievements: () => api.get<any[]>('/gamification/achievements'),
+  getProfileAchievements: (profileId: number) =>
+    api.get<{ earned: any[]; all: any[]; earned_count: number; total_count: number }>(
+      `/gamification/achievements/${profileId}`
+    ),
+
+  // Stats
+  getStats: (profileId: number) =>
+    api.get<{
+      points: number;
+      stars: number;
+      level: number;
+      tasks_completed: number;
+      goals_achieved: number;
+      achievements_earned: number;
+      streaks: Record<string, { current: number; longest: number }>;
+      water_today_ml: number;
+    }>(`/gamification/stats/${profileId}`)
 };
 
 // Notifications API

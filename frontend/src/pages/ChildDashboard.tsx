@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI } from '../services/api';
+import { profilesAPI, gamificationAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Sparkles } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award } from 'lucide-react';
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [waterData, setWaterData] = useState<{ total_ml: number; goal_ml: number }>({ total_ml: 0, goal_ml: 2000 });
+  const [streaks, setStreaks] = useState<Record<string, { current: number; longest: number }>>({});
+  const [achievements, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
+  const [waterAmount, setWaterAmount] = useState(250);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -16,8 +20,16 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const response = await profilesAPI.getStats(currentProfile.id);
-        setStats(response.data);
+        const [statsRes, waterRes, gamificationRes, achievementsRes] = await Promise.all([
+          profilesAPI.getStats(currentProfile.id),
+          gamificationAPI.getWater(currentProfile.id),
+          gamificationAPI.getStats(currentProfile.id),
+          gamificationAPI.getProfileAchievements(currentProfile.id)
+        ]);
+        setStats(statsRes.data);
+        setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
+        setStreaks(gamificationRes.data.streaks);
+        setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -27,6 +39,17 @@ export default function ChildDashboard() {
 
     loadStats();
   }, [currentProfile]);
+
+  const logWater = async (amount: number) => {
+    if (!currentProfile) return;
+    try {
+      await gamificationAPI.logWater(currentProfile.id, amount);
+      const waterRes = await gamificationAPI.getWater(currentProfile.id);
+      setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
+    } catch (error) {
+      console.error('Failed to log water:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -100,18 +123,111 @@ export default function ChildDashboard() {
         </div>
       </div>
 
-      {/* Achievements */}
-      {totalStars >= 10 && (
-        <div className="rounded-2xl p-5 bg-gradient-to-r from-pink-100 to-purple-100 border-2 border-purple-300 mb-6">
-          <div className="flex items-center gap-4">
-            <Sparkles className="text-purple-600 flex-shrink-0" size={40} />
-            <div>
-              <h3 className="text-lg md:text-xl font-bold text-gray-900">Amazing Work! 🌟</h3>
-              <p className="text-gray-700">You've earned {totalStars} stars! You're a superstar!</p>
+      {/* Water Tracking & Streaks Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Water Tracker */}
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200">
+          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Droplets className="text-blue-500" size={24} />
+            Water Today 💧
+          </h3>
+          <div className="mb-3">
+            <div className="flex justify-between text-sm mb-1">
+              <span>{waterData.total_ml} ml</span>
+              <span>{waterData.goal_ml} ml goal</span>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-4">
+              <div
+                className="bg-gradient-to-r from-blue-400 to-cyan-500 h-4 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min((waterData.total_ml / waterData.goal_ml) * 100, 100)}%` }}
+              />
+            </div>
+            {waterData.total_ml >= waterData.goal_ml && (
+              <p className="text-green-600 text-sm mt-1 font-semibold">Goal reached! 🎉</p>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {[150, 250, 500].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => logWater(amount)}
+                className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                +{amount}ml
+              </button>
+            ))}
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                value={waterAmount}
+                onChange={(e) => setWaterAmount(parseInt(e.target.value) || 0)}
+                className="w-16 px-2 py-2 border rounded-lg text-sm"
+                min="0"
+                step="50"
+              />
+              <button
+                onClick={() => logWater(waterAmount)}
+                className="px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Add
+              </button>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Streaks */}
+        <div className="rounded-2xl p-5 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
+          <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+            <Flame className="text-orange-500" size={24} />
+            My Streaks 🔥
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white p-3 rounded-xl border border-orange-200">
+              <p className="text-sm text-gray-600">Tasks</p>
+              <p className="text-2xl font-bold text-orange-600">
+                {streaks?.tasks?.current || 0} 🔥
+              </p>
+              <p className="text-xs text-gray-500">Best: {streaks?.tasks?.longest || 0}</p>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-blue-200">
+              <p className="text-sm text-gray-600">Water</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {streaks?.water?.current || 0} 💧
+              </p>
+              <p className="text-xs text-gray-500">Best: {streaks?.water?.longest || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Achievements */}
+      <div className="rounded-2xl p-5 bg-gradient-to-r from-pink-100 to-purple-100 border-2 border-purple-300 mb-6">
+        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+          <Award className="text-purple-600" size={24} />
+          Achievements ({achievements.earned.length}/{achievements.total_count})
+        </h3>
+        {achievements.earned.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {achievements.earned.slice(0, 6).map((achievement: any) => (
+              <div
+                key={achievement.id}
+                className="bg-white px-3 py-2 rounded-lg border border-purple-200 flex items-center gap-2"
+                title={achievement.description}
+              >
+                <span className="text-xl">{achievement.icon}</span>
+                <span className="text-sm font-medium">{achievement.name}</span>
+              </div>
+            ))}
+            {achievements.earned.length > 6 && (
+              <div className="bg-purple-200 px-3 py-2 rounded-lg text-sm font-medium text-purple-700">
+                +{achievements.earned.length - 6} more
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-gray-600">Complete tasks and drink water to earn achievements!</p>
+        )}
+      </div>
 
       {/* What's Next - Quick Actions */}
       <div className="mb-6">

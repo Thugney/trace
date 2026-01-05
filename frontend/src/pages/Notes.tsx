@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { notesAPI } from '../services/api';
 import { Note } from '../types';
-import { StickyNote, Plus, X, Edit2, Trash2, Save } from 'lucide-react';
+import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading } from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 const NOTE_COLORS = [
   { name: 'Yellow', value: '#fef08a' },
@@ -13,12 +14,96 @@ const NOTE_COLORS = [
   { name: 'Orange', value: '#fed7aa' }
 ];
 
+// Simple markdown-to-HTML rendering with sanitization
+const renderMarkdown = (text: string): string => {
+  if (!text) return '';
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h4 class="font-bold text-base mt-2 mb-1">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="font-bold text-lg mt-2 mb-1">$1</h3>')
+    .replace(/^- (.+)$/gm, '<li class="ml-4">• $1</li>')
+    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
+    .replace(/\n/g, '<br/>');
+  // Sanitize HTML to prevent XSS attacks
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['strong', 'em', 'h3', 'h4', 'li', 'br'], ALLOWED_ATTR: ['class'] });
+};
+
+// Formatting toolbar component
+const FormatToolbar = ({ textareaRef }: { textareaRef: React.RefObject<HTMLTextAreaElement | null> }) => {
+  const insertFormat = (before: string, after: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    const selectedText = text.substring(start, end);
+    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
+
+    textarea.value = newText;
+    textarea.focus();
+    textarea.setSelectionRange(start + before.length, end + before.length);
+
+    // Trigger change event
+    const event = new Event('input', { bubbles: true });
+    textarea.dispatchEvent(event);
+  };
+
+  return (
+    <div className="flex gap-1 mb-2 flex-wrap">
+      <button
+        type="button"
+        onClick={() => insertFormat('**', '**')}
+        className="p-2 rounded hover:bg-gray-100 border"
+        title="Bold"
+      >
+        <Bold size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={() => insertFormat('*', '*')}
+        className="p-2 rounded hover:bg-gray-100 border"
+        title="Italic"
+      >
+        <Italic size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={() => insertFormat('## ')}
+        className="p-2 rounded hover:bg-gray-100 border"
+        title="Heading"
+      >
+        <Heading size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={() => insertFormat('- ')}
+        className="p-2 rounded hover:bg-gray-100 border"
+        title="Bullet list"
+      >
+        <List size={16} />
+      </button>
+      <button
+        type="button"
+        onClick={() => insertFormat('1. ')}
+        className="p-2 rounded hover:bg-gray-100 border"
+        title="Numbered list"
+      >
+        <ListOrdered size={16} />
+      </button>
+    </div>
+  );
+};
+
 export default function Notes() {
   const { currentProfile } = useProfile();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const addTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (currentProfile) {
@@ -95,6 +180,24 @@ export default function Notes() {
     }
   };
 
+  const handleTogglePin = async (note: Note) => {
+    try {
+      await notesAPI.update(note.id, {
+        is_pinned: note.is_pinned ? 0 : 1
+      });
+      await loadNotes();
+    } catch (error) {
+      console.error('Failed to toggle pin:', error);
+    }
+  };
+
+  // Sort notes: pinned first, then by updated_at
+  const sortedNotes = [...notes].sort((a, b) => {
+    if (a.is_pinned && !b.is_pinned) return -1;
+    if (!a.is_pinned && b.is_pinned) return 1;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
+
   if (!currentProfile) {
     return (
       <div className="text-center py-12">
@@ -133,7 +236,7 @@ export default function Notes() {
       </div>
 
       {/* Notes Grid */}
-      {notes.length === 0 ? (
+      {sortedNotes.length === 0 ? (
         <div className="card text-center p-12">
           <StickyNote size={48} className="mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No Notes Yet</h3>
@@ -150,23 +253,37 @@ export default function Notes() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {notes.map(note => (
+          {sortedNotes.map(note => (
             <div
               key={note.id}
-              className="p-4 rounded-xl shadow-md hover:shadow-lg transition-all relative group"
+              className={`p-4 rounded-xl shadow-md hover:shadow-lg transition-all relative group ${note.is_pinned ? 'ring-2 ring-yellow-500' : ''}`}
               style={{ backgroundColor: note.color }}
             >
+              {note.is_pinned && (
+                <div className="absolute -top-2 -right-2 bg-yellow-500 rounded-full p-1 shadow">
+                  <Pin size={14} className="text-white" />
+                </div>
+              )}
               <h3 className="font-bold text-gray-900 pr-2 line-clamp-2 text-lg mb-2">
                 {note.title}
               </h3>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-6">
-                {note.content}
-              </p>
+              <div
+                className="text-sm text-gray-700 line-clamp-6 prose prose-sm"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }}
+              />
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-black/10">
                 <p className="text-xs text-gray-600">
                   {new Date(note.updated_at).toLocaleDateString()}
                 </p>
                 <div className="flex space-x-1">
+                  <button
+                    onClick={() => handleTogglePin(note)}
+                    className={`p-2 hover:bg-white/50 rounded-lg transition-colors ${note.is_pinned ? 'bg-yellow-200' : ''}`}
+                    title={note.is_pinned ? 'Unpin note' : 'Pin note'}
+                    aria-label={note.is_pinned ? 'Unpin note' : 'Pin note'}
+                  >
+                    <Pin size={18} className={note.is_pinned ? 'text-yellow-600' : 'text-gray-500'} />
+                  </button>
                   <button
                     onClick={() => setEditingNote(note)}
                     className="p-2 hover:bg-white/50 rounded-lg transition-colors"
@@ -223,11 +340,16 @@ export default function Notes() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Content
                 </label>
+                <FormatToolbar textareaRef={addTextareaRef} />
                 <textarea
+                  ref={addTextareaRef}
                   name="content"
-                  className="input min-h-[200px]"
-                  placeholder="Write your note here..."
+                  className="input min-h-[200px] font-mono"
+                  placeholder="Write your note here... Use **bold**, *italic*, ## Heading, - list"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
+                </p>
               </div>
 
               <div>
@@ -310,12 +432,17 @@ export default function Notes() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Content
                 </label>
+                <FormatToolbar textareaRef={editTextareaRef} />
                 <textarea
+                  ref={editTextareaRef}
                   name="content"
                   defaultValue={editingNote.content}
-                  className="input min-h-[200px]"
-                  placeholder="Write your note here..."
+                  className="input min-h-[200px] font-mono"
+                  placeholder="Write your note here... Use **bold**, *italic*, ## Heading, - list"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
+                </p>
               </div>
 
               <div>
