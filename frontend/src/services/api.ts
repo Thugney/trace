@@ -204,13 +204,14 @@ export const settingsAPI = {
 
 // Notes
 export const notesAPI = {
-  getByProfile: (profileId: number, category?: string) =>
-    api.get<Note[]>(`/notes/${profileId}`, { params: { category } }),
+  getByProfile: (profileId: number, category?: string, tag?: string) =>
+    api.get<Note[]>(`/notes/${profileId}`, { params: { category, tag } }),
   getCategories: (profileId: number) => api.get<string[]>(`/notes/${profileId}/categories`),
+  getTags: (profileId: number) => api.get<string[]>(`/notes/${profileId}/tags`),
   getReminders: (profileId: number) => api.get<Note[]>(`/notes/${profileId}/reminders`),
   getOne: (id: number) => api.get<Note>(`/notes/note/${id}`),
-  create: (data: Partial<Note>) => api.post<Note>('/notes', data),
-  update: (id: number, data: Partial<Note>) => api.put<Note>(`/notes/${id}`, data),
+  create: (data: Omit<Partial<Note>, 'tags'> & { tags?: string[] }) => api.post<Note>('/notes', data),
+  update: (id: number, data: Omit<Partial<Note>, 'tags'> & { tags?: string[] }) => api.put<Note>(`/notes/${id}`, data),
   delete: (id: number) => api.delete(`/notes/${id}`)
 };
 
@@ -219,6 +220,11 @@ export const goalsAPI = {
   getByProfile: (profileId: number, month?: string) =>
     api.get<MonthlyGoal[]>(`/goals/${profileId}`, { params: { month } }),
   getCurrent: (profileId: number) => api.get<MonthlyGoal | null>(`/goals/${profileId}/current`),
+  getHistory: (profileId: number, limit?: number) =>
+    api.get<{ goals: MonthlyGoal[]; stats: { totalAchieved: number; totalPointsEarned: number; lastAchievement: string | null } }>(
+      `/goals/${profileId}/history`,
+      { params: { limit } }
+    ),
   create: (data: Partial<MonthlyGoal>) => api.post<MonthlyGoal>('/goals', data),
   update: (id: number, data: Partial<MonthlyGoal>) => api.put<MonthlyGoal>(`/goals/${id}`, data),
   delete: (id: number) => api.delete(`/goals/${id}`),

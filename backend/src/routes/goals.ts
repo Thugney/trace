@@ -44,6 +44,42 @@ router.get('/:profileId/current', (req, res) => {
   }
 });
 
+// Get goal history (achieved goals)
+router.get('/:profileId/history', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { limit } = req.query;
+
+    const goals = db.prepare(`
+      SELECT * FROM monthly_goals
+      WHERE profile_id = ? AND achieved = 1
+      ORDER BY updated_at DESC
+      LIMIT ?
+    `).all(profileId, parseInt(limit as string) || 20);
+
+    // Get summary stats
+    const stats: any = db.prepare(`
+      SELECT
+        COUNT(*) as total_achieved,
+        SUM(goal_points) as total_points_earned,
+        MAX(updated_at) as last_achievement
+      FROM monthly_goals
+      WHERE profile_id = ? AND achieved = 1
+    `).get(profileId);
+
+    res.json({
+      goals,
+      stats: {
+        totalAchieved: stats.total_achieved || 0,
+        totalPointsEarned: stats.total_points_earned || 0,
+        lastAchievement: stats.last_achievement || null
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create monthly goal
 router.post('/', (req, res) => {
   try {

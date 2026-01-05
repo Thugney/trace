@@ -22,7 +22,7 @@
 - [x] Categories/folders - Organize notes by topic (School, Personal, Ideas, Homework, Journal, Lists) - Added category selector and filter UI
 - [x] Rich text formatting - Bold, lists, headings - Added markdown toolbar with DOMPurify sanitization
 - [] Attachments - Add photos, drawings
-- [] Tags/labels - For searching
+- [x] Tags/labels - For searching - Added tags column to notes, tag input UI in add/edit forms, tag filter in Notes page, tag display on note cards
 - [x] Pin important notes - Added is_pinned field, pinned notes sort first, UI with pin indicator
 - [x] Reminders - "Remind me about this note on Friday" - Added reminder_at field with date picker UI
 - [x] Note templates - Homework template, journal template - Added 5 templates (Blank, Homework, Journal, To-Do List, Study Notes) with auto-fill
@@ -42,7 +42,6 @@ Currently it looks like a calorie logger, not a diet tracker. A true diet tracke
 - [] Shopping list generation
 ### Recipe integration
 - [] concerned about data persistence. Based on the Trace project context:
-- [] If using SQLite (which your project uses), data persists in ./data/family.db
 - [] When items are deleted, the dashboard should update to reflect changes
 - [] If it doesn't reset, there's likely a bug in your state management or database queries
 
@@ -64,14 +63,14 @@ Missing Features:
 - [] Goal categories - Short-term (weekly), Medium-term (monthly), Long-term
 - [] Reward images - Let kids add a picture of what they want
 - [] Milestone rewards - "At 250 points, you get a small treat"
-- [] Goal history - "Goals you've achieved!"
+- [x] Goal history - "Goals you've achieved!" - Added goals/history API endpoint, goal history section in ChildDashboard with achieved goals list and stats
 
 7. Gamification Analysis for Kids
 What's Missing for Effective Kid Gamification:
 - [x] Streaks - Added task and water streaks with longest streak tracking - Shows in ChildDashboard
 - [x] Badges/Achievements - Added achievements table with 12 achievements, profile_achievements tracking, display in ChildDashboard
 - [x] Leaderboard - Sibling competition - Added family leaderboard with weekly/monthly/all-time periods, shows rankings with points/tasks/streaks
-- [] Avatar/Character - Kids love customizing a character that levels up
+- [x] Avatar/Character - Added avatar customization modal with 40+ emoji avatars in 4 categories, level-based unlocking system, clickable avatar in ChildDashboard
 - [x] Daily Challenges - Added daily_challenges table, auto-generated challenges, progress tracking, claim rewards in ChildDashboard
 - [x] Level-up rewards - Visual celebration when reaching new level - Added confetti animation modal with level display
 - [] Sound effects/animations - Satisfying completion feedback

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { notesAPI } from '../services/api';
 import { Note } from '../types';
-import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter, Bell, Clock } from 'lucide-react';
+import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter, Bell, Clock, Tag } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
 const NOTE_CATEGORIES = [
@@ -197,6 +197,12 @@ export default function Notes() {
   const [showAddNote, setShowAddNote] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedTag, setSelectedTag] = useState<string>('all');
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [newNoteTags, setNewNoteTags] = useState<string[]>([]);
+  const [editNoteTags, setEditNoteTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [editTagInput, setEditTagInput] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState(NOTE_TEMPLATES[0]);
   const addTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -204,8 +210,9 @@ export default function Notes() {
   useEffect(() => {
     if (currentProfile) {
       loadNotes();
+      loadTags();
     }
-  }, [currentProfile, selectedCategory]);
+  }, [currentProfile, selectedCategory, selectedTag]);
 
   const loadNotes = async () => {
     if (!currentProfile) return;
@@ -214,13 +221,49 @@ export default function Notes() {
       setLoading(true);
       const response = await notesAPI.getByProfile(
         currentProfile.id,
-        selectedCategory !== 'all' ? selectedCategory : undefined
+        selectedCategory !== 'all' ? selectedCategory : undefined,
+        selectedTag !== 'all' ? selectedTag : undefined
       );
       setNotes(response.data);
     } catch (error) {
       console.error('Failed to load notes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTags = async () => {
+    if (!currentProfile) return;
+    try {
+      const response = await notesAPI.getTags(currentProfile.id);
+      setAvailableTags(response.data);
+    } catch (error) {
+      console.error('Failed to load tags:', error);
+    }
+  };
+
+  const addTag = (tag: string, isEdit: boolean = false) => {
+    const trimmedTag = tag.trim().toLowerCase();
+    if (!trimmedTag) return;
+
+    if (isEdit) {
+      if (!editNoteTags.includes(trimmedTag)) {
+        setEditNoteTags([...editNoteTags, trimmedTag]);
+      }
+      setEditTagInput('');
+    } else {
+      if (!newNoteTags.includes(trimmedTag)) {
+        setNewNoteTags([...newNoteTags, trimmedTag]);
+      }
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tag: string, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditNoteTags(editNoteTags.filter(t => t !== tag));
+    } else {
+      setNewNoteTags(newNoteTags.filter(t => t !== tag));
     }
   };
 
@@ -239,11 +282,15 @@ export default function Notes() {
         content: formData.get('content') as string,
         color: formData.get('color') as string,
         category: category || undefined,
-        reminder_at: reminder_at || undefined
+        reminder_at: reminder_at || undefined,
+        tags: newNoteTags.length > 0 ? newNoteTags : undefined
       });
 
       setShowAddNote(false);
+      setNewNoteTags([]);
+      setTagInput('');
       await loadNotes();
+      await loadTags();
     } catch (error) {
       console.error('Failed to create note:', error);
       alert('Failed to create note. Please try again.');
@@ -264,11 +311,15 @@ export default function Notes() {
         content: formData.get('content') as string,
         color: formData.get('color') as string,
         category: category || undefined,
-        reminder_at: reminder_at || undefined
+        reminder_at: reminder_at || undefined,
+        tags: editNoteTags
       });
 
       await loadNotes();
+      await loadTags();
       setEditingNote(null);
+      setEditNoteTags([]);
+      setEditTagInput('');
     } catch (error) {
       console.error('Failed to update note:', error);
       alert('Failed to update note');
@@ -376,6 +427,41 @@ export default function Notes() {
         </div>
       </div>
 
+      {/* Tag Filter */}
+      {availableTags.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag size={16} className="text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Filter by tag:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedTag('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                selectedTag === 'all'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+              }`}
+            >
+              All Tags
+            </button>
+            {availableTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  selectedTag === tag
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Notes Grid */}
       {sortedNotes.length === 0 ? (
         <div className="card text-center p-12">
@@ -422,6 +508,25 @@ export default function Notes() {
                     {new Date(note.reminder_at).toLocaleDateString()}
                   </span>
                 )}
+                {/* Display tags */}
+                {note.tags && (() => {
+                  try {
+                    const tags = JSON.parse(note.tags);
+                    if (Array.isArray(tags) && tags.length > 0) {
+                      return tags.slice(0, 3).map((tag: string) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+                        >
+                          #{tag}
+                        </span>
+                      ));
+                    }
+                  } catch {
+                    return null;
+                  }
+                  return null;
+                })()}
               </div>
               <h3 className="font-bold text-gray-900 pr-2 line-clamp-2 text-lg mb-2">
                 {note.title}
@@ -444,7 +549,16 @@ export default function Notes() {
                     <Pin size={18} className={note.is_pinned ? 'text-yellow-600' : 'text-gray-500'} />
                   </button>
                   <button
-                    onClick={() => setEditingNote(note)}
+                    onClick={() => {
+                      setEditingNote(note);
+                      // Parse and set existing tags
+                      try {
+                        const tags = note.tags ? JSON.parse(note.tags) : [];
+                        setEditNoteTags(Array.isArray(tags) ? tags : []);
+                      } catch {
+                        setEditNoteTags([]);
+                      }
+                    }}
                     className="p-2 hover:bg-white/50 rounded-lg transition-colors"
                     title="Edit note"
                     aria-label="Edit note"
@@ -476,6 +590,8 @@ export default function Notes() {
                 onClick={() => {
                   setShowAddNote(false);
                   setSelectedTemplate(NOTE_TEMPLATES[0]);
+                  setNewNoteTags([]);
+                  setTagInput('');
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -562,6 +678,68 @@ export default function Notes() {
                 <p className="text-xs text-gray-500 mt-1">
                   Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
                 </p>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Tag size={16} className="inline mr-1" />
+                  Tags
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {newNoteTags.map(tag => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-1"
+                    >
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="hover:text-purple-900"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag(tagInput);
+                      }
+                    }}
+                    className="input flex-1"
+                    placeholder="Add a tag and press Enter..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addTag(tagInput)}
+                    className="btn btn-secondary"
+                  >
+                    Add
+                  </button>
+                </div>
+                {availableTags.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-xs text-gray-500">Existing tags: </span>
+                    {availableTags.filter(t => !newNoteTags.includes(t)).slice(0, 5).map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => addTag(tag)}
+                        className="text-xs text-purple-600 hover:text-purple-800 mr-2"
+                      >
+                        +{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -699,6 +877,68 @@ export default function Notes() {
                 <p className="text-xs text-gray-500 mt-1">
                   Supports: **bold**, *italic*, ## Heading, - bullet list, 1. numbered list
                 </p>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Tag size={16} className="inline mr-1" />
+                  Tags
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {editNoteTags.map(tag => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-1"
+                    >
+                      #{tag}
+                      <button
+                        type="button"
+                        onClick={() => removeTag(tag, true)}
+                        className="hover:text-purple-900"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editTagInput}
+                    onChange={(e) => setEditTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addTag(editTagInput, true);
+                      }
+                    }}
+                    className="input flex-1"
+                    placeholder="Add a tag and press Enter..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addTag(editTagInput, true)}
+                    className="btn btn-secondary"
+                  >
+                    Add
+                  </button>
+                </div>
+                {availableTags.length > 0 && (
+                  <div className="mt-2">
+                    <span className="text-xs text-gray-500">Existing tags: </span>
+                    {availableTags.filter(t => !editNoteTags.includes(t)).slice(0, 5).map(tag => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => addTag(tag, true)}
+                        className="text-xs text-purple-600 hover:text-purple-800 mr-2"
+                      >
+                        +{tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

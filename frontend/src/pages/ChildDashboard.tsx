@@ -1,9 +1,72 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, gamificationAPI } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal } from 'lucide-react';
+import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X } from 'lucide-react';
+
+// Avatar categories with emojis
+const AVATAR_CATEGORIES = [
+  {
+    name: 'People',
+    avatars: [
+      { emoji: '👦', label: 'Boy', minLevel: 1 },
+      { emoji: '👧', label: 'Girl', minLevel: 1 },
+      { emoji: '🧒', label: 'Child', minLevel: 1 },
+      { emoji: '👶', label: 'Baby', minLevel: 1 },
+      { emoji: '🧑', label: 'Person', minLevel: 1 },
+      { emoji: '👤', label: 'Silhouette', minLevel: 1 },
+    ]
+  },
+  {
+    name: 'Cool Characters',
+    avatars: [
+      { emoji: '🦸', label: 'Superhero', minLevel: 3 },
+      { emoji: '🦹', label: 'Supervillain', minLevel: 5 },
+      { emoji: '🧙', label: 'Wizard', minLevel: 4 },
+      { emoji: '🧚', label: 'Fairy', minLevel: 3 },
+      { emoji: '🧛', label: 'Vampire', minLevel: 6 },
+      { emoji: '🧜', label: 'Merperson', minLevel: 5 },
+      { emoji: '🧝', label: 'Elf', minLevel: 4 },
+      { emoji: '🥷', label: 'Ninja', minLevel: 7 },
+      { emoji: '🤴', label: 'Prince', minLevel: 8 },
+      { emoji: '👸', label: 'Princess', minLevel: 8 },
+      { emoji: '👑', label: 'Crown', minLevel: 10 },
+    ]
+  },
+  {
+    name: 'Animals',
+    avatars: [
+      { emoji: '🐱', label: 'Cat', minLevel: 1 },
+      { emoji: '🐶', label: 'Dog', minLevel: 1 },
+      { emoji: '🐰', label: 'Rabbit', minLevel: 1 },
+      { emoji: '🐻', label: 'Bear', minLevel: 2 },
+      { emoji: '🦊', label: 'Fox', minLevel: 2 },
+      { emoji: '🐼', label: 'Panda', minLevel: 3 },
+      { emoji: '🦁', label: 'Lion', minLevel: 4 },
+      { emoji: '🐯', label: 'Tiger', minLevel: 4 },
+      { emoji: '🦄', label: 'Unicorn', minLevel: 5 },
+      { emoji: '🐉', label: 'Dragon', minLevel: 8 },
+      { emoji: '🦅', label: 'Eagle', minLevel: 6 },
+      { emoji: '🦋', label: 'Butterfly', minLevel: 2 },
+    ]
+  },
+  {
+    name: 'Fun & Sports',
+    avatars: [
+      { emoji: '⚽', label: 'Soccer', minLevel: 1 },
+      { emoji: '🏀', label: 'Basketball', minLevel: 1 },
+      { emoji: '🎮', label: 'Gaming', minLevel: 2 },
+      { emoji: '🎸', label: 'Guitar', minLevel: 3 },
+      { emoji: '🎨', label: 'Art', minLevel: 2 },
+      { emoji: '🚀', label: 'Rocket', minLevel: 5 },
+      { emoji: '🌟', label: 'Star', minLevel: 4 },
+      { emoji: '🔥', label: 'Fire', minLevel: 6 },
+      { emoji: '💎', label: 'Diamond', minLevel: 9 },
+      { emoji: '🏆', label: 'Trophy', minLevel: 10 },
+    ]
+  }
+];
 
 interface DailyChallenge {
   id: number;
@@ -54,6 +117,11 @@ export default function ChildDashboard() {
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
   const [prevLevel, setPrevLevel] = useState<number | null>(null);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [avatarCategory, setAvatarCategory] = useState(0);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [goalHistory, setGoalHistory] = useState<{ goals: any[]; stats: { totalAchieved: number; totalPointsEarned: number } }>({ goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
+  const [showGoalHistory, setShowGoalHistory] = useState(false);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -61,13 +129,14 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
           gamificationAPI.getProfileAchievements(currentProfile.id),
           gamificationAPI.getChallenges(currentProfile.id),
-          gamificationAPI.getWeeklySummary(currentProfile.id)
+          gamificationAPI.getWeeklySummary(currentProfile.id),
+          goalsAPI.getHistory(currentProfile.id, 10)
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data.total_ml, goal_ml: waterRes.data.goal_ml });
@@ -75,6 +144,7 @@ export default function ChildDashboard() {
         setAchievements({ earned: achievementsRes.data.earned, total_count: achievementsRes.data.total_count });
         setChallenges(challengesRes.data);
         setWeeklySummary(weeklyRes.data);
+        setGoalHistory(goalHistoryRes.data);
 
         // Load leaderboard if child has a parent
         if (currentProfile.parent_id) {
@@ -123,6 +193,21 @@ export default function ChildDashboard() {
       }
     } catch (error) {
       console.error('Failed to claim challenge:', error);
+    }
+  };
+
+  const updateAvatar = async (emoji: string) => {
+    if (!currentProfile || savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      await profilesAPI.update(currentProfile.id, { avatar: emoji });
+      // Refresh profile - the context will update
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update avatar:', error);
+      alert('Failed to update avatar. Please try again.');
+    } finally {
+      setSavingAvatar(false);
     }
   };
 
@@ -197,9 +282,107 @@ export default function ChildDashboard() {
         </div>
       )}
 
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 text-white flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold">Choose Your Avatar</h2>
+                <p className="text-sm text-white/80">Level {level} - Unlock more at higher levels!</p>
+              </div>
+              <button
+                onClick={() => setShowAvatarPicker(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="flex border-b overflow-x-auto">
+              {AVATAR_CATEGORIES.map((cat, idx) => (
+                <button
+                  key={cat.name}
+                  onClick={() => setAvatarCategory(idx)}
+                  className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                    avatarCategory === idx
+                      ? 'border-b-2 border-purple-500 text-purple-600 bg-purple-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Avatar Grid */}
+            <div className="p-4 overflow-y-auto max-h-[50vh]">
+              <div className="grid grid-cols-4 gap-3">
+                {AVATAR_CATEGORIES[avatarCategory].avatars.map((avatar) => {
+                  const isUnlocked = level >= avatar.minLevel;
+                  const isSelected = currentProfile?.avatar === avatar.emoji;
+                  return (
+                    <button
+                      key={avatar.emoji}
+                      onClick={() => isUnlocked && updateAvatar(avatar.emoji)}
+                      disabled={!isUnlocked || savingAvatar}
+                      className={`relative p-3 rounded-xl transition-all ${
+                        isSelected
+                          ? 'bg-purple-100 ring-2 ring-purple-500'
+                          : isUnlocked
+                          ? 'bg-gray-50 hover:bg-gray-100 hover:scale-110'
+                          : 'bg-gray-100 opacity-60 cursor-not-allowed'
+                      }`}
+                      title={isUnlocked ? avatar.label : `Unlock at Level ${avatar.minLevel}`}
+                    >
+                      <span className="text-4xl block">{avatar.emoji}</span>
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/40 rounded-xl">
+                          <div className="text-center">
+                            <Lock size={16} className="text-white mx-auto" />
+                            <span className="text-xs text-white font-medium">Lv{avatar.minLevel}</span>
+                          </div>
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                          <CheckCircle size={14} className="text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-gray-50 border-t">
+              <p className="text-center text-sm text-gray-600">
+                {AVATAR_CATEGORIES.flatMap(c => c.avatars).filter(a => level >= a.minLevel).length} of{' '}
+                {AVATAR_CATEGORIES.flatMap(c => c.avatars).length} avatars unlocked
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Friendly Header */}
       <div className="mb-6 text-center">
-        <div className="text-7xl mb-3">{currentProfile?.avatar || '👤'}</div>
+        <button
+          onClick={() => setShowAvatarPicker(true)}
+          className="group relative inline-block"
+          title="Change your avatar"
+        >
+          <div className="text-7xl mb-3 transition-transform group-hover:scale-110">
+            {currentProfile?.avatar || '👤'}
+          </div>
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <Pencil size={12} />
+            Change
+          </div>
+        </button>
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
           Hey {currentProfile?.name}! 🎉
         </h1>
@@ -356,6 +539,63 @@ export default function ChildDashboard() {
           </div>
         ) : (
           <p className="text-gray-600">Complete tasks and drink water to earn achievements!</p>
+        )}
+      </div>
+
+      {/* Goal History */}
+      <div className="rounded-2xl p-5 bg-gradient-to-r from-emerald-100 to-teal-100 border-2 border-emerald-300 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <Trophy className="text-emerald-600" size={24} />
+            Goals You've Achieved! ({goalHistory.stats.totalAchieved})
+          </h3>
+          {goalHistory.goals.length > 0 && (
+            <button
+              onClick={() => setShowGoalHistory(!showGoalHistory)}
+              className="text-sm text-emerald-600 hover:text-emerald-800 font-medium"
+            >
+              {showGoalHistory ? 'Show Less' : 'View All'}
+            </button>
+          )}
+        </div>
+
+        {goalHistory.stats.totalAchieved > 0 && (
+          <div className="flex gap-4 mb-3 text-sm">
+            <div className="bg-white px-3 py-1.5 rounded-lg border border-emerald-200">
+              <span className="font-bold text-emerald-700">{goalHistory.stats.totalAchieved}</span>
+              <span className="text-gray-600"> goals achieved</span>
+            </div>
+            <div className="bg-white px-3 py-1.5 rounded-lg border border-emerald-200">
+              <span className="font-bold text-emerald-700">{goalHistory.stats.totalPointsEarned}</span>
+              <span className="text-gray-600"> points earned</span>
+            </div>
+          </div>
+        )}
+
+        {goalHistory.goals.length > 0 ? (
+          <div className="space-y-2">
+            {goalHistory.goals.slice(0, showGoalHistory ? undefined : 3).map((goal: any) => (
+              <div
+                key={goal.id}
+                className="bg-white p-3 rounded-lg border border-emerald-200 flex items-center gap-3"
+              >
+                <div className="text-2xl">
+                  {goal.goal_type === 'kroner' ? '💰' : goal.goal_type === 'toy' ? '🎁' : goal.goal_type === 'activity' ? '🎪' : '🎯'}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-800">{goal.goal_description}</p>
+                  <p className="text-xs text-gray-500">
+                    {goal.goal_points} points • {new Date(goal.updated_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="text-emerald-500">
+                  <CheckCircle size={24} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-600">Keep working hard to achieve your goals!</p>
         )}
       </div>
 

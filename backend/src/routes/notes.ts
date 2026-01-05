@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const { profileId } = req.params;
-    const { category } = req.query;
+    const { category, tag } = req.query;
     const userProfile = req.profile!;
 
     // Authorization: users can only access their own notes (or admin/parent can access kids' notes)
@@ -30,7 +30,21 @@ router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
 
     query += ' ORDER BY is_pinned DESC, updated_at DESC';
 
-    const notes = db.prepare(query).all(...params);
+    let notes: any[] = db.prepare(query).all(...params);
+
+    // Filter by tag if specified (done in-memory since tags are JSON)
+    if (tag && tag !== 'all') {
+      notes = notes.filter(note => {
+        if (!note.tags) return false;
+        try {
+          const noteTags = JSON.parse(note.tags);
+          return Array.isArray(noteTags) && noteTags.includes(tag);
+        } catch {
+          return false;
+        }
+      });
+    }
+
     res.json(notes);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -45,6 +59,33 @@ router.get('/:profileId/categories', authenticate, (req: AuthRequest, res: Respo
       'SELECT DISTINCT category FROM notes WHERE profile_id = ? AND category IS NOT NULL AND category != "" ORDER BY category'
     ).all(profileId);
     res.json(categories.map((c: any) => c.category));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all tags for a profile (extracted from all notes)
+router.get('/:profileId/tags', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const notes: any[] = db.prepare(
+      'SELECT tags FROM notes WHERE profile_id = ? AND tags IS NOT NULL AND tags != ""'
+    ).all(profileId);
+
+    // Extract and deduplicate all tags
+    const allTags = new Set<string>();
+    for (const note of notes) {
+      try {
+        const tags = JSON.parse(note.tags);
+        if (Array.isArray(tags)) {
+          tags.forEach(tag => allTags.add(tag));
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    }
+
+    res.json(Array.from(allTags).sort());
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -98,7 +139,7 @@ router.get('/note/:id', (req, res) => {
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
-    const { profile_id, title, content, color, category, reminder_at } = req.body;
+    const { profile_id, title, content, color, category, reminder_at, tags } = req.body;
 
     if (!profile_id || !title) {
       return res.status(400).json({ error: 'Profile ID and title are required' });
@@ -113,10 +154,13 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Convert tags array to JSON string
+    const tagsJson = tags && Array.isArray(tags) ? JSON.stringify(tags) : null;
+
     const result = db.prepare(`
-      INSERT INTO notes (profile_id, title, content, color, category, reminder_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(profile_id, title, content || '', color || '#ffffff', category || null, reminder_at || null);
+      INSERT INTO notes (profile_id, title, content, color, category, reminder_at, tags)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(profile_id, title, content || '', color || '#ffffff', category || null, reminder_at || null, tagsJson);
 
     const newNote = db.prepare('SELECT * FROM notes WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(newNote);
@@ -173,6 +217,10 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
     if (req.body.reminder_at !== undefined) {
       updates.push('reminder_at = ?');
       values.push(req.body.reminder_at || null);
+    }
+    if (req.body.tags !== undefined) {
+      updates.push('tags = ?');
+      values.push(req.body.tags && Array.isArray(req.body.tags) ? JSON.stringify(req.body.tags) : null);
     }
 
     updates.push('updated_at = CURRENT_TIMESTAMP');

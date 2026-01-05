@@ -142,6 +142,7 @@ export interface Note {
   category?: string;
   is_pinned?: boolean | number;
   reminder_at?: string;
+  tags?: string; // JSON array string
   created_at: string;
   updated_at: string;
 }

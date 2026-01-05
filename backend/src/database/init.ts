@@ -949,6 +949,20 @@ export function initDatabase() {
     console.error('Migration error (school_assignments quiz type):', error.message);
   }
 
+  // Migration: Add tags column to notes table
+  try {
+    const notesInfo: any[] = db.prepare('PRAGMA table_info(notes)').all();
+    const hasTags = notesInfo.some((col: any) => col.name === 'tags');
+
+    if (!hasTags) {
+      console.log('🔄 Migrating notes table: adding tags column...');
+      db.prepare('ALTER TABLE notes ADD COLUMN tags TEXT').run();
+      console.log('✅ Migration completed: tags column added to notes');
+    }
+  } catch (error: any) {
+    console.error('Migration error (notes tags):', error.message);
+  }
+
   console.log('✅ Database initialized successfully');
 }
 
