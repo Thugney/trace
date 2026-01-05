@@ -506,6 +506,98 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
   `);
 
+  // Gamification: Water intake tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS water_intake (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      amount_ml INTEGER NOT NULL,
+      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Gamification: Streaks tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS streaks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      streak_type TEXT NOT NULL,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      last_activity_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, streak_type)
+    )
+  `);
+
+  // Gamification: Achievements definitions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      points_reward INTEGER DEFAULT 0,
+      requirement_type TEXT NOT NULL,
+      requirement_value INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Gamification: Profile achievements (earned)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profile_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, achievement_id)
+    )
+  `);
+
+  // Gamification: Daily challenges
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      challenge_type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      bonus_points INTEGER DEFAULT 10,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Insert default gamification achievements
+  const gamificationAchievements = [
+    { name: 'First Task', description: 'Complete your first task', icon: '🌟', points_reward: 10, requirement_type: 'tasks_completed', requirement_value: 1 },
+    { name: 'Task Master', description: 'Complete 10 tasks', icon: '🏆', points_reward: 50, requirement_type: 'tasks_completed', requirement_value: 10 },
+    { name: 'Super Achiever', description: 'Complete 50 tasks', icon: '👑', points_reward: 100, requirement_type: 'tasks_completed', requirement_value: 50 },
+    { name: 'Week Warrior', description: 'Complete tasks 7 days in a row', icon: '🔥', points_reward: 75, requirement_type: 'streak_days', requirement_value: 7 },
+    { name: 'Month Champion', description: 'Complete tasks 30 days in a row', icon: '💎', points_reward: 200, requirement_type: 'streak_days', requirement_value: 30 },
+    { name: 'Hydration Hero', description: 'Log water intake 7 days in a row', icon: '💧', points_reward: 50, requirement_type: 'water_streak', requirement_value: 7 },
+    { name: 'Goal Getter', description: 'Achieve your first monthly goal', icon: '🎯', points_reward: 100, requirement_type: 'goals_achieved', requirement_value: 1 },
+    { name: 'Point Collector', description: 'Earn 500 total points', icon: '💰', points_reward: 50, requirement_type: 'total_points', requirement_value: 500 },
+    { name: 'Star Student', description: 'Earn 100 stars', icon: '⭐', points_reward: 75, requirement_type: 'total_stars', requirement_value: 100 }
+  ];
+
+  const insertGamificationAchievement = db.prepare(`
+    INSERT OR IGNORE INTO achievements (name, description, icon, points_reward, requirement_type, requirement_value)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of gamificationAchievements) {
+    insertGamificationAchievement.run(ach.name, ach.description, ach.icon, ach.points_reward, ach.requirement_type, ach.requirement_value);
+  }
+
   // Insert default achievements
   const defaultAchievements = [
     { name: 'First Steps', description: 'Complete your first assignment', icon: '🎯', category: 'assignment', points: 5, requirement_type: 'assignments_completed', requirement_value: 1 },
