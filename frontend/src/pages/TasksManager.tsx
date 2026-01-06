@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera } from 'lucide-react';
 import clsx from 'clsx';
+import PhotoProof from '../components/PhotoProof';
 
 // Category icons map
 const categoryIcons: Record<string, string> = {
@@ -52,6 +53,7 @@ export default function TasksManager() {
   const [allGoals, setAllGoals] = useState<MonthlyGoal[]>([]);
   const [pendingGoals, setPendingGoals] = useState<MonthlyGoal[]>([]);
   const [pendingTaskApprovals, setPendingTaskApprovals] = useState<Task[]>([]);
+  const [pendingPhotoProofs, setPendingPhotoProofs] = useState<Task[]>([]);
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -60,6 +62,8 @@ export default function TasksManager() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingGoal, setEditingGoal] = useState<MonthlyGoal | null>(null);
+  const [showPhotoProof, setShowPhotoProof] = useState(false);
+  const [photoProofTask, setPhotoProofTask] = useState<Task | null>(null);
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
@@ -79,6 +83,7 @@ export default function TasksManager() {
     if (isParent && currentProfile) {
       loadPendingGoals();
       loadPendingTaskApprovals();
+      loadPendingPhotoProofs();
     }
   }, [isParent, currentProfile]);
 
@@ -153,7 +158,49 @@ export default function TasksManager() {
     }
   };
 
-  const handleCompleteTask = async (taskId: number) => {
+  const loadPendingPhotoProofs = async () => {
+    if (!currentProfile?.id) return;
+
+    try {
+      const response = await tasksAPI.getPendingProofs(currentProfile.id);
+      setPendingPhotoProofs(response.data);
+    } catch (error) {
+      console.error('Failed to load pending photo proofs:', error);
+    }
+  };
+
+  const handleVerifyProof = async (taskId: number, approved: boolean) => {
+    if (!currentProfile?.id) return;
+
+    try {
+      const response = await tasksAPI.verifyProof(taskId, approved, currentProfile.id);
+      await loadPendingPhotoProofs();
+      await loadTasks();
+
+      if (approved) {
+        alert(`✅ Photo approved! Task completed. ${response.data.pointsEarned} points awarded.`);
+      } else {
+        alert('❌ Photo rejected. Child can upload a new photo.');
+      }
+    } catch (error: any) {
+      console.error('Failed to verify proof:', error);
+      alert(error.response?.data?.error || 'Failed to verify photo');
+    }
+  };
+
+  const handleCompleteTask = async (taskId: number, task?: Task) => {
+    // Check if task requires photo proof
+    const taskData = task || tasks.find(t => t.id === taskId);
+    const proofRequired = taskData?.proof_required === true || taskData?.proof_required === 1;
+    const hasProof = !!taskData?.proof_photo_url;
+
+    // If photo proof is required and not yet uploaded, show the photo modal
+    if (proofRequired && !hasProof) {
+      setPhotoProofTask(taskData || null);
+      setShowPhotoProof(true);
+      return;
+    }
+
     try {
       const response = await tasksAPI.complete(taskId);
       await loadTasks();
@@ -167,6 +214,21 @@ export default function TasksManager() {
       console.error('Failed to complete task:', error);
       alert(error.response?.data?.error || 'Failed to complete task');
     }
+  };
+
+  // Handle photo proof uploaded - DON'T auto-complete, wait for parent verification
+  const handlePhotoProofUploaded = async () => {
+    if (!photoProofTask) return;
+
+    setShowPhotoProof(false);
+    await loadTasks();
+
+    // Show message that parent needs to verify
+    if (!isParent) {
+      alert('📸 Photo uploaded! Your parent will review and approve it.');
+    }
+
+    setPhotoProofTask(null);
   };
 
   const handleAddTask = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -575,6 +637,71 @@ export default function TasksManager() {
         </div>
       )}
 
+      {/* Pending Photo Proofs for Parents to Verify */}
+      {isParent && pendingPhotoProofs.length > 0 && (
+        <div className="card mb-6 bg-purple-50 border-2 border-purple-300">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+            <Camera className="mr-2 text-purple-600" size={24} />
+            Photo Proofs to Verify ({pendingPhotoProofs.length})
+          </h3>
+          <div className="space-y-4">
+            {pendingPhotoProofs.map(task => (
+              <div key={task.id} className="bg-white p-4 rounded-lg border border-purple-200">
+                <div className="flex items-start gap-4">
+                  {/* Photo Preview */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={`/api${task.proof_photo_url}`}
+                      alt="Photo proof"
+                      className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 cursor-pointer hover:opacity-80"
+                      onClick={() => window.open(`/api${task.proof_photo_url}`, '_blank')}
+                      title="Click to view full size"
+                    />
+                    <p className="text-xs text-gray-500 mt-1 text-center">Click to enlarge</p>
+                  </div>
+
+                  {/* Task Details */}
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl mr-2">{task.child_avatar || '👤'}</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">{task.child_name}</p>
+                        <p className="text-sm text-gray-600">uploaded proof for task</p>
+                      </div>
+                    </div>
+                    <h4 className="text-gray-900 font-bold mb-1">{task.title}</h4>
+                    {task.description && (
+                      <p className="text-gray-700 mb-2 text-sm">{task.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm mb-3">
+                      <span className="badge badge-primary">{task.points} pts</span>
+                      <span className="badge badge-warning">{task.difficulty}</span>
+                    </div>
+
+                    {/* Approve/Reject Buttons */}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleVerifyProof(task.id, true)}
+                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center"
+                      >
+                        <Check size={16} className="mr-1" />
+                        Approve & Complete
+                      </button>
+                      <button
+                        onClick={() => handleVerifyProof(task.id, false)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                      >
+                        ✗ Reject Photo
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Monthly Goal Card */}
       {!isParent && (
         <div className="card bg-gradient-to-r from-green-500 to-teal-600 text-white mb-6">
@@ -889,10 +1016,11 @@ export default function TasksManager() {
                       )}
                       {task.parent_approved ? (
                         <button
-                          onClick={() => handleCompleteTask(task.id)}
+                          onClick={() => handleCompleteTask(task.id, task)}
                           className="btn btn-success btn-sm"
+                          title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
                         >
-                          <Check size={16} />
+                          {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
                         </button>
                       ) : (
                         <span className="text-xs text-orange-600 italic">
@@ -1399,6 +1527,19 @@ export default function TasksManager() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Photo Proof Modal */}
+      {showPhotoProof && photoProofTask && (
+        <PhotoProof
+          taskId={photoProofTask.id}
+          taskTitle={photoProofTask.title}
+          onProofUploaded={handlePhotoProofUploaded}
+          onCancel={() => {
+            setShowPhotoProof(false);
+            setPhotoProofTask(null);
+          }}
+        />
       )}
     </div>
   );

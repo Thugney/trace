@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
+import { runProductionReadyMigrations } from './migrations/production-ready';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../../data/family.db');
 
@@ -1304,6 +1305,9 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_custom_achievements_profile ON custom_achievements(profile_id);
     CREATE INDEX IF NOT EXISTS idx_behavior_insights_profile ON behavior_insights(profile_id);
   `);
+
+  // Run production-ready migrations
+  runProductionReadyMigrations();
 
   console.log('Database initialized successfully');
 }

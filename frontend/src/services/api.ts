@@ -10,24 +10,15 @@ import type {
   Task,
   Progress,
   Reward,
+  RewardClaim,
   AIConversation,
   Note,
   MonthlyGoal,
-  Message,
   JourneyData,
   Notification
 } from '../types';
-import type {
-  SchoolClass,
-  SchoolEnrollment,
-  SchoolAssignment,
-  SchoolSubmission,
-  SchoolFeedback,
-  StudentProgress,
-  QuizQuestion,
-  QuizSubmission,
-  QuizResult
-} from '../types/school';
+
+export type { Reward, RewardClaim };
 
 // Use relative path for production (nginx proxy) or explicit URL for development
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -127,6 +118,13 @@ export const tasksAPI = {
     api.post<{ message: string }>(`/tasks/${id}/reject`, { rejected_by }),
   getPending: (parentId: number) =>
     api.get<Task[]>(`/tasks/pending/${parentId}`),
+  getPendingProofs: (parentId: number) =>
+    api.get<Task[]>(`/tasks/pending-proofs/${parentId}`),
+  verifyProof: (taskId: number, approved: boolean, verified_by: number) =>
+    api.post<{ success: boolean; message: string; task: Task; pointsEarned?: number; starsEarned?: number }>(
+      `/tasks/${taskId}/verify-proof`,
+      { approved, verified_by }
+    ),
   getProgress: (profileId: number, limit?: number) =>
     api.get<{
       current: Progress;
@@ -202,7 +200,8 @@ export const settingsAPI = {
   set: (key: string, value: string) => api.post(`/settings/${key}`, { value }),
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
-    api.post<{ message: string }>('/settings/set-pin', { pin, current_pin })
+    api.post<{ message: string }>('/settings/set-pin', { pin, current_pin }),
+  getFeatureFlags: () => api.get<{ diet_enabled: boolean }>('/settings/features/flags')
 };
 
 // Notes
@@ -285,132 +284,6 @@ export const goalsAPI = {
     api.delete(`/goals/${goalId}/milestones/${milestoneId}`)
 };
 
-// School (Tigrinya Church School)
-export const schoolAPI = {
-  // Classes
-  getClasses: () => api.get<SchoolClass[]>('/school/classes'),
-  getClassStudents: (classId: number) =>
-    api.get<(SchoolEnrollment & { student_name: string; age: number })[]>(`/school/classes/${classId}/students`),
-
-  // Enrollments
-  getParentChildren: (parentId: number) =>
-    api.get<any[]>(`/school/parents/${parentId}/children`),
-  enrollStudent: (student_id: number, class_id: number, parent_id?: number) =>
-    api.post<SchoolEnrollment>('/school/enrollments', { student_id, class_id, parent_id }),
-  unenrollStudent: (studentId: number, classId: number) =>
-    api.delete(`/school/enrollments/${studentId}/${classId}`),
-  getStudentEnrollments: (studentId: number) =>
-    api.get<(SchoolEnrollment & { class_name: string })[]>(`/school/students/${studentId}/enrollments`),
-
-  // Assignments
-  createAssignment: (data: {
-    class_id: number;
-    teacher_id: number;
-    title: string;
-    description?: string;
-    type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
-    youtube_link?: string;
-    attachment_url?: string;
-    due_date?: string;
-  }) => api.post<SchoolAssignment>('/school/assignments', data),
-  getClassAssignments: (classId: number) =>
-    api.get<SchoolAssignment[]>(`/school/classes/${classId}/assignments`),
-  getStudentAssignments: (studentId: number) =>
-    api.get<(SchoolAssignment & { class_name: string; has_submitted: boolean; submission_status?: string })[]>(
-      `/school/students/${studentId}/assignments`
-    ),
-  updateAssignment: (id: number, data: Partial<SchoolAssignment>) =>
-    api.put<SchoolAssignment>(`/school/assignments/${id}`, data),
-  deleteAssignment: (id: number) => api.delete(`/school/assignments/${id}`),
-
-  // Submissions
-  submitWork: (assignment_id: number, student_id: number, notes?: string) =>
-    api.post<SchoolSubmission>('/school/submissions', { assignment_id, student_id, notes }),
-  getAssignmentSubmissions: (assignmentId: number) =>
-    api.get<(SchoolSubmission & { student_name: string; age: number })[]>(
-      `/school/assignments/${assignmentId}/submissions`
-    ),
-
-  // Feedback
-  addFeedback: (submission_id: number, teacher_id: number, comment: string, rating?: string) =>
-    api.post<SchoolFeedback>('/school/feedback', { submission_id, teacher_id, comment, rating }),
-  getSubmissionFeedback: (submissionId: number) =>
-    api.get<(SchoolFeedback & { teacher_name: string })[]>(`/school/submissions/${submissionId}/feedback`),
-
-  // Progress
-  getStudentProgress: (studentId: number) =>
-    api.get<StudentProgress>(`/school/students/${studentId}/progress`),
-  getAllStudentsProgress: () =>
-    api.get<StudentProgress[]>('/school/students/all/progress'),
-
-  // Quiz
-  createQuiz: (assignmentId: number, questions: Omit<QuizQuestion, 'id' | 'assignment_id' | 'created_at'>[]) =>
-    api.post(`/school/assignments/${assignmentId}/quiz`, { questions }),
-
-  getQuiz: (assignmentId: number) =>
-    api.get<QuizQuestion[]>(`/school/assignments/${assignmentId}/quiz`),
-
-  submitQuiz: (submission: QuizSubmission) =>
-    api.post<any>(`/school/quiz/submit`, submission),
-
-  getQuizResults: (assignmentId: number, studentId: number) =>
-    api.get<QuizResult>(`/school/assignments/${assignmentId}/quiz/results/${studentId}`),
-
-  getAllQuizResults: (studentId: number) =>
-    api.get<any[]>(`/school/students/${studentId}/quiz-results`),
-
-  // Gamification - Achievements
-  getAchievements: () =>
-    api.get<any[]>('/school/achievements'),
-  getStudentAchievements: (studentId: number) =>
-    api.get<any[]>(`/school/students/${studentId}/achievements`),
-  awardAchievement: (student_id: number, achievement_id: number, notes?: string) =>
-    api.post('/school/achievements/award', { student_id, achievement_id, notes }),
-
-  // Gamification - Points
-  getStudentPoints: (studentId: number) =>
-    api.get<{ points: number; level: number; level_name: string; points_to_next_level: number }>(
-      `/school/students/${studentId}/points`
-    ),
-  addStudentPoints: (studentId: number, points: number, reason?: string) =>
-    api.post(`/school/students/${studentId}/points`, { points, reason }),
-
-  // Leaderboard
-  getLeaderboard: (limit?: number) =>
-    api.get<any[]>(`/school/leaderboard${limit ? `?limit=${limit}` : ''}`),
-
-  // Teacher class management
-  getTeacherClass: () =>
-    api.get<{ class_id: number; class_name: string; description: string; age_min: number; age_max: number }>('/school/teacher/my-class'),
-  getTeacherStudents: () =>
-    api.get<any[]>('/school/teacher/students'),
-
-  // Admin: Teacher assignments
-  getTeachers: () =>
-    api.get<any[]>('/school/teachers'),
-  assignTeacherToClass: (teacherId: number, classId: number | null) =>
-    api.post(`/school/teachers/${teacherId}/assign-class`, { class_id: classId })
-};
-
-// Messages API
-export const messagesAPI = {
-  sendMessage: (sender_id: number, recipient_id: number, message: string, subject?: string) =>
-    api.post<Message>('/messages', { sender_id, recipient_id, message, subject }),
-  getInbox: (userId: number, unreadOnly = false) =>
-    api.get<Message[]>(`/messages/inbox/${userId}${unreadOnly ? '?unread_only=true' : ''}`),
-  getSent: (userId: number) =>
-    api.get<Message[]>(`/messages/sent/${userId}`),
-  markAsRead: (messageId: number) =>
-    api.put<Message>(`/messages/${messageId}/read`, {}),
-  getUnreadCount: (userId: number) =>
-    api.get<{ count: number }>(`/messages/unread-count/${userId}`),
-  getConversation: (userId1: number, userId2: number) =>
-    api.get<Message[]>(`/messages/conversation/${userId1}/${userId2}`),
-  deleteMessage: (messageId: number) =>
-    api.delete(`/messages/${messageId}`),
-  getParents: () =>
-    api.get<Profile[]>('/messages/parents')
-};
 
 // Gamification API
 export const gamificationAPI = {
@@ -479,6 +352,23 @@ export const gamificationAPI = {
     }>(`/gamification/weekly-summary/${profileId}`),
 
   // Leaderboard
+  getFamilyLeaderboard: (period?: 'week' | 'month' | 'all') =>
+    api.get<{
+      id: number;
+      name: string;
+      avatar: string;
+      type: string;
+      points: number;
+      stars: number;
+      level: number;
+      tasksCompleted: number;
+      currentStreak: number;
+      longestStreak: number;
+      achievementCount: number;
+      recentAchievements: { name: string; icon: string }[];
+      rank: number;
+    }[]>('/gamification/family-leaderboard', { params: { period } }),
+
   getLeaderboard: (parentId: number, period?: 'week' | 'month' | 'all') =>
     api.get<{
       id: number;
@@ -741,6 +631,99 @@ export const notificationsAPI = {
     api.post('/notifications/read-all'),
   sendTest: () =>
     api.post('/notifications/test')
+};
+
+
+// Reward Shop API
+export const rewardsAPI = {
+  // Get rewards available in the shop for a profile
+  getShop: (profileId: number) =>
+    api.get<{ rewards: Reward[]; availablePoints: number; totalPoints: number }>(`/rewards/shop/${profileId}`),
+
+  // Purchase a reward
+  purchase: (rewardId: number, profileId: number) =>
+    api.post<{ success: boolean; claim: RewardClaim; newBalance: number }>(`/rewards/${rewardId}/purchase`, { profileId }),
+
+  // Get claimed rewards history
+  getClaimed: (profileId: number) =>
+    api.get<RewardClaim[]>(`/rewards/claimed/${profileId}`),
+
+  // Get pending claims (for parents)
+  getPending: () =>
+    api.get<RewardClaim[]>('/rewards/pending'),
+
+  // Update claim status (approve/reject/given)
+  updateClaimStatus: (claimId: number, status: string, approvedBy: number, notes?: string) =>
+    api.put<RewardClaim>(`/rewards/claims/${claimId}/status`, { status, approvedBy, notes }),
+
+  // Create a new reward (parent/admin)
+  create: (reward: {
+    title: string;
+    description?: string;
+    pointsRequired: number;
+    icon?: string;
+    imageUrl?: string;
+    type?: 'virtual' | 'real';
+    category?: string;
+    profileId?: number | null;
+    availableForAll?: boolean;
+    stock?: number;
+    createdBy: number;
+  }) => api.post<Reward>('/rewards', reward),
+
+  // Update a reward
+  update: (rewardId: number, data: Partial<Reward>) =>
+    api.put<Reward>(`/rewards/${rewardId}`, data),
+
+  // Delete a reward
+  delete: (rewardId: number) =>
+    api.delete(`/rewards/${rewardId}`),
+
+  // Get all rewards (admin view)
+  getAll: () =>
+    api.get<Reward[]>('/rewards/all')
+};
+
+// Reminder Preferences API
+export interface ReminderPreferences {
+  profile_id: number;
+  morning_reminder_time: string;
+  reminder_enabled: boolean;
+}
+
+export const remindersAPI = {
+  // Get reminder preferences for a profile
+  getPreferences: (profileId: number) =>
+    api.get<ReminderPreferences>(`/reminders/${profileId}`),
+
+  // Update reminder preferences
+  updatePreferences: (profileId: number, data: { enabled?: boolean; time?: string }) =>
+    api.put<ReminderPreferences & { message: string }>(`/reminders/${profileId}`, data),
+
+  // Test reminder (admin only)
+  sendTest: (profileId: number) =>
+    api.post<{ message: string; profileId: number }>(`/reminders/test/${profileId}`)
+};
+
+// Photo Proof API
+export const photoProofAPI = {
+  // Upload photo proof for a task
+  upload: (taskId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('proof', file);
+    return api.post<{ success: boolean; task: Task; message: string }>(
+      `/tasks/${taskId}/proof`,
+      formData,
+      { headers: { 'Content-Type': undefined } }
+    );
+  },
+
+  // Get photo proof URL for a task
+  getUrl: (taskId: number) => `/api/tasks/${taskId}/proof`,
+
+  // Delete photo proof
+  delete: (taskId: number) =>
+    api.delete<{ success: boolean; message: string }>(`/tasks/${taskId}/proof`)
 };
 
 export default api;

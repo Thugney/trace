@@ -4,6 +4,7 @@ import { User, Lock, LogOut } from 'lucide-react';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
 import Onboarding from './Onboarding';
+import Avatar from '../components/Avatar';
 import clsx from 'clsx';
 
 interface ProfileSelectorProps {
@@ -51,8 +52,6 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
     ? profiles.filter(p => p.type === 'child' && p.parent_id === loggedInParent.id)
     : []; // If not admin and no logged in parent, show NO kids for security
 
-  // Teachers should NEVER be shown in ProfileSelector (they don't need profile selection)
-  const teachers = isAdmin ? profiles.filter(p => p.type === 'teacher') : [];
 
   const handleLogout = () => {
     localStorage.removeItem('family_auth');
@@ -121,7 +120,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-purple-50 flex items-center justify-center p-4">
         <div className="card max-w-md w-full">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-4">{selectedProfile.avatar || '👤'}</div>
+            <div className="flex justify-center mb-4"><Avatar avatar={selectedProfile.avatar} size="2xl" alt={selectedProfile.name} /></div>
             <h2 className="text-2xl font-bold text-gray-900">{selectedProfile.name}</h2>
             <p className="text-gray-600 mt-1">Enter your PIN to continue</p>
           </div>
@@ -204,7 +203,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
                   onClick={() => handleProfileClick(profile)}
                   className="card hover:shadow-lg transition-shadow text-center p-8 cursor-pointer border-2 border-transparent hover:border-primary-500"
                 >
-                  <div className="text-6xl mb-4">{profile.avatar || '👤'}</div>
+                  <div className="flex justify-center mb-4"><Avatar avatar={profile.avatar} size="2xl" alt={profile.name} /></div>
                   <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     {profile.type === 'admin' ? '🛡️ Admin' : 'Parent'}
@@ -221,31 +220,6 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
           </div>
         )}
 
-        {/* Teachers (only shown to admin) */}
-        {isAdmin && teachers.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Teachers</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {teachers.map(profile => (
-                <button
-                  key={profile.id}
-                  onClick={() => handleProfileClick(profile)}
-                  className="card hover:shadow-lg transition-shadow text-center p-8 cursor-pointer border-2 border-transparent hover:border-primary-500"
-                >
-                  <div className="text-6xl mb-4">{profile.avatar || '🎓'}</div>
-                  <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">Teacher</p>
-                  {profile.pin && (
-                    <div className="flex items-center justify-center mt-2 text-xs text-gray-400">
-                      <Lock size={12} className="mr-1" />
-                      PIN Protected
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Kids - SECURITY: Only show parent's own kids */}
         {kids.length > 0 && (
@@ -265,7 +239,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
                     profile.age && profile.age > 7 && 'theme-kid-12'
                   )}
                 >
-                  <div className="text-6xl mb-4">{profile.avatar || '👤'}</div>
+                  <div className="flex justify-center mb-4"><Avatar avatar={profile.avatar} size="2xl" alt={profile.name} /></div>
                   <h3 className="text-lg font-semibold text-gray-900">{profile.name}</h3>
                   <p className="text-sm text-gray-500 mt-1">
                     {profile.age ? `${profile.age} years old` : 'Child'}

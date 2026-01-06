@@ -1,7 +1,7 @@
 export interface Profile {
   id: number;
   name: string;
-  type: 'admin' | 'parent' | 'child' | 'teacher';
+  type: 'admin' | 'parent' | 'child';
   username?: string; // For login (adults)
   age?: number;
   gender?: 'male' | 'female' | 'other';
@@ -13,7 +13,7 @@ export interface Profile {
   updated_at: string;
   parent_id?: number;
   ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
-  diet_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
+  diet_enabled?: number; // 0 = disabled, 1 = enabled (hidden feature)
 }
 
 export interface DietGoal {
@@ -84,7 +84,7 @@ export interface Task {
   difficulty: 'easy' | 'medium' | 'hard';
   earns_points: boolean;
   is_recurring: boolean | number;
-  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly';
+  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | string; // string allows custom patterns like 'specific_days:mon,wed,fri'
   due_date?: string;
   completed: boolean;
   completed_at?: string;
@@ -96,6 +96,9 @@ export interface Task {
   child_avatar?: string;
   priority?: 'high' | 'medium' | 'low';
   estimated_minutes?: number;
+  // Photo proof fields
+  proof_required?: boolean | number;
+  proof_photo_url?: string | null;
 }
 
 export interface Progress {
@@ -113,15 +116,36 @@ export interface Progress {
 
 export interface Reward {
   id: number;
-  profile_id: number;
+  profile_id: number | null;
   title: string;
   description?: string;
   type: 'virtual' | 'real';
   points_required: number;
   icon?: string;
-  is_claimed: boolean;
+  image_url?: string;
+  category?: string;
+  available_for_all?: boolean;
+  stock?: number;
+  is_claimed?: boolean;
   claimed_at?: string;
+  created_by?: number;
   created_at: string;
+}
+
+export interface RewardClaim {
+  id: number;
+  reward_id: number;
+  profile_id: number;
+  status: 'pending' | 'approved' | 'given' | 'rejected';
+  points_spent: number;
+  claimed_at: string;
+  approved_by?: number;
+  approved_at?: string;
+  notes?: string;
+  // Joined from reward
+  title?: string;
+  icon?: string;
+  image_url?: string;
 }
 
 export interface AIConversation {
@@ -202,21 +226,6 @@ export interface NutritionSummary {
   goals?: DietGoal | null;
 }
 
-export interface Message {
-  id: number;
-  sender_id: number;
-  recipient_id: number;
-  subject?: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-  sender_name?: string;
-  sender_type?: string;
-  sender_avatar?: string;
-  recipient_name?: string;
-  recipient_type?: string;
-  recipient_avatar?: string;
-}
 
 // My Journey types
 export interface JourneyEvent {

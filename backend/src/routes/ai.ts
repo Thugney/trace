@@ -585,7 +585,7 @@ function generateFallbackResponse(message: string, profile: any, context: string
 }
 
 // Chat with AI (GET endpoint for EventSource streaming)
-router.get('/chat', authenticateEventSource, requireRole(['admin', 'parent', 'child', 'teacher']), async (req: AuthRequest, res) => {
+router.get('/chat', authenticateEventSource, requireRole(['admin', 'parent', 'child']), async (req: AuthRequest, res) => {
   try {
     const profile_id = req.profile!.id;  // Use authenticated profile
     const message = req.query.message as string;

@@ -12,11 +12,12 @@ import aiRoutes from './routes/ai';
 import settingsRoutes from './routes/settings';
 import notesRoutes from './routes/notes';
 import goalsRoutes from './routes/goals';
-import schoolRoutes from './routes/school';
-import messagesRoutes from './routes/messages';
 import notificationsRoutes from './routes/notifications';
 import gamificationRoutes from './routes/gamification';
 import aiGamificationRoutes from './routes/ai-gamification';
+import rewardsRoutes from './routes/rewards';
+import remindersRoutes from './routes/reminders';
+import { initScheduler } from './services/scheduler';
 
 dotenv.config();
 
@@ -64,11 +65,14 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/goals', goalsRoutes);
-app.use('/api/school', schoolRoutes);
-app.use('/api/messages', messagesRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/gamification', gamificationRoutes);
 app.use('/api/ai-gamification', aiGamificationRoutes);
+app.use('/api/rewards', rewardsRoutes);
+app.use('/api/reminders', remindersRoutes);
+
+// Initialize scheduler after database
+initScheduler();
 
 // Health check
 app.get('/health', (req, res) => {

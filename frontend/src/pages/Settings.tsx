@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera } from 'lucide-react';
+import { settingsAPI, profilesAPI, aiAPI, remindersAPI, ReminderPreferences } from '../services/api';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera, Bell, Clock } from 'lucide-react';
+import Avatar from '../components/Avatar';
 
 export default function Settings() {
   const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
@@ -37,9 +38,60 @@ export default function Settings() {
   const [childNewPin, setChildNewPin] = useState('');
   const [childConfirmPin, setChildConfirmPin] = useState('');
 
+  // State for reminder preferences
+  const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
+  const [savingReminders, setSavingReminders] = useState(false);
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Load reminder preferences
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadReminderPreferences();
+    }
+  }, [currentProfile?.id]);
+
+  const loadReminderPreferences = async () => {
+    if (!currentProfile?.id) return;
+    try {
+      const response = await remindersAPI.getPreferences(currentProfile.id);
+      setReminderPrefs(response.data);
+    } catch (error) {
+      console.error('Failed to load reminder preferences:', error);
+    }
+  };
+
+  const handleReminderToggle = async () => {
+    if (!currentProfile?.id || !reminderPrefs) return;
+    setSavingReminders(true);
+    try {
+      const response = await remindersAPI.updatePreferences(currentProfile.id, {
+        enabled: !reminderPrefs.reminder_enabled
+      });
+      setReminderPrefs(response.data);
+      setSuccessMessage('Reminder settings updated!');
+    } catch (error) {
+      console.error('Failed to update reminder preferences:', error);
+    } finally {
+      setSavingReminders(false);
+    }
+  };
+
+  const handleReminderTimeChange = async (time: string) => {
+    if (!currentProfile?.id) return;
+    setSavingReminders(true);
+    try {
+      const response = await remindersAPI.updatePreferences(currentProfile.id, { time });
+      setReminderPrefs(response.data);
+      setSuccessMessage('Reminder time updated!');
+    } catch (error) {
+      console.error('Failed to update reminder time:', error);
+    } finally {
+      setSavingReminders(false);
+    }
+  };
 
   // Load AI settings when profiles are loaded
   useEffect(() => {
@@ -537,6 +589,56 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Reminder Settings */}
+        <div className="card mt-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Bell className="mr-2 text-blue-600" size={20} />
+            Task Reminders
+          </h2>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Get daily reminders about your tasks!
+          </p>
+
+          {reminderPrefs && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-800">Morning Reminders</p>
+                  <p className="text-sm text-gray-500">Get reminded about today's tasks</p>
+                </div>
+                <button
+                  onClick={handleReminderToggle}
+                  disabled={savingReminders}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    reminderPrefs.reminder_enabled ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      reminderPrefs.reminder_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {reminderPrefs.reminder_enabled && (
+                <div className="flex items-center gap-4">
+                  <Clock size={20} className="text-gray-500" />
+                  <label className="text-sm text-gray-700">Remind me at:</label>
+                  <input
+                    type="time"
+                    value={reminderPrefs.morning_reminder_time}
+                    onChange={(e) => handleReminderTimeChange(e.target.value)}
+                    className="input w-32"
+                    disabled={savingReminders}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
             <Shield className="inline mr-2" size={16} />
@@ -651,8 +753,8 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Password Management - Parents, Teachers, and Admin */}
-          {(isParent || isAdmin || currentProfile?.type === 'teacher') && (
+          {/* Password Management - Parents and Admin */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Lock className="mr-2 text-orange-600" size={20} />
@@ -796,7 +898,7 @@ export default function Settings() {
                         className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
                       >
                         <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{profile.avatar || '👤'}</span>
+                          <Avatar avatar={profile.avatar} size="md" alt={profile.name} />
                           <div className="text-left">
                             <p className="font-semibold">{profile.name}</p>
                             <p className="text-xs text-gray-600">
@@ -1016,11 +1118,11 @@ Context: Tasks, Points, Level, Progress`}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{profile.avatar || '👤'}</span>
+                    <Avatar avatar={profile.avatar} size="lg" alt={profile.name} />
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : profile.type === 'teacher' ? 'Teacher' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
+                        {profile.type === 'parent' ? 'Parent' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
@@ -1126,7 +1228,6 @@ Context: Tasks, Points, Level, Progress`}
                   {isAdmin && (
                     <>
                       <option value="parent">Parent</option>
-                      <option value="teacher">Teacher</option>
                       <option value="admin">Admin</option>
                     </>
                   )}
@@ -1354,7 +1455,6 @@ Context: Tasks, Points, Level, Progress`}
                 >
                   <option value="child">Child</option>
                   <option value="parent">Parent</option>
-                  <option value="teacher">Teacher</option>
                   <option value="admin">Admin</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">

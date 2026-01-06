@@ -7,7 +7,7 @@ import db from '../database/init';
 export interface AuthRequest extends Request {
   profile?: {
     id: number;
-    type: 'admin' | 'parent' | 'child' | 'teacher';
+    type: 'admin' | 'parent' | 'child';
     parent_id?: number;
   };
 }
@@ -53,7 +53,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
  *
  * Usage: requireRole(['admin', 'parent'])
  */
-export const requireRole = (allowedRoles: Array<'admin' | 'parent' | 'child' | 'teacher'>) => {
+export const requireRole = (allowedRoles: Array<'admin' | 'parent' | 'child'>) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.profile) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -238,20 +238,3 @@ export const parentOrAdmin = [
   requireRole(['parent', 'admin'])
 ];
 
-/**
- * Parent, Admin, or Teacher Middleware
- * For school enrollment management - teachers can move students between classes
- */
-export const parentOrAdminOrTeacher = [
-  authenticate,
-  requireRole(['parent', 'admin', 'teacher'])
-];
-
-/**
- * Teacher Only Middleware
- * For teacher-specific endpoints (admin can also access)
- */
-export const teacherOnly = [
-  authenticate,
-  requireRole(['teacher', 'admin'])
-];

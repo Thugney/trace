@@ -1,0 +1,370 @@
+import { useState, useEffect } from 'react';
+import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save } from 'lucide-react';
+import { rewardsAPI, Reward, RewardClaim } from '../services/api';
+import playSounds from '../utils/sounds';
+
+interface RewardManagementProps {
+  parentId: number;
+}
+
+export default function RewardManagement({ parentId }: RewardManagementProps) {
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [pendingClaims, setPendingClaims] = useState<RewardClaim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [activeTab, setActiveTab] = useState<'rewards' | 'claims'>('rewards');
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    pointsRequired: 100,
+    icon: '🎁',
+    stock: -1 // -1 = unlimited
+  });
+
+  useEffect(() => {
+    loadData();
+  }, [parentId]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [rewardsRes, claimsRes] = await Promise.all([
+        rewardsAPI.getAll(),
+        rewardsAPI.getPending()
+      ]);
+      setRewards(rewardsRes.data);
+      setPendingClaims(claimsRes.data);
+    } catch (error) {
+      console.error('Failed to load rewards data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingReward) {
+        await rewardsAPI.update(editingReward.id, {
+          title: formData.title,
+          description: formData.description,
+          points_required: formData.pointsRequired,
+          icon: formData.icon,
+          stock: formData.stock
+        });
+      } else {
+        await rewardsAPI.create({
+          title: formData.title,
+          description: formData.description,
+          pointsRequired: formData.pointsRequired,
+          icon: formData.icon,
+          stock: formData.stock,
+          createdBy: parentId
+        });
+      }
+      playSounds.achievement();
+      resetForm();
+      loadData();
+    } catch (error) {
+      console.error('Failed to save reward:', error);
+      playSounds.error();
+    }
+  };
+
+  const handleDelete = async (rewardId: number) => {
+    if (!confirm('Delete this reward?')) return;
+    try {
+      await rewardsAPI.delete(rewardId);
+      loadData();
+    } catch (error) {
+      console.error('Failed to delete reward:', error);
+    }
+  };
+
+  const handleClaimAction = async (claimId: number, status: 'approved' | 'rejected' | 'given') => {
+    try {
+      await rewardsAPI.updateClaimStatus(claimId, status, parentId);
+      playSounds.achievement();
+      loadData();
+    } catch (error) {
+      console.error('Failed to update claim:', error);
+      playSounds.error();
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1 });
+    setEditingReward(null);
+    setShowForm(false);
+  };
+
+  const startEdit = (reward: Reward) => {
+    setFormData({
+      title: reward.title,
+      description: reward.description || '',
+      pointsRequired: reward.points_required,
+      icon: reward.icon || '🎁',
+      stock: reward.stock ?? -1
+    });
+    setEditingReward(reward);
+    setShowForm(true);
+  };
+
+  const commonIcons = ['🎁', '🎮', '🍦', '🎬', '📱', '🎨', '⚽', '🎵', '📚', '🧸', '🎪', '🏆'];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+          <Gift className="w-6 h-6 text-purple-600" />
+          Reward Shop Management
+        </h2>
+        {!showForm && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            <Plus size={18} />
+            Add Reward
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
+        <button
+          onClick={() => setActiveTab('rewards')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'rewards' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          <Gift className="w-4 h-4 inline mr-2" />
+          Rewards ({rewards.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('claims')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'claims' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          <Clock className="w-4 h-4 inline mr-2" />
+          Pending Claims ({pendingClaims.length})
+        </button>
+      </div>
+
+      {/* Add/Edit Form */}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-purple-50 rounded-xl p-4 space-y-4 border border-purple-200">
+          <h3 className="font-semibold text-purple-800">
+            {editingReward ? 'Edit Reward' : 'Add New Reward'}
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="e.g., Extra Screen Time"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Points Required</label>
+              <input
+                type="number"
+                value={formData.pointsRequired}
+                onChange={e => setFormData({ ...formData, pointsRequired: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                min="1"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description (optional)</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              placeholder="e.g., 30 minutes of extra TV or game time"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
+              <div className="flex flex-wrap gap-2">
+                {commonIcons.map(icon => (
+                  <button
+                    key={icon}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, icon })}
+                    className={`w-10 h-10 text-xl rounded-lg border-2 transition-all ${
+                      formData.icon === icon
+                        ? 'border-purple-500 bg-purple-100'
+                        : 'border-slate-200 hover:border-purple-300'
+                    }`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Stock</label>
+              <select
+                value={formData.stock}
+                onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value={-1}>Unlimited</option>
+                <option value={1}>1</option>
+                <option value={2}>2</option>
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <Save size={18} />
+              {editingReward ? 'Save Changes' : 'Add Reward'}
+            </button>
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Rewards List */}
+      {activeTab === 'rewards' && (
+        <div className="space-y-3">
+          {rewards.length === 0 ? (
+            <div className="text-center py-8 bg-slate-50 rounded-xl">
+              <Gift className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-500">No rewards yet. Add your first reward!</p>
+            </div>
+          ) : (
+            rewards.map(reward => (
+              <div
+                key={reward.id}
+                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200 hover:shadow-md transition-shadow"
+              >
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-3xl">
+                  {reward.icon || '🎁'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-800">{reward.title}</h3>
+                  {reward.description && (
+                    <p className="text-sm text-slate-500 truncate">{reward.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="flex items-center gap-1 text-sm text-purple-600 font-medium">
+                      <Star size={14} className="fill-current" />
+                      {reward.points_required} pts
+                    </span>
+                    <span className="text-sm text-slate-400">
+                      Stock: {reward.stock === -1 ? '∞' : reward.stock}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEdit(reward)}
+                    className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(reward.id)}
+                    className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Pending Claims */}
+      {activeTab === 'claims' && (
+        <div className="space-y-3">
+          {pendingClaims.length === 0 ? (
+            <div className="text-center py-8 bg-slate-50 rounded-xl">
+              <Check className="w-12 h-12 mx-auto text-green-300 mb-3" />
+              <p className="text-slate-500">No pending claims to review!</p>
+            </div>
+          ) : (
+            pendingClaims.map(claim => (
+              <div
+                key={claim.id}
+                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-yellow-200 shadow-sm"
+              >
+                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center text-3xl">
+                  {claim.icon || '🎁'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-800">{claim.title}</h3>
+                  <p className="text-sm text-slate-500">
+                    Profile ID: <span className="font-medium">#{claim.profile_id}</span>
+                  </p>
+                  <p className="text-sm text-purple-600 font-medium">
+                    {claim.points_spent} points spent
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleClaimAction(claim.id, 'given')}
+                    className="flex items-center gap-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                    title="Mark as given"
+                  >
+                    <Check size={18} />
+                    Give
+                  </button>
+                  <button
+                    onClick={() => handleClaimAction(claim.id, 'rejected')}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    title="Reject claim"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

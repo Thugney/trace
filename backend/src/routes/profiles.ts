@@ -77,10 +77,6 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
         ORDER BY type DESC, created_at ASC
       `).all(userProfile.id, userProfile.id);
       console.log(`[DEBUG] Parent view: ${profiles.length} profiles (self + children)`);
-    } else if (userProfile.type === 'teacher') {
-      // Teacher sees only themselves
-      profiles = db.prepare('SELECT * FROM profiles WHERE id = ?').all(userProfile.id);
-      console.log(`[DEBUG] Teacher view: self only`);
     } else {
       // Child sees only themselves
       profiles = db.prepare('SELECT * FROM profiles WHERE id = ?').all(userProfile.id);
@@ -554,11 +550,6 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
         if (!targetProfile || targetProfile.parent_id !== userProfile.id) {
           return res.status(403).json({ error: 'Access denied: You can only view your own or your children\'s journey' });
         }
-      }
-    } else if (userProfile.type === 'teacher') {
-      // Teachers can only see their own journey
-      if (userProfile.id !== requestedId) {
-        return res.status(403).json({ error: 'Access denied: You can only view your own journey' });
       }
     }
     // Admins can view anyone's history (no restriction)

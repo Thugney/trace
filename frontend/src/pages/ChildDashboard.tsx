@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, GoalWithMilestones, CustomChallenge } from '../services/api';
+import { useAge } from '../context/AgeContext';
+import { SimpleTaskGrid } from '../components/SimpleTaskCard';
+import { tasksAPI } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, GoalWithMilestones, CustomChallenge } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
+import { Star, Trophy, Bell, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
 import playSounds from '../utils/sounds';
 
 // Goal type display helper - makes reward types kid-friendly
@@ -25,65 +28,74 @@ const getGoalTypeDisplay = (goalType: string | undefined) => {
   return display || { label: goalType, emoji: '🎯' };
 };
 
-// Avatar categories with emojis
+// Avatar categories with emojis - Superheroes and Strong Animals for kids!
 const AVATAR_CATEGORIES = [
   {
-    name: 'People',
+    name: 'Superheroes',
     avatars: [
-      { emoji: '👦', label: 'Boy', minLevel: 1 },
-      { emoji: '👧', label: 'Girl', minLevel: 1 },
-      { emoji: '🧒', label: 'Child', minLevel: 1 },
-      { emoji: '👶', label: 'Baby', minLevel: 1 },
-      { emoji: '🧑', label: 'Person', minLevel: 1 },
-      { emoji: '👤', label: 'Silhouette', minLevel: 1 },
+      { emoji: '🕷️', label: 'Spiderman', minLevel: 1 },
+      { emoji: '🦇', label: 'Batman', minLevel: 1 },
+      { emoji: '🐆', label: 'Black Panther', minLevel: 1 },
+      { emoji: '💚', label: 'Hulk', minLevel: 1 },
+      { emoji: '🦸', label: 'Superhero', minLevel: 1 },
+      { emoji: '🦸‍♂️', label: 'Hero Boy', minLevel: 1 },
+      { emoji: '⚡', label: 'Flash', minLevel: 1 },
+      { emoji: '🛡️', label: 'Captain', minLevel: 1 },
+      { emoji: '🔨', label: 'Thor', minLevel: 2 },
+      { emoji: '🥷', label: 'Ninja', minLevel: 2 },
+      { emoji: '🦹', label: 'Super Villain', minLevel: 2 },
+      { emoji: '🌟', label: 'Star Power', minLevel: 3 },
+    ]
+  },
+  {
+    name: 'Strong Animals',
+    avatars: [
+      { emoji: '🦍', label: 'Gorilla', minLevel: 1 },
+      { emoji: '🦁', label: 'Lion', minLevel: 1 },
+      { emoji: '🐻', label: 'Bear', minLevel: 1 },
+      { emoji: '🐯', label: 'Tiger', minLevel: 1 },
+      { emoji: '🐺', label: 'Wolf', minLevel: 1 },
+      { emoji: '🦈', label: 'Shark', minLevel: 1 },
+      { emoji: '🐊', label: 'Crocodile', minLevel: 2 },
+      { emoji: '🦅', label: 'Eagle', minLevel: 2 },
+      { emoji: '🐘', label: 'Elephant', minLevel: 2 },
+      { emoji: '🦏', label: 'Rhino', minLevel: 3 },
+      { emoji: '🐉', label: 'Dragon', minLevel: 4 },
+      { emoji: '🦖', label: 'T-Rex', minLevel: 4 },
     ]
   },
   {
     name: 'Cool Characters',
     avatars: [
-      { emoji: '🦸', label: 'Superhero', minLevel: 3 },
-      { emoji: '🦹', label: 'Supervillain', minLevel: 5 },
-      { emoji: '🧙', label: 'Wizard', minLevel: 4 },
-      { emoji: '🧚', label: 'Fairy', minLevel: 3 },
-      { emoji: '🧛', label: 'Vampire', minLevel: 6 },
-      { emoji: '🧜', label: 'Merperson', minLevel: 5 },
-      { emoji: '🧝', label: 'Elf', minLevel: 4 },
-      { emoji: '🥷', label: 'Ninja', minLevel: 7 },
-      { emoji: '🤴', label: 'Prince', minLevel: 8 },
-      { emoji: '👸', label: 'Princess', minLevel: 8 },
-      { emoji: '👑', label: 'Crown', minLevel: 10 },
-    ]
-  },
-  {
-    name: 'Animals',
-    avatars: [
-      { emoji: '🐱', label: 'Cat', minLevel: 1 },
-      { emoji: '🐶', label: 'Dog', minLevel: 1 },
-      { emoji: '🐰', label: 'Rabbit', minLevel: 1 },
-      { emoji: '🐻', label: 'Bear', minLevel: 2 },
-      { emoji: '🦊', label: 'Fox', minLevel: 2 },
-      { emoji: '🐼', label: 'Panda', minLevel: 3 },
-      { emoji: '🦁', label: 'Lion', minLevel: 4 },
-      { emoji: '🐯', label: 'Tiger', minLevel: 4 },
+      { emoji: '👦', label: 'Boy', minLevel: 1 },
+      { emoji: '👧', label: 'Girl', minLevel: 1 },
+      { emoji: '🧒', label: 'Kid', minLevel: 1 },
+      { emoji: '🧙', label: 'Wizard', minLevel: 2 },
+      { emoji: '🧚', label: 'Fairy', minLevel: 2 },
+      { emoji: '🧝', label: 'Elf', minLevel: 3 },
+      { emoji: '🤴', label: 'Prince', minLevel: 3 },
+      { emoji: '👸', label: 'Princess', minLevel: 3 },
+      { emoji: '🧛', label: 'Vampire', minLevel: 4 },
+      { emoji: '🧜', label: 'Mermaid', minLevel: 4 },
+      { emoji: '👑', label: 'King', minLevel: 5 },
       { emoji: '🦄', label: 'Unicorn', minLevel: 5 },
-      { emoji: '🐉', label: 'Dragon', minLevel: 8 },
-      { emoji: '🦅', label: 'Eagle', minLevel: 6 },
-      { emoji: '🦋', label: 'Butterfly', minLevel: 2 },
     ]
   },
   {
-    name: 'Fun & Sports',
+    name: 'Fun Stuff',
     avatars: [
       { emoji: '⚽', label: 'Soccer', minLevel: 1 },
       { emoji: '🏀', label: 'Basketball', minLevel: 1 },
-      { emoji: '🎮', label: 'Gaming', minLevel: 2 },
-      { emoji: '🎸', label: 'Guitar', minLevel: 3 },
-      { emoji: '🎨', label: 'Art', minLevel: 2 },
-      { emoji: '🚀', label: 'Rocket', minLevel: 5 },
-      { emoji: '🌟', label: 'Star', minLevel: 4 },
-      { emoji: '🔥', label: 'Fire', minLevel: 6 },
-      { emoji: '💎', label: 'Diamond', minLevel: 9 },
-      { emoji: '🏆', label: 'Trophy', minLevel: 10 },
+      { emoji: '🎮', label: 'Gaming', minLevel: 1 },
+      { emoji: '🚀', label: 'Rocket', minLevel: 2 },
+      { emoji: '🔥', label: 'Fire', minLevel: 2 },
+      { emoji: '💎', label: 'Diamond', minLevel: 3 },
+      { emoji: '🏆', label: 'Trophy', minLevel: 4 },
+      { emoji: '👾', label: 'Alien', minLevel: 3 },
+      { emoji: '🤖', label: 'Robot', minLevel: 3 },
+      { emoji: '🎸', label: 'Guitar', minLevel: 2 },
+      { emoji: '🎨', label: 'Art', minLevel: 1 },
+      { emoji: '⭐', label: 'Gold Star', minLevel: 1 },
     ]
   }
 ];
@@ -125,6 +137,8 @@ interface LeaderboardEntry {
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
+  const { isYoungChild, settings } = useAge();
+  const [simpleTasks, setSimpleTasks] = useState<any[]>([]);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [waterData, setWaterData] = useState<{ total_ml: number; goal_ml: number }>({ total_ml: 0, goal_ml: 2000 });
@@ -141,6 +155,11 @@ export default function ChildDashboard() {
   const [avatarCategory, setAvatarCategory] = useState(0);
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [goalHistory, setGoalHistory] = useState<{ goals: any[]; stats: { totalAchieved: number; totalPointsEarned: number } }>({ goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
+  
+  // Reminder state
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState('07:30');
+  const [savingReminder, setSavingReminder] = useState(false);
   const [showGoalHistory, setShowGoalHistory] = useState(false);
   const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
   const [activeGoalCategory, setActiveGoalCategory] = useState<string>('all');
@@ -212,6 +231,43 @@ export default function ChildDashboard() {
     loadStats();
   }, [currentProfile]);
 
+  // Load and manage reminder preferences
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+
+    const loadReminderPrefs = async () => {
+      try {
+        const response = await remindersAPI.getPreferences(currentProfile.id);
+        setReminderEnabled(response.data.reminder_enabled);
+        setReminderTime(response.data.morning_reminder_time || '07:30');
+      } catch (error) {
+        // No preferences yet, use defaults
+        setReminderEnabled(false);
+        setReminderTime('07:30');
+      }
+    };
+
+    loadReminderPrefs();
+  }, [currentProfile?.id]);
+
+  const toggleReminder = async () => {
+    if (!currentProfile?.id || savingReminder) return;
+    setSavingReminder(true);
+    try {
+      const newEnabled = !reminderEnabled;
+      await remindersAPI.updatePreferences(currentProfile.id, {
+        enabled: newEnabled,
+        time: reminderTime
+      });
+      setReminderEnabled(newEnabled);
+      playSounds.click();
+    } catch (error) {
+      console.error('Failed to update reminder:', error);
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
   // Detect level up - MUST be before any conditional returns to follow Rules of Hooks
   useEffect(() => {
     if (stats?.progress?.level && prevLevel !== null && stats.progress.level > prevLevel) {
@@ -280,6 +336,69 @@ export default function ChildDashboard() {
       setClaimingBonus(false);
     }
   };
+
+  
+  // Load simplified tasks for young kids
+  useEffect(() => {
+    if (!currentProfile || !isYoungChild) return;
+
+    const loadSimpleTasks = async () => {
+      try {
+        const res = await tasksAPI.getByProfile(currentProfile.id);
+        setSimpleTasks(res.data.filter((t) => !t.completed).slice(0, 4));
+      } catch (e) {
+        console.error('Failed to load tasks for young child:', e);
+      }
+    };
+
+    loadSimpleTasks();
+  }, [currentProfile, isYoungChild]);
+
+  // Handle task completion for young kids
+  const handleSimpleTaskComplete = async (taskId: number) => {
+    try {
+      console.log('[SimpleTask] Completing task:', taskId);
+
+      // Optimistically remove the task from UI immediately
+      setSimpleTasks(prev => prev.filter(t => t.id !== taskId));
+
+      // Complete task on server
+      const result = await tasksAPI.complete(taskId);
+      console.log('[SimpleTask] Task completed:', result.data);
+
+      // Play success sound
+      playSounds.taskComplete();
+
+      // Reload tasks from server to get fresh data
+      if (currentProfile) {
+        const res = await tasksAPI.getByProfile(currentProfile.id);
+        console.log('[SimpleTask] Reloaded tasks, incomplete count:', res.data.filter((t: any) => !t.completed).length);
+        setSimpleTasks(res.data.filter((t: any) => !t.completed).slice(0, 4));
+
+        // Reload stats
+        const statsRes = await profilesAPI.getStats(currentProfile.id);
+        setStats(statsRes.data);
+      }
+    } catch (e: any) {
+      console.error('[SimpleTask] Failed to complete task:', e);
+
+      // If task was already completed, just refresh the list
+      if (e.response?.data?.error === 'Task already completed') {
+        console.log('[SimpleTask] Task was already completed, refreshing list');
+        if (currentProfile) {
+          const res = await tasksAPI.getByProfile(currentProfile.id);
+          setSimpleTasks(res.data.filter((t: any) => !t.completed).slice(0, 4));
+        }
+      } else {
+        // Reload tasks to restore UI state on error
+        if (currentProfile) {
+          const res = await tasksAPI.getByProfile(currentProfile.id);
+          setSimpleTasks(res.data.filter((t: any) => !t.completed).slice(0, 4));
+        }
+      }
+    }
+  };
+
 
   const logWater = async (amount: number) => {
     if (!currentProfile) return;
@@ -364,6 +483,174 @@ export default function ChildDashboard() {
   const totalStars = stats?.progress?.total_stars || 0;
   const completedTasks = stats?.tasks?.completed_tasks || 0;
   const totalTasks = stats?.tasks?.total_tasks || 0;
+
+  // Simplified view for young children (ages 5-6)
+  if (isYoungChild) {
+    return (
+      <div className={`max-w-2xl mx-auto px-4 ${settings.themeClass}`}>
+        {/* Simple greeting with avatar - tap to change! */}
+        <div className="text-center mb-8">
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-5xl shadow-lg hover:scale-110 transition-transform ring-4 ring-yellow-300 active:scale-95"
+            title="Tap to change avatar!"
+          >
+            {currentProfile?.avatar || '😊'}
+          </button>
+          <p className="text-xs text-slate-500 mb-2">👆 Tap to change!</p>
+          <h1 className="text-3xl font-bold text-slate-800">
+            Hi {currentProfile?.name?.split(' ')[0]}! 👋
+          </h1>
+          <div className="mt-4 flex justify-center gap-4">
+            <div className="bg-yellow-100 px-4 py-2 rounded-full flex items-center gap-2">
+              <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+              <span className="text-2xl font-bold text-yellow-700">{totalStars}</span>
+            </div>
+            <div className="bg-purple-100 px-4 py-2 rounded-full flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-purple-500" />
+              <span className="text-2xl font-bold text-purple-700">Level {level}</span>
+            </div>
+          </div>
+        </div>
+
+
+        {/* Daily Reminder Card */}
+        <div className="mb-6 p-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-2xl border-2 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+                <Bell className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-blue-800 text-lg">Daily Reminders</h3>
+                <p className="text-sm text-blue-600">
+                  {reminderEnabled ? `⏰ ${reminderTime}` : "Get reminded about tasks!"}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={toggleReminder}
+              disabled={savingReminder}
+              className={`px-4 py-2 rounded-xl font-bold text-lg transition-all ${
+                reminderEnabled ? 'bg-green-500 text-white' : 'bg-blue-500 text-white'
+              } ${savingReminder ? 'opacity-50' : ''}`}
+            >
+              {savingReminder ? '...' : reminderEnabled ? '✅ ON' : '🔔 OFF'}
+            </button>
+          </div>
+        </div>
+
+        {/* Today's Tasks - Big colorful grid */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-center text-slate-700 mb-4">
+            Today's Jobs 🎯
+          </h2>
+          <SimpleTaskGrid
+            tasks={simpleTasks}
+            onComplete={handleSimpleTaskComplete}
+          />
+          {simpleTasks.length === 0 && (
+            <div className="text-center py-12 bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl">
+              <div className="text-6xl mb-4">🎉</div>
+              <p className="text-2xl font-bold text-green-700">All done!</p>
+              <p className="text-lg text-green-600 mt-2">Great job today!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Stats summary */}
+        {completedTasks > 0 && (
+          <div className="text-center py-4">
+            <div className="inline-flex items-center gap-2 bg-green-100 px-6 py-3 rounded-full">
+              <CheckCircle className="w-8 h-8 text-green-500" />
+              <span className="text-xl font-bold text-green-700">
+                {completedTasks} Done Today!
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Avatar Picker Modal for Young Kids */}
+        {showAvatarPicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center">
+                <h3 className="text-2xl font-bold">Pick Your Avatar! 🎨</h3>
+                <p className="text-purple-100">Tap one you like!</p>
+              </div>
+
+              {/* Category tabs */}
+              <div className="flex overflow-x-auto p-2 bg-gray-100 gap-2">
+                {AVATAR_CATEGORIES.map((cat, idx) => (
+                  <button
+                    key={cat.name}
+                    onClick={() => setAvatarCategory(idx)}
+                    className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                      avatarCategory === idx
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white text-gray-600 hover:bg-purple-100'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* Avatar Grid */}
+              <div className="p-4 overflow-y-auto max-h-[40vh]">
+                <div className="grid grid-cols-4 gap-3">
+                  {AVATAR_CATEGORIES[avatarCategory].avatars.map((avatar) => {
+                    const isUnlocked = level >= avatar.minLevel;
+                    const isSelected = currentProfile?.avatar === avatar.emoji;
+                    return (
+                      <button
+                        key={avatar.emoji}
+                        onClick={() => isUnlocked && updateAvatar(avatar.emoji)}
+                        disabled={!isUnlocked || savingAvatar}
+                        className={`relative p-3 rounded-xl transition-all ${
+                          isSelected
+                            ? 'bg-purple-100 ring-4 ring-purple-500 scale-110'
+                            : isUnlocked
+                            ? 'bg-gray-50 hover:bg-gray-100 hover:scale-110'
+                            : 'bg-gray-100 opacity-50'
+                        }`}
+                        title={isUnlocked ? avatar.label : `Level ${avatar.minLevel} needed`}
+                      >
+                        <span className="text-4xl block">{avatar.emoji}</span>
+                        {!isUnlocked && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-900/40 rounded-xl">
+                            <div className="text-center">
+                              <Lock size={16} className="text-white mx-auto" />
+                              <span className="text-xs text-white font-bold">Lv{avatar.minLevel}</span>
+                            </div>
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <CheckCircle size={16} className="text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Close button */}
+              <div className="p-4 bg-gray-50 text-center">
+                <button
+                  onClick={() => setShowAvatarPicker(false)}
+                  className="px-8 py-3 bg-purple-500 text-white rounded-full font-bold text-lg hover:bg-purple-600"
+                >
+                  Done! ✨
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -595,6 +882,32 @@ export default function ChildDashboard() {
           </div>
         </div>
       )}
+
+      {/* Daily Reminder Card */}
+      <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+            <Bell className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="font-semibold text-blue-800">Daily Reminders</p>
+            <p className="text-xs text-blue-600">
+              {reminderEnabled ? `⏰ at ${reminderTime}` : "Enable reminders"}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={toggleReminder}
+          disabled={savingReminder}
+          className={`relative w-14 h-7 rounded-full transition-all ${
+            reminderEnabled ? 'bg-green-500' : 'bg-gray-300'
+          } ${savingReminder ? 'opacity-50' : ''}`}
+        >
+          <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+            reminderEnabled ? 'left-8' : 'left-1'
+          }`} />
+        </button>
+      </div>
 
       {/* Friendly Header */}
       <div className="mb-6 text-center">

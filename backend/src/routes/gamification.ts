@@ -212,7 +212,119 @@ router.get('/stats/:profileId', (req, res) => {
 
 // ==================== LEADERBOARD ====================
 
-// Get family leaderboard (all kids for a parent)
+// Get family leaderboard (all family members)
+router.get('/family-leaderboard', (req, res) => {
+  try {
+    const { period } = req.query; // 'week', 'month', 'all'
+
+    // Get all profiles (excluding admins from ranking but include them)
+    const profiles: any[] = db.prepare(`
+      SELECT id, name, avatar, type FROM profiles
+      WHERE type IN ('parent', 'child')
+    `).all();
+
+    if (profiles.length === 0) {
+      return res.json([]);
+    }
+
+    // Calculate date range for period
+    let dateFilter = '';
+    const now = new Date();
+    if (period === 'week') {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      dateFilter = `AND DATE(logged_at) >= DATE('${weekStart.toISOString().split('T')[0]}')`;
+    } else if (period === 'month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateFilter = `AND DATE(logged_at) >= DATE('${monthStart.toISOString().split('T')[0]}')`;
+    }
+
+    // Get stats for each family member
+    const leaderboard = profiles.map((profile: any) => {
+      // Get points for period
+      const points: any = period === 'all' || !period
+        ? db.prepare(`
+            SELECT total_points as points, total_stars as stars, level FROM progress
+            WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+          `).get(profile.id)
+        : db.prepare(`
+            SELECT SUM(points_earned) as points FROM progress
+            WHERE profile_id = ? ${dateFilter}
+          `).get(profile.id);
+
+      // Get total progress for level/stars (always use all-time for these)
+      const totalProgress: any = db.prepare(`
+        SELECT total_points, total_stars, level FROM progress
+        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(profile.id);
+
+      // Get tasks completed for period
+      const tasks: any = period === 'all' || !period
+        ? db.prepare(`
+            SELECT COUNT(*) as count FROM tasks
+            WHERE profile_id = ? AND completed = 1
+          `).get(profile.id)
+        : db.prepare(`
+            SELECT COUNT(*) as count FROM tasks
+            WHERE profile_id = ? AND completed = 1
+            ${dateFilter.replace('logged_at', 'completed_at')}
+          `).get(profile.id);
+
+      // Get current streak
+      const streak: any = db.prepare(`
+        SELECT current_streak, longest_streak FROM streaks
+        WHERE profile_id = ? AND streak_type = 'tasks'
+      `).get(profile.id);
+
+      // Get achievements count
+      const achievements: any = db.prepare(`
+        SELECT COUNT(*) as count FROM profile_achievements WHERE profile_id = ?
+      `).get(profile.id);
+
+      // Get recent achievements (last 3)
+      const recentAchievements: any[] = db.prepare(`
+        SELECT a.name, a.icon FROM achievements a
+        INNER JOIN profile_achievements pa ON a.id = pa.achievement_id
+        WHERE pa.profile_id = ?
+        ORDER BY pa.earned_at DESC LIMIT 3
+      `).all(profile.id);
+
+      return {
+        id: profile.id,
+        name: profile.name,
+        avatar: profile.avatar || '👤',
+        type: profile.type,
+        points: points?.points || 0,
+        stars: totalProgress?.total_stars || 0,
+        level: totalProgress?.level || 1,
+        tasksCompleted: tasks?.count || 0,
+        currentStreak: streak?.current_streak || 0,
+        longestStreak: streak?.longest_streak || 0,
+        achievementCount: achievements?.count || 0,
+        recentAchievements,
+        rank: 0
+      };
+    });
+
+    // Sort by points descending
+    leaderboard.sort((a, b) => b.points - a.points);
+
+    // Add rank (handle ties)
+    let currentRank = 1;
+    leaderboard.forEach((entry, index) => {
+      if (index > 0 && entry.points < leaderboard[index - 1].points) {
+        currentRank = index + 1;
+      }
+      entry.rank = currentRank;
+    });
+
+    res.json(leaderboard);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get family leaderboard (all kids for a parent) - legacy endpoint
 router.get('/leaderboard/:parentId', (req, res) => {
   try {
     const { parentId } = req.params;

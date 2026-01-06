@@ -1,24 +1,24 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ProfileProvider } from './context/ProfileContext';
+import { AgeProvider } from './context/AgeContext';
+import { FeatureFlagsProvider, useFeatureFlags } from './context/FeatureFlagsContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
-import TeacherDashboard from './pages/TeacherDashboard';
 import ChildDashboard from './pages/ChildDashboard';
 import DietTracking from './pages/DietTracking';
 import TasksManager from './pages/TasksManager';
 import AIAssistant from './pages/AIAssistant';
 import Notes from './pages/Notes';
 import Settings from './pages/Settings';
-import SchoolDashboard from './pages/SchoolDashboard';
-import SchoolStudent from './pages/SchoolStudent';
-import SchoolEnroll from './pages/SchoolEnroll';
 import AdminPanel from './pages/AdminPanel';
-import Messages from './pages/Messages';
 import MyJourney from './pages/MyJourney';
+import FamilyLeaderboard from './pages/FamilyLeaderboard';
+import RewardShop from './pages/RewardShop';
+import CalendarView from './pages/CalendarView';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -36,8 +36,6 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
       return <Navigate to="/admin/dashboard" replace />;
     } else if (currentProfile.type === 'parent') {
       return <Navigate to="/parent/dashboard" replace />;
-    } else if (currentProfile.type === 'teacher') {
-      return <Navigate to="/teacher/dashboard" replace />;
     } else if (currentProfile.type === 'child') {
       return <Navigate to="/child/dashboard" replace />;
     }
@@ -49,6 +47,7 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 
 function AppRoutes() {
   const { currentProfile, setCurrentProfile, isLoading } = useProfile();
+  const { flags: featureFlags } = useFeatureFlags();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [parentProfile, setParentProfile] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -109,8 +108,6 @@ function AppRoutes() {
               <Navigate to="/admin/dashboard" replace />
             ) : currentProfile?.type === 'parent' ? (
               <Navigate to="/parent/dashboard" replace />
-            ) : currentProfile?.type === 'teacher' ? (
-              <Navigate to="/teacher/dashboard" replace />
             ) : currentProfile?.type === 'child' ? (
               <Navigate to="/child/dashboard" replace />
             ) : (
@@ -137,14 +134,6 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/teacher/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={['teacher']}>
-              <TeacherDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/child/dashboard"
           element={
             <ProtectedRoute allowedRoles={['child']}>
@@ -153,19 +142,21 @@ function AppRoutes() {
           }
         />
 
-        {/* Diet - Parent, admin, and children with diet_enabled */}
-        <Route
-          path="/diet"
-          element={
-            currentProfile?.type === 'child' && currentProfile?.diet_enabled !== 1 ? (
-              <Navigate to="/" replace />
-            ) : (
-              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
-                <DietTracking />
-              </ProtectedRoute>
-            )
-          }
-        />
+        {/* Diet - Only shown when diet feature flag is enabled */}
+        {featureFlags.diet_enabled && (
+          <Route
+            path="/diet"
+            element={
+              currentProfile?.type === 'child' && currentProfile?.diet_enabled !== 1 ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                  <DietTracking />
+                </ProtectedRoute>
+              )
+            }
+          />
+        )}
 
         {/* Tasks - Only parent, admin, child */}
         <Route
@@ -177,23 +168,6 @@ function AppRoutes() {
           }
         />
 
-        {/* School - Everyone */}
-        <Route
-          path="/school"
-          element={
-            currentProfile?.type === 'teacher' ? <SchoolDashboard /> : <SchoolStudent />
-          }
-        />
-
-        {/* School Enrollment - Parent, teacher, and admin can manage enrollment */}
-        <Route
-          path="/school/enroll"
-          element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'teacher']}>
-              <SchoolEnroll />
-            </ProtectedRoute>
-          }
-        />
 
         {/* AI - Only children with ai_enabled=1 (admin controls access) */}
         <Route
@@ -219,11 +193,11 @@ function AppRoutes() {
           }
         />
 
-        {/* Settings - Everyone except teachers use their own settings */}
+        {/* Settings */}
         <Route
           path="/settings"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'child', 'teacher']}>
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
               <Settings />
             </ProtectedRoute>
           }
@@ -239,22 +213,42 @@ function AppRoutes() {
           }
         />
 
-        {/* Messages - Only teacher and parent */}
-        <Route
-          path="/messages"
-          element={
-            <ProtectedRoute allowedRoles={['teacher', 'parent']}>
-              <Messages />
-            </ProtectedRoute>
-          }
-        />
-
         {/* My Journey - Child, parent, admin */}
         <Route
           path="/journey"
           element={
             <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
               <MyJourney />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Family Leaderboard - All roles */}
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <FamilyLeaderboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Reward Shop - Children and parents */}
+        <Route
+          path="/shop"
+          element={
+            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <RewardShop />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Calendar View - All roles */}
+        <Route
+          path="/calendar"
+          element={
+            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <CalendarView />
             </ProtectedRoute>
           }
         />
@@ -269,11 +263,15 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <ProfileProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
-      </ProfileProvider>
+      <FeatureFlagsProvider>
+        <ProfileProvider>
+          <AgeProvider>
+            <ToastProvider>
+              <AppRoutes />
+            </ToastProvider>
+          </AgeProvider>
+        </ProfileProvider>
+      </FeatureFlagsProvider>
     </Router>
   );
 }

@@ -1,7 +1,8 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Utensils, CheckSquare, Bot, StickyNote, Settings, LogOut, GraduationCap, Users, Mail, Map, Menu, X, ChevronRight } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
+import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
 
@@ -25,7 +26,7 @@ export default function Layout({ children }: LayoutProps) {
       return [
         { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/admin', icon: Users, label: 'Users' },
-        { path: '/school', icon: GraduationCap, label: 'School' },
+        { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
         { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
@@ -34,21 +35,12 @@ export default function Layout({ children }: LayoutProps) {
     if (type === 'parent') {
       return [
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
-        { path: '/diet', icon: Utensils, label: 'Diet' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-        { path: '/school', icon: GraduationCap, label: 'School' },
-        { path: '/journey', icon: Map, label: 'Journey' },
-        { path: '/messages', icon: Mail, label: 'Messages' },
+        { path: '/calendar', icon: Calendar, label: 'Calendar' },
+        { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
-        { path: '/settings', icon: Settings, label: 'Settings' }
-      ];
-    }
-
-    if (type === 'teacher') {
-      return [
-        { path: '/teacher/dashboard', icon: Home, label: 'Dashboard' },
-        { path: '/school', icon: GraduationCap, label: 'Classes' },
-        { path: '/messages', icon: Mail, label: 'Messages' },
+        { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+        { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
     }
@@ -57,14 +49,13 @@ export default function Layout({ children }: LayoutProps) {
       const items = [
         { path: '/child/dashboard', icon: Home, label: 'Home' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-        { path: '/school', icon: GraduationCap, label: 'School' },
-        { path: '/journey', icon: Map, label: 'Journey' },
-        { path: '/notes', icon: StickyNote, label: 'Notes' }
+        { path: '/calendar', icon: Calendar, label: 'Calendar' },
+        { path: '/shop', icon: Gift, label: 'Shop' },
+        { path: '/notes', icon: StickyNote, label: 'Notes' },
+        { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+        { path: '/journey', icon: Map, label: 'Journey' }
       ];
 
-      if (currentProfile.diet_enabled === 1) {
-        items.push({ path: '/diet', icon: Utensils, label: 'Diet' });
-      }
       if (currentProfile.ai_enabled === 1) {
         items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });
       }
@@ -95,7 +86,6 @@ export default function Layout({ children }: LayoutProps) {
     if (!currentProfile) return null;
     const badges: Record<string, { bg: string; text: string; label: string }> = {
       admin: { bg: 'bg-rose-50', text: 'text-rose-600', label: 'Admin' },
-      teacher: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Teacher' },
       parent: { bg: 'bg-sky-50', text: 'text-sky-600', label: 'Parent' },
       child: { bg: 'bg-violet-50', text: 'text-violet-600', label: 'Child' }
     };
@@ -143,9 +133,7 @@ export default function Layout({ children }: LayoutProps) {
                       {getRoleBadge()}
                     </div>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl">
-                    {currentProfile.avatar || '👤'}
-                  </div>
+                  <Avatar avatar={currentProfile.avatar} size="md" alt={currentProfile.name} />
                 </div>
               )}
 
@@ -187,9 +175,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl">
-                {currentProfile?.avatar || '👤'}
-              </div>
+              <Avatar avatar={currentProfile?.avatar} size="md" alt={currentProfile?.name || "User"} />
               <div>
                 <p className="font-medium text-slate-800">{currentProfile?.name}</p>
                 {getRoleBadge()}

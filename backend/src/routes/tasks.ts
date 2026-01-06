@@ -1,10 +1,47 @@
 import express, { Response } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { NotificationHelpers } from '../services/notifications';
 import { checkMysteryReward } from './gamification';
 
 const router = express.Router();
+
+// Configure multer for photo proof uploads
+const PROOF_DIR = process.env.PROOF_DIR || '/app/data/proofs';
+
+// Ensure proof directory exists
+if (!fs.existsSync(PROOF_DIR)) {
+  fs.mkdirSync(PROOF_DIR, { recursive: true });
+  console.log(`[Proof] Created proof directory: ${PROOF_DIR}`);
+}
+
+const proofStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, PROOF_DIR);
+  },
+  filename: (req, file, cb) => {
+    const taskId = req.params.id;
+    const ext = path.extname(file.originalname) || '.jpg';
+    const filename = `task-${taskId}-${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const proofUpload = multer({
+  storage: proofStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Get tasks for a profile
 router.get('/:profileId', (req, res) => {
@@ -274,8 +311,8 @@ router.post('/:id/complete', (req, res) => {
         INSERT INTO tasks (
           profile_id, title, description, category, points, difficulty,
           is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-          priority, estimated_minutes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          priority, estimated_minutes, proof_required
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         task.profile_id,
         task.title,
@@ -290,7 +327,8 @@ router.post('/:id/complete', (req, res) => {
         task.parent_approved,
         task.approved_by,
         task.priority || 'medium',
-        task.estimated_minutes
+        task.estimated_minutes,
+        task.proof_required || 0
       );
 
       nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -314,7 +352,23 @@ router.post('/:id/complete', (req, res) => {
   }
 });
 
+// Day name to number mapping
+const DAY_MAP: Record<string, number> = {
+  'sun': 0, 'sunday': 0,
+  'mon': 1, 'monday': 1,
+  'tue': 2, 'tuesday': 2,
+  'wed': 3, 'wednesday': 3,
+  'thu': 4, 'thursday': 4,
+  'fri': 5, 'friday': 5,
+  'sat': 6, 'saturday': 6
+};
+
 // Helper function to calculate next due date for recurring tasks
+// Supports patterns:
+// - daily, weekdays, weekly, biweekly, monthly (basic)
+// - specific_days:mon,wed,fri (specific days of week)
+// - every_N_days (every N days, e.g., every_3_days)
+// - day_of_month_N (specific day of month, e.g., day_of_month_15)
 function calculateNextDueDate(currentDueDate: string | null, pattern: string): string {
   const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
   const today = new Date();
@@ -324,6 +378,58 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
     baseDate.setTime(today.getTime());
   }
 
+  // Handle specific_days pattern (e.g., "specific_days:mon,wed,fri")
+  if (pattern.startsWith('specific_days:')) {
+    const daysStr = pattern.replace('specific_days:', '');
+    const days = daysStr.split(',').map(d => DAY_MAP[d.trim().toLowerCase()]).filter(d => d !== undefined);
+
+    if (days.length > 0) {
+      // Find the next occurrence of one of the specified days
+      let found = false;
+      for (let i = 1; i <= 7 && !found; i++) {
+        const checkDate = new Date(baseDate);
+        checkDate.setDate(checkDate.getDate() + i);
+        if (days.includes(checkDate.getDay())) {
+          baseDate.setTime(checkDate.getTime());
+          found = true;
+        }
+      }
+    } else {
+      // Fallback to daily if no valid days
+      baseDate.setDate(baseDate.getDate() + 1);
+    }
+    return baseDate.toISOString().split('T')[0];
+  }
+
+  // Handle every_N_days pattern (e.g., "every_3_days")
+  if (pattern.startsWith('every_') && pattern.endsWith('_days')) {
+    const match = pattern.match(/every_(\d+)_days/);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      baseDate.setDate(baseDate.getDate() + (n > 0 ? n : 1));
+      return baseDate.toISOString().split('T')[0];
+    }
+  }
+
+  // Handle day_of_month_N pattern (e.g., "day_of_month_15")
+  if (pattern.startsWith('day_of_month_')) {
+    const match = pattern.match(/day_of_month_(\d+)/);
+    if (match) {
+      const targetDay = parseInt(match[1], 10);
+      if (targetDay >= 1 && targetDay <= 31) {
+        // Move to next month if the target day has passed this month
+        if (baseDate.getDate() >= targetDay) {
+          baseDate.setMonth(baseDate.getMonth() + 1);
+        }
+        // Set to target day (or last day of month if target exceeds month's days)
+        const lastDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+        baseDate.setDate(Math.min(targetDay, lastDayOfMonth));
+        return baseDate.toISOString().split('T')[0];
+      }
+    }
+  }
+
+  // Basic patterns
   switch (pattern) {
     case 'daily':
       baseDate.setDate(baseDate.getDate() + 1);
@@ -596,6 +702,123 @@ router.get('/pending/:parentId', (req, res) => {
   }
 });
 
+// Get tasks with photo proofs pending parent verification
+router.get('/pending-proofs/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+
+    // Get tasks that have photo proof uploaded but are not yet completed
+    const pendingProofs = db.prepare(`
+      SELECT t.*, p.name as child_name, p.avatar as child_avatar
+      FROM tasks t
+      JOIN profiles p ON t.profile_id = p.id
+      WHERE p.parent_id = ?
+        AND p.type = 'child'
+        AND t.proof_required = 1
+        AND t.proof_photo_url IS NOT NULL
+        AND t.completed = 0
+      ORDER BY t.created_at DESC
+    `).all(parentId);
+
+    res.json(pendingProofs);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify photo proof (parent approves or rejects)
+router.post('/:id/verify-proof', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { approved, verified_by } = req.body;
+
+    if (!verified_by) {
+      return res.status(400).json({ error: 'verified_by is required' });
+    }
+
+    // Verify that verifier is parent or admin
+    const verifier: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(verified_by);
+    if (!verifier || (verifier.type !== 'parent' && verifier.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents or admins can verify photo proofs' });
+    }
+
+    // Get task
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (approved) {
+      // Approve: Complete the task and award points
+      db.prepare('UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+
+      // Award points
+      const basePoints = task.points || 10;
+      const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+
+      // Get current progress
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(task.profile_id);
+
+      const totalPoints = (currentProgress?.total_points || 0) + basePoints;
+      const totalStars = (currentProgress?.total_stars || 0) + stars;
+      const level = Math.floor(totalPoints / 100) + 1;
+
+      // Insert progress record
+      db.prepare(`
+        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(task.profile_id, id, basePoints, stars, level, totalPoints, totalStars);
+
+      // Handle recurring tasks
+      if (task.is_recurring && task.recurrence_pattern) {
+        const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
+        db.prepare(`
+          INSERT INTO tasks (
+            profile_id, title, description, category, points, difficulty,
+            is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+            priority, estimated_minutes, proof_required
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
+          1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
+          task.priority || 'medium', task.estimated_minutes, task.proof_required || 0
+        );
+      }
+
+      const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+      res.json({
+        success: true,
+        message: 'Photo proof approved, task completed!',
+        task: completedTask,
+        pointsEarned: basePoints,
+        starsEarned: stars
+      });
+    } else {
+      // Reject: Clear the photo URL so child can upload again
+      // Also delete the photo file
+      const fs = require('fs');
+      const PROOF_DIR = process.env.PROOF_DIR || '/app/data/proofs';
+      const proofFiles = fs.readdirSync(PROOF_DIR).filter((f: string) => f.startsWith(`task-${id}-`));
+      for (const file of proofFiles) {
+        fs.unlinkSync(require('path').join(PROOF_DIR, file));
+      }
+
+      db.prepare('UPDATE tasks SET proof_photo_url = NULL WHERE id = ?').run(id);
+
+      res.json({
+        success: true,
+        message: 'Photo proof rejected. Child can upload a new photo.',
+        task: db.prepare('SELECT * FROM tasks WHERE id = ?').get(id)
+      });
+    }
+  } catch (error: any) {
+    console.error('[Tasks] Verify proof error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== SUBTASKS ====================
 
 // Get subtasks for a task
@@ -716,6 +939,126 @@ router.post('/:taskId/subtasks/bulk', (req, res) => {
 
     res.status(201).json(allSubtasks);
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== Photo Proof Routes ====================
+
+// Upload photo proof for a task
+router.post('/:id/proof', (req, res) => {
+  proofUpload.single('proof')(req, res, async (err: any) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File too large. Maximum size is 10MB' });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message || 'File upload failed' });
+    }
+
+    try {
+      const { id } = req.params;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ error: 'No photo uploaded' });
+      }
+
+      // Get task
+      const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+      if (!task) {
+        // Clean up uploaded file
+        fs.unlinkSync(file.path);
+        return res.status(404).json({ error: 'Task not found' });
+      }
+
+      // Store the proof URL
+      const proofUrl = `/api/tasks/${id}/proof`;
+      db.prepare('UPDATE tasks SET proof_photo_url = ? WHERE id = ?').run(proofUrl, id);
+
+      const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+      console.log(`[Proof] Photo uploaded for task ${id}: ${file.filename}`);
+
+      res.json({
+        success: true,
+        task: updatedTask,
+        message: 'Photo proof uploaded successfully'
+      });
+    } catch (error: any) {
+      console.error('[Proof] Upload error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+// Get photo proof for a task
+router.get('/:id/proof', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get task
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!task.proof_photo_url) {
+      return res.status(404).json({ error: 'No photo proof for this task' });
+    }
+
+    // Find the proof file
+    const proofFiles = fs.readdirSync(PROOF_DIR).filter(f => f.startsWith(`task-${id}-`));
+    if (proofFiles.length === 0) {
+      return res.status(404).json({ error: 'Proof file not found' });
+    }
+
+    // Get the latest proof file
+    const latestFile = proofFiles.sort().reverse()[0];
+    const filePath = path.join(PROOF_DIR, latestFile);
+
+    // Determine content type
+    const ext = path.extname(latestFile).toLowerCase();
+    const contentTypes: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp'
+    };
+
+    res.setHeader('Content-Type', contentTypes[ext] || 'image/jpeg');
+    res.sendFile(filePath);
+  } catch (error: any) {
+    console.error('[Proof] Get proof error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete photo proof for a task
+router.delete('/:id/proof', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Get task
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Delete proof files
+    const proofFiles = fs.readdirSync(PROOF_DIR).filter(f => f.startsWith(`task-${id}-`));
+    for (const file of proofFiles) {
+      fs.unlinkSync(path.join(PROOF_DIR, file));
+    }
+
+    // Clear proof URL
+    db.prepare('UPDATE tasks SET proof_photo_url = NULL WHERE id = ?').run(id);
+
+    res.json({ success: true, message: 'Photo proof deleted' });
+  } catch (error: any) {
+    console.error('[Proof] Delete proof error:', error);
     res.status(500).json({ error: error.message });
   }
 });
