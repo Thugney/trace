@@ -651,10 +651,10 @@ export default function TasksManager() {
                   {/* Photo Preview */}
                   <div className="flex-shrink-0">
                     <img
-                      src={`/api${task.proof_photo_url}`}
+                      src={task.proof_photo_url}
                       alt="Photo proof"
                       className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 cursor-pointer hover:opacity-80"
-                      onClick={() => window.open(`/api${task.proof_photo_url}`, '_blank')}
+                      onClick={() => window.open(task.proof_photo_url, '_blank')}
                       title="Click to view full size"
                     />
                     <p className="text-xs text-gray-500 mt-1 text-center">Click to enlarge</p>
