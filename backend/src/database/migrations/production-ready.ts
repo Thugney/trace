@@ -155,5 +155,20 @@ export function runProductionReadyMigrations() {
 
   console.log('✅ Reward claims table created');
 
+  // Migration: Fix any proof_photo_url that has /api prefix (should be just /tasks/...)
+  try {
+    const result = db.prepare(`
+      UPDATE tasks
+      SET proof_photo_url = REPLACE(proof_photo_url, '/api/tasks/', '/tasks/')
+      WHERE proof_photo_url LIKE '/api/tasks/%'
+    `).run();
+
+    if (result.changes > 0) {
+      console.log(`✅ Fixed ${result.changes} proof_photo_url entries (removed /api prefix)`);
+    }
+  } catch (error: any) {
+    console.error('Migration error (fix proof_photo_url):', error.message);
+  }
+
   console.log('🎉 Production-ready migrations completed!');
 }

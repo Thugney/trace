@@ -973,8 +973,8 @@ router.post('/:id/proof', (req, res) => {
         return res.status(404).json({ error: 'Task not found' });
       }
 
-      // Store the proof URL
-      const proofUrl = `/api/tasks/${id}/proof`;
+      // Store the proof URL (without /api prefix - frontend adds it)
+      const proofUrl = `/tasks/${id}/proof`;
       db.prepare('UPDATE tasks SET proof_photo_url = ? WHERE id = ?').run(proofUrl, id);
 
       const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
