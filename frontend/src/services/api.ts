@@ -47,6 +47,7 @@ api.interceptors.request.use((config) => {
 // Profiles
 export const profilesAPI = {
   getAll: () => api.get<Profile[]>('/profiles'),
+  getForSelector: () => api.get<Profile[]>('/profiles/selector'),  // Public - no auth needed
   getOne: (id: number) => api.get<Profile>(`/profiles/${id}`),
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),

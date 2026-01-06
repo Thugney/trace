@@ -57,6 +57,21 @@ const upload = multer({
   }
 });
 
+// PUBLIC: Get profiles for selector (limited info - no sensitive data)
+router.get('/selector', (req, res) => {
+  try {
+    const profiles = db.prepare(`
+      SELECT id, name, type, avatar, age
+      FROM profiles
+      ORDER BY type DESC, name ASC
+    `).all();
+
+    res.json(profiles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get all profiles - FILTERED BY USER TYPE FOR SECURITY
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   try {

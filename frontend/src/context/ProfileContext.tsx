@@ -21,31 +21,36 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const previousProfileIdRef = useRef<number | null>(null);
 
   const refreshProfiles = async () => {
-    // Only fetch if user is authenticated (has profile ID in localStorage)
-    const currentProfileId = localStorage.getItem('currentProfileId');
-    if (!currentProfileId) {
-      return;
-    }
+    // Check if user is authenticated
+    const authToken = localStorage.getItem('family_auth');
 
     try {
-      const response = await profilesAPI.getAll();
-      setProfiles(response.data);
+      if (authToken) {
+        // Authenticated: use full profiles endpoint
+        const response = await profilesAPI.getAll();
+        setProfiles(response.data);
+      } else {
+        // Not authenticated: use public selector endpoint
+        const response = await profilesAPI.getForSelector();
+        setProfiles(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch profiles:', error);
+      // Fallback to public selector if auth fails
+      try {
+        const response = await profilesAPI.getForSelector();
+        setProfiles(response.data);
+      } catch (fallbackError) {
+        console.error('Failed to fetch profiles from selector:', fallbackError);
+      }
     }
   };
 
-  // Load profiles on mount (only if authenticated)
+  // Load profiles on mount (always load - use public endpoint if not authenticated)
   useEffect(() => {
     const loadProfiles = async () => {
       setIsLoading(true);
-
-      // Check if user has authenticated before
-      const currentProfileId = localStorage.getItem('currentProfileId');
-      if (currentProfileId) {
-        await refreshProfiles();
-      }
-
+      await refreshProfiles();
       setIsLoading(false);
     };
 
