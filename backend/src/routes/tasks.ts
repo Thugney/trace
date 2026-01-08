@@ -6,6 +6,17 @@ import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { NotificationHelpers } from '../services/notifications';
 import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
+import {
+  checkRateLimit,
+  updateRateLimit,
+  checkTaskTimeElapsed,
+  canEarnPoints,
+  applyPointsMultiplier,
+  recordEarnings,
+  areBonusesEnabled,
+  isSpinWheelEnabled,
+  areCountdownChallengesEnabled
+} from '../services/economyControl';
 
 const router = express.Router();
 
@@ -248,6 +259,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Complete task and award points
+// WITH ECONOMY CONTROLS: rate limiting, time verification, daily caps
 router.post('/:id/complete', (req, res) => {
   try {
     const { id } = req.params;
@@ -258,30 +270,92 @@ router.post('/:id/complete', (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // ===== ANTI-ABUSE CHECK 1: Already completed =====
     if (task.completed) {
-      return res.status(400).json({ error: 'Task already completed' });
+      return res.status(400).json({ error: 'Task already completed', code: 'ALREADY_COMPLETED' });
     }
 
-    // Mark task as completed
-    db.prepare(`
-      UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(id);
+    // ===== ANTI-ABUSE CHECK 2: Rate limiting (cooldown) =====
+    const rateCheck = checkRateLimit(task.profile_id, 'task');
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: `Please wait ${rateCheck.waitSeconds} seconds before completing another task`,
+        code: 'RATE_LIMITED',
+        waitSeconds: rateCheck.waitSeconds
+      });
+    }
 
-    // Award points to profile
-    const basePoints = task.points || 10;
+    // ===== ANTI-ABUSE CHECK 3: Time elapsed for timed tasks =====
+    const timeCheck = checkTaskTimeElapsed(task);
+    if (!timeCheck.allowed) {
+      return res.status(400).json({
+        error: timeCheck.reason,
+        code: 'TIME_NOT_ELAPSED',
+        minutesRemaining: timeCheck.minutesRemaining
+      });
+    }
+
+    // ===== ANTI-ABUSE CHECK 4: Proof required but not provided =====
+    if (task.proof_required && !task.proof_photo_url) {
+      return res.status(400).json({
+        error: 'This task requires photo proof. Please upload a photo first.',
+        code: 'PROOF_REQUIRED'
+      });
+    }
+
+    // Calculate base points with multiplier
+    const rawPoints = task.points || 10;
+    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
 
-    // Check for mystery reward (15% chance for bonus)
-    const mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), basePoints);
-    const bonusPoints = mysteryReward ? mysteryReward.bonusPoints : 0;
-    const points = basePoints + bonusPoints;
+    // ===== ANTI-ABUSE CHECK 5: Daily/weekly caps =====
+    const capCheck = canEarnPoints(task.profile_id, basePoints);
+    if (!capCheck.allowed) {
+      return res.status(400).json({
+        error: capCheck.reason,
+        code: 'EARNING_CAP_REACHED'
+      });
+    }
+
+    // Apply cap if needed
+    const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
+
+    // ===== ATOMICALLY mark task as completed (prevents race condition) =====
+    const updateResult = db.prepare(`
+      UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND completed = 0
+    `).run(id);
+
+    // If no rows updated, task was already completed (race condition caught)
+    if (updateResult.changes === 0) {
+      return res.status(400).json({ error: 'Task already completed', code: 'ALREADY_COMPLETED' });
+    }
+
+    // Update rate limit tracker
+    updateRateLimit(task.profile_id, 'task');
+
+    // Check for mystery reward (only if bonuses enabled)
+    let mysteryReward = null;
+    let bonusPoints = 0;
+    if (areBonusesEnabled(task.profile_id)) {
+      mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), cappedPoints);
+      if (mysteryReward) {
+        // Cap bonus points too
+        const maxBonusCheck = canEarnPoints(task.profile_id, mysteryReward.bonusPoints);
+        bonusPoints = maxBonusCheck.cappedAmount !== undefined
+          ? Math.min(mysteryReward.bonusPoints, maxBonusCheck.cappedAmount)
+          : mysteryReward.bonusPoints;
+      }
+    }
+
+    const totalPointsEarned = cappedPoints + bonusPoints;
 
     // Get current progress
     const currentProgress: any = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(task.profile_id);
 
-    const totalPoints = (currentProgress?.total_points || 0) + points;
+    const totalPoints = (currentProgress?.total_points || 0) + totalPointsEarned;
     const totalStars = (currentProgress?.total_stars || 0) + stars;
     const level = Math.floor(totalPoints / 100) + 1;
 
@@ -289,7 +363,10 @@ router.post('/:id/complete', (req, res) => {
     db.prepare(`
       INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(task.profile_id, id, points, stars, level, totalPoints, totalStars);
+    `).run(task.profile_id, id, totalPointsEarned, stars, level, totalPoints, totalStars);
+
+    // Record earnings in daily tracker
+    recordEarnings(task.profile_id, totalPointsEarned, stars, true, bonusPoints > 0);
 
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`
@@ -299,7 +376,7 @@ router.post('/:id/complete', (req, res) => {
     // Send notification to parent that child completed a task
     const profile: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(task.profile_id);
     if (profile && profile.type === 'child') {
-      NotificationHelpers.taskCompleted(task.profile_id, profile.name, task.title, points).catch(console.error);
+      NotificationHelpers.taskCompleted(task.profile_id, profile.name, task.title, totalPointsEarned).catch(console.error);
     }
 
     // Handle recurring tasks - create next occurrence
@@ -335,33 +412,48 @@ router.post('/:id/complete', (req, res) => {
       console.log(`[Tasks] Created next recurring task: ${task.title}, due: ${nextDueDate}`);
     }
 
-    // ===== NEW GAMIFICATION FEATURES =====
+    // ===== GAMIFICATION FEATURES (with economy checks) =====
+    let countdownResult = null;
+    let spinReady = false;
 
-    // Update countdown challenge progress
-    const countdownResult = updateCountdownProgress(task.profile_id, basePoints);
+    // Update countdown challenge progress (if enabled)
+    if (areCountdownChallengesEnabled(task.profile_id)) {
+      countdownResult = updateCountdownProgress(task.profile_id, cappedPoints);
+    }
 
-    // Increment spin wheel progress
-    const spinReady = incrementSpinProgress(task.profile_id);
+    // Increment spin wheel progress (if enabled)
+    if (isSpinWheelEnabled(task.profile_id)) {
+      spinReady = incrementSpinProgress(task.profile_id);
+    }
 
     // Check for hidden achievements
     checkHiddenAchievementsOnTaskComplete(task.profile_id, new Date());
 
+    // Include cap warning in response if points were reduced
+    const wasPointsCapped = cappedPoints < basePoints || (capCheck.cappedAmount !== undefined);
+
     res.json({
       task: completedTask,
       progress,
-      pointsEarned: points,
+      pointsEarned: totalPointsEarned,
       starsEarned: stars,
       nextRecurringTask: nextTask,
       mysteryReward: mysteryReward ? {
         type: mysteryReward.rewardType,
         multiplier: mysteryReward.multiplier,
-        bonusPoints: mysteryReward.bonusPoints
+        bonusPoints: bonusPoints
       } : null,
-      // New gamification data
       countdownChallenge: countdownResult,
-      spinWheelReady: spinReady
+      spinWheelReady: spinReady,
+      // Economy info
+      economyInfo: wasPointsCapped ? {
+        warning: 'Points were capped due to daily/weekly limits',
+        originalPoints: basePoints,
+        actualPoints: cappedPoints
+      } : null
     });
   } catch (error: any) {
+    console.error('[Tasks] Complete error:', error);
     res.status(500).json({ error: error.message });
   }
 });

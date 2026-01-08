@@ -464,8 +464,89 @@ export const gamificationAPI = {
       visible: Achievement[];
       earnedHidden: Achievement[];
       hiddenStats: { totalHidden: number; earnedHidden: number; remaining: number };
-    }>(`/gamification/achievements-with-hidden/${profileId}`)
+    }>(`/gamification/achievements-with-hidden/${profileId}`),
+
+  // Economy Controls (Parent Settings)
+  getEconomySettings: (profileId: number) =>
+    api.get<{
+      settings: EconomySettings;
+      earnings: {
+        today: EarningTracker;
+        weekTotal: number;
+        dailyRemaining: number;
+        weeklyRemaining: number;
+      };
+    }>(`/gamification/economy/${profileId}`),
+
+  updateEconomySettings: (profileId: number, settings: Partial<EconomySettingsUpdate>) =>
+    api.put<{ message: string; settings: EconomySettings }>(`/gamification/economy/${profileId}`, settings),
+
+  getEarningHistory: (profileId: number, days?: number) =>
+    api.get<{
+      history: EarningHistoryEntry[];
+      totals: { points: number; stars: number; tasks: number; bonuses: number };
+    }>(`/gamification/economy/${profileId}/history`, { params: { days } }),
+
+  getPricingGuide: (profileId: number) =>
+    api.get<PricingGuide>(`/gamification/economy/${profileId}/pricing-guide`)
 };
+
+// Economy control types
+export interface EconomySettings {
+  daily_points_cap: number;
+  weekly_points_cap: number;
+  points_multiplier: number;
+  require_time_elapsed: boolean;
+  min_task_duration_minutes: number;
+  cooldown_seconds: number;
+  bonuses_enabled: boolean;
+  spin_wheel_enabled: boolean;
+  countdown_challenges_enabled: boolean;
+}
+
+export interface EconomySettingsUpdate {
+  dailyPointsCap?: number;
+  weeklyPointsCap?: number;
+  pointsMultiplier?: number;
+  requireTimeElapsed?: boolean;
+  minTaskDuration?: number;
+  cooldownSeconds?: number;
+  bonusesEnabled?: boolean;
+  spinWheelEnabled?: boolean;
+  countdownChallengesEnabled?: boolean;
+}
+
+export interface EarningTracker {
+  points_earned: number;
+  stars_earned: number;
+  tasks_completed: number;
+  bonuses_claimed: number;
+  last_action_at: string;
+}
+
+export interface EarningHistoryEntry {
+  date: string;
+  points_earned: number;
+  stars_earned: number;
+  tasks_completed: number;
+  bonuses_claimed: number;
+}
+
+export interface PricingGuide {
+  earningRate: {
+    dailyCap: number;
+    weeklyCap: number;
+    avgDailyActual: number;
+    avgWeeklyProjected: number;
+  };
+  suggestions: {
+    smallTreat: { description: string; suggestedPoints: number; daysToEarn: number };
+    mediumReward: { description: string; suggestedPoints: number; daysToEarn: number };
+    largeReward: { description: string; suggestedPoints: number; daysToEarn: number };
+    majorReward: { description: string; suggestedPoints: number; daysToEarn: number };
+  };
+  tips: string[];
+}
 
 // Types for new gamification features
 export interface CountdownChallenge {

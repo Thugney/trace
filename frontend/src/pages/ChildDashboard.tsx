@@ -4,7 +4,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
 import { tasksAPI } from '../services/api';
-import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, GoalWithMilestones, CustomChallenge } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
 import { ProfileStats } from '../types';
 import { Star, Trophy, Bell, Target, Droplets, Flame, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
 import CountdownChallengeCard from '../components/CountdownChallengeCard';
@@ -171,6 +171,14 @@ export default function ChildDashboard() {
   // AI Custom Challenges state
   const [customChallenges, setCustomChallenges] = useState<CustomChallenge[]>([]);
 
+  // Economy limits state
+  const [economyData, setEconomyData] = useState<{
+    settings: EconomySettings;
+    dailyRemaining: number;
+    weeklyRemaining: number;
+    todayEarned: number;
+  } | null>(null);
+
   // Daily Login Bonus state
   const [showLoginBonus, setShowLoginBonus] = useState(false);
   const [loginBonusData, setLoginBonusData] = useState<{
@@ -195,7 +203,7 @@ export default function ChildDashboard() {
     const loadStats = async () => {
       try {
         setLoading(true);
-        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes, activeGoalsRes, customChallengesRes] = await Promise.all([
+        const [statsRes, waterRes, gamificationRes, achievementsRes, challengesRes, weeklyRes, goalHistoryRes, activeGoalsRes, customChallengesRes, economyRes] = await Promise.all([
           profilesAPI.getStats(currentProfile.id),
           gamificationAPI.getWater(currentProfile.id),
           gamificationAPI.getStats(currentProfile.id),
@@ -204,7 +212,8 @@ export default function ChildDashboard() {
           gamificationAPI.getWeeklySummary(currentProfile.id),
           goalsAPI.getHistory(currentProfile.id, 10),
           goalsAPI.getActive(currentProfile.id),
-          aiGamificationAPI.getChallenges(currentProfile.id).catch(() => ({ data: [] }))
+          aiGamificationAPI.getChallenges(currentProfile.id).catch(() => ({ data: [] })),
+          gamificationAPI.getEconomySettings(currentProfile.id).catch(() => ({ data: null }))
         ]);
         setStats(statsRes.data);
         setWaterData({ total_ml: waterRes.data?.total_ml || 0, goal_ml: waterRes.data?.goal_ml || 2000 });
@@ -215,6 +224,14 @@ export default function ChildDashboard() {
         setGoalHistory(goalHistoryRes.data || { goals: [], stats: { totalAchieved: 0, totalPointsEarned: 0 } });
         setActiveGoals(activeGoalsRes.data || []);
         setCustomChallenges(customChallengesRes.data || []);
+        if (economyRes.data) {
+          setEconomyData({
+            settings: economyRes.data.settings,
+            dailyRemaining: economyRes.data.earnings?.dailyRemaining || 0,
+            weeklyRemaining: economyRes.data.earnings?.weeklyRemaining || 0,
+            todayEarned: economyRes.data.earnings?.today?.points_earned || 0
+          });
+        }
 
         // Load leaderboard if child has a parent
         if (currentProfile.parent_id) {
@@ -980,6 +997,58 @@ export default function ChildDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Earning Limits Indicator */}
+      {economyData && (
+        <div className="rounded-2xl p-4 bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-slate-200 mb-6">
+          <h3 className="text-sm font-bold mb-3 flex items-center gap-2 text-slate-700">
+            <TrendingUp className="text-slate-500" size={18} />
+            Today's Earning Progress
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            {/* Daily Progress */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Today</span>
+                <span className="font-medium text-slate-800">
+                  {economyData.todayEarned}/{economyData.settings.daily_points_cap}
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full transition-all ${
+                    economyData.dailyRemaining === 0 ? 'bg-amber-500' : 'bg-emerald-500'
+                  }`}
+                  style={{ width: `${Math.min((economyData.todayEarned / economyData.settings.daily_points_cap) * 100, 100)}%` }}
+                />
+              </div>
+              {economyData.dailyRemaining === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Daily limit reached!</p>
+              )}
+            </div>
+            {/* Weekly Progress */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">This Week</span>
+                <span className="font-medium text-slate-800">
+                  {economyData.settings.weekly_points_cap - economyData.weeklyRemaining}/{economyData.settings.weekly_points_cap}
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2.5">
+                <div
+                  className={`h-2.5 rounded-full transition-all ${
+                    economyData.weeklyRemaining === 0 ? 'bg-amber-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${Math.min(((economyData.settings.weekly_points_cap - economyData.weeklyRemaining) / economyData.settings.weekly_points_cap) * 100, 100)}%` }}
+                />
+              </div>
+              {economyData.weeklyRemaining === 0 && (
+                <p className="text-xs text-amber-600 mt-1">Weekly limit reached!</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Water Tracking & Streaks Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

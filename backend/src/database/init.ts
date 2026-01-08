@@ -1306,6 +1306,61 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_behavior_insights_profile ON behavior_insights(profile_id);
   `);
 
+  // ==================== ECONOMY CONTROLS & ANTI-ABUSE ====================
+  // Parent-configurable earning limits and rate limiting
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS economy_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL UNIQUE,
+      daily_points_cap INTEGER DEFAULT 200,
+      weekly_points_cap INTEGER DEFAULT 1000,
+      points_multiplier REAL DEFAULT 1.0,
+      require_time_elapsed BOOLEAN DEFAULT 1,
+      min_task_duration_minutes INTEGER DEFAULT 5,
+      cooldown_seconds INTEGER DEFAULT 10,
+      bonuses_enabled BOOLEAN DEFAULT 1,
+      spin_wheel_enabled BOOLEAN DEFAULT 1,
+      countdown_challenges_enabled BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Track daily/weekly earnings for cap enforcement
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS earning_tracker (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      points_earned INTEGER DEFAULT 0,
+      stars_earned INTEGER DEFAULT 0,
+      tasks_completed INTEGER DEFAULT 0,
+      bonuses_claimed INTEGER DEFAULT 0,
+      last_action_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(profile_id, date),
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Rate limiting - track last point-earning action per profile
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS rate_limit_tracker (
+      profile_id INTEGER PRIMARY KEY,
+      last_task_complete_at DATETIME,
+      last_bonus_claim_at DATETIME,
+      last_spin_at DATETIME,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for economy tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_economy_settings_profile ON economy_settings(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_earning_tracker_profile ON earning_tracker(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_earning_tracker_date ON earning_tracker(date);
+  `);
+
   // ==================== COUNTDOWN CHALLENGES ====================
   // Time-limited challenges with bonus multipliers
   db.exec(`

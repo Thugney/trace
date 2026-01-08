@@ -1,5 +1,15 @@
 import express from 'express';
 import db from '../database/init';
+import {
+  getEconomySettings,
+  updateEconomySettings,
+  getEarningSummary,
+  checkRateLimit,
+  updateRateLimit,
+  canEarnPoints,
+  recordEarnings,
+  isSpinWheelEnabled
+} from '../services/economyControl';
 
 const router = express.Router();
 
@@ -1102,6 +1112,157 @@ export function updateTaskStreak(profileId: number) {
   checkAchievements(profileId);
 }
 
+// ==================== ECONOMY CONTROLS (Parent Settings) ====================
+
+// Get economy settings for a child profile
+router.get('/economy/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const settings = getEconomySettings(parseInt(profileId));
+    const summary = getEarningSummary(parseInt(profileId));
+
+    res.json({
+      settings,
+      earnings: {
+        today: summary.today,
+        weekTotal: summary.weekTotal,
+        dailyRemaining: summary.dailyRemaining,
+        weeklyRemaining: summary.weeklyRemaining
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update economy settings (parent action)
+router.put('/economy/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const updates = req.body;
+
+    // Verify the requester is a parent (in a real app, use proper auth)
+    const profile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(profileId);
+
+    const updatedSettings = updateEconomySettings(parseInt(profileId), {
+      daily_points_cap: updates.dailyPointsCap,
+      weekly_points_cap: updates.weeklyPointsCap,
+      points_multiplier: updates.pointsMultiplier,
+      require_time_elapsed: updates.requireTimeElapsed,
+      min_task_duration_minutes: updates.minTaskDuration,
+      cooldown_seconds: updates.cooldownSeconds,
+      bonuses_enabled: updates.bonusesEnabled,
+      spin_wheel_enabled: updates.spinWheelEnabled,
+      countdown_challenges_enabled: updates.countdownChallengesEnabled
+    });
+
+    res.json({
+      message: 'Economy settings updated',
+      settings: updatedSettings
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get earning history for a child (for parent dashboard)
+router.get('/economy/:profileId/history', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { days = 7 } = req.query;
+
+    const history = db.prepare(`
+      SELECT date, points_earned, stars_earned, tasks_completed, bonuses_claimed
+      FROM earning_tracker
+      WHERE profile_id = ?
+      ORDER BY date DESC
+      LIMIT ?
+    `).all(profileId, parseInt(days as string));
+
+    const totals: any = db.prepare(`
+      SELECT
+        SUM(points_earned) as total_points,
+        SUM(stars_earned) as total_stars,
+        SUM(tasks_completed) as total_tasks,
+        SUM(bonuses_claimed) as total_bonuses
+      FROM earning_tracker
+      WHERE profile_id = ?
+    `).get(profileId);
+
+    res.json({
+      history,
+      totals: {
+        points: totals?.total_points || 0,
+        stars: totals?.total_stars || 0,
+        tasks: totals?.total_tasks || 0,
+        bonuses: totals?.total_bonuses || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reward pricing calculator - helps parents set appropriate costs
+router.get('/economy/:profileId/pricing-guide', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const settings = getEconomySettings(parseInt(profileId));
+    const summary = getEarningSummary(parseInt(profileId));
+
+    // Calculate average daily earnings based on history
+    const avgHistory: any = db.prepare(`
+      SELECT AVG(points_earned) as avg_daily
+      FROM earning_tracker
+      WHERE profile_id = ? AND points_earned > 0
+    `).get(profileId);
+
+    const avgDailyEarnings = Math.round(avgHistory?.avg_daily || settings.daily_points_cap * 0.5);
+
+    // Pricing suggestions based on earning rate
+    const pricingGuide = {
+      earningRate: {
+        dailyCap: settings.daily_points_cap,
+        weeklyCap: settings.weekly_points_cap,
+        avgDailyActual: avgDailyEarnings,
+        avgWeeklyProjected: avgDailyEarnings * 7
+      },
+      suggestions: {
+        smallTreat: {
+          description: 'Small treat, extra screen time, small toy',
+          suggestedPoints: Math.round(avgDailyEarnings * 2), // ~2 days
+          daysToEarn: 2
+        },
+        mediumReward: {
+          description: 'Movie night, special outing, medium toy',
+          suggestedPoints: Math.round(avgDailyEarnings * 7), // ~1 week
+          daysToEarn: 7
+        },
+        largeReward: {
+          description: 'Big toy, special event, dinner out',
+          suggestedPoints: Math.round(avgDailyEarnings * 14), // ~2 weeks
+          daysToEarn: 14
+        },
+        majorReward: {
+          description: 'Gaming console, expensive item, trip',
+          suggestedPoints: Math.round(avgDailyEarnings * 30), // ~1 month
+          daysToEarn: 30
+        }
+      },
+      tips: [
+        'Set reward prices based on how many days of good behavior you want',
+        `At current settings, a child earning max points gets ${settings.daily_points_cap}/day`,
+        'Consider increasing task time requirements for higher value tasks',
+        'Use proof-required tasks for bigger point values'
+      ]
+    };
+
+    res.json(pricingGuide);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== COUNTDOWN CHALLENGES ====================
 
 // Countdown challenge templates
@@ -1309,6 +1470,25 @@ router.get('/spin-wheel/:profileId', (req, res) => {
 router.post('/spin-wheel/:profileId/spin', (req, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId);
+
+    // ===== ECONOMY CHECK: Is spin wheel enabled? =====
+    if (!isSpinWheelEnabled(profileIdNum)) {
+      return res.status(400).json({
+        error: 'Spin wheel is currently disabled',
+        code: 'FEATURE_DISABLED'
+      });
+    }
+
+    // ===== RATE LIMIT CHECK =====
+    const rateCheck = checkRateLimit(profileIdNum, 'spin');
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: `Please wait ${rateCheck.waitSeconds} seconds before spinning again`,
+        code: 'RATE_LIMITED',
+        waitSeconds: rateCheck.waitSeconds
+      });
+    }
 
     // Get progress
     const progress: any = db.prepare(`
@@ -1323,6 +1503,15 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
       return res.status(400).json({
         error: 'Not enough tasks completed',
         tasksNeeded: progress.tasks_required_for_spin - progress.tasks_since_last_spin
+      });
+    }
+
+    // ===== DAILY CAP CHECK =====
+    const capCheck = canEarnPoints(profileIdNum, 100); // Check if can earn at least some points
+    if (!capCheck.allowed) {
+      return res.status(400).json({
+        error: capCheck.reason,
+        code: 'EARNING_CAP_REACHED'
       });
     }
 
@@ -1341,6 +1530,9 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
       }
     }
 
+    // Update rate limit tracker
+    updateRateLimit(profileIdNum, 'spin');
+
     // Log the spin
     db.prepare(`
       INSERT INTO spin_wheel_history (profile_id, reward_type, reward_value, reward_description)
@@ -1354,7 +1546,7 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
       WHERE profile_id = ?
     `).run(profileId);
 
-    // Award the prize
+    // Award the prize (with economy caps)
     const currentProgress: any = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(profileId);
@@ -1363,7 +1555,11 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
     let starsAwarded = 0;
 
     if (selectedPrize.type === 'points' || selectedPrize.type === 'jackpot') {
-      pointsAwarded = selectedPrize.value;
+      // Cap the points earned
+      const prizeCap = canEarnPoints(profileIdNum, selectedPrize.value);
+      pointsAwarded = prizeCap.cappedAmount !== undefined
+        ? Math.min(selectedPrize.value, prizeCap.cappedAmount)
+        : selectedPrize.value;
     } else if (selectedPrize.type === 'stars') {
       starsAwarded = selectedPrize.value;
     }
@@ -1377,6 +1573,9 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
         INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(profileId, pointsAwarded, starsAwarded, newLevel, newPoints, newStars);
+
+      // Record in daily tracker
+      recordEarnings(profileIdNum, pointsAwarded, starsAwarded, false, true);
     }
 
     // Store multiplier as a power-up if won
