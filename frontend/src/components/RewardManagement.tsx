@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save } from 'lucide-react';
 import { rewardsAPI, Reward, RewardClaim } from '../services/api';
 import playSounds from '../utils/sounds';
+import { useToast } from './Toast';
 
 interface RewardManagementProps {
   parentId: number;
 }
 
 export default function RewardManagement({ parentId }: RewardManagementProps) {
+  const toast = useToast();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pendingClaims, setPendingClaims] = useState<RewardClaim[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [activeTab, setActiveTab] = useState<'rewards' | 'claims'>('rewards');
@@ -37,8 +40,9 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
       ]);
       setRewards(rewardsRes.data);
       setPendingClaims(claimsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load rewards data:', error);
+      toast.error('Failed to load rewards');
     } finally {
       setLoading(false);
     }
@@ -46,6 +50,18 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast.error('Please enter a title');
+      return;
+    }
+
+    if (formData.pointsRequired < 1) {
+      toast.error('Points must be at least 1');
+      return;
+    }
+
+    setSaving(true);
     try {
       if (editingReward) {
         await rewardsAPI.update(editingReward.id, {
@@ -55,6 +71,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           icon: formData.icon,
           stock: formData.stock
         });
+        toast.success('Reward updated!');
       } else {
         await rewardsAPI.create({
           title: formData.title,
@@ -64,13 +81,18 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           stock: formData.stock,
           createdBy: parentId
         });
+        toast.success('Reward added!');
       }
       playSounds.achievement();
       resetForm();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save reward:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to save reward';
+      toast.error(errorMsg);
       playSounds.error();
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -249,15 +271,26 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           <div className="flex gap-2 pt-2">
             <button
               type="submit"
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save size={18} />
-              {editingReward ? 'Save Changes' : 'Add Reward'}
+              {saving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  {editingReward ? 'Save Changes' : 'Add Reward'}
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={resetForm}
-              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+              disabled={saving}
+              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 disabled:opacity-50"
             >
               Cancel
             </button>
