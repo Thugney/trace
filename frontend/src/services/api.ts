@@ -873,6 +873,293 @@ export const remindersAPI = {
     api.post<{ message: string; profileId: number }>(`/reminders/test/${profileId}`)
 };
 
+// ==================== FAMILY QUIZ SYSTEM ====================
+
+// Quiz Types
+export interface QuizCategory {
+  id: number;
+  name: string;
+  display_name: string;
+  icon: string;
+  description: string;
+  theme_config: {
+    boy: QuizTheme;
+    girl: QuizTheme;
+  };
+  input_config: QuizInputConfig;
+}
+
+export interface QuizTheme {
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+  mascot: string;
+  animations: string[];
+  sounds: {
+    correct: string;
+    wrong: string;
+    complete: string;
+  };
+  encouragements: string[];
+}
+
+export interface QuizInputConfig {
+  question_placeholder: string;
+  supports_images?: boolean;
+  supports_audio?: boolean;
+  supports_equations?: boolean;
+  supports_maps?: boolean;
+  supports_dates?: boolean;
+  color_picker?: boolean;
+  shape_picker?: boolean;
+  equation_builder?: boolean;
+  operators?: string[];
+  default_options_count?: number;
+  option_style: 'letters' | 'numbers' | 'text' | 'visual';
+}
+
+export interface FamilyQuiz {
+  id: number;
+  title: string;
+  description?: string;
+  category_id: number;
+  category_name?: string;
+  category_icon?: string;
+  created_by: number;
+  assigned_to: number;
+  assigned_to_name?: string;
+  assigned_to_avatar?: string;
+  assigned_to_gender?: string;
+  points_per_correct: number;
+  stars_per_correct: number;
+  bonus_points: number;
+  time_limit_seconds?: number;
+  pass_threshold: number;
+  schedule_type: string;
+  schedule_days?: string;
+  is_active: number;
+  is_competition: number;
+  competition_ends_at?: string;
+  first_place_bonus: number;
+  second_place_bonus: number;
+  third_place_bonus: number;
+  question_count?: number;
+  attempt_count?: number;
+  avg_score?: number;
+  my_attempts?: number;
+  best_score?: number;
+  last_attempt?: string;
+  theme?: QuizTheme;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuizQuestion {
+  id: number;
+  quiz_id: number;
+  question_text: string;
+  question_type: string;
+  question_image?: string;
+  question_audio?: string;
+  options: QuizOption[];
+  correct_answer?: string; // Only returned after answering
+  hint?: string;
+  explanation?: string;
+  points: number;
+  order_index: number;
+}
+
+export interface QuizOption {
+  id: string;
+  text: string;
+  image?: string;
+}
+
+export interface QuizAttempt {
+  id: number;
+  quiz_id: number;
+  profile_id: number;
+  started_at: string;
+  completed_at?: string;
+  total_questions: number;
+  correct_answers: number;
+  wrong_answers: number;
+  skipped: number;
+  score_percentage: number;
+  points_earned: number;
+  stars_earned: number;
+  time_taken_seconds?: number;
+  passed: number;
+  competition_rank?: number;
+  bonus_awarded: number;
+  quiz_title?: string;
+  category_icon?: string;
+}
+
+export interface QuizStartResponse {
+  attemptId: number;
+  quiz: {
+    id: number;
+    title: string;
+    description?: string;
+    pointsPerCorrect: number;
+    starsPerCorrect: number;
+    bonusPoints: number;
+    timeLimitSeconds?: number;
+    passThreshold: number;
+    isCompetition: boolean;
+  };
+  theme: QuizTheme;
+  questions: QuizQuestion[];
+  totalQuestions: number;
+}
+
+export interface QuizAnswerResponse {
+  isCorrect: boolean;
+  correctAnswer: string;
+  explanation?: string;
+  points: number;
+}
+
+export interface QuizCompleteResponse {
+  completed: boolean;
+  scorePercentage: number;
+  passed: boolean;
+  pointsEarned: number;
+  starsEarned: number;
+  correctAnswers: number;
+  totalQuestions: number;
+  competitionRank?: number;
+  competitionBonus: number;
+  timeTakenSeconds?: number;
+}
+
+// Family Quiz API
+export const familyQuizzesAPI = {
+  // Categories
+  getCategories: () =>
+    api.get<QuizCategory[]>('/family-quizzes/categories'),
+  getCategory: (idOrName: string | number) =>
+    api.get<QuizCategory>(`/family-quizzes/categories/${idOrName}`),
+
+  // Quizzes - Parent perspective
+  getParentQuizzes: (parentId: number) =>
+    api.get<FamilyQuiz[]>(`/family-quizzes/parent/${parentId}`),
+  getQuiz: (quizId: number) =>
+    api.get<FamilyQuiz & { questions: QuizQuestion[] }>(`/family-quizzes/${quizId}`),
+  createQuiz: (data: {
+    title: string;
+    description?: string;
+    categoryId: number;
+    createdBy: number;
+    assignedTo: number;
+    pointsPerCorrect?: number;
+    starsPerCorrect?: number;
+    bonusPoints?: number;
+    timeLimitSeconds?: number;
+    passThreshold?: number;
+    scheduleType?: string;
+    scheduleDays?: string;
+    isCompetition?: boolean;
+    competitionEndsAt?: string;
+    firstPlaceBonus?: number;
+    secondPlaceBonus?: number;
+    thirdPlaceBonus?: number;
+  }) => api.post<FamilyQuiz>('/family-quizzes', data),
+  updateQuiz: (quizId: number, data: Partial<FamilyQuiz>) =>
+    api.put<FamilyQuiz>(`/family-quizzes/${quizId}`, data),
+  deleteQuiz: (quizId: number) =>
+    api.delete(`/family-quizzes/${quizId}`),
+
+  // Quizzes - Child perspective
+  getChildQuizzes: (childId: number) =>
+    api.get<FamilyQuiz[]>(`/family-quizzes/child/${childId}`),
+
+  // Questions
+  addQuestion: (quizId: number, data: {
+    questionText: string;
+    questionType?: string;
+    questionImage?: string;
+    questionAudio?: string;
+    options: QuizOption[];
+    correctAnswer: string;
+    hint?: string;
+    explanation?: string;
+    points?: number;
+  }) => api.post<QuizQuestion>(`/family-quizzes/${quizId}/questions`, data),
+  updateQuestion: (questionId: number, data: Partial<{
+    questionText: string;
+    questionType: string;
+    questionImage: string;
+    questionAudio: string;
+    options: QuizOption[];
+    correctAnswer: string;
+    hint: string;
+    explanation: string;
+    points: number;
+    orderIndex: number;
+  }>) => api.put<QuizQuestion>(`/family-quizzes/questions/${questionId}`, data),
+  deleteQuestion: (questionId: number) =>
+    api.delete(`/family-quizzes/questions/${questionId}`),
+  reorderQuestions: (quizId: number, questionIds: number[]) =>
+    api.put(`/family-quizzes/${quizId}/questions/reorder`, { questionIds }),
+
+  // Playing quizzes
+  startQuiz: (quizId: number, profileId: number) =>
+    api.post<QuizStartResponse>(`/family-quizzes/${quizId}/start`, { profileId }),
+  submitAnswer: (attemptId: number, questionId: number, selectedAnswer: string, timeTakenSeconds?: number) =>
+    api.post<QuizAnswerResponse>(`/family-quizzes/attempts/${attemptId}/answer`, {
+      questionId, selectedAnswer, timeTakenSeconds
+    }),
+  completeQuiz: (attemptId: number, timeTakenSeconds?: number) =>
+    api.post<QuizCompleteResponse>(`/family-quizzes/attempts/${attemptId}/complete`, { timeTakenSeconds }),
+
+  // Attempt history
+  getAttemptHistory: (profileId: number, limit?: number) =>
+    api.get<QuizAttempt[]>(`/family-quizzes/attempts/profile/${profileId}`, { params: { limit } }),
+  getAttemptDetails: (attemptId: number) =>
+    api.get<QuizAttempt & { answers: any[] }>(`/family-quizzes/attempts/${attemptId}`),
+
+  // Competition
+  getLeaderboard: (quizId: number) =>
+    api.get<(QuizAttempt & { name: string; avatar: string })[]>(`/family-quizzes/${quizId}/leaderboard`),
+
+  // Stats
+  getParentStats: (parentId: number) =>
+    api.get<{
+      total_quizzes: number;
+      total_attempts: number;
+      avg_score: number;
+      total_points_awarded: number;
+      total_stars_awarded: number;
+      passed_attempts: number;
+      completed_attempts: number;
+    }>(`/family-quizzes/stats/parent/${parentId}`),
+  getChildStats: (childId: number) =>
+    api.get<{
+      overall: {
+        available_quizzes: number;
+        total_attempts: number;
+        avg_score: number;
+        total_points_earned: number;
+        total_stars_earned: number;
+        quizzes_passed: number;
+        best_score: number;
+        first_places: number;
+      };
+      byCategory: Array<{
+        display_name: string;
+        icon: string;
+        attempts: number;
+        avg_score: number;
+        points_earned: number;
+      }>;
+    }>(`/family-quizzes/stats/child/${childId}`)
+};
+
 // Photo Proof API
 export const photoProofAPI = {
   // Upload photo proof for a task

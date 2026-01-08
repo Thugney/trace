@@ -4,7 +4,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy, BookOpen } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import RewardManagement from '../components/RewardManagement';
 
@@ -283,6 +283,19 @@ export default function ParentDashboard() {
                 <div>
                   <p className="font-medium text-amber-900">Family Leaderboard</p>
                   <p className="text-sm text-amber-700">See who's winning!</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              to="/quizzes/builder"
+              className="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border-2 border-purple-200"
+            >
+              <div className="flex items-center space-x-3">
+                <BookOpen className="text-purple-600" size={20} />
+                <div>
+                  <p className="font-medium text-purple-900">Quiz Builder</p>
+                  <p className="text-sm text-purple-700">Create educational quizzes for your kids</p>
                 </div>
               </div>
             </Link>

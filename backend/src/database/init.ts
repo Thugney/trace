@@ -1484,6 +1484,361 @@ export function initDatabase() {
     insertHiddenAchievement.run(ach.name, ach.description, ach.icon, ach.points_reward, ach.requirement_type, ach.requirement_value, ach.is_hidden);
   }
 
+  // =============================================
+  // FAMILY QUIZ SYSTEM - Educational quizzes for kids
+  // =============================================
+
+  // Quiz Categories with theme configuration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quiz_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      description TEXT,
+      theme_config TEXT NOT NULL,
+      input_config TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Family Quizzes - Parent-created quizzes for their kids
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quizzes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      category_id INTEGER NOT NULL,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER NOT NULL,
+      points_per_correct INTEGER DEFAULT 10,
+      stars_per_correct INTEGER DEFAULT 0,
+      bonus_points INTEGER DEFAULT 20,
+      time_limit_seconds INTEGER,
+      pass_threshold INTEGER DEFAULT 70,
+      schedule_type TEXT DEFAULT 'anytime',
+      schedule_days TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES quiz_categories(id),
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Quiz Questions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quiz_questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_id INTEGER NOT NULL,
+      question_text TEXT NOT NULL,
+      question_type TEXT DEFAULT 'multiple_choice',
+      question_image TEXT,
+      question_audio TEXT,
+      options TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
+      hint TEXT,
+      explanation TEXT,
+      points INTEGER DEFAULT 10,
+      order_index INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (quiz_id) REFERENCES family_quizzes(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Quiz Attempts - Track each time a kid takes a quiz
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quiz_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      total_questions INTEGER NOT NULL,
+      correct_answers INTEGER DEFAULT 0,
+      wrong_answers INTEGER DEFAULT 0,
+      skipped INTEGER DEFAULT 0,
+      score_percentage INTEGER DEFAULT 0,
+      points_earned INTEGER DEFAULT 0,
+      stars_earned INTEGER DEFAULT 0,
+      time_taken_seconds INTEGER,
+      passed INTEGER DEFAULT 0,
+      FOREIGN KEY (quiz_id) REFERENCES family_quizzes(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Quiz Answers - Detailed answer tracking per question
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quiz_answers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attempt_id INTEGER NOT NULL,
+      question_id INTEGER NOT NULL,
+      selected_answer TEXT,
+      is_correct INTEGER DEFAULT 0,
+      time_taken_seconds INTEGER,
+      answered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (attempt_id) REFERENCES family_quiz_attempts(id) ON DELETE CASCADE,
+      FOREIGN KEY (question_id) REFERENCES family_quiz_questions(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for quiz tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_family_quizzes_assigned ON family_quizzes(assigned_to);
+    CREATE INDEX IF NOT EXISTS idx_family_quizzes_created ON family_quizzes(created_by);
+    CREATE INDEX IF NOT EXISTS idx_family_quiz_questions_quiz ON family_quiz_questions(quiz_id);
+    CREATE INDEX IF NOT EXISTS idx_family_quiz_attempts_quiz ON family_quiz_attempts(quiz_id);
+    CREATE INDEX IF NOT EXISTS idx_family_quiz_attempts_profile ON family_quiz_attempts(profile_id);
+  `);
+
+  // Migration: Add competition mode columns to family_quizzes
+  try {
+    const quizInfo: any[] = db.prepare('PRAGMA table_info(family_quizzes)').all();
+    const hasCompetition = quizInfo.some((col: any) => col.name === 'is_competition');
+
+    if (!hasCompetition) {
+      console.log('🔄 Migrating family_quizzes: adding competition mode columns...');
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN is_competition INTEGER DEFAULT 0').run();
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN competition_ends_at DATETIME').run();
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN first_place_bonus INTEGER DEFAULT 50').run();
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN second_place_bonus INTEGER DEFAULT 25').run();
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN third_place_bonus INTEGER DEFAULT 10').run();
+      console.log('✅ Competition mode columns added to family_quizzes');
+    }
+  } catch (error: any) {
+    console.error('Migration error (quiz competition):', error.message);
+  }
+
+  // Migration: Add competition rank to quiz attempts
+  try {
+    const attemptInfo: any[] = db.prepare('PRAGMA table_info(family_quiz_attempts)').all();
+    const hasRank = attemptInfo.some((col: any) => col.name === 'competition_rank');
+
+    if (!hasRank) {
+      console.log('🔄 Migrating family_quiz_attempts: adding competition tracking...');
+      db.prepare('ALTER TABLE family_quiz_attempts ADD COLUMN competition_rank INTEGER').run();
+      db.prepare('ALTER TABLE family_quiz_attempts ADD COLUMN bonus_awarded INTEGER DEFAULT 0').run();
+      console.log('✅ Competition tracking columns added to family_quiz_attempts');
+    }
+  } catch (error: any) {
+    console.error('Migration error (attempt competition):', error.message);
+  }
+
+  // Insert default quiz categories with theme configurations
+  const quizCategories = [
+    {
+      name: 'alphabet',
+      display_name: 'Alphabet',
+      icon: '🔤',
+      description: 'Learn letters and spelling',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#3B82F6', secondary: '#1E40AF', accent: '#F59E0B', background: 'from-blue-600 to-indigo-700' },
+          mascot: '🦸‍♂️',
+          animations: ['letter_zoom', 'superhero_punch', 'comic_burst'],
+          sounds: { correct: 'hero_power', wrong: 'try_again', complete: 'victory' },
+          encouragements: ['Super spelling!', 'Hero letters!', 'Amazing!', 'POW!']
+        },
+        girl: {
+          colors: { primary: '#EC4899', secondary: '#9333EA', accent: '#F59E0B', background: 'from-pink-500 to-purple-600' },
+          mascot: '🧚',
+          animations: ['sparkle_letters', 'magic_wand', 'fairy_dust'],
+          sounds: { correct: 'magic_chime', wrong: 'gentle_oops', complete: 'celebration' },
+          encouragements: ['Magical!', 'Fairy-tale spelling!', 'Sparkle power!', 'Wonderful!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'What letter is this?',
+        supports_images: true,
+        supports_audio: true,
+        default_options_count: 4,
+        option_style: 'letters'
+      })
+    },
+    {
+      name: 'math',
+      display_name: 'Math',
+      icon: '🔢',
+      description: 'Numbers and calculations',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#10B981', secondary: '#047857', accent: '#FBBF24', background: 'from-emerald-600 to-teal-700' },
+          mascot: '🤖',
+          animations: ['calculator_spin', 'number_explosion', 'rocket_math'],
+          sounds: { correct: 'robot_beep', wrong: 'error_buzz', complete: 'level_up' },
+          encouragements: ['Math wizard!', 'Number ninja!', 'Computing genius!', 'BOOM!']
+        },
+        girl: {
+          colors: { primary: '#8B5CF6', secondary: '#6D28D9', accent: '#FCD34D', background: 'from-violet-500 to-purple-600' },
+          mascot: '🦋',
+          animations: ['star_burst', 'rainbow_numbers', 'butterfly_flutter'],
+          sounds: { correct: 'sparkle', wrong: 'soft_miss', complete: 'fanfare' },
+          encouragements: ['Brilliant!', 'Math star!', 'You sparkle!', 'Perfect!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'What is the answer?',
+        supports_equations: true,
+        equation_builder: true,
+        operators: ['+', '-', '×', '÷'],
+        option_style: 'numbers'
+      })
+    },
+    {
+      name: 'geography',
+      display_name: 'Geography',
+      icon: '🌍',
+      description: 'Countries, capitals, and maps',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#F59E0B', secondary: '#D97706', accent: '#3B82F6', background: 'from-amber-500 to-orange-600' },
+          mascot: '🧭',
+          animations: ['globe_spin', 'explorer_walk', 'map_zoom'],
+          sounds: { correct: 'discovery', wrong: 'compass_spin', complete: 'adventure_win' },
+          encouragements: ['Explorer!', 'World traveler!', 'Navigator pro!', 'Discovery!']
+        },
+        girl: {
+          colors: { primary: '#06B6D4', secondary: '#0891B2', accent: '#F472B6', background: 'from-cyan-500 to-teal-600' },
+          mascot: '🦜',
+          animations: ['world_sparkle', 'travel_magic', 'flag_wave'],
+          sounds: { correct: 'bird_song', wrong: 'gentle_wave', complete: 'celebration' },
+          encouragements: ['World princess!', 'Amazing explorer!', 'Travel star!', 'Beautiful!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'Which country/capital is this?',
+        supports_images: true,
+        supports_maps: true,
+        option_style: 'text'
+      })
+    },
+    {
+      name: 'history',
+      display_name: 'History',
+      icon: '📜',
+      description: 'Historical events and people',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#78350F', secondary: '#92400E', accent: '#FCD34D', background: 'from-amber-800 to-yellow-700' },
+          mascot: '⚔️',
+          animations: ['scroll_unfurl', 'knight_charge', 'castle_build'],
+          sounds: { correct: 'sword_swing', wrong: 'shield_block', complete: 'victory_horn' },
+          encouragements: ['Knight scholar!', 'History hero!', 'Time warrior!', 'Legendary!']
+        },
+        girl: {
+          colors: { primary: '#BE185D', secondary: '#9D174D', accent: '#FDE68A', background: 'from-rose-600 to-pink-700' },
+          mascot: '👑',
+          animations: ['crown_sparkle', 'royal_scroll', 'time_travel'],
+          sounds: { correct: 'harp_strum', wrong: 'soft_bell', complete: 'royal_fanfare' },
+          encouragements: ['Royal scholar!', 'History princess!', 'Time queen!', 'Majestic!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'What happened / Who is this?',
+        supports_images: true,
+        supports_dates: true,
+        option_style: 'text'
+      })
+    },
+    {
+      name: 'science',
+      display_name: 'Science',
+      icon: '🔬',
+      description: 'Scientific facts and nature',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#059669', secondary: '#047857', accent: '#60A5FA', background: 'from-emerald-600 to-green-700' },
+          mascot: '🧪',
+          animations: ['beaker_bubble', 'atom_spin', 'rocket_launch'],
+          sounds: { correct: 'science_pop', wrong: 'bubble_fail', complete: 'blast_off' },
+          encouragements: ['Scientist!', 'Lab genius!', 'Discovery master!', 'Eureka!']
+        },
+        girl: {
+          colors: { primary: '#7C3AED', secondary: '#6D28D9', accent: '#A5F3FC', background: 'from-violet-600 to-indigo-700' },
+          mascot: '🔮',
+          animations: ['crystal_glow', 'nature_bloom', 'star_discovery'],
+          sounds: { correct: 'crystal_chime', wrong: 'soft_poof', complete: 'magic_complete' },
+          encouragements: ['Science star!', 'Nature princess!', 'Discovery queen!', 'Magical!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'What is the answer?',
+        supports_images: true,
+        option_style: 'text'
+      })
+    },
+    {
+      name: 'language',
+      display_name: 'Language',
+      icon: '📖',
+      description: 'Words, sentences, and reading',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#2563EB', secondary: '#1D4ED8', accent: '#FCD34D', background: 'from-blue-600 to-blue-800' },
+          mascot: '📚',
+          animations: ['book_flip', 'word_power', 'story_unfold'],
+          sounds: { correct: 'page_turn', wrong: 'eraser', complete: 'book_close' },
+          encouragements: ['Word hero!', 'Story master!', 'Reading champ!', 'Awesome!']
+        },
+        girl: {
+          colors: { primary: '#DB2777', secondary: '#BE185D', accent: '#FDE68A', background: 'from-pink-600 to-rose-700' },
+          mascot: '🦄',
+          animations: ['story_sparkle', 'word_dance', 'rainbow_read'],
+          sounds: { correct: 'fairy_word', wrong: 'soft_miss', complete: 'story_end' },
+          encouragements: ['Word fairy!', 'Story princess!', 'Reading star!', 'Beautiful!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'Complete the sentence / What word is this?',
+        supports_images: true,
+        supports_audio: true,
+        option_style: 'text'
+      })
+    },
+    {
+      name: 'colors_shapes',
+      display_name: 'Colors & Shapes',
+      icon: '🎨',
+      description: 'Colors and shapes for young kids',
+      theme_config: JSON.stringify({
+        boy: {
+          colors: { primary: '#EF4444', secondary: '#DC2626', accent: '#34D399', background: 'from-red-500 to-orange-500' },
+          mascot: '🎯',
+          animations: ['color_splash', 'shape_bounce', 'paint_splat'],
+          sounds: { correct: 'pop', wrong: 'boing', complete: 'tada' },
+          encouragements: ['Color hero!', 'Shape master!', 'Artist!', 'Wow!']
+        },
+        girl: {
+          colors: { primary: '#F472B6', secondary: '#EC4899', accent: '#A78BFA', background: 'from-pink-400 to-purple-500' },
+          mascot: '🌈',
+          animations: ['rainbow_burst', 'sparkle_shape', 'glitter_paint'],
+          sounds: { correct: 'twinkle', wrong: 'soft_miss', complete: 'magic_complete' },
+          encouragements: ['Rainbow star!', 'Shape fairy!', 'Color princess!', 'Pretty!']
+        }
+      }),
+      input_config: JSON.stringify({
+        question_placeholder: 'What color/shape is this?',
+        supports_images: true,
+        color_picker: true,
+        shape_picker: true,
+        option_style: 'visual'
+      })
+    }
+  ];
+
+  const insertQuizCategory = db.prepare(`
+    INSERT OR IGNORE INTO quiz_categories (name, display_name, icon, description, theme_config, input_config)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const cat of quizCategories) {
+    insertQuizCategory.run(cat.name, cat.display_name, cat.icon, cat.description, cat.theme_config, cat.input_config);
+  }
+
+  console.log('✅ Quiz system tables created');
+
   // Run production-ready migrations
   runProductionReadyMigrations();
 

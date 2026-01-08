@@ -20,6 +20,8 @@ import FamilyLeaderboard from './pages/FamilyLeaderboard';
 import RewardShop from './pages/RewardShop';
 import CalendarView from './pages/CalendarView';
 import ControlsPage from './pages/ControlsPage';
+import QuizBuilder from './pages/QuizBuilder';
+import QuizPlayer from './pages/QuizPlayer';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -260,6 +262,26 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
               <CalendarView />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Quiz Builder - Parents and Admin */}
+        <Route
+          path="/quizzes/builder"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <QuizBuilder />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Quiz Player - Children */}
+        <Route
+          path="/quizzes"
+          element={
+            <ProtectedRoute allowedRoles={['child']}>
+              <QuizPlayer />
             </ProtectedRoute>
           }
         />

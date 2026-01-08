@@ -1768,12 +1768,12 @@ export default function ChildDashboard() {
           </Link>
 
           <Link
-            to="/school"
-            className="block p-4 md:p-5 bg-gradient-to-br from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 rounded-2xl transition-all border-2 border-purple-200 hover:scale-105"
+            to="/quizzes"
+            className="block p-4 md:p-5 bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-2xl transition-all border-2 border-violet-200 hover:scale-105"
           >
             <div className="text-center">
-              <div className="text-4xl md:text-5xl mb-2">📚</div>
-              <p className="font-bold text-gray-900">School</p>
+              <div className="text-4xl md:text-5xl mb-2">🎓</div>
+              <p className="font-bold text-gray-900">Quizzes</p>
             </div>
           </Link>
 

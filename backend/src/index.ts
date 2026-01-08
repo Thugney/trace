@@ -17,6 +17,7 @@ import gamificationRoutes from './routes/gamification';
 import aiGamificationRoutes from './routes/ai-gamification';
 import rewardsRoutes from './routes/rewards';
 import remindersRoutes from './routes/reminders';
+import familyQuizzesRoutes from './routes/family-quizzes';
 import { initScheduler } from './services/scheduler';
 
 dotenv.config();
@@ -70,6 +71,7 @@ app.use('/api/gamification', gamificationRoutes);
 app.use('/api/ai-gamification', aiGamificationRoutes);
 app.use('/api/rewards', rewardsRoutes);
 app.use('/api/reminders', remindersRoutes);
+app.use('/api/family-quizzes', familyQuizzesRoutes);
 
 // Initialize scheduler after database
 initScheduler();
