@@ -140,6 +140,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
                 autoFocus
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoComplete="current-password"
               />
               {error && (
                 <p className="text-red-600 text-sm mt-2">{error}</p>

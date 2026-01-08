@@ -548,6 +548,7 @@ export default function Settings() {
                 inputMode="numeric"
                 minLength={4}
                 maxLength={8}
+                autoComplete="new-password"
               />
             </div>
 
@@ -566,6 +567,7 @@ export default function Settings() {
                 inputMode="numeric"
                 minLength={4}
                 maxLength={8}
+                autoComplete="new-password"
               />
             </div>
 
@@ -761,6 +763,7 @@ export default function Settings() {
                   className="input"
                   placeholder="Enter new password (min 6 characters)"
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -776,6 +779,7 @@ export default function Settings() {
                   className="input"
                   placeholder="Re-enter new password"
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -824,6 +828,7 @@ export default function Settings() {
                   onChange={e => setGrokApiKey(e.target.value)}
                   className="input"
                   placeholder="Enter your Grok API key"
+                  autoComplete="off"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Get your API key from{' '}
@@ -1053,6 +1058,7 @@ Context: Tasks, Points, Level, Progress`}
                     onChange={e => setParentPin(e.target.value)}
                     className="input"
                     placeholder="Enter current PIN"
+                    autoComplete="current-password"
                   />
                 </div>
               )}
@@ -1069,6 +1075,7 @@ Context: Tasks, Points, Level, Progress`}
                   className="input"
                   placeholder="Enter new PIN (min 4 characters)"
                   minLength={4}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1278,6 +1285,7 @@ Context: Tasks, Points, Level, Progress`}
                   placeholder="Enter 4-8 digit PIN"
                   pattern="[0-9]*"
                   inputMode="numeric"
+                  autoComplete="new-password"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   This PIN will protect the profile
@@ -1299,6 +1307,7 @@ Context: Tasks, Points, Level, Progress`}
                   placeholder="Re-enter PIN"
                   pattern="[0-9]*"
                   inputMode="numeric"
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1361,6 +1370,7 @@ Context: Tasks, Points, Level, Progress`}
                   inputMode="numeric"
                   minLength={4}
                   maxLength={8}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1379,6 +1389,7 @@ Context: Tasks, Points, Level, Progress`}
                   inputMode="numeric"
                   minLength={4}
                   maxLength={8}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1528,6 +1539,7 @@ Context: Tasks, Points, Level, Progress`}
                       placeholder="Enter new PIN (optional)"
                       pattern="[0-9]*"
                       inputMode="numeric"
+                      autoComplete="new-password"
                     />
                   </div>
 
@@ -1545,6 +1557,7 @@ Context: Tasks, Points, Level, Progress`}
                       placeholder="Re-enter new PIN"
                       pattern="[0-9]*"
                       inputMode="numeric"
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>

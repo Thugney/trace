@@ -858,6 +858,19 @@ router.post('/:id/verify-proof', (req, res) => {
       // Approve: Complete the task and award points
       db.prepare('UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
 
+      // Delete proof photo to save storage (task is approved, no longer needed)
+      const proofFiles = fs.readdirSync(PROOF_DIR).filter((f: string) => f.startsWith(`task-${id}-`));
+      for (const file of proofFiles) {
+        try {
+          fs.unlinkSync(path.join(PROOF_DIR, file));
+          console.log(`[Proof] Deleted proof file after approval: ${file}`);
+        } catch (err) {
+          console.error(`[Proof] Failed to delete proof file: ${file}`, err);
+        }
+      }
+      // Clear proof URL in database
+      db.prepare('UPDATE tasks SET proof_photo_url = NULL WHERE id = ?').run(id);
+
       // Award points
       const basePoints = task.points || 10;
       const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;

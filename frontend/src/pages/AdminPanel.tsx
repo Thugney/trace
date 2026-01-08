@@ -362,6 +362,7 @@ export default function AdminPanel() {
                   maxLength={8}
                   pattern="[0-9]*"
                   inputMode="numeric"
+                  autoComplete="new-password"
                 />
               </div>
             </div>

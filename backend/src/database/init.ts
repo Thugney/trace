@@ -1099,6 +1099,27 @@ export function initDatabase() {
     console.error('Migration error (notes tags):', error.message);
   }
 
+  // Migration: Add is_pinned and reminder_at columns to notes table
+  try {
+    const notesInfo: any[] = db.prepare('PRAGMA table_info(notes)').all();
+    const hasIsPinned = notesInfo.some((col: any) => col.name === 'is_pinned');
+    const hasReminderAt = notesInfo.some((col: any) => col.name === 'reminder_at');
+
+    if (!hasIsPinned) {
+      console.log('🔄 Migrating notes table: adding is_pinned column...');
+      db.prepare('ALTER TABLE notes ADD COLUMN is_pinned INTEGER DEFAULT 0').run();
+      console.log('✅ Migration completed: is_pinned column added to notes');
+    }
+
+    if (!hasReminderAt) {
+      console.log('🔄 Migrating notes table: adding reminder_at column...');
+      db.prepare('ALTER TABLE notes ADD COLUMN reminder_at DATETIME').run();
+      console.log('✅ Migration completed: reminder_at column added to notes');
+    }
+  } catch (error: any) {
+    console.error('Migration error (notes is_pinned/reminder_at):', error.message);
+  }
+
   // Migration: Add goal_category, reward_image, current_points to monthly_goals table
   try {
     const goalsInfo: any[] = db.prepare('PRAGMA table_info(monthly_goals)').all();
