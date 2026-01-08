@@ -6,7 +6,6 @@ import { profilesAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
 import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy } from 'lucide-react';
 import RewardManagement from '../components/RewardManagement';
-import EconomySettings from '../components/EconomySettings';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
@@ -457,13 +456,6 @@ export default function ParentDashboard() {
       {currentProfile && (
         <div className="mt-6 card">
           <RewardManagement parentId={currentProfile.id} />
-        </div>
-      )}
-
-      {/* Economy Controls */}
-      {children.length > 0 && (
-        <div className="mt-6 card">
-          <EconomySettings children={children} />
         </div>
       )}
     </div>

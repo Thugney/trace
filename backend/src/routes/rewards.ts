@@ -12,16 +12,18 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
     // 1. Available for all children
     // 2. Specifically assigned to this child
     // 3. Not yet claimed or still in stock
+    // Also check if this user already has a pending/approved claim
     const rewards = db.prepare(`
       SELECT r.*,
              COALESCE(r.stock, -1) as stock,
-             (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected') as times_claimed
+             (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected') as times_claimed,
+             (SELECT rc2.status FROM reward_claims rc2 WHERE rc2.reward_id = r.id AND rc2.profile_id = ? AND rc2.status IN ('pending', 'approved') LIMIT 1) as user_claim_status
       FROM rewards r
       WHERE (r.available_for_all = 1 OR r.profile_id = ?)
         AND r.is_claimed = 0
         AND (r.stock = -1 OR r.stock > (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected'))
       ORDER BY r.points_required ASC
-    `).all(profileId);
+    `).all(profileId, profileId);
 
     // Get user's current points
     const progress = db.prepare(`
@@ -72,6 +74,21 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
     // Check if reward is available for this profile
     if (!reward.available_for_all && reward.profile_id !== parseInt(profileId)) {
       return res.status(403).json({ error: 'Reward not available for this profile' });
+    }
+
+    // Check if user already has a pending/approved claim for this reward
+    const existingClaim = db.prepare(`
+      SELECT id, status FROM reward_claims
+      WHERE reward_id = ? AND profile_id = ? AND status IN ('pending', 'approved')
+    `).get(rewardId, profileId) as { id: number; status: string } | undefined;
+
+    if (existingClaim) {
+      return res.status(400).json({
+        error: existingClaim.status === 'pending'
+          ? 'You already have a pending claim for this reward'
+          : 'You already claimed this reward',
+        code: 'ALREADY_CLAIMED'
+      });
     }
 
     // Check stock

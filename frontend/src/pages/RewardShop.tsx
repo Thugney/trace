@@ -78,8 +78,11 @@ export default function RewardShop() {
     }
   };
 
-  const canAfford = rewards.filter(r => r.points_required <= availablePoints);
-  const saveUpFor = rewards.filter(r => r.points_required > availablePoints);
+  // Filter out already claimed rewards and split by affordability
+  const availableRewards = rewards.filter(r => !r.user_claim_status);
+  const alreadyClaimed = rewards.filter(r => r.user_claim_status);
+  const canAfford = availableRewards.filter(r => r.points_required <= availablePoints);
+  const saveUpFor = availableRewards.filter(r => r.points_required > availablePoints);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -192,6 +195,40 @@ export default function RewardShop() {
                     isPurchasing={false}
                     isYoungChild={isYoungChild}
                   />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Already Claimed Section */}
+          {alreadyClaimed.length > 0 && (
+            <div>
+              <h2 className={`font-semibold text-slate-500 mb-4 flex items-center gap-2 ${isYoungChild ? 'text-xl' : 'text-lg'}`}>
+                <Check className="w-5 h-5 text-green-500" />
+                Already Claimed
+              </h2>
+              <div className={`grid gap-4 ${isYoungChild ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
+                {alreadyClaimed.map(reward => (
+                  <div
+                    key={reward.id}
+                    className="bg-white rounded-2xl border-2 border-green-200 overflow-hidden opacity-60"
+                  >
+                    <div className={`${isYoungChild ? 'h-32' : 'h-24'} bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center relative`}>
+                      <span className={`${isYoungChild ? 'text-6xl' : 'text-4xl'}`}>{reward.icon || '🎁'}</span>
+                      <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                        {reward.user_claim_status === 'pending' ? 'Pending' : 'Claimed'}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <h3 className={`font-semibold text-slate-600 mb-1 ${isYoungChild ? 'text-lg' : 'text-base'}`}>
+                        {reward.title}
+                      </h3>
+                      <div className="flex items-center gap-1 text-green-600 font-medium text-sm">
+                        <Check className="w-4 h-4" />
+                        {reward.user_claim_status === 'pending' ? 'Waiting for approval' : 'You got this!'}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

@@ -19,6 +19,7 @@ import MyJourney from './pages/MyJourney';
 import FamilyLeaderboard from './pages/FamilyLeaderboard';
 import RewardShop from './pages/RewardShop';
 import CalendarView from './pages/CalendarView';
+import ControlsPage from './pages/ControlsPage';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -239,6 +240,16 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
               <RewardShop />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Parental Controls - Parents only */}
+        <Route
+          path="/controls"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <ControlsPage />
             </ProtectedRoute>
           }
         />

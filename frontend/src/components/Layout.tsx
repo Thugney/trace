@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
@@ -39,6 +39,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
+        { path: '/controls', icon: Shield, label: 'Controls' },
         { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
         { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }

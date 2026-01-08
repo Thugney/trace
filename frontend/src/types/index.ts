@@ -130,6 +130,7 @@ export interface Reward {
   claimed_at?: string;
   created_by?: number;
   created_at: string;
+  user_claim_status?: 'pending' | 'approved' | null; // If user already claimed this reward
 }
 
 export interface RewardClaim {
