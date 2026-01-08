@@ -264,11 +264,12 @@ export const goalsAPI = {
       milestonesAchieved: GoalMilestone[];
       reason?: string;
     }>(`/goals/${id}/add-progress`, { points, reason }),
-  awardBonusPoints: (profileId: number, points: number, stars: number, reason: string) =>
+  awardBonusPoints: (profileId: number, points: number, stars: number, reason: string, awardedBy?: number) =>
     api.post<{ message: string; progress: Progress }>(`/goals/${profileId}/bonus-points`, {
       points,
       stars,
-      reason
+      reason,
+      awardedBy
     }),
   approve: (id: number, approved_by: number) =>
     api.post<MonthlyGoal>(`/goals/${id}/approve`, { approved_by }),

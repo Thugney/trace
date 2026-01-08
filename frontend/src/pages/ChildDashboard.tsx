@@ -4,7 +4,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
 import { tasksAPI } from '../services/api';
-import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
+import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, notificationsAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
 import { ProfileStats } from '../types';
 import { Star, Trophy, Bell, Target, Droplets, Flame, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
 import CountdownChallengeCard from '../components/CountdownChallengeCard';
@@ -198,6 +198,16 @@ export default function ChildDashboard() {
     freezes_used_this_week: number;
   } | null>(null);
 
+  // Surprise Bonus Popup state (when parent awards bonus)
+  const [showSurpriseBonus, setShowSurpriseBonus] = useState(false);
+  const [surpriseBonusData, setSurpriseBonusData] = useState<{
+    id: number;
+    points: number;
+    stars: number;
+    reason: string;
+    awardedBy: string;
+  } | null>(null);
+
   useEffect(() => {
     if (!currentProfile) return;
 
@@ -359,7 +369,69 @@ export default function ChildDashboard() {
     }
   };
 
-  
+  // Check for surprise bonus notifications (from parent)
+  useEffect(() => {
+    if (!currentProfile || loading) return;
+
+    const checkSurpriseBonus = async () => {
+      try {
+        const response = await notificationsAPI.getNotifications(10, true); // Get unread only
+        const bonusNotification = response.data.notifications.find(
+          (n: any) => n.type === 'achievement' && !n.is_read && n.data
+        );
+
+        if (bonusNotification) {
+          try {
+            const data = typeof bonusNotification.data === 'string'
+              ? JSON.parse(bonusNotification.data)
+              : bonusNotification.data;
+
+            if (data.bonusId) {
+              setSurpriseBonusData({
+                id: bonusNotification.id,
+                points: data.points || 0,
+                stars: data.stars || 0,
+                reason: data.reason || '',
+                awardedBy: data.awardedBy || 'Parent'
+              });
+              // Delay showing bonus popup if login bonus is showing
+              setTimeout(() => {
+                setShowSurpriseBonus(true);
+                playSounds.levelUp();
+              }, showLoginBonus ? 4000 : 500);
+            }
+          } catch (e) {
+            console.error('Failed to parse bonus data:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check for surprise bonus:', error);
+      }
+    };
+
+    // Check after a short delay to let the login bonus show first
+    const timer = setTimeout(checkSurpriseBonus, 1000);
+    return () => clearTimeout(timer);
+  }, [currentProfile, loading, showLoginBonus]);
+
+  // Acknowledge surprise bonus
+  const acknowledgeSurpriseBonus = async () => {
+    if (surpriseBonusData?.id) {
+      try {
+        await notificationsAPI.markAsRead(surpriseBonusData.id);
+      } catch (e) {
+        console.error('Failed to mark notification as read:', e);
+      }
+    }
+    setShowSurpriseBonus(false);
+    setSurpriseBonusData(null);
+    // Refresh stats to show new points
+    if (currentProfile) {
+      const statsRes = await profilesAPI.getStats(currentProfile.id);
+      setStats(statsRes.data);
+    }
+  };
+
   // Load simplified tasks for young kids
   useEffect(() => {
     if (!currentProfile || !isYoungChild) return;
@@ -815,6 +887,63 @@ export default function ChildDashboard() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Surprise Bonus Popup - When parent awards bonus points */}
+      {showSurpriseBonus && surpriseBonusData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-2 sm:p-4 overflow-y-auto">
+          <div className="relative bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl text-center max-w-[90vw] sm:max-w-sm w-full overflow-hidden my-auto animate-bounce-slow">
+            {/* Sparkle effect */}
+            <div className="absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl pointer-events-none">
+              {[...Array(10)].map((_, i) => (
+                <Sparkles
+                  key={i}
+                  className="absolute text-yellow-300 animate-pulse"
+                  size={16}
+                  style={{
+                    left: `${10 + Math.random() * 80}%`,
+                    top: `${10 + Math.random() * 80}%`,
+                    animationDelay: `${Math.random() * 2}s`
+                  }}
+                />
+              ))}
+            </div>
+
+            <div className="text-5xl sm:text-7xl mb-3 sm:mb-4 animate-bounce">🎁</div>
+            <h2 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
+              Surprise Bonus!
+            </h2>
+            <p className="text-white/90 text-sm sm:text-base mb-3">
+              {surpriseBonusData.awardedBy} sent you a gift!
+            </p>
+
+            <div className="bg-white/20 rounded-xl p-3 sm:p-4 mb-4">
+              {surpriseBonusData.points > 0 && (
+                <div className="text-2xl sm:text-3xl font-black text-yellow-200 drop-shadow mb-1">
+                  +{surpriseBonusData.points} points
+                </div>
+              )}
+              {surpriseBonusData.stars > 0 && (
+                <div className="text-xl sm:text-2xl font-bold text-yellow-200 drop-shadow flex items-center justify-center gap-1">
+                  +{surpriseBonusData.stars} <Star className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
+                </div>
+              )}
+              {surpriseBonusData.reason && (
+                <p className="text-white/80 text-sm mt-2 italic">
+                  "{surpriseBonusData.reason}"
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={acknowledgeSurpriseBonus}
+              className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-yellow-400 text-purple-800 rounded-full font-bold text-base sm:text-lg hover:bg-yellow-300 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
+            >
+              <Gift size={18} className="sm:w-5 sm:h-5" />
+              Awesome! Thanks!
+            </button>
           </div>
         </div>
       )}

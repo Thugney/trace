@@ -299,10 +299,10 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // Award bonus points (creates progress entry without task_id)
-router.post('/:profileId/bonus-points', (req, res) => {
+router.post('/:profileId/bonus-points', async (req, res) => {
   try {
     const { profileId } = req.params;
-    const { points, stars, reason } = req.body;
+    const { points, stars, reason, awardedBy } = req.body;
 
     if (!points && !stars) {
       return res.status(400).json({ error: 'Points or stars required' });
@@ -323,10 +323,39 @@ router.post('/:profileId/bonus-points', (req, res) => {
       profileId,
       stars || 0,
       profileId,
-      JSON.stringify([{ type: 'bonus', reason, date: new Date().toISOString() }])
+      JSON.stringify([{ type: 'bonus', reason, awardedBy, date: new Date().toISOString() }])
     );
 
     const bonusEntry = db.prepare('SELECT * FROM progress WHERE id = ?').get(result.lastInsertRowid);
+
+    // Get awarder's name for the notification
+    let awarderName = 'Parent';
+    if (awardedBy) {
+      const awarder: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(awardedBy);
+      if (awarder) awarderName = awarder.name;
+    }
+
+    // Send notification to the child about the bonus
+    const rewardParts = [];
+    if (points) rewardParts.push(`${points} points`);
+    if (stars) rewardParts.push(`${stars} stars`);
+    const rewardText = rewardParts.join(' and ');
+
+    await sendPushNotification(parseInt(profileId), {
+      type: 'achievement',
+      title: 'Surprise Bonus! 🎉',
+      message: `${awarderName} gave you ${rewardText}${reason ? ` for: ${reason}` : '!'}`,
+      icon: '🎁',
+      data: {
+        bonusId: result.lastInsertRowid,
+        points: points || 0,
+        stars: stars || 0,
+        reason: reason || '',
+        awardedBy: awarderName
+      },
+      url: '/'
+    });
+
     res.status(201).json({
       message: 'Bonus points awarded!',
       progress: bonusEntry

@@ -314,12 +314,13 @@ export default function TasksManager() {
         displayProfileId!,
         parseInt(formData.get('points') as string, 10) || 0,
         parseInt(formData.get('stars') as string, 10) || 0,
-        formData.get('reason') as string
+        formData.get('reason') as string,
+        currentProfile?.id // Pass the parent's ID who is awarding
       );
 
       await loadProgress();
       setShowBonusPoints(false);
-      alert('Bonus points awarded! 🎉');
+      alert('Bonus points awarded! 🎉 The child will see a surprise notification!');
     } catch (error) {
       console.error('Failed to award bonus:', error);
       alert('Failed to award bonus points');
