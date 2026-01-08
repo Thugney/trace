@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { gamificationAPI, EconomySettings as EconomySettingsType } from '../services/api';
 import { Profile } from '../types';
 import { Shield, Clock, Zap, Gift, ChevronDown, ChevronUp, Save, AlertCircle, DollarSign, Info } from 'lucide-react';
+import Avatar from './Avatar';
 
 interface Props {
   children: Profile[];
@@ -168,7 +169,7 @@ export default function EconomySettings({ children }: Props) {
               className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
             >
               <div className="flex items-center space-x-3">
-                <span className="text-3xl">{economy.avatar}</span>
+                <Avatar avatar={economy.avatar} size="md" alt={economy.name} />
                 <div className="text-left">
                   <p className="font-semibold text-gray-900">{economy.name}</p>
                   <p className="text-sm text-gray-500">

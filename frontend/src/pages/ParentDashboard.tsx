@@ -5,6 +5,7 @@ import { useToast } from '../components/Toast';
 import { profilesAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
 import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy } from 'lucide-react';
+import Avatar from '../components/Avatar';
 import RewardManagement from '../components/RewardManagement';
 
 export default function ParentDashboard() {
@@ -198,7 +199,7 @@ export default function ParentDashboard() {
             {childrenStats.map((child) => (
               <div key={child.id} className="card">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="text-5xl">{child.avatar || '👤'}</div>
+                  <Avatar avatar={child.avatar} size="xl" alt={child.name} />
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold text-gray-900">{child.name}</h3>
                     <p className="text-sm text-gray-600">{child.age} years old</p>
@@ -303,7 +304,7 @@ export default function ParentDashboard() {
                   <div key={child.id} className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl">{child.avatar || '👤'}</span>
+                        <Avatar avatar={child.avatar} size="sm" alt={child.name} />
                         <span className="font-medium text-gray-900">{child.name}</span>
                       </div>
                       <span className="text-sm font-semibold text-primary-600">{completionRate}%</span>

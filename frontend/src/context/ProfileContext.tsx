@@ -34,8 +34,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         const response = await profilesAPI.getForSelector();
         setProfiles(response.data);
       }
-    } catch (error) {
-      console.error('Failed to fetch profiles:', error);
+    } catch (error: any) {
+      // 401 errors are expected when auth is stale - silently fall back to public endpoint
+      const isAuthError = error?.response?.status === 401;
+      if (!isAuthError) {
+        console.error('Failed to fetch profiles:', error);
+      }
       // Fallback to public selector if auth fails
       try {
         const response = await profilesAPI.getForSelector();
@@ -82,10 +86,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             updatedProfile.avatar !== currentProfile.avatar;
 
           if (hasChanges) {
-            console.log('[ProfileContext] Current profile updated with fresh data:', {
-              ai_enabled: updatedProfile.ai_enabled,
-              name: updatedProfile.name
-            });
+            // Profile data refreshed - settings may have changed
             setCurrentProfile(updatedProfile);
           }
         }
@@ -98,10 +99,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (currentProfile) {
       localStorage.setItem('currentProfileId', currentProfile.id.toString());
 
-      // CRITICAL FIX: Refresh profiles when user logs in or switches profiles
+      // Refresh profiles when user logs in or switches profiles
       // This ensures we get the correct role-based filtered data from the backend
       if (previousProfileIdRef.current !== currentProfile.id) {
-        console.log(`[ProfileContext] Profile changed (${previousProfileIdRef.current} -> ${currentProfile.id}), refreshing profiles...`);
         previousProfileIdRef.current = currentProfile.id;
         refreshProfiles();
       }

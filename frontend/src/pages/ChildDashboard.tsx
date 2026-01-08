@@ -10,6 +10,7 @@ import { Star, Trophy, Bell, Target, Droplets, Flame, Zap, CheckCircle, Calendar
 import CountdownChallengeCard from '../components/CountdownChallengeCard';
 import SpinWheel from '../components/SpinWheel';
 import HiddenAchievements from '../components/HiddenAchievements';
+import Avatar from '../components/Avatar';
 import playSounds from '../utils/sounds';
 
 // Goal type display helper - makes reward types kid-friendly
@@ -717,17 +718,17 @@ export default function ChildDashboard() {
         </div>
       )}
 
-      {/* Daily Login Bonus Modal */}
+      {/* Daily Login Bonus Modal - Mobile Responsive */}
       {showLoginBonus && loginBonusData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full mx-4 overflow-hidden">
-            {/* Sparkle effect */}
-            <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-              {[...Array(12)].map((_, i) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-2 sm:p-4 overflow-y-auto">
+          <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl text-center max-w-[90vw] sm:max-w-sm w-full overflow-hidden my-auto">
+            {/* Sparkle effect - fewer on mobile for performance */}
+            <div className="absolute inset-0 overflow-hidden rounded-2xl sm:rounded-3xl pointer-events-none">
+              {[...Array(8)].map((_, i) => (
                 <Sparkles
                   key={i}
                   className="absolute text-yellow-300 animate-pulse"
-                  size={16}
+                  size={14}
                   style={{
                     left: `${10 + Math.random() * 80}%`,
                     top: `${10 + Math.random() * 80}%`,
@@ -739,40 +740,40 @@ export default function ChildDashboard() {
 
             <button
               onClick={() => setShowLoginBonus(false)}
-              className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
+              className="absolute top-2 right-2 sm:top-3 sm:right-3 text-white/70 hover:text-white transition-colors z-10 p-1"
             >
-              <X size={24} />
+              <X size={20} className="sm:w-6 sm:h-6" />
             </button>
 
             {bonusClaimed ? (
               <>
-                <div className="text-7xl mb-4 animate-bounce">🎁</div>
-                <h2 className="text-2xl font-black text-white mb-2 drop-shadow-lg">
+                <div className="text-5xl sm:text-7xl mb-3 sm:mb-4 animate-bounce">🎁</div>
+                <h2 className="text-xl sm:text-2xl font-black text-white mb-2 drop-shadow-lg">
                   Bonus Claimed!
                 </h2>
-                <div className="text-4xl font-black text-yellow-200 drop-shadow-lg mb-2">
+                <div className="text-2xl sm:text-4xl font-black text-yellow-200 drop-shadow-lg mb-2">
                   +{loginBonusData.points_earned} points
                 </div>
-                <p className="text-white/90">
+                <p className="text-white/90 text-sm sm:text-base">
                   Day {loginBonusData.consecutive_days} streak! 🔥
                 </p>
               </>
             ) : (
               <>
-                <div className="text-6xl mb-3">🌟</div>
-                <h2 className="text-2xl font-black text-white mb-1 drop-shadow-lg">
+                <div className="text-4xl sm:text-6xl mb-2 sm:mb-3">🌟</div>
+                <h2 className="text-xl sm:text-2xl font-black text-white mb-1 drop-shadow-lg">
                   Daily Bonus!
                 </h2>
-                <p className="text-white/80 text-sm mb-3">
+                <p className="text-white/80 text-xs sm:text-sm mb-2 sm:mb-3">
                   Day {loginBonusData.consecutive_days} of 7
                 </p>
 
-                {/* Streak visualization */}
-                <div className="flex justify-center gap-1 mb-4">
+                {/* Streak visualization - smaller on mobile */}
+                <div className="flex justify-center gap-1 mb-3 sm:mb-4">
                   {[1, 2, 3, 4, 5, 6, 7].map((day) => (
                     <div
                       key={day}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
                         day < loginBonusData.consecutive_days
                           ? 'bg-yellow-400 text-yellow-900'
                           : day === loginBonusData.consecutive_days
@@ -785,29 +786,29 @@ export default function ChildDashboard() {
                   ))}
                 </div>
 
-                <div className="bg-white/20 rounded-xl p-4 mb-4">
-                  <p className="text-white/80 text-sm">Today's Reward</p>
-                  <div className="text-3xl font-black text-yellow-200 drop-shadow">
+                <div className="bg-white/20 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+                  <p className="text-white/80 text-xs sm:text-sm">Today's Reward</p>
+                  <div className="text-2xl sm:text-3xl font-black text-yellow-200 drop-shadow">
                     +{loginBonusData.points_to_earn} points
                   </div>
                   {loginBonusData.consecutive_days === 7 && (
-                    <p className="text-yellow-200 text-sm mt-1">🎉 Week complete bonus!</p>
+                    <p className="text-yellow-200 text-xs sm:text-sm mt-1">🎉 Week complete bonus!</p>
                   )}
                 </div>
 
                 <button
                   onClick={claimLoginBonus}
                   disabled={claimingBonus}
-                  className="w-full px-6 py-3 bg-yellow-400 text-teal-800 rounded-full font-bold text-lg hover:bg-yellow-300 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full px-4 sm:px-6 py-2.5 sm:py-3 bg-yellow-400 text-teal-800 rounded-full font-bold text-base sm:text-lg hover:bg-yellow-300 active:scale-95 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {claimingBonus ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
                       Claiming...
                     </>
                   ) : (
                     <>
-                      <Gift size={20} />
+                      <Gift size={18} className="sm:w-5 sm:h-5" />
                       Claim Bonus!
                     </>
                   )}
@@ -1589,7 +1590,7 @@ export default function ChildDashboard() {
                   }`}
                 >
                   <span className="text-2xl font-bold w-10 text-center">{rankEmoji}</span>
-                  <span className="text-3xl">{entry.avatar}</span>
+                  <Avatar avatar={entry.avatar} size="md" alt={entry.name} />
                   <div className="flex-1">
                     <p className={`font-bold ${isCurrentUser ? 'text-amber-800' : 'text-gray-800'}`}>
                       {entry.name} {isCurrentUser && '(You!)'}

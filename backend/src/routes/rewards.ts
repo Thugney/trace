@@ -259,6 +259,14 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Title and points required' });
     }
 
+    if (!createdBy) {
+      return res.status(400).json({ error: 'Creator ID required' });
+    }
+
+    // Use createdBy as profile_id if not specified (for legacy schema compatibility)
+    // profile_id indicates which child can claim it, or if available_for_all, use createdBy
+    const effectiveProfileId = profileId || createdBy;
+
     const result = db.prepare(`
       INSERT INTO rewards (
         title, description, points_required, icon, image_url, type,
@@ -266,16 +274,16 @@ router.post('/', (req: Request, res: Response) => {
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      title, description, pointsRequired, icon, imageUrl, type,
-      category, profileId, availableForAll ? 1 : 0, stock, createdBy
+      title, description || null, pointsRequired, icon || null, imageUrl || null, type,
+      category, effectiveProfileId, availableForAll ? 1 : 0, stock, createdBy
     );
 
     const reward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(result.lastInsertRowid);
 
     res.json(reward);
-  } catch (error) {
-    console.error('Error creating reward:', error);
-    res.status(500).json({ error: 'Failed to create reward' });
+  } catch (error: any) {
+    console.error('Error creating reward:', error.message, error.stack);
+    res.status(500).json({ error: 'Failed to create reward', details: error.message });
   }
 });
 

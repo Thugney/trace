@@ -394,8 +394,7 @@ export default function Settings() {
 
     setUploadingAvatar(true);
     try {
-      const response = await profilesAPI.uploadAvatar(profileId, file);
-      console.log('Avatar upload response:', response.data);
+      await profilesAPI.uploadAvatar(profileId, file);
       setSuccessMessage('Avatar uploaded successfully!');
       await refreshProfiles();
     } catch (error: any) {

@@ -5,6 +5,7 @@ import { Task, MonthlyGoal } from '../types';
 import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera } from 'lucide-react';
 import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
+import Avatar from '../components/Avatar';
 
 // Category icons map
 const categoryIcons: Record<string, string> = {
@@ -531,7 +532,7 @@ export default function TasksManager() {
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 )}
               >
-                {child.avatar} {child.name}
+<Avatar avatar={child.avatar} size="sm" alt={child.name} className="inline-block mr-1" /> {child.name}
               </button>
             ))}
           </div>
@@ -551,7 +552,7 @@ export default function TasksManager() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">{goal.child_avatar || '👤'}</span>
+                      <Avatar avatar={goal.child_avatar} size="sm" alt={goal.child_name || 'Child'} className="mr-2" />
                       <div>
                         <p className="font-semibold text-gray-900">{goal.child_name}</p>
                         <p className="text-sm text-gray-600">wants to set a goal</p>
@@ -597,7 +598,7 @@ export default function TasksManager() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">{task.child_avatar || '👤'}</span>
+                      <Avatar avatar={task.child_avatar} size="sm" alt={task.child_name || 'Child'} className="mr-2" />
                       <div>
                         <p className="font-semibold text-gray-900">{task.child_name}</p>
                         <p className="text-sm text-gray-600">created a task</p>
@@ -663,7 +664,7 @@ export default function TasksManager() {
                   {/* Task Details */}
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
-                      <span className="text-2xl mr-2">{task.child_avatar || '👤'}</span>
+                      <Avatar avatar={task.child_avatar} size="sm" alt={task.child_name || 'Child'} className="mr-2" />
                       <div>
                         <p className="font-semibold text-gray-900">{task.child_name}</p>
                         <p className="text-sm text-gray-600">uploaded proof for task</p>
