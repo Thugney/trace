@@ -4,6 +4,7 @@ import { profilesAPI } from '../services/api';
 import { JourneyData, JourneyEvent, Profile } from '../types';
 import { Calendar, Users, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
+import Avatar from '../components/Avatar';
 
 type PeriodType = 'week' | 'month' | 'year' | 'all';
 
@@ -158,7 +159,7 @@ export default function MyJourney() {
               className="w-full md:w-auto mx-auto flex items-center justify-center gap-3 px-6 py-3 bg-white border-2 border-gray-200 rounded-xl shadow-sm hover:border-primary-300 transition-all"
             >
               <Users className="text-primary-600" size={20} />
-              <span className="text-2xl">{selectedProfile?.avatar || '👤'}</span>
+              <Avatar avatar={selectedProfile?.avatar} size="md" alt={selectedProfile?.name || 'Profile'} />
               <span className="font-semibold text-gray-800">{selectedProfile?.name}</span>
               {selectedProfile?.type === 'child' && selectedProfile?.age && (
                 <span className="text-gray-500 text-sm">({selectedProfile.age} years)</span>
@@ -186,7 +187,7 @@ export default function MyJourney() {
                       selectedProfileId === profile.id && 'bg-primary-50 border-l-4 border-primary-500'
                     )}
                   >
-                    <span className="text-2xl">{profile.avatar || '👤'}</span>
+                    <Avatar avatar={profile.avatar} size="md" alt={profile.name} />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{profile.name}</p>
                       <p className="text-xs text-gray-500 capitalize">

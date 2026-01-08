@@ -586,10 +586,10 @@ export default function ChildDashboard() {
         <div className="text-center mb-8">
           <button
             onClick={() => setShowAvatarPicker(true)}
-            className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-5xl shadow-lg hover:scale-110 transition-transform ring-4 ring-yellow-300 active:scale-95"
+            className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-5xl shadow-lg hover:scale-110 transition-transform ring-4 ring-yellow-300 active:scale-95 overflow-hidden"
             title="Tap to change avatar!"
           >
-            {currentProfile?.avatar || '😊'}
+            <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
           </button>
           <p className="text-xs text-slate-500 mb-2">👆 Tap to change!</p>
           <h1 className="text-3xl font-bold text-slate-800">
@@ -1067,8 +1067,8 @@ export default function ChildDashboard() {
           className="group relative inline-block"
           title="Change your avatar"
         >
-          <div className="text-7xl mb-3 transition-transform group-hover:scale-110">
-            {currentProfile?.avatar || '👤'}
+          <div className="mb-3 transition-transform group-hover:scale-110">
+            <Avatar avatar={currentProfile?.avatar} size="2xl" alt={currentProfile?.name || 'Avatar'} />
           </div>
           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
             <Pencil size={12} />

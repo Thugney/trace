@@ -462,17 +462,9 @@ export default function Settings() {
           {/* Avatar Upload Section */}
           <div className="flex flex-col items-center mb-6">
             <div className="relative">
-              {currentProfile?.avatar?.startsWith('/api/') ? (
-                <img
-                  src={currentProfile.avatar}
-                  alt="Avatar"
-                  className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-4xl border-4 border-primary-200">
-                  {currentProfile?.avatar || '👤'}
-                </div>
-              )}
+              <div className="border-4 border-primary-200 rounded-full">
+                <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
+              </div>
               <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
                 <Camera size={16} />
                 <input
@@ -685,17 +677,9 @@ export default function Settings() {
             {/* Avatar Upload Section */}
             <div className="flex flex-col items-center mb-6">
               <div className="relative">
-                {currentProfile?.avatar?.startsWith('/api/') ? (
-                  <img
-                    src={currentProfile.avatar}
-                    alt="Avatar"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-primary-200"
-                  />
-                ) : (
-                  <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center text-4xl border-4 border-primary-200">
-                    {currentProfile?.avatar || '👤'}
-                  </div>
-                )}
+                <div className="border-4 border-primary-200 rounded-full">
+                  <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
+                </div>
                 <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
                   <Camera size={16} />
                   <input

@@ -4,6 +4,7 @@ import { profilesAPI, aiAPI } from '../services/api';
 import { Profile } from '../types';
 import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
+import Avatar from '../components/Avatar';
 
 export default function AdminPanel() {
   const { currentProfile, refreshProfiles } = useProfile();
@@ -514,7 +515,7 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, onUpd
       )}
     >
       <div className="flex items-center space-x-4">
-        <div className="text-3xl">{profile.avatar || '👤'}</div>
+        <Avatar avatar={profile.avatar} size="lg" alt={profile.name} />
         <div>
           <div className="flex items-center space-x-2">
             <h3 className="font-semibold text-gray-900">
