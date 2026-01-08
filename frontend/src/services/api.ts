@@ -425,8 +425,93 @@ export const gamificationAPI = {
       message: string;
       points_spent: number;
       remaining_points: number;
-    }>(`/gamification/streak-freeze/${profileId}`, { streak_type })
+    }>(`/gamification/streak-freeze/${profileId}`, { streak_type }),
+
+  // ===== NEW GAMIFICATION FEATURES =====
+
+  // Countdown Challenges
+  getCountdownChallenge: (profileId: number) =>
+    api.get<{
+      active: CountdownChallenge | null;
+      stats: { totalCompleted: number; totalBonusEarned: number };
+    }>(`/gamification/countdown/${profileId}`),
+  startCountdownChallenge: (profileId: number) =>
+    api.post<{ challenge: CountdownChallenge; message: string }>(`/gamification/countdown/${profileId}/start`),
+
+  // Lucky Spin Wheel
+  getSpinWheel: (profileId: number) =>
+    api.get<{
+      canSpin: boolean;
+      tasksUntilSpin: number;
+      tasksSinceLastSpin: number;
+      tasksRequired: number;
+      totalSpins: number;
+      recentHistory: SpinWheelHistory[];
+      prizes: SpinWheelPrize[];
+    }>(`/gamification/spin-wheel/${profileId}`),
+  spinWheel: (profileId: number) =>
+    api.post<{
+      success: boolean;
+      prize: SpinWheelPrize & { index: number };
+      pointsAwarded: number;
+      starsAwarded: number;
+      message: string;
+    }>(`/gamification/spin-wheel/${profileId}/spin`),
+
+  // Hidden Achievements
+  getAchievementsWithHidden: (profileId: number) =>
+    api.get<{
+      visible: Achievement[];
+      earnedHidden: Achievement[];
+      hiddenStats: { totalHidden: number; earnedHidden: number; remaining: number };
+    }>(`/gamification/achievements-with-hidden/${profileId}`)
 };
+
+// Types for new gamification features
+export interface CountdownChallenge {
+  id: number;
+  profile_id: number;
+  title: string;
+  description: string;
+  target_tasks: number;
+  completed_tasks: number;
+  duration_minutes: number;
+  bonus_multiplier: number;
+  started_at: string;
+  expires_at: string;
+  completed: boolean;
+  completed_at: string | null;
+  bonus_points_awarded: number;
+}
+
+export interface SpinWheelPrize {
+  type: string;
+  value?: number;
+  description: string;
+  color: string;
+  weight?: number;
+}
+
+export interface SpinWheelHistory {
+  id: number;
+  reward_type: string;
+  reward_value: number;
+  reward_description: string;
+  spun_at: string;
+}
+
+export interface Achievement {
+  id: number;
+  name: string;
+  description: string;
+  icon: string;
+  points_reward: number;
+  requirement_type: string;
+  requirement_value: number;
+  is_hidden?: boolean;
+  earned?: boolean;
+  earned_at?: string;
+}
 
 // AI Gamification API - Personalized AI-driven challenges
 export const aiGamificationAPI = {

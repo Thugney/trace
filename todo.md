@@ -7,7 +7,7 @@
 #### 1. Daily Engagement Hooks
 - [x] Daily Login Bonus - +5 points for opening app, consecutive day bonuses (Day 7 = 50pts)
 - [x] Streak Protection - One "freeze" per week to protect streak (costs points to use)
-- [ ] Countdown Challenges - "Complete 3 tasks in 2 hours for 2x points!"
+- [x] Countdown Challenges - "Complete 3 tasks in 2 hours for 2x points!"
 
 #### 2. Sound & Feedback
 - [x] Sound effects - Satisfying sounds on task complete, level-up, achievements, bonus claims
@@ -16,8 +16,8 @@
 
 #### 3. Mystery & Surprise Rewards
 - [x] Random bonus multiplier - AI-generated challenges with 1.5x-2x bonus multipliers
-- [ ] Lucky spin wheel - After completing X tasks, spin for bonus rewards
-- [ ] Hidden achievements - Secret badges that unlock unexpectedly
+- [x] Lucky spin wheel - After completing X tasks, spin for bonus rewards
+- [x] Hidden achievements - Secret badges that unlock unexpectedly
 
 #### 4. Power-ups System
 - [x] "2x Points" power-up via AI challenges (bonus multipliers)
@@ -86,6 +86,9 @@
 - [x] Responsive note creation modal
 - [x] AI personalized gamification system
 - [x] Teacher dashboard responsive design
+- [x] Countdown Challenges with timer and bonus multipliers
+- [x] Lucky Spin Wheel (earn spins by completing tasks)
+- [x] Hidden/Secret Achievements (10 secret badges)
 
 ### Local Testing (Alpha Environment)
 - [x] Docker services start correctly

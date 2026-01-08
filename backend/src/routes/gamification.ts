@@ -1102,4 +1102,467 @@ export function updateTaskStreak(profileId: number) {
   checkAchievements(profileId);
 }
 
+// ==================== COUNTDOWN CHALLENGES ====================
+
+// Countdown challenge templates
+const COUNTDOWN_TEMPLATES = [
+  { target: 3, duration: 120, multiplier: 2.0, description: 'Complete 3 tasks in 2 hours for 2x points!' },
+  { target: 2, duration: 60, multiplier: 1.5, description: 'Complete 2 tasks in 1 hour for 1.5x points!' },
+  { target: 5, duration: 180, multiplier: 2.5, description: 'Complete 5 tasks in 3 hours for 2.5x points!' },
+  { target: 4, duration: 90, multiplier: 2.0, description: 'Complete 4 tasks in 90 minutes for 2x points!' }
+];
+
+// Get active countdown challenge for a profile
+router.get('/countdown/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const now = new Date().toISOString();
+
+    // Get active (non-expired, non-completed) countdown challenge
+    const active: any = db.prepare(`
+      SELECT * FROM countdown_challenges
+      WHERE profile_id = ? AND completed = 0 AND expires_at > ?
+      ORDER BY created_at DESC LIMIT 1
+    `).get(profileId, now);
+
+    // Get completed countdown challenges count
+    const stats: any = db.prepare(`
+      SELECT
+        COUNT(*) as total_completed,
+        SUM(bonus_points_awarded) as total_bonus_earned
+      FROM countdown_challenges
+      WHERE profile_id = ? AND completed = 1
+    `).get(profileId);
+
+    res.json({
+      active: active || null,
+      stats: {
+        totalCompleted: stats?.total_completed || 0,
+        totalBonusEarned: stats?.total_bonus_earned || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start a new countdown challenge
+router.post('/countdown/:profileId/start', (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const now = new Date();
+    const nowISO = now.toISOString();
+
+    // Check if already has an active challenge
+    const existing: any = db.prepare(`
+      SELECT * FROM countdown_challenges
+      WHERE profile_id = ? AND completed = 0 AND expires_at > ?
+    `).get(profileId, nowISO);
+
+    if (existing) {
+      return res.status(400).json({ error: 'Already have an active countdown challenge', active: existing });
+    }
+
+    // Pick a random template
+    const template = COUNTDOWN_TEMPLATES[Math.floor(Math.random() * COUNTDOWN_TEMPLATES.length)];
+
+    // Calculate expiry time
+    const expiresAt = new Date(now.getTime() + template.duration * 60 * 1000);
+
+    const result = db.prepare(`
+      INSERT INTO countdown_challenges (profile_id, title, description, target_tasks, duration_minutes, bonus_multiplier, expires_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      profileId,
+      `⏱️ ${template.duration / 60 >= 1 ? `${Math.floor(template.duration / 60)}h` : ''}${template.duration % 60 > 0 ? `${template.duration % 60}m` : ''} Challenge!`,
+      template.description,
+      template.target,
+      template.duration,
+      template.multiplier,
+      expiresAt.toISOString()
+    );
+
+    const challenge = db.prepare('SELECT * FROM countdown_challenges WHERE id = ?').get(result.lastInsertRowid);
+
+    res.status(201).json({ challenge, message: 'Countdown challenge started!' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update countdown challenge progress (called when task is completed)
+export function updateCountdownProgress(profileId: number, pointsEarned: number): { bonusPoints: number; challengeCompleted: boolean } | null {
+  const now = new Date().toISOString();
+
+  // Get active countdown challenge
+  const active: any = db.prepare(`
+    SELECT * FROM countdown_challenges
+    WHERE profile_id = ? AND completed = 0 AND expires_at > ?
+    ORDER BY created_at DESC LIMIT 1
+  `).get(profileId, now);
+
+  if (!active) {
+    return null;
+  }
+
+  const newCompletedTasks = active.completed_tasks + 1;
+  const isComplete = newCompletedTasks >= active.target_tasks;
+
+  if (isComplete) {
+    // Calculate bonus points
+    const bonusPoints = Math.round(pointsEarned * (active.bonus_multiplier - 1));
+
+    db.prepare(`
+      UPDATE countdown_challenges
+      SET completed_tasks = ?, completed = 1, completed_at = CURRENT_TIMESTAMP, bonus_points_awarded = ?
+      WHERE id = ?
+    `).run(newCompletedTasks, bonusPoints, active.id);
+
+    // Award bonus points
+    const currentProgress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    if (currentProgress) {
+      const newPoints = currentProgress.total_points + bonusPoints;
+      const newLevel = Math.floor(newPoints / 100) + 1;
+      db.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, 0, ?, ?, ?)
+      `).run(profileId, bonusPoints, newLevel, newPoints, currentProgress.total_stars);
+    }
+
+    // Check for hidden achievement
+    const countdownCount: any = db.prepare(`
+      SELECT COUNT(*) as count FROM countdown_challenges WHERE profile_id = ? AND completed = 1
+    `).get(profileId);
+
+    if (countdownCount?.count >= 5) {
+      checkHiddenAchievement(profileId, 'countdown_completed', countdownCount.count);
+    }
+
+    return { bonusPoints, challengeCompleted: true };
+  } else {
+    db.prepare(`
+      UPDATE countdown_challenges SET completed_tasks = ? WHERE id = ?
+    `).run(newCompletedTasks, active.id);
+
+    return { bonusPoints: 0, challengeCompleted: false };
+  }
+}
+
+// ==================== LUCKY SPIN WHEEL ====================
+
+const SPIN_WHEEL_PRIZES = [
+  { type: 'points', value: 10, description: '10 Bonus Points', weight: 25, color: '#22c55e' },
+  { type: 'points', value: 25, description: '25 Bonus Points', weight: 20, color: '#3b82f6' },
+  { type: 'points', value: 50, description: '50 Bonus Points', weight: 15, color: '#8b5cf6' },
+  { type: 'points', value: 100, description: '100 Bonus Points!', weight: 8, color: '#f59e0b' },
+  { type: 'stars', value: 2, description: '2 Bonus Stars', weight: 15, color: '#ec4899' },
+  { type: 'stars', value: 5, description: '5 Bonus Stars!', weight: 8, color: '#ef4444' },
+  { type: 'multiplier', value: 2, description: 'Next task 2x points!', weight: 6, color: '#06b6d4' },
+  { type: 'jackpot', value: 200, description: '🎰 JACKPOT! 200 Points!', weight: 3, color: '#fbbf24' }
+];
+
+// Get spin wheel status for a profile
+router.get('/spin-wheel/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    // Get or create spin wheel progress
+    let progress: any = db.prepare(`
+      SELECT * FROM spin_wheel_progress WHERE profile_id = ?
+    `).get(profileId);
+
+    if (!progress) {
+      db.prepare(`
+        INSERT INTO spin_wheel_progress (profile_id, tasks_since_last_spin, tasks_required_for_spin)
+        VALUES (?, 0, 5)
+      `).run(profileId);
+      progress = db.prepare(`SELECT * FROM spin_wheel_progress WHERE profile_id = ?`).get(profileId);
+    }
+
+    // Get recent spin history
+    const history = db.prepare(`
+      SELECT * FROM spin_wheel_history
+      WHERE profile_id = ?
+      ORDER BY spun_at DESC LIMIT 5
+    `).all(profileId);
+
+    const canSpin = progress.tasks_since_last_spin >= progress.tasks_required_for_spin;
+
+    res.json({
+      canSpin,
+      tasksUntilSpin: Math.max(0, progress.tasks_required_for_spin - progress.tasks_since_last_spin),
+      tasksSinceLastSpin: progress.tasks_since_last_spin,
+      tasksRequired: progress.tasks_required_for_spin,
+      totalSpins: progress.total_spins,
+      recentHistory: history,
+      prizes: SPIN_WHEEL_PRIZES.map(p => ({ type: p.type, description: p.description, color: p.color }))
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Spin the wheel
+router.post('/spin-wheel/:profileId/spin', (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    // Get progress
+    const progress: any = db.prepare(`
+      SELECT * FROM spin_wheel_progress WHERE profile_id = ?
+    `).get(profileId);
+
+    if (!progress) {
+      return res.status(400).json({ error: 'No spin progress found' });
+    }
+
+    if (progress.tasks_since_last_spin < progress.tasks_required_for_spin) {
+      return res.status(400).json({
+        error: 'Not enough tasks completed',
+        tasksNeeded: progress.tasks_required_for_spin - progress.tasks_since_last_spin
+      });
+    }
+
+    // Weighted random selection
+    const totalWeight = SPIN_WHEEL_PRIZES.reduce((sum, p) => sum + p.weight, 0);
+    let random = Math.random() * totalWeight;
+    let selectedPrize = SPIN_WHEEL_PRIZES[0];
+    let prizeIndex = 0;
+
+    for (let i = 0; i < SPIN_WHEEL_PRIZES.length; i++) {
+      random -= SPIN_WHEEL_PRIZES[i].weight;
+      if (random <= 0) {
+        selectedPrize = SPIN_WHEEL_PRIZES[i];
+        prizeIndex = i;
+        break;
+      }
+    }
+
+    // Log the spin
+    db.prepare(`
+      INSERT INTO spin_wheel_history (profile_id, reward_type, reward_value, reward_description)
+      VALUES (?, ?, ?, ?)
+    `).run(profileId, selectedPrize.type, selectedPrize.value, selectedPrize.description);
+
+    // Reset progress and increment total spins
+    db.prepare(`
+      UPDATE spin_wheel_progress
+      SET tasks_since_last_spin = 0, total_spins = total_spins + 1, last_spin_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE profile_id = ?
+    `).run(profileId);
+
+    // Award the prize
+    const currentProgress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    let pointsAwarded = 0;
+    let starsAwarded = 0;
+
+    if (selectedPrize.type === 'points' || selectedPrize.type === 'jackpot') {
+      pointsAwarded = selectedPrize.value;
+    } else if (selectedPrize.type === 'stars') {
+      starsAwarded = selectedPrize.value;
+    }
+    // multiplier type is stored and applied on next task completion
+
+    if (currentProgress && (pointsAwarded > 0 || starsAwarded > 0)) {
+      const newPoints = currentProgress.total_points + pointsAwarded;
+      const newStars = currentProgress.total_stars + starsAwarded;
+      const newLevel = Math.floor(newPoints / 100) + 1;
+      db.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(profileId, pointsAwarded, starsAwarded, newLevel, newPoints, newStars);
+    }
+
+    // Store multiplier as a power-up if won
+    if (selectedPrize.type === 'multiplier') {
+      const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      db.prepare(`
+        INSERT INTO power_ups (profile_id, power_up_type, quantity, expires_at)
+        VALUES (?, 'spin_multiplier', ?, ?)
+      `).run(profileId, selectedPrize.value, expiry.toISOString());
+    }
+
+    // Check for jackpot hidden achievement
+    if (selectedPrize.type === 'jackpot') {
+      checkHiddenAchievement(parseInt(profileId), 'jackpot_win', 1);
+    }
+
+    res.json({
+      success: true,
+      prize: {
+        ...selectedPrize,
+        index: prizeIndex
+      },
+      pointsAwarded,
+      starsAwarded,
+      message: `You won: ${selectedPrize.description}`
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Increment spin wheel progress (called when task is completed)
+export function incrementSpinProgress(profileId: number): boolean {
+  // Get or create progress
+  let progress: any = db.prepare(`
+    SELECT * FROM spin_wheel_progress WHERE profile_id = ?
+  `).get(profileId);
+
+  if (!progress) {
+    db.prepare(`
+      INSERT INTO spin_wheel_progress (profile_id, tasks_since_last_spin, tasks_required_for_spin)
+      VALUES (?, 1, 5)
+    `).run(profileId);
+    return false;
+  }
+
+  const newCount = progress.tasks_since_last_spin + 1;
+  db.prepare(`
+    UPDATE spin_wheel_progress SET tasks_since_last_spin = ?, updated_at = CURRENT_TIMESTAMP WHERE profile_id = ?
+  `).run(newCount, profileId);
+
+  return newCount >= progress.tasks_required_for_spin;
+}
+
+// ==================== HIDDEN ACHIEVEMENTS ====================
+
+// Get achievements for a profile (with hidden support)
+router.get('/achievements-with-hidden/:profileId', (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    // Get all non-hidden achievements
+    const visible = db.prepare(`
+      SELECT a.*,
+        CASE WHEN pa.id IS NOT NULL THEN 1 ELSE 0 END as earned,
+        pa.earned_at
+      FROM achievements a
+      LEFT JOIN profile_achievements pa ON a.id = pa.achievement_id AND pa.profile_id = ?
+      WHERE a.is_hidden = 0 OR a.is_hidden IS NULL
+      ORDER BY a.requirement_value ASC
+    `).all(profileId);
+
+    // Get earned hidden achievements (only show if earned)
+    const earnedHidden = db.prepare(`
+      SELECT a.*, 1 as earned, pa.earned_at
+      FROM achievements a
+      INNER JOIN profile_achievements pa ON a.id = pa.achievement_id
+      WHERE pa.profile_id = ? AND a.is_hidden = 1
+      ORDER BY pa.earned_at DESC
+    `).all(profileId);
+
+    // Count total hidden achievements
+    const hiddenCount: any = db.prepare(`
+      SELECT COUNT(*) as total FROM achievements WHERE is_hidden = 1
+    `).get();
+
+    res.json({
+      visible,
+      earnedHidden,
+      hiddenStats: {
+        totalHidden: hiddenCount?.total || 0,
+        earnedHidden: earnedHidden.length,
+        remaining: (hiddenCount?.total || 0) - earnedHidden.length
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check and award hidden achievements
+export function checkHiddenAchievement(profileId: number, achievementType: string, value: number): { achieved: boolean; achievement: any } | null {
+  // Find matching hidden achievement
+  const achievement: any = db.prepare(`
+    SELECT * FROM achievements
+    WHERE requirement_type = ? AND requirement_value <= ? AND is_hidden = 1
+    AND id NOT IN (SELECT achievement_id FROM profile_achievements WHERE profile_id = ?)
+  `).get(achievementType, value, profileId);
+
+  if (!achievement) {
+    return null;
+  }
+
+  try {
+    // Award the achievement
+    db.prepare(`
+      INSERT INTO profile_achievements (profile_id, achievement_id)
+      VALUES (?, ?)
+    `).run(profileId, achievement.id);
+
+    // Award bonus points
+    if (achievement.points_reward > 0) {
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(profileId);
+
+      if (currentProgress) {
+        const newPoints = currentProgress.total_points + achievement.points_reward;
+        const newLevel = Math.floor(newPoints / 100) + 1;
+        db.prepare(`
+          INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+          VALUES (?, ?, 0, ?, ?, ?)
+        `).run(profileId, achievement.points_reward, newLevel, newPoints, currentProgress.total_stars);
+      }
+    }
+
+    console.log(`[Hidden Achievement] ${profileId} unlocked: ${achievement.name}`);
+    return { achieved: true, achievement };
+  } catch (e) {
+    // Already earned
+    return null;
+  }
+}
+
+// Check various hidden achievements on task completion
+export function checkHiddenAchievementsOnTaskComplete(profileId: number, taskCompletedAt: Date) {
+  const hour = taskCompletedAt.getHours();
+  const dayOfWeek = taskCompletedAt.getDay(); // 0 = Sunday, 6 = Saturday
+
+  // Early Bird Master - tasks before 8 AM
+  if (hour < 8) {
+    const earlyTasks: any = db.prepare(`
+      SELECT COUNT(*) as count FROM tasks
+      WHERE profile_id = ? AND completed = 1 AND TIME(completed_at) < '08:00:00'
+    `).get(profileId);
+    if (earlyTasks?.count >= 5) {
+      checkHiddenAchievement(profileId, 'early_tasks', earlyTasks.count);
+    }
+  }
+
+  // Night Owl - task after 9 PM
+  if (hour >= 21) {
+    checkHiddenAchievement(profileId, 'late_task', 1);
+  }
+
+  // Weekend Warrior - tasks on weekends
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    const weekendTasks: any = db.prepare(`
+      SELECT COUNT(*) as count FROM tasks
+      WHERE profile_id = ? AND completed = 1
+      AND (strftime('%w', completed_at) = '0' OR strftime('%w', completed_at) = '6')
+    `).get(profileId);
+    if (weekendTasks?.count >= 10) {
+      checkHiddenAchievement(profileId, 'weekend_tasks', weekendTasks.count);
+    }
+  }
+
+  // Speed Demon - 3 tasks in 30 minutes
+  const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const speedTasks: any = db.prepare(`
+    SELECT COUNT(*) as count FROM tasks
+    WHERE profile_id = ? AND completed = 1 AND completed_at >= ?
+  `).get(profileId, thirtyMinsAgo);
+  if (speedTasks?.count >= 3) {
+    checkHiddenAchievement(profileId, 'speed_tasks', speedTasks.count);
+  }
+}
+
 export default router;

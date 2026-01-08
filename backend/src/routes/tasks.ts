@@ -5,7 +5,7 @@ import fs from 'fs';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { NotificationHelpers } from '../services/notifications';
-import { checkMysteryReward } from './gamification';
+import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
 
 const router = express.Router();
 
@@ -335,6 +335,17 @@ router.post('/:id/complete', (req, res) => {
       console.log(`[Tasks] Created next recurring task: ${task.title}, due: ${nextDueDate}`);
     }
 
+    // ===== NEW GAMIFICATION FEATURES =====
+
+    // Update countdown challenge progress
+    const countdownResult = updateCountdownProgress(task.profile_id, basePoints);
+
+    // Increment spin wheel progress
+    const spinReady = incrementSpinProgress(task.profile_id);
+
+    // Check for hidden achievements
+    checkHiddenAchievementsOnTaskComplete(task.profile_id, new Date());
+
     res.json({
       task: completedTask,
       progress,
@@ -345,7 +356,10 @@ router.post('/:id/complete', (req, res) => {
         type: mysteryReward.rewardType,
         multiplier: mysteryReward.multiplier,
         bonusPoints: mysteryReward.bonusPoints
-      } : null
+      } : null,
+      // New gamification data
+      countdownChallenge: countdownResult,
+      spinWheelReady: spinReady
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

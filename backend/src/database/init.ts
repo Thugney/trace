@@ -1306,6 +1306,106 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_behavior_insights_profile ON behavior_insights(profile_id);
   `);
 
+  // ==================== COUNTDOWN CHALLENGES ====================
+  // Time-limited challenges with bonus multipliers
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS countdown_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      target_tasks INTEGER NOT NULL DEFAULT 3,
+      completed_tasks INTEGER DEFAULT 0,
+      duration_minutes INTEGER NOT NULL DEFAULT 120,
+      bonus_multiplier REAL DEFAULT 2.0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      bonus_points_awarded INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create index for countdown challenges
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_countdown_challenges_profile ON countdown_challenges(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_countdown_challenges_expires ON countdown_challenges(expires_at);
+  `);
+
+  // ==================== LUCKY SPIN WHEEL ====================
+  // Track spin eligibility and history
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS spin_wheel_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL UNIQUE,
+      tasks_since_last_spin INTEGER DEFAULT 0,
+      tasks_required_for_spin INTEGER DEFAULT 5,
+      total_spins INTEGER DEFAULT 0,
+      last_spin_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS spin_wheel_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      reward_type TEXT NOT NULL,
+      reward_value INTEGER NOT NULL,
+      reward_description TEXT NOT NULL,
+      spun_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for spin wheel
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_spin_wheel_progress_profile ON spin_wheel_progress(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_spin_wheel_history_profile ON spin_wheel_history(profile_id);
+  `);
+
+  // ==================== HIDDEN ACHIEVEMENTS ====================
+  // Add is_hidden column to achievements table if not exists
+  try {
+    const achievementColumns = db.prepare("PRAGMA table_info(achievements)").all() as { name: string }[];
+    const hasIsHidden = achievementColumns.some(col => col.name === 'is_hidden');
+
+    if (!hasIsHidden) {
+      console.log('Adding is_hidden column to achievements table...');
+      db.prepare('ALTER TABLE achievements ADD COLUMN is_hidden BOOLEAN DEFAULT 0').run();
+      console.log('Added is_hidden column to achievements');
+    }
+  } catch (error: any) {
+    console.error('Migration error (is_hidden):', error.message);
+  }
+
+  // Insert hidden achievements
+  const hiddenAchievements = [
+    { name: 'Early Bird Master', description: 'Complete 5 tasks before 8 AM', icon: '🌅', points_reward: 75, requirement_type: 'early_tasks', requirement_value: 5, is_hidden: 1 },
+    { name: 'Night Owl', description: 'Complete a task after 9 PM', icon: '🦉', points_reward: 25, requirement_type: 'late_task', requirement_value: 1, is_hidden: 1 },
+    { name: 'Weekend Warrior', description: 'Complete 10 tasks on weekends', icon: '🎮', points_reward: 100, requirement_type: 'weekend_tasks', requirement_value: 10, is_hidden: 1 },
+    { name: 'Speed Demon', description: 'Complete 3 tasks in 30 minutes', icon: '⚡', points_reward: 50, requirement_type: 'speed_tasks', requirement_value: 3, is_hidden: 1 },
+    { name: 'Perfectionist', description: 'Complete all daily challenges 7 days in a row', icon: '💫', points_reward: 150, requirement_type: 'perfect_week', requirement_value: 7, is_hidden: 1 },
+    { name: 'Lucky Spinner', description: 'Win the jackpot on the spin wheel', icon: '🎰', points_reward: 100, requirement_type: 'jackpot_win', requirement_value: 1, is_hidden: 1 },
+    { name: 'Countdown Champion', description: 'Complete 5 countdown challenges', icon: '⏱️', points_reward: 100, requirement_type: 'countdown_completed', requirement_value: 5, is_hidden: 1 },
+    { name: 'Hydration Hero Plus', description: 'Drink 3L of water in a single day', icon: '💦', points_reward: 50, requirement_type: 'super_hydration', requirement_value: 3000, is_hidden: 1 },
+    { name: 'Century Club', description: 'Complete 100 tasks total', icon: '💯', points_reward: 200, requirement_type: 'tasks_completed', requirement_value: 100, is_hidden: 1 },
+    { name: 'Point Millionaire', description: 'Earn 1000 total points', icon: '🤑', points_reward: 100, requirement_type: 'total_points', requirement_value: 1000, is_hidden: 1 }
+  ];
+
+  const insertHiddenAchievement = db.prepare(`
+    INSERT OR IGNORE INTO achievements (name, description, icon, points_reward, requirement_type, requirement_value, is_hidden)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of hiddenAchievements) {
+    insertHiddenAchievement.run(ach.name, ach.description, ach.icon, ach.points_reward, ach.requirement_type, ach.requirement_value, ach.is_hidden);
+  }
+
   // Run production-ready migrations
   runProductionReadyMigrations();
 

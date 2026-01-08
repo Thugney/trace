@@ -6,7 +6,10 @@ import { SimpleTaskGrid } from '../components/SimpleTaskCard';
 import { tasksAPI } from '../services/api';
 import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, GoalWithMilestones, CustomChallenge } from '../services/api';
 import { ProfileStats } from '../types';
-import { Star, Trophy, Bell, Target, Droplets, Flame, Award, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
+import { Star, Trophy, Bell, Target, Droplets, Flame, Zap, CheckCircle, Calendar, TrendingUp, Users, Medal, Pencil, Lock, X, Gift, Clock, Sparkles } from 'lucide-react';
+import CountdownChallengeCard from '../components/CountdownChallengeCard';
+import SpinWheel from '../components/SpinWheel';
+import HiddenAchievements from '../components/HiddenAchievements';
 import playSounds from '../utils/sounds';
 
 // Goal type display helper - makes reward types kid-friendly
@@ -143,7 +146,8 @@ export default function ChildDashboard() {
   const [loading, setLoading] = useState(true);
   const [waterData, setWaterData] = useState<{ total_ml: number; goal_ml: number }>({ total_ml: 0, goal_ml: 2000 });
   const [streaks, setStreaks] = useState<Record<string, { current: number; longest: number }>>({});
-  const [achievements, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_achievements, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
   const [waterAmount, setWaterAmount] = useState(250);
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
   const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
@@ -1054,33 +1058,34 @@ export default function ChildDashboard() {
         </div>
       </div>
 
-      {/* Achievements */}
-      <div className="rounded-2xl p-5 bg-gradient-to-r from-pink-100 to-purple-100 border-2 border-purple-300 mb-6">
-        <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-          <Award className="text-purple-600" size={24} />
-          Achievements ({achievements.earned.length}/{achievements.total_count})
-        </h3>
-        {achievements.earned.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {achievements.earned.slice(0, 6).map((achievement: any) => (
-              <div
-                key={achievement.id}
-                className="bg-white px-3 py-2 rounded-lg border border-purple-200 flex items-center gap-2"
-                title={achievement.description}
-              >
-                <span className="text-xl">{achievement.icon}</span>
-                <span className="text-sm font-medium">{achievement.name}</span>
-              </div>
-            ))}
-            {achievements.earned.length > 6 && (
-              <div className="bg-purple-200 px-3 py-2 rounded-lg text-sm font-medium text-purple-700">
-                +{achievements.earned.length - 6} more
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-600">Complete tasks and drink water to earn achievements!</p>
-        )}
+      {/* NEW: Countdown Challenges & Spin Wheel Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Countdown Challenge */}
+        <CountdownChallengeCard
+          profileId={currentProfile?.id || 0}
+          onChallengeComplete={() => {
+            // Refresh stats when challenge completes
+            if (currentProfile) {
+              profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
+            }
+          }}
+        />
+
+        {/* Lucky Spin Wheel */}
+        <SpinWheel
+          profileId={currentProfile?.id || 0}
+          onSpinComplete={() => {
+            // Refresh stats when spin completes
+            if (currentProfile) {
+              profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
+            }
+          }}
+        />
+      </div>
+
+      {/* Achievements with Hidden Achievements Support */}
+      <div className="mb-6">
+        <HiddenAchievements profileId={currentProfile?.id || 0} />
       </div>
 
       {/* Active Goals - Multiple Simultaneous Goals */}
