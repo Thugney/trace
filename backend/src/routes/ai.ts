@@ -1500,4 +1500,137 @@ router.put('/message-limit/:profileId', (req, res) => {
   }
 });
 
+// Get AI insights for a parent's children (encouragement logs, quiz suggestions, mood indicators)
+router.get('/insights/:parentId', authenticate, requireRole(['admin', 'parent']), (req: AuthRequest, res) => {
+  try {
+    const { parentId } = req.params;
+    const { days = 7 } = req.query;
+
+    // Get all children for this parent
+    const children: any[] = db.prepare(`
+      SELECT id, name, avatar FROM profiles
+      WHERE parent_id = ? AND type = 'child'
+    `).all(parentId);
+
+    if (children.length === 0) {
+      return res.json({ insights: [], children: [] });
+    }
+
+    const childIds = children.map(c => c.id);
+    const placeholders = childIds.map(() => '?').join(',');
+
+    // Get encouragement logs
+    const encouragementLogs: any[] = db.prepare(`
+      SELECT
+        ac.profile_id,
+        ac.user_message as topic,
+        ac.ai_response as details,
+        ac.created_at,
+        p.name as child_name,
+        p.avatar as child_avatar
+      FROM ai_conversations ac
+      JOIN profiles p ON ac.profile_id = p.id
+      WHERE ac.profile_id IN (${placeholders})
+        AND ac.context = 'encouragement'
+        AND ac.created_at >= datetime('now', '-' || ? || ' days')
+      ORDER BY ac.created_at DESC
+      LIMIT 20
+    `).all(...childIds, days);
+
+    // Parse the JSON details
+    const parsedEncouragements = encouragementLogs.map(log => {
+      let parsed = { encouragement: '', mood: 'neutral', timestamp: log.created_at };
+      try {
+        parsed = JSON.parse(log.details);
+      } catch (e) {
+        parsed.encouragement = log.details;
+      }
+      return {
+        child_id: log.profile_id,
+        child_name: log.child_name,
+        child_avatar: log.child_avatar,
+        topic: log.topic.replace('Child needed support with: ', ''),
+        encouragement: parsed.encouragement,
+        mood: parsed.mood || 'neutral',
+        timestamp: parsed.timestamp || log.created_at
+      };
+    });
+
+    // Get quiz suggestions
+    const quizSuggestions: any[] = db.prepare(`
+      SELECT
+        ac.profile_id,
+        ac.user_message as suggestion,
+        ac.ai_response as details,
+        ac.created_at,
+        p.name as child_name
+      FROM ai_conversations ac
+      JOIN profiles p ON ac.profile_id = p.id
+      WHERE ac.profile_id IN (${placeholders})
+        AND ac.context = 'quiz_suggestion'
+        AND ac.created_at >= datetime('now', '-' || ? || ' days')
+      ORDER BY ac.created_at DESC
+      LIMIT 10
+    `).all(...childIds, days);
+
+    const parsedQuizSuggestions = quizSuggestions.map(log => {
+      let parsed = { category: '', reason: '', difficulty: '' };
+      try {
+        parsed = JSON.parse(log.details);
+      } catch (e) {}
+      return {
+        child_id: log.profile_id,
+        child_name: log.child_name,
+        category: parsed.category,
+        reason: parsed.reason,
+        difficulty_hint: parsed.difficulty,
+        timestamp: log.created_at
+      };
+    });
+
+    // Get mood summary per child
+    const moodSummary: Record<number, { happy: number; neutral: number; frustrated: number; curious: number; tired: number }> = {};
+    parsedEncouragements.forEach(e => {
+      if (!moodSummary[e.child_id]) {
+        moodSummary[e.child_id] = { happy: 0, neutral: 0, frustrated: 0, curious: 0, tired: 0 };
+      }
+      const mood = e.mood as keyof typeof moodSummary[number];
+      if (moodSummary[e.child_id][mood] !== undefined) {
+        moodSummary[e.child_id][mood]++;
+      }
+    });
+
+    // Get message counts per child (last 7 days)
+    const messageCounts: any[] = db.prepare(`
+      SELECT
+        profile_id,
+        COUNT(*) as message_count
+      FROM ai_conversations
+      WHERE profile_id IN (${placeholders})
+        AND context NOT IN ('encouragement', 'quiz_suggestion')
+        AND created_at >= datetime('now', '-' || ? || ' days')
+      GROUP BY profile_id
+    `).all(...childIds, days);
+
+    const messageCountMap: Record<number, number> = {};
+    messageCounts.forEach(mc => {
+      messageCountMap[mc.profile_id] = mc.message_count;
+    });
+
+    res.json({
+      children: children.map(c => ({
+        ...c,
+        message_count: messageCountMap[c.id] || 0,
+        mood_summary: moodSummary[c.id] || { happy: 0, neutral: 0, frustrated: 0, curious: 0, tired: 0 }
+      })),
+      encouragements: parsedEncouragements,
+      quiz_suggestions: parsedQuizSuggestions,
+      period_days: parseInt(days as string)
+    });
+  } catch (error: any) {
+    console.error('[AI] Error getting insights:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

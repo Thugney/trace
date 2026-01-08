@@ -7,6 +7,7 @@ import { Profile } from '../types';
 import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy, BookOpen } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import RewardManagement from '../components/RewardManagement';
+import ChildInsights from '../components/ChildInsights';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
@@ -465,6 +466,12 @@ export default function ParentDashboard() {
         </div>
       )}
 
+      {/* AI Child Insights - Shows encouragement moments and mood tracking */}
+      {currentProfile && children.length > 0 && (
+        <div className="mt-6">
+          <ChildInsights parentId={currentProfile.id} />
+        </div>
+      )}
 
       {/* Reward Shop Management */}
       {currentProfile && (

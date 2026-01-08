@@ -191,7 +191,42 @@ export const aiAPI = {
     api.put<{ success: boolean; limitType: string; maxMessages: number; message: string }>(
       `/ai/message-limit/${profileId}`,
       { limitType }
-    )
+    ),
+  // Get AI insights for parent's children (encouragement logs, mood indicators, quiz suggestions)
+  getChildInsights: (parentId: number, days?: number) =>
+    api.get<{
+      children: Array<{
+        id: number;
+        name: string;
+        avatar: string;
+        message_count: number;
+        mood_summary: {
+          happy: number;
+          neutral: number;
+          frustrated: number;
+          curious: number;
+          tired: number;
+        };
+      }>;
+      encouragements: Array<{
+        child_id: number;
+        child_name: string;
+        child_avatar: string;
+        topic: string;
+        encouragement: string;
+        mood: string;
+        timestamp: string;
+      }>;
+      quiz_suggestions: Array<{
+        child_id: number;
+        child_name: string;
+        category: string;
+        reason: string;
+        difficulty_hint: string;
+        timestamp: string;
+      }>;
+      period_days: number;
+    }>(`/ai/insights/${parentId}`, { params: { days: days || 7 } })
 };
 
 // Settings
