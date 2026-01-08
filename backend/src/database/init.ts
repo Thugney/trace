@@ -160,18 +160,41 @@ export function initDatabase() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS rewards (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      profile_id INTEGER NOT NULL,
+      profile_id INTEGER,
       title TEXT NOT NULL,
       description TEXT,
-      type TEXT CHECK(type IN ('virtual', 'real')) DEFAULT 'virtual',
+      type TEXT CHECK(type IN ('virtual', 'real')) DEFAULT 'real',
       points_required INTEGER NOT NULL,
       icon TEXT,
+      image_url TEXT,
+      category TEXT DEFAULT 'general',
+      available_for_all BOOLEAN DEFAULT 1,
+      stock INTEGER DEFAULT -1,
       is_claimed BOOLEAN DEFAULT 0,
       claimed_at DATETIME,
+      created_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
     )
   `);
+
+  // Migration: Add missing columns to rewards table for existing databases
+  try {
+    db.exec(`ALTER TABLE rewards ADD COLUMN image_url TEXT`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE rewards ADD COLUMN category TEXT DEFAULT 'general'`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE rewards ADD COLUMN available_for_all BOOLEAN DEFAULT 1`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE rewards ADD COLUMN stock INTEGER DEFAULT -1`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE rewards ADD COLUMN created_by INTEGER`);
+  } catch (e) { /* Column already exists */ }
 
   // Monthly goals table
   db.exec(`
