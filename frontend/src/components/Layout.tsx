@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
@@ -36,6 +36,7 @@ export default function Layout({ children }: LayoutProps) {
       return [
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+        { path: '/quizzes/builder', icon: BookOpen, label: 'Quizzes' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
@@ -50,6 +51,7 @@ export default function Layout({ children }: LayoutProps) {
       const items = [
         { path: '/child/dashboard', icon: Home, label: 'Home' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
+        { path: '/quizzes', icon: BookOpen, label: 'Quizzes' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
