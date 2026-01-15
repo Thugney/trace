@@ -15,7 +15,7 @@ export interface NotificationPayload {
   message: string;
   type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
-        'message_received' | 'reminder' | 'achievement' | 'general';
+        'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general';
   data?: any;
   icon?: string;
   url?: string;

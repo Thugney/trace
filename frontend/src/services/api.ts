@@ -146,8 +146,67 @@ export const tasksAPI = {
     api.put<any>(`/tasks/subtasks/${subtaskId}`, data),
   deleteSubtask: (subtaskId: number) => api.delete(`/tasks/subtasks/${subtaskId}`),
   bulkAddSubtasks: (taskId: number, subtasks: { title: string }[]) =>
-    api.post<any[]>(`/tasks/${taskId}/subtasks/bulk`, { subtasks })
+    api.post<any[]>(`/tasks/${taskId}/subtasks/bulk`, { subtasks }),
+  // Timer endpoints
+  getTimer: (taskId: number) =>
+    api.get<TaskTimerState>(`/tasks/${taskId}/timer`),
+  startTimer: (taskId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(`/tasks/${taskId}/timer/start`),
+  pauseTimer: (taskId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(`/tasks/${taskId}/timer/pause`),
+  resumeTimer: (taskId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(`/tasks/${taskId}/timer/resume`),
+  finishTimer: (taskId: number) =>
+    api.post<{
+      success: boolean;
+      task: Task;
+      progress: Progress;
+      pointsEarned: number;
+      starsEarned: number;
+      timeSpent: number;
+      nextRecurringTask?: Task;
+    }>(`/tasks/${taskId}/timer/finish`)
 };
+
+// Timer types
+export interface TimerState {
+  id: number;
+  is_running: boolean;
+  is_paused: boolean;
+  elapsed_seconds: number;
+  start_time: string | null;
+  pause_time: string | null;
+}
+
+export interface TaskTimerState {
+  task_id: number;
+  requires_timer: boolean;
+  timer_duration_minutes: number | null;
+  timer_state: {
+    is_running: boolean;
+    is_paused: boolean;
+    elapsed_seconds: number;
+    start_time: string | null;
+    pause_time: string | null;
+  } | null;
+  can_complete: boolean;
+  completed_today: boolean;
+}
+
+export interface QuizTimerState {
+  attempt_id: number;
+  time_limit_seconds: number | null;
+  timer_state: TimerState | null;
+}
+
+export interface ChallengeTimerState {
+  challenge_id: number;
+  requires_timer: boolean;
+  timer_duration: number | null;
+  timer_state: TimerState | null;
+  can_complete: boolean;
+  completed: boolean;
+}
 
 // AI
 export const aiAPI = {
@@ -722,6 +781,8 @@ export const aiGamificationAPI = {
     description?: string;
     points_reward?: number;
     duration_days?: number;
+    requires_timer?: boolean;
+    timer_duration?: number;
   }) => api.post<{ message: string; challenge: CustomChallenge }>(
     `/ai-gamification/suggestions/${id}/approve`,
     { parent_id: parentId, modifications }
@@ -745,6 +806,8 @@ export const aiGamificationAPI = {
     difficulty?: 'easy' | 'medium' | 'hard';
     duration_days?: number;
     created_by: number;
+    requires_timer?: boolean;
+    timer_duration?: number;
   }) => api.post<CustomChallenge>('/ai-gamification/challenges', data),
 
   // Update challenge progress
@@ -753,6 +816,31 @@ export const aiGamificationAPI = {
       challenge: CustomChallenge;
       just_completed: boolean;
     }>(`/ai-gamification/challenges/${challengeId}/progress`, { increment: increment || 1 }),
+
+  // Challenge timer
+  getChallengeTimer: (challengeId: number) =>
+    api.get<ChallengeTimerState>(`/ai-gamification/challenges/${challengeId}/timer`),
+  startChallengeTimer: (challengeId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/ai-gamification/challenges/${challengeId}/timer/start`
+    ),
+  pauseChallengeTimer: (challengeId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/ai-gamification/challenges/${challengeId}/timer/pause`
+    ),
+  resumeChallengeTimer: (challengeId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/ai-gamification/challenges/${challengeId}/timer/resume`
+    ),
+  finishChallengeTimer: (challengeId: number) =>
+    api.post<{
+      success: boolean;
+      challenge: CustomChallenge;
+      progress: Progress;
+      pointsEarned: number;
+      timeSpent: number;
+      just_completed: boolean;
+    }>(`/ai-gamification/challenges/${challengeId}/timer/finish`),
 
   // Get focus areas for a child
   getFocusAreas: (profileId: number) =>
@@ -802,6 +890,8 @@ export interface CustomChallenge {
   created_by: number;
   expires_at: string | null;
   created_at: string;
+  requires_timer?: boolean | number;
+  timer_duration?: number | null;
 }
 
 export interface FocusArea {
@@ -987,6 +1077,8 @@ export interface FamilyQuiz {
   my_attempts?: number;
   best_score?: number;
   last_attempt?: string;
+  last_score_percentage?: number;
+  last_passed?: number;
   theme?: QuizTheme;
   created_at: string;
   updated_at: string;
@@ -1011,6 +1103,8 @@ export interface QuizOption {
   id: string;
   text: string;
   image?: string;
+  color?: string;
+  shape?: string;
 }
 
 export interface QuizAttempt {
@@ -1026,6 +1120,7 @@ export interface QuizAttempt {
   score_percentage: number;
   points_earned: number;
   stars_earned: number;
+  time_bonus_points?: number;
   time_taken_seconds?: number;
   passed: number;
   competition_rank?: number;
@@ -1070,6 +1165,13 @@ export interface QuizCompleteResponse {
   competitionRank?: number;
   competitionBonus: number;
   timeTakenSeconds?: number;
+  timeBonusPoints?: number;
+}
+
+export interface AIQuizGenerateResponse {
+  quiz: FamilyQuiz;
+  questions: QuizQuestion[];
+  image_warnings?: string[];
 }
 
 // Family Quiz API
@@ -1085,6 +1187,14 @@ export const familyQuizzesAPI = {
     api.get<FamilyQuiz[]>(`/family-quizzes/parent/${parentId}`),
   getQuiz: (quizId: number) =>
     api.get<FamilyQuiz & { questions: QuizQuestion[] }>(`/family-quizzes/${quizId}`),
+  generateAIQuiz: (data: {
+    prompt: string;
+    categoryId: number;
+    questionCount: number;
+    createdBy: number;
+    assignedTo: number;
+    includeImages?: boolean;
+  }) => api.post<AIQuizGenerateResponse>('/family-quizzes/ai-generate', data),
   createQuiz: (data: {
     title: string;
     description?: string;
@@ -1151,6 +1261,20 @@ export const familyQuizzesAPI = {
     }),
   completeQuiz: (attemptId: number, timeTakenSeconds?: number) =>
     api.post<QuizCompleteResponse>(`/family-quizzes/attempts/${attemptId}/complete`, { timeTakenSeconds }),
+  getTimer: (attemptId: number) =>
+    api.get<QuizTimerState>(`/family-quizzes/attempts/${attemptId}/timer`),
+  startTimer: (attemptId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/family-quizzes/attempts/${attemptId}/timer/start`
+    ),
+  pauseTimer: (attemptId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/family-quizzes/attempts/${attemptId}/timer/pause`
+    ),
+  resumeTimer: (attemptId: number) =>
+    api.post<{ success: boolean; message: string; timer_state: TimerState }>(
+      `/family-quizzes/attempts/${attemptId}/timer/resume`
+    ),
 
   // Attempt history
   getAttemptHistory: (profileId: number, limit?: number) =>
@@ -1192,7 +1316,19 @@ export const familyQuizzesAPI = {
         avg_score: number;
         points_earned: number;
       }>;
-    }>(`/family-quizzes/stats/child/${childId}`)
+    }>(`/family-quizzes/stats/child/${childId}`),
+
+  // Media upload
+  uploadMedia: (quizId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('media', file);
+    return api.post<{ success: boolean; url: string; filename: string }>(
+      `/family-quizzes/${quizId}/media`,
+      formData,
+      { headers: { 'Content-Type': undefined } }
+    );
+  },
+  getMediaUrl: (filename: string) => `/api/family-quizzes/media/${filename}`
 };
 
 // Photo Proof API

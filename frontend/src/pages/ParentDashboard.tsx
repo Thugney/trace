@@ -4,7 +4,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, aiGamificationAPI, AISuggestion } from '../services/api';
 import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy, BookOpen } from 'lucide-react';
+import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy, BookOpen, Timer } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import RewardManagement from '../components/RewardManagement';
 import ChildInsights from '../components/ChildInsights';
@@ -18,6 +18,7 @@ export default function ParentDashboard() {
   const [aiSuggestions, setAiSuggestions] = useState<(AISuggestion & { child_name: string })[]>([]);
   const [loadingAI, setLoadingAI] = useState(false);
   const [generatingForChild, setGeneratingForChild] = useState<number | null>(null);
+  const [timerSettings, setTimerSettings] = useState<Record<number, { enabled: boolean; minutes: number }>>({});
 
   useEffect(() => {
     loadFamilyData();
@@ -92,7 +93,14 @@ export default function ParentDashboard() {
   const approveSuggestion = async (suggestion: AISuggestion) => {
     if (!currentProfile) return;
     try {
-      await aiGamificationAPI.approveSuggestion(suggestion.id, currentProfile.id);
+      const settings = timerSettings[suggestion.id];
+      const requiresTimer = settings?.enabled ?? false;
+      const minutes = settings?.minutes ?? 5;
+
+      await aiGamificationAPI.approveSuggestion(suggestion.id, currentProfile.id, {
+        requires_timer: requiresTimer,
+        timer_duration: requiresTimer ? Math.max(1, Math.round(minutes)) * 60 : undefined
+      });
       setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
       toast.success(`Challenge "${suggestion.title}" approved!`);
     } catch (error) {
@@ -120,6 +128,16 @@ export default function ParentDashboard() {
       case 'hard': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const updateTimerSetting = (suggestionId: number, updates: Partial<{ enabled: boolean; minutes: number }>) => {
+    setTimerSettings(prev => {
+      const current = prev[suggestionId] || { enabled: false, minutes: 5 };
+      return {
+        ...prev,
+        [suggestionId]: { ...current, ...updates }
+      };
+    });
   };
 
   if (loading) {
@@ -432,6 +450,32 @@ export default function ParentDashboard() {
                         {suggestion.target_value && suggestion.target_value > 1 && (
                           <span>Target: {suggestion.target_value}x</span>
                         )}
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                        <label className="flex items-center gap-2 text-gray-700">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={timerSettings[suggestion.id]?.enabled || false}
+                            onChange={(e) => updateTimerSetting(suggestion.id, { enabled: e.target.checked })}
+                          />
+                          <span className="flex items-center gap-1">
+                            <Timer size={14} />
+                            Require timer
+                          </span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Minutes</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={120}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                            value={timerSettings[suggestion.id]?.minutes ?? 5}
+                            onChange={(e) => updateTimerSetting(suggestion.id, { minutes: Number(e.target.value) || 1 })}
+                            disabled={!timerSettings[suggestion.id]?.enabled}
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="flex space-x-2 ml-4">

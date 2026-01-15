@@ -1,8 +1,134 @@
 import { Router, Request, Response } from 'express';
+import axios from 'axios';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 
 const router = Router();
+const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
+
+// Configure multer for quiz media uploads
+const QUIZ_MEDIA_DIR = process.env.QUIZ_MEDIA_DIR || '/app/data/quiz-media';
+
+// Ensure quiz media directory exists
+if (!fs.existsSync(QUIZ_MEDIA_DIR)) {
+  fs.mkdirSync(QUIZ_MEDIA_DIR, { recursive: true });
+  console.log(`[Quiz Media] Created directory: ${QUIZ_MEDIA_DIR}`);
+}
+
+const quizMediaStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, QUIZ_MEDIA_DIR);
+  },
+  filename: (req, file, cb) => {
+    const quizId = req.params.quizId || 'unknown';
+    const questionId = req.params.questionId || 'unknown';
+    const ext = path.extname(file.originalname) || '.jpg';
+    const filename = `quiz-${quizId}-question-${questionId}-${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const quizMediaUpload = multer({
+  storage: quizMediaStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedAudioTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'];
+    if (allowedImageTypes.includes(file.mimetype) || allowedAudioTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and audio files are allowed'));
+    }
+  }
+});
+
+const getQuizTimerState = (attemptId: string) => {
+  return db.prepare(`
+    SELECT * FROM timer_states
+    WHERE quiz_attempt_id = ? AND timer_type = 'quiz'
+    ORDER BY id DESC LIMIT 1
+  `).get(attemptId) as any;
+};
+
+const computeElapsedSeconds = (timerState: any) => {
+  if (!timerState) return 0;
+  let elapsed = timerState.elapsed_seconds || 0;
+  if (timerState.is_running && timerState.start_time) {
+    const startTime = new Date(timerState.start_time).getTime();
+    const runningTime = Math.floor((Date.now() - startTime) / 1000);
+    elapsed += Math.max(0, runningTime);
+  }
+  return elapsed;
+};
+
+const getGrokApiKey = (): string | null => {
+  let apiKey = process.env.GROK_API_KEY;
+
+  if (!apiKey || apiKey === 'your_grok_api_key_here' || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('grok_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read grok_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '' ? apiKey : null;
+};
+
+const imageExtensionFromMime = (mimeType?: string) => {
+  if (!mimeType) return '.jpg';
+  if (mimeType.includes('png')) return '.png';
+  if (mimeType.includes('gif')) return '.gif';
+  if (mimeType.includes('webp')) return '.webp';
+  return '.jpg';
+};
+
+const downloadImageToQuizMedia = async (imageUrl: string, prefix: string) => {
+  const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+  const ext = imageExtensionFromMime(response.headers['content-type']);
+  const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  const filepath = path.join(QUIZ_MEDIA_DIR, filename);
+  fs.writeFileSync(filepath, response.data);
+  return `/api/family-quizzes/media/${filename}`;
+};
+
+const generateImageFromPrompt = async (prompt: string, apiKey: string, errors: string[]) => {
+  if (!prompt) return null;
+  try {
+    const response = await axios.post(
+      GROK_IMAGE_URL,
+      {
+        model: 'grok-2-image',
+        prompt,
+        n: 1
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+
+    const url = response.data?.data?.[0]?.url || response.data?.data?.[0]?.image_url;
+    if (!url) return null;
+    return await downloadImageToQuizMedia(url, 'quiz-ai');
+  } catch (error) {
+    const status = (error as any)?.response?.status;
+    const message = (error as any)?.response?.data?.error || (error as any)?.message || 'Image generation failed';
+    errors.push(status ? `Image generation failed (${status}): ${message}` : `Image generation failed: ${message}`);
+    console.error('[AI Quiz] Image generation failed:', error);
+    return null;
+  }
+};
 
 // ==================== QUIZ CATEGORIES ====================
 
@@ -52,6 +178,249 @@ router.get('/categories/:idOrName', (req: Request, res: Response) => {
   }
 });
 
+// ==================== AI QUIZ GENERATION ====================
+
+router.post('/ai-generate', async (req: Request, res: Response) => {
+  try {
+    const {
+      prompt,
+      categoryId,
+      questionCount = 5,
+      createdBy,
+      assignedTo,
+      includeImages = true
+    } = req.body || {};
+
+    if (!prompt || !categoryId || !createdBy) {
+      return res.status(400).json({ error: 'Prompt, categoryId, and createdBy are required' });
+    }
+
+    const category: any = db.prepare(`
+      SELECT * FROM quiz_categories WHERE id = ?
+    `).get(categoryId);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Quiz category not found' });
+    }
+
+    const apiKey = getGrokApiKey();
+    if (!apiKey) {
+      return res.status(503).json({ error: 'AI service not configured. Please configure the Grok API key.' });
+    }
+
+    const inputConfig = JSON.parse(category.input_config || '{}');
+    const supportsImages = !!inputConfig.supports_images;
+    const normalizedCount = Math.min(Math.max(parseInt(questionCount, 10) || 5, 1), 20);
+
+    const promptText = `
+You are an expert children's quiz creator. Create a fun, age-appropriate multiple choice quiz.
+
+Category: ${category.display_name} (${category.name})
+Category description: ${category.description || 'N/A'}
+Input config: ${JSON.stringify(inputConfig)}
+
+Parent prompt: "${prompt}"
+
+Requirements:
+- Create exactly ${normalizedCount} questions.
+- Use multiple choice only.
+- Provide 4 options per question (a, b, c, d).
+- Include the correct answer as a, b, c, or d.
+- Keep language kid-friendly and engaging.
+- If supports_images is true, include a short image_prompt for each question and optionally for options when it helps.
+- If supports_images is false, do not include image prompts.
+
+Return ONLY valid JSON in this exact format:
+{
+  "title": "Quiz title",
+  "description": "Quiz description",
+  "questions": [
+    {
+      "question_text": "Question text",
+      "question_image_prompt": "Optional image prompt for the question",
+      "options": [
+        { "id": "a", "text": "Option A text", "image_prompt": "Optional option image prompt" },
+        { "id": "b", "text": "Option B text", "image_prompt": "Optional option image prompt" },
+        { "id": "c", "text": "Option C text", "image_prompt": "Optional option image prompt" },
+        { "id": "d", "text": "Option D text", "image_prompt": "Optional option image prompt" }
+      ],
+      "correct_answer": "a",
+      "hint": "Optional hint",
+      "explanation": "Optional explanation"
+    }
+  ]
+}
+`;
+
+    const response = await axios.post(
+      GROK_API_URL,
+      {
+        model: 'grok-2-latest',
+        messages: [
+          { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
+          { role: 'user', content: promptText }
+        ],
+        temperature: 0.7,
+        max_tokens: 2500
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 30000
+      }
+    );
+
+    const aiContent = response.data?.choices?.[0]?.message?.content;
+    if (!aiContent) {
+      return res.status(500).json({ error: 'No response from AI' });
+    }
+
+    let aiQuiz: any;
+    try {
+      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+      aiQuiz = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiContent);
+    } catch (error) {
+      console.error('[AI Quiz] Failed to parse response:', aiContent);
+      return res.status(500).json({ error: 'Failed to parse AI quiz JSON' });
+    }
+
+    const title = aiQuiz.title || `${category.display_name} Quiz`;
+    const description = aiQuiz.description || prompt;
+    const assignedProfileId = assignedTo || createdBy;
+
+    const assignedProfile = db.prepare('SELECT id FROM profiles WHERE id = ?').get(assignedProfileId);
+    if (!assignedProfile) {
+      return res.status(404).json({ error: 'Assigned profile not found' });
+    }
+
+    const questions = Array.isArray(aiQuiz.questions) ? aiQuiz.questions.slice(0, normalizedCount) : [];
+    const imageErrors: string[] = [];
+    const questionsSummary = JSON.stringify(questions.map((q: any) => ({
+      question_text: q.question_text || q.questionText || '',
+      options: q.options || [],
+      correct_answer: q.correct_answer || q.correctAnswer || ''
+    })));
+
+    const quizResult = db.prepare(`
+      INSERT INTO family_quizzes (
+        title, description, category_id, created_by, assigned_to,
+        points_per_correct, stars_per_correct, bonus_points,
+        time_limit_seconds, pass_threshold, questions, is_ai_generated
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(
+      title,
+      description,
+      categoryId,
+      createdBy,
+      assignedProfileId,
+      10,
+      0,
+      20,
+      null,
+      70,
+      questionsSummary
+    );
+
+    const quizId = quizResult.lastInsertRowid as number;
+
+    const insertQuestion = db.prepare(`
+      INSERT INTO family_quiz_questions (
+        quiz_id, question_text, question_type, question_image, question_audio,
+        options, correct_answer, hint, explanation, points, order_index
+      ) VALUES (?, ?, 'multiple_choice', ?, NULL, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const savedQuestions: any[] = [];
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const optionsRaw = Array.isArray(question.options) ? question.options : [];
+
+      const questionText = (question.question_text || question.questionText || `Question ${i + 1}`).toString();
+      const normalizedOptions = ['a', 'b', 'c', 'd'].map((id, idx) => {
+        const option = optionsRaw[idx] || optionsRaw.find((opt: any) => opt.id === id) || {};
+        return {
+          id,
+          text: (option.text || `Option ${id.toUpperCase()}`).toString(),
+          image: null as string | null,
+          color: option.color || '',
+          shape: option.shape || ''
+        };
+      });
+
+      const correctAnswer = ['a', 'b', 'c', 'd'].includes(question.correct_answer)
+        ? question.correct_answer
+        : 'a';
+      const correctOption = normalizedOptions.find(opt => opt.id === correctAnswer);
+      const correctOptionText = (correctOption?.text || '').trim();
+      const isSingleLetter = /^[A-Za-z]$/.test(correctOptionText);
+
+      let questionImage: string | null = null;
+      const questionImagePromptRaw = question.question_image_prompt || question.image_prompt || '';
+      let questionImagePrompt = questionImagePromptRaw;
+      if (!questionImagePrompt && includeImages && supportsImages) {
+        if (category.name === 'alphabet' && isSingleLetter) {
+          questionImagePrompt = `A colorful, kid-friendly illustration of the letter "${correctOptionText}" in a fun superhero style, bold and clear, no other text.`;
+        } else {
+          questionImagePrompt = `A colorful, kid-friendly illustration for this quiz question: "${questionText}".`;
+        }
+      }
+      if (includeImages && supportsImages && questionImagePrompt) {
+        questionImage = await generateImageFromPrompt(questionImagePrompt, apiKey, imageErrors);
+      }
+
+      if (includeImages && supportsImages) {
+        for (const opt of normalizedOptions) {
+          const original = optionsRaw.find((o: any) => o.id === opt.id) || {};
+          const imagePrompt = original.image_prompt || original.imagePrompt;
+          if (imagePrompt) {
+            opt.image = await generateImageFromPrompt(imagePrompt, apiKey, imageErrors);
+          }
+        }
+      }
+
+      const result = insertQuestion.run(
+        quizId,
+        questionText,
+        questionImage,
+        JSON.stringify(normalizedOptions),
+        correctAnswer,
+        question.hint || null,
+        question.explanation || null,
+        10,
+        i + 1
+      );
+
+      const saved = db.prepare('SELECT * FROM family_quiz_questions WHERE id = ?').get(result.lastInsertRowid) as any;
+      saved.options = JSON.parse(saved.options || '[]');
+      savedQuestions.push(saved);
+    }
+
+    const quiz = db.prepare(`
+      SELECT fq.*, qc.display_name as category_name, qc.icon as category_icon
+      FROM family_quizzes fq
+      JOIN quiz_categories qc ON fq.category_id = qc.id
+      WHERE fq.id = ?
+    `).get(quizId);
+
+    if (assignedProfileId !== createdBy) {
+      sendPushNotification(assignedProfileId, {
+        title: 'New AI Quiz Ready!',
+        message: `You have a new "${title}" quiz to try!`,
+        type: 'quiz',
+        data: { quizId },
+        url: '/quizzes'
+      });
+    }
+
+    res.json({ quiz, questions: savedQuestions, image_warnings: imageErrors });
+  } catch (error: any) {
+    console.error('[AI Quiz] Generation error:', error);
+    res.status(500).json({ error: 'Failed to generate quiz' });
+  }
+});
+
 // ==================== FAMILY QUIZZES CRUD ====================
 
 // Get quizzes for a parent (created by them)
@@ -96,12 +465,14 @@ router.get('/child/:childId', (req: Request, res: Response) => {
              (SELECT COUNT(*) FROM family_quiz_questions WHERE quiz_id = fq.id) as question_count,
              (SELECT COUNT(*) FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ?) as my_attempts,
              (SELECT MAX(score_percentage) FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ? AND completed_at IS NOT NULL) as best_score,
-             (SELECT completed_at FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ? ORDER BY completed_at DESC LIMIT 1) as last_attempt
+             (SELECT completed_at FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ? ORDER BY completed_at DESC LIMIT 1) as last_attempt,
+             (SELECT score_percentage FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ? AND completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1) as last_score_percentage,
+             (SELECT passed FROM family_quiz_attempts WHERE quiz_id = fq.id AND profile_id = ? AND completed_at IS NOT NULL ORDER BY completed_at DESC LIMIT 1) as last_passed
       FROM family_quizzes fq
       JOIN quiz_categories qc ON fq.category_id = qc.id
       WHERE fq.assigned_to = ? AND fq.is_active = 1
       ORDER BY fq.created_at DESC
-    `).all(childId, childId, childId, childId);
+    `).all(childId, childId, childId, childId, childId, childId);
 
     // Parse theme config and apply gender-specific theme
     const parsed = quizzes.map((quiz: any) => {
@@ -187,7 +558,13 @@ router.post('/', (req: Request, res: Response) => {
       competitionEndsAt,
       firstPlaceBonus = 50,
       secondPlaceBonus = 25,
-      thirdPlaceBonus = 10
+      thirdPlaceBonus = 10,
+      difficulty = 'medium',
+      questions = '',
+      attemptsAllowed = 3,
+      isAiGenerated = false,
+      aiFocusAreas,
+      passingScore = passThreshold
     } = req.body;
 
     if (!title || !categoryId || !createdBy || !assignedTo) {
@@ -199,14 +576,16 @@ router.post('/', (req: Request, res: Response) => {
         title, description, category_id, created_by, assigned_to,
         points_per_correct, stars_per_correct, bonus_points,
         time_limit_seconds, pass_threshold, schedule_type, schedule_days,
-        is_competition, competition_ends_at, first_place_bonus, second_place_bonus, third_place_bonus
+        is_competition, competition_ends_at, first_place_bonus, second_place_bonus, third_place_bonus,
+        difficulty, questions, attempts_allowed, passing_score, is_ai_generated, ai_focus_areas, is_active
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title, description || null, categoryId, createdBy, assignedTo,
       pointsPerCorrect, starsPerCorrect, bonusPoints,
       timeLimitSeconds || null, passThreshold, scheduleType, scheduleDays || null,
-      isCompetition ? 1 : 0, competitionEndsAt || null, firstPlaceBonus, secondPlaceBonus, thirdPlaceBonus
+      isCompetition ? 1 : 0, competitionEndsAt || null, firstPlaceBonus, secondPlaceBonus, thirdPlaceBonus,
+      difficulty, questions, attemptsAllowed, passingScore, isAiGenerated ? 1 : 0, aiFocusAreas || null, 1
     );
 
     const quiz = db.prepare('SELECT * FROM family_quizzes WHERE id = ?').get(result.lastInsertRowid);
@@ -224,7 +603,9 @@ router.post('/', (req: Request, res: Response) => {
     res.json(quiz);
   } catch (error) {
     console.error('Error creating quiz:', error);
-    res.status(500).json({ error: 'Failed to create quiz' });
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    res.status(500).json({ error: 'Failed to create quiz', details: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -239,7 +620,8 @@ router.put('/:quizId', (req: Request, res: Response) => {
       'points_per_correct', 'stars_per_correct', 'bonus_points',
       'time_limit_seconds', 'pass_threshold', 'schedule_type', 'schedule_days',
       'is_active', 'is_competition', 'competition_ends_at',
-      'first_place_bonus', 'second_place_bonus', 'third_place_bonus'
+      'first_place_bonus', 'second_place_bonus', 'third_place_bonus',
+      'difficulty', 'questions', 'attempts_allowed', 'passing_score', 'is_ai_generated', 'ai_focus_areas'
     ];
 
     const updateFields: string[] = ['updated_at = CURRENT_TIMESTAMP'];
@@ -449,6 +831,37 @@ router.put('/:quizId/questions/reorder', (req: Request, res: Response) => {
   }
 });
 
+// ==================== QUIZ MEDIA UPLOAD ====================
+
+// Upload quiz media (images/audio)
+router.post('/:quizId/media', quizMediaUpload.single('media'), (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    const fileUrl = `/family-quizzes/media/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl, filename: req.file.filename });
+  } catch (error) {
+    console.error('Error uploading media:', error);
+    res.status(500).json({ error: 'Failed to upload media' });
+  }
+});
+
+// Serve quiz media files
+router.get('/media/:filename', (req: Request, res: Response) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(QUIZ_MEDIA_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Error serving media:', error);
+    res.status(500).json({ error: 'Failed to serve media' });
+  }
+});
+
 // ==================== QUIZ ATTEMPTS (PLAYING) ====================
 
 // Start a quiz attempt
@@ -459,6 +872,17 @@ router.post('/:quizId/start', (req: Request, res: Response) => {
 
     if (!profileId) {
       return res.status(400).json({ error: 'Profile ID required' });
+    }
+
+    const passedAttempt = db.prepare(`
+      SELECT 1
+      FROM family_quiz_attempts
+      WHERE quiz_id = ? AND profile_id = ? AND completed_at IS NOT NULL AND passed = 1
+      LIMIT 1
+    `).get(quizId, profileId) as any;
+
+    if (passedAttempt) {
+      return res.status(403).json({ error: 'Quiz already passed. Try a different quiz.' });
     }
 
     // Get quiz with questions
@@ -533,6 +957,160 @@ router.post('/:quizId/start', (req: Request, res: Response) => {
   }
 });
 
+// Get timer state for a quiz attempt
+router.get('/attempts/:attemptId/timer', (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+
+    const attempt = db.prepare(`
+      SELECT id, profile_id, quiz_id FROM family_quiz_attempts WHERE id = ?
+    `).get(attemptId) as any;
+
+    if (!attempt) {
+      return res.status(404).json({ error: 'Attempt not found' });
+    }
+
+    const quiz = db.prepare(`
+      SELECT time_limit_seconds FROM family_quizzes WHERE id = ?
+    `).get(attempt.quiz_id) as any;
+
+    const timerState = getQuizTimerState(attemptId);
+    const currentElapsed = timerState ? computeElapsedSeconds(timerState) : 0;
+
+    res.json({
+      attempt_id: attempt.id,
+      time_limit_seconds: quiz?.time_limit_seconds || null,
+      timer_state: timerState ? {
+        ...timerState,
+        elapsed_seconds: currentElapsed
+      } : null
+    });
+  } catch (error) {
+    console.error('[Quiz Timer] Get timer state error:', error);
+    res.status(500).json({ error: 'Failed to fetch timer state' });
+  }
+});
+
+// Start timer for a quiz attempt
+router.post('/attempts/:attemptId/timer/start', (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+
+    const attempt = db.prepare(`
+      SELECT id, profile_id FROM family_quiz_attempts WHERE id = ?
+    `).get(attemptId) as any;
+
+    if (!attempt) {
+      return res.status(404).json({ error: 'Attempt not found' });
+    }
+
+    const existingTimer = getQuizTimerState(attemptId);
+    if (existingTimer) {
+      return res.json({
+        success: true,
+        message: 'Timer already started',
+        timer_state: {
+          ...existingTimer,
+          elapsed_seconds: computeElapsedSeconds(existingTimer)
+        }
+      });
+    }
+
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO timer_states (
+        profile_id, quiz_attempt_id, timer_type,
+        is_running, is_paused, elapsed_seconds, start_time, last_updated
+      )
+      VALUES (?, ?, 'quiz', 1, 0, 0, ?, ?)
+    `).run(attempt.profile_id, attemptId, now, now);
+
+    const newTimer = getQuizTimerState(attemptId);
+
+    res.json({
+      success: true,
+      message: 'Timer started',
+      timer_state: newTimer
+    });
+  } catch (error) {
+    console.error('[Quiz Timer] Start timer error:', error);
+    res.status(500).json({ error: 'Failed to start timer' });
+  }
+});
+
+// Pause timer for a quiz attempt
+router.post('/attempts/:attemptId/timer/pause', (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+
+    const timerState = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE quiz_attempt_id = ? AND timer_type = 'quiz' AND is_running = 1
+      ORDER BY id DESC LIMIT 1
+    `).get(attemptId) as any;
+
+    if (!timerState) {
+      return res.status(404).json({ error: 'No running timer found for this quiz' });
+    }
+
+    const now = new Date().toISOString();
+    const totalElapsed = computeElapsedSeconds(timerState);
+
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 0, is_paused = 1, elapsed_seconds = ?, pause_time = ?, last_updated = ?
+      WHERE id = ?
+    `).run(totalElapsed, now, now, timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    res.json({
+      success: true,
+      message: 'Timer paused',
+      timer_state: updatedTimer
+    });
+  } catch (error) {
+    console.error('[Quiz Timer] Pause timer error:', error);
+    res.status(500).json({ error: 'Failed to pause timer' });
+  }
+});
+
+// Resume timer for a quiz attempt
+router.post('/attempts/:attemptId/timer/resume', (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+
+    const timerState = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE quiz_attempt_id = ? AND timer_type = 'quiz' AND is_paused = 1
+      ORDER BY id DESC LIMIT 1
+    `).get(attemptId) as any;
+
+    if (!timerState) {
+      return res.status(404).json({ error: 'No paused timer found for this quiz' });
+    }
+
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 1, is_paused = 0, start_time = ?, last_updated = ?
+      WHERE id = ?
+    `).run(now, now, timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    res.json({
+      success: true,
+      message: 'Timer resumed',
+      timer_state: updatedTimer
+    });
+  } catch (error) {
+    console.error('[Quiz Timer] Resume timer error:', error);
+    res.status(500).json({ error: 'Failed to resume timer' });
+  }
+});
+
 // Submit answer for a question
 router.post('/attempts/:attemptId/answer', (req: Request, res: Response) => {
   try {
@@ -597,7 +1175,7 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
     const attempt = db.prepare(`
       SELECT fa.*, fq.points_per_correct, fq.stars_per_correct, fq.bonus_points,
              fq.pass_threshold, fq.is_competition, fq.first_place_bonus, fq.second_place_bonus, fq.third_place_bonus,
-             fq.id as quiz_id, fq.created_by
+             fq.time_limit_seconds, fq.id as quiz_id, fq.created_by
       FROM family_quiz_attempts fa
       JOIN family_quizzes fq ON fa.quiz_id = fq.id
       WHERE fa.id = ?
@@ -611,13 +1189,24 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
     const scorePercentage = Math.round((attempt.correct_answers / attempt.total_questions) * 100);
     const passed = scorePercentage >= attempt.pass_threshold;
 
+    const timerState = getQuizTimerState(attemptId);
+    const timerElapsed = timerState ? computeElapsedSeconds(timerState) : null;
+    const finalTimeTaken = timerElapsed ?? (attempt.time_taken_seconds ?? timeTakenSeconds ?? null);
+
     // Calculate points earned
     let pointsEarned = attempt.correct_answers * attempt.points_per_correct;
     let starsEarned = attempt.correct_answers * attempt.stars_per_correct;
+    let timeBonusPoints = 0;
 
     // Add bonus if passed
     if (passed) {
-      pointsEarned += attempt.bonus_points;
+      if (attempt.time_limit_seconds && finalTimeTaken !== null) {
+        const remaining = Math.max(0, attempt.time_limit_seconds - finalTimeTaken);
+        timeBonusPoints = Math.round((remaining / attempt.time_limit_seconds) * attempt.bonus_points);
+        pointsEarned += timeBonusPoints;
+      } else if (!attempt.time_limit_seconds) {
+        pointsEarned += attempt.bonus_points;
+      }
     }
 
     // Handle competition ranking
@@ -654,12 +1243,19 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
           points_earned = ?,
           stars_earned = ?,
           time_taken_seconds = ?,
+          time_bonus_points = ?,
           passed = ?,
           competition_rank = ?,
           bonus_awarded = ?
       WHERE id = ?
-    `).run(scorePercentage, pointsEarned, starsEarned, timeTakenSeconds || null,
-           passed ? 1 : 0, competitionRank, competitionBonus, attemptId);
+    `).run(scorePercentage, pointsEarned, starsEarned, finalTimeTaken,
+           timeBonusPoints, passed ? 1 : 0, competitionRank, competitionBonus, attemptId);
+
+    if (timerState) {
+      db.prepare(`
+        DELETE FROM timer_states WHERE quiz_attempt_id = ? AND timer_type = 'quiz'
+      `).run(attemptId);
+    }
 
     // Award points to progress
     if (pointsEarned > 0 || starsEarned > 0) {
@@ -691,7 +1287,8 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       totalQuestions: attempt.total_questions,
       competitionRank,
       competitionBonus,
-      timeTakenSeconds
+      timeTakenSeconds: finalTimeTaken,
+      timeBonusPoints
     });
   } catch (error) {
     console.error('Error completing quiz:', error);

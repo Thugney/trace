@@ -2,12 +2,40 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { familyQuizzesAPI, profilesAPI, type QuizCategory, type FamilyQuiz, type QuizQuestion, type QuizOption } from '../services/api';
 import { useToast } from '../components/Toast';
+import QuizMediaUploader from '../components/QuizMediaUploader';
+import { Plus, ArrowLeft, Image, Music, Check, X, Sparkles, BookOpen, Calculator, Globe, History, Beaker, Languages, Palette, HelpCircle, Lightbulb, Upload } from 'lucide-react';
+
+// Type for input_config
+interface InputConfig {
+  supports_images?: boolean;
+  supports_audio?: boolean;
+  option_style?: string;
+  question_placeholder?: string;
+  color_picker?: boolean;
+  shape_picker?: boolean;
+}
 
 interface QuizWithQuestions extends FamilyQuiz {
   questions: QuizQuestion[];
   theme_config?: any;
   input_config?: any;
 }
+
+// Category icons mapping for visual appeal
+const CATEGORY_ICONS: Record<string, { icon: any; color: string; bg: string }> = {
+  alphabet: { icon: BookOpen, color: 'text-pink-600', bg: 'from-pink-400 to-rose-500' },
+  math: { icon: Calculator, color: 'text-blue-600', bg: 'from-blue-400 to-indigo-500' },
+  geography: { icon: Globe, color: 'text-green-600', bg: 'from-green-400 to-emerald-500' },
+  history: { icon: History, color: 'text-amber-600', bg: 'from-amber-400 to-orange-500' },
+  science: { icon: Beaker, color: 'text-purple-600', bg: 'from-purple-400 to-violet-500' },
+  language: { icon: Languages, color: 'text-cyan-600', bg: 'from-cyan-400 to-teal-500' },
+  colors_shapes: { icon: Palette, color: 'text-rose-600', bg: 'from-rose-400 to-pink-500' },
+};
+
+// Helper to get category display info
+const getCategoryStyle = (categoryName: string) => {
+  return CATEGORY_ICONS[categoryName] || { icon: HelpCircle, color: 'text-gray-600', bg: 'from-gray-400 to-slate-500' };
+};
 
 export default function QuizBuilder() {
   const { currentProfile } = useProfile();
@@ -18,6 +46,12 @@ export default function QuizBuilder() {
   const [quizzes, setQuizzes] = useState<FamilyQuiz[]>([]);
   const [children, setChildren] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiCategoryId, setAiCategoryId] = useState(0);
+  const [aiAssignedTo, setAiAssignedTo] = useState(0);
+  const [aiQuestionCount, setAiQuestionCount] = useState(5);
+  const [aiIncludeImages, setAiIncludeImages] = useState(true);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   // UI State
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'questions'>('list');
@@ -44,7 +78,9 @@ export default function QuizBuilder() {
   // Question form state
   const [questionForm, setQuestionForm] = useState({
     questionText: '',
-    options: [{ id: 'a', text: '' }, { id: 'b', text: '' }, { id: 'c', text: '' }, { id: 'd', text: '' }] as QuizOption[],
+    questionImage: '',
+    questionAudio: '',
+    options: [{ id: 'a', text: '', image: '', color: '', shape: '' }, { id: 'b', text: '', image: '', color: '', shape: '' }, { id: 'c', text: '', image: '', color: '', shape: '' }, { id: 'd', text: '', image: '', color: '', shape: '' }] as QuizOption[],
     correctAnswer: '',
     hint: '',
     explanation: '',
@@ -52,11 +88,25 @@ export default function QuizBuilder() {
   });
   const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
 
+  const hasOptionContent = (option: QuizOption) => {
+    return Boolean(option.text?.trim() || option.image || option.color || option.shape);
+  };
+
   useEffect(() => {
     if (currentProfile?.id) {
       loadData();
     }
   }, [currentProfile]);
+
+  useEffect(() => {
+    const category = categories.find(cat => cat.id === aiCategoryId);
+    if (category) {
+      const config = (category.input_config || {}) as InputConfig;
+      if (!config.supports_images && aiIncludeImages) {
+        setAiIncludeImages(false);
+      }
+    }
+  }, [aiCategoryId, categories, aiIncludeImages]);
 
   const loadData = async () => {
     try {
@@ -133,14 +183,52 @@ export default function QuizBuilder() {
     }
   };
 
+  const handleGenerateAIQuiz = async () => {
+    if (!aiPrompt.trim() || !aiCategoryId || !aiAssignedTo) {
+      showToast('Please enter a prompt, select a category, and choose a child', 'error');
+      return;
+    }
+
+    try {
+      setAiGenerating(true);
+      const response = await familyQuizzesAPI.generateAIQuiz({
+        prompt: aiPrompt.trim(),
+        categoryId: aiCategoryId,
+        questionCount: aiQuestionCount,
+        createdBy: currentProfile!.id,
+        assignedTo: aiAssignedTo,
+        includeImages: aiIncludeImages
+      });
+
+      const createdQuiz = response.data.quiz as QuizWithQuestions;
+      createdQuiz.questions = response.data.questions || [];
+
+      const cat = categories.find(c => c.id === createdQuiz.category_id) || null;
+      setSelectedCategory(cat);
+      setSelectedQuiz(createdQuiz);
+      setView('questions');
+      showToast('AI quiz created! Review and edit questions.', 'success');
+      if (response.data.image_warnings?.length) {
+        showToast('Some images could not be generated. You can upload them manually.', 'warning');
+      }
+      loadData();
+    } catch (error: any) {
+      console.error('Failed to generate AI quiz:', error);
+      const errorMsg = error.response?.data?.error || 'Failed to generate AI quiz';
+      showToast(errorMsg, 'error');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const handleAddQuestion = async () => {
     if (!selectedQuiz) return;
     if (!questionForm.questionText || !questionForm.correctAnswer) {
       showToast('Please enter question text and select correct answer', 'error');
       return;
     }
-    if (questionForm.options.some(o => !o.text.trim())) {
-      showToast('Please fill in all options', 'error');
+    if (questionForm.options.some(option => !hasOptionContent(option))) {
+      showToast('Please add text, image, color, or shape for every option', 'error');
       return;
     }
 
@@ -160,7 +248,9 @@ export default function QuizBuilder() {
       // Reset form
       setQuestionForm({
         questionText: '',
-        options: [{ id: 'a', text: '' }, { id: 'b', text: '' }, { id: 'c', text: '' }, { id: 'd', text: '' }],
+        questionImage: '',
+        questionAudio: '',
+        options: [{ id: 'a', text: '', image: '', color: '', shape: '' }, { id: 'b', text: '', image: '', color: '', shape: '' }, { id: 'c', text: '', image: '', color: '', shape: '' }, { id: 'd', text: '', image: '', color: '', shape: '' }],
         correctAnswer: '',
         hint: '',
         explanation: '',
@@ -177,7 +267,15 @@ export default function QuizBuilder() {
     setEditingQuestionId(question.id);
     setQuestionForm({
       questionText: question.question_text,
-      options: question.options,
+      questionImage: question.question_image || '',
+      questionAudio: question.question_audio || '',
+      options: question.options.map(opt => ({
+        id: opt.id,
+        text: opt.text || '',
+        image: opt.image || '',
+        color: opt.color || '',
+        shape: opt.shape || ''
+      })),
       correctAnswer: question.correct_answer || '',
       hint: question.hint || '',
       explanation: question.explanation || '',
@@ -216,7 +314,9 @@ export default function QuizBuilder() {
     });
     setQuestionForm({
       questionText: '',
-      options: [{ id: 'a', text: '' }, { id: 'b', text: '' }, { id: 'c', text: '' }, { id: 'd', text: '' }],
+      questionImage: '',
+      questionAudio: '',
+      options: [{ id: 'a', text: '', image: '', color: '', shape: '' }, { id: 'b', text: '', image: '', color: '', shape: '' }, { id: 'c', text: '', image: '', color: '', shape: '' }, { id: 'd', text: '', image: '', color: '', shape: '' }],
       correctAnswer: '',
       hint: '',
       explanation: '',
@@ -237,20 +337,117 @@ export default function QuizBuilder() {
 
   // Quiz List View
   if (view === 'list') {
+    const aiCategory = categories.find(cat => cat.id === aiCategoryId) || null;
+    const aiInputConfig: InputConfig = (aiCategory?.input_config || {}) as InputConfig;
+
     return (
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Quiz Builder</h1>
-            <p className="text-gray-600">Create educational quizzes for your kids</p>
+        {/* Header with fun gradient */}
+        <div className="bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl p-6 text-white shadow-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="w-7 h-7" />
+                Quiz Builder
+              </h1>
+              <p className="text-white/80 mt-1">Create fun educational quizzes for your kids!</p>
+            </div>
+            <button
+              onClick={() => { resetForms(); setView('create'); }}
+              className="px-5 py-3 bg-white text-purple-600 rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" /> Create Quiz
+            </button>
           </div>
-          <button
-            onClick={() => { resetForms(); setView('create'); }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-          >
-            <span className="text-xl">+</span> Create Quiz
-          </button>
+        </div>
+
+        {/* AI Quiz Generator */}
+        <div className="bg-white rounded-2xl shadow-lg border border-purple-100 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">AI Quiz Generator</h2>
+              <p className="text-sm text-gray-500">Give a prompt and let Grok build the quiz.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Quiz Category</label>
+              <select
+                value={aiCategoryId}
+                onChange={(e) => setAiCategoryId(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              >
+                <option value={0}>Select category</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.display_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Assign To</label>
+              <select
+                value={aiAssignedTo}
+                onChange={(e) => setAiAssignedTo(Number(e.target.value))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              >
+                <option value={0}>Select child</option>
+                {children.map((child) => (
+                  <option key={child.id} value={child.id}>{child.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Prompt</label>
+              <input
+                type="text"
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="e.g., Make a fun ocean animals quiz with easy questions"
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Questions</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={aiQuestionCount}
+                onChange={(e) => setAiQuestionCount(Math.max(1, Math.min(20, Number(e.target.value) || 1)))}
+                className="w-full px-4 py-2 border border-gray-200 rounded-xl"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={aiIncludeImages}
+                onChange={(e) => setAiIncludeImages(e.target.checked)}
+                disabled={!aiInputConfig.supports_images}
+                className="rounded border-gray-300"
+              />
+              Include AI-generated images
+            </label>
+            {!aiInputConfig.supports_images && aiCategory && (
+              <span className="text-xs text-gray-500">This category does not support images</span>
+            )}
+            <button
+              onClick={handleGenerateAIQuiz}
+              disabled={aiGenerating}
+              className="px-5 py-2 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {aiGenerating ? 'Generating...' : 'Generate Quiz'}
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -350,44 +547,130 @@ export default function QuizBuilder() {
   if (view === 'create') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <button onClick={() => { setView('list'); resetForms(); }} className="p-2 hover:bg-gray-100 rounded-lg">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Quiz</h1>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => { setView('list'); resetForms(); }}
+              className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold">Create New Quiz</h1>
+              <p className="text-white/80">Build an engaging quiz for your child</p>
+            </div>
+          </div>
         </div>
 
-        {/* Step 1: Select Category */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">1. Choose a Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Step 1: Select Category - Now more visual! */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-100">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-purple-600 font-bold">1</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Choose Quiz Category</h2>
+              <p className="text-sm text-gray-500">Select what type of quiz you want to create</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {categories.map(cat => {
               const isSelected = selectedCategory?.id === cat.id;
+              const style = getCategoryStyle(cat.name);
+              const inputConfig: InputConfig = (cat.input_config || {}) as InputConfig;
+
               return (
                 <button
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat)}
-                  className={`p-4 rounded-xl border-2 transition-all ${
+                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 transform ${
                     isSelected
-                      ? 'border-purple-500 bg-purple-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? `border-purple-500 bg-gradient-to-br ${style.bg} text-white shadow-xl scale-105`
+                      : 'border-gray-200 hover:border-purple-300 hover:shadow-lg hover:scale-102 bg-white'
                   }`}
                 >
-                  <div className="text-4xl mb-2">{cat.icon}</div>
-                  <div className="font-medium text-gray-900">{cat.display_name}</div>
-                  <div className="text-xs text-gray-500">{cat.description}</div>
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`text-4xl mb-2 ${isSelected ? '' : ''}`}>{cat.icon}</div>
+                    <div className={`font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                      {cat.display_name}
+                    </div>
+                    <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
+                      {cat.description}
+                    </div>
+
+                    {/* Show supported features */}
+                    <div className="flex gap-1 mt-2">
+                      {inputConfig.supports_images && (
+                        <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
+                          <Image className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                        </span>
+                      )}
+                      {inputConfig.supports_audio && (
+                        <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
+                          <Music className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </button>
               );
             })}
           </div>
+
+          {/* Category-specific help text */}
+          {selectedCategory && (
+            <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-purple-800">
+                  <strong>{selectedCategory.display_name} Quiz Tips:</strong>
+                  {selectedCategory.name === 'alphabet' && (
+                    <p className="mt-1">Upload images of letters and ask kids to identify them. You can add audio pronunciation too!</p>
+                  )}
+                  {selectedCategory.name === 'math' && (
+                    <p className="mt-1">Create simple math problems. Kids will love solving addition, subtraction, and more!</p>
+                  )}
+                  {selectedCategory.name === 'geography' && (
+                    <p className="mt-1">Add maps and flag images to teach about countries and capitals.</p>
+                  )}
+                  {selectedCategory.name === 'colors_shapes' && (
+                    <p className="mt-1">Upload colorful images and use the color/shape pickers to create visual questions.</p>
+                  )}
+                  {selectedCategory.name === 'science' && (
+                    <p className="mt-1">Add images of animals, plants, or experiments to make learning fun!</p>
+                  )}
+                  {selectedCategory.name === 'language' && (
+                    <p className="mt-1">Create word recognition and sentence completion questions with audio support.</p>
+                  )}
+                  {selectedCategory.name === 'history' && (
+                    <p className="mt-1">Add historical images and dates to teach about important events and people.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Step 2: Quiz Details */}
         {selectedCategory && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4">2. Quiz Details</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-indigo-100">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                <span className="text-indigo-600 font-bold">2</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Quiz Details</h2>
+                <p className="text-sm text-gray-500">Set up your quiz settings and assign to a child</p>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <div>
@@ -521,70 +804,298 @@ export default function QuizBuilder() {
 
   // Question Editor View
   if (view === 'questions' && selectedQuiz) {
+    const inputConfig: InputConfig = (selectedCategory?.input_config || {}) as InputConfig;
+    const supportsImages = inputConfig.supports_images;
+    const supportsAudio = inputConfig.supports_audio;
+    const style = getCategoryStyle(selectedCategory?.name || '');
+
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => { setView('list'); resetForms(); }} className="p-2 hover:bg-gray-100 rounded-lg">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{selectedQuiz.title}</h1>
-              <p className="text-gray-600">{selectedQuiz.questions?.length || 0} questions</p>
+        {/* Header with category-specific gradient */}
+        <div className={`bg-gradient-to-r ${style.bg} rounded-2xl p-6 text-white shadow-lg`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => { setView('list'); resetForms(); }}
+                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold">{selectedQuiz.title}</h1>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-white/80">{selectedQuiz.questions?.length || 0} questions</span>
+                  {supportsImages && (
+                    <span className="flex items-center gap-1 text-white/80 text-sm bg-white/20 px-2 py-0.5 rounded-full">
+                      <Image className="w-3 h-3" /> Images
+                    </span>
+                  )}
+                  {supportsAudio && (
+                    <span className="flex items-center gap-1 text-white/80 text-sm bg-white/20 px-2 py-0.5 rounded-full">
+                      <Music className="w-3 h-3" /> Audio
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
+            <span className="text-5xl drop-shadow-lg">{selectedQuiz.category_icon || selectedCategory?.icon}</span>
           </div>
-          <span className="text-4xl">{selectedQuiz.category_icon || selectedCategory?.icon}</span>
         </div>
 
         {/* Add Question Form */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            {editingQuestionId ? 'Edit Question' : 'Add New Question'}
-          </h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-indigo-100">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 bg-gradient-to-br ${style.bg} rounded-xl flex items-center justify-center shadow-md`}>
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {editingQuestionId ? 'Edit Question' : 'Add New Question'}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  {supportsImages && supportsAudio
+                    ? 'Add text, images, and audio to your question'
+                    : supportsImages
+                    ? 'Add text and images to your question'
+                    : 'Create your question with answer options'}
+                </p>
+              </div>
+            </div>
+            {editingQuestionId && (
+              <button
+                onClick={() => {
+                  setEditingQuestionId(null);
+                  setQuestionForm({
+                    questionText: '',
+                    questionImage: '',
+                    questionAudio: '',
+                    options: [{ id: 'a', text: '', image: '', color: '', shape: '' }, { id: 'b', text: '', image: '', color: '', shape: '' }, { id: 'c', text: '', image: '', color: '', shape: '' }, { id: 'd', text: '', image: '', color: '', shape: '' }],
+                    correctAnswer: '',
+                    hint: '',
+                    explanation: '',
+                    points: 10
+                  });
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
 
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Question Text */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Question</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Question Text</label>
               <input
                 type="text"
                 value={questionForm.questionText}
                 onChange={e => setQuestionForm(prev => ({ ...prev, questionText: e.target.value }))}
-                placeholder={selectedCategory?.input_config?.question_placeholder || 'Enter your question...'}
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 text-lg"
+                placeholder={inputConfig?.question_placeholder || 'Enter your question...'}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg transition-all"
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {questionForm.options.map((option, idx) => (
-                <div key={option.id} className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setQuestionForm(prev => ({ ...prev, correctAnswer: option.id }))}
-                    className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold transition-all ${
-                      questionForm.correctAnswer === option.id
-                        ? 'bg-green-500 border-green-500 text-white'
-                        : 'border-gray-300 text-gray-500 hover:border-green-400'
-                    }`}
-                  >
-                    {option.id.toUpperCase()}
-                  </button>
-                  <input
-                    type="text"
-                    value={option.text}
-                    onChange={e => {
-                      const newOptions = [...questionForm.options];
-                      newOptions[idx] = { ...option, text: e.target.value };
-                      setQuestionForm(prev => ({ ...prev, options: newOptions }));
-                    }}
-                    placeholder={`Option ${option.id.toUpperCase()}`}
-                    className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
-                  />
+            {/* PROMINENT Media Upload Section */}
+            {(supportsImages || supportsAudio) && (
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 border-2 border-dashed border-indigo-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <Upload className="w-5 h-5 text-indigo-600" />
+                  <h3 className="font-bold text-indigo-900">Add Media to Question</h3>
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full">
+                    {selectedCategory?.display_name} supports {supportsImages && supportsAudio ? 'images & audio' : supportsImages ? 'images' : 'audio'}
+                  </span>
                 </div>
-              ))}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {supportsImages && (
+                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Image className="w-5 h-5 text-pink-600" />
+                        <label className="font-medium text-gray-900">Question Image</label>
+                        {questionForm.questionImage && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Uploaded ✓</span>
+                        )}
+                      </div>
+                      <QuizMediaUploader
+                        quizId={selectedQuiz.id}
+                        allowedTypes="image"
+                        onUploadComplete={(url) => setQuestionForm(prev => ({ ...prev, questionImage: url }))}
+                        existingUrl={questionForm.questionImage}
+                        label={`Upload ${selectedCategory?.name === 'alphabet' ? 'letter image' : selectedCategory?.name === 'geography' ? 'map or flag' : 'image'}`}
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        {selectedCategory?.name === 'alphabet' && 'Upload an image of a letter for kids to identify'}
+                        {selectedCategory?.name === 'math' && 'Add visual math problems or diagrams'}
+                        {selectedCategory?.name === 'geography' && 'Upload maps, flags, or landmarks'}
+                        {selectedCategory?.name === 'science' && 'Add science diagrams or photos'}
+                        {selectedCategory?.name === 'colors_shapes' && 'Upload colorful images or shapes'}
+                        {selectedCategory?.name === 'language' && 'Add images for word association'}
+                        {selectedCategory?.name === 'history' && 'Upload historical photos or portraits'}
+                      </p>
+                    </div>
+                  )}
+                  {supportsAudio && (
+                    <div className="bg-white rounded-xl p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Music className="w-5 h-5 text-purple-600" />
+                        <label className="font-medium text-gray-900">Question Audio</label>
+                        {questionForm.questionAudio && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Uploaded ✓</span>
+                        )}
+                      </div>
+                      <QuizMediaUploader
+                        quizId={selectedQuiz.id}
+                        allowedTypes="audio"
+                        onUploadComplete={(url) => setQuestionForm(prev => ({ ...prev, questionAudio: url }))}
+                        existingUrl={questionForm.questionAudio}
+                        label={`Upload ${selectedCategory?.name === 'alphabet' ? 'pronunciation' : 'audio'}`}
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        {selectedCategory?.name === 'alphabet' && 'Add audio pronunciation of the letter'}
+                        {selectedCategory?.name === 'language' && 'Add word pronunciation or sentences'}
+                        {!['alphabet', 'language'].includes(selectedCategory?.name || '') && 'Add audio clues or instructions'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Answer Options Section */}
+            <div className="bg-gray-50 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Check className="w-5 h-5 text-green-600" />
+                <h3 className="font-bold text-gray-900">Answer Options</h3>
+                <span className="text-xs text-gray-500">(Click letter to mark correct answer)</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {questionForm.options.map((option, idx) => {
+                  const isCorrect = questionForm.correctAnswer === option.id;
+                  return (
+                    <div
+                      key={option.id}
+                      className={`relative p-4 rounded-xl border-2 transition-all ${
+                        isCorrect
+                          ? 'border-green-500 bg-green-50 shadow-md'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      {/* Correct answer badge */}
+                      {isCorrect && (
+                        <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full shadow">
+                          ✓ Correct
+                        </div>
+                      )}
+
+                      <div className="flex items-start gap-3">
+                        {/* Option selector button */}
+                        <button
+                          type="button"
+                          onClick={() => setQuestionForm(prev => ({ ...prev, correctAnswer: option.id }))}
+                          className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center font-bold text-lg transition-all flex-shrink-0 ${
+                            isCorrect
+                              ? 'bg-green-500 border-green-500 text-white shadow-lg'
+                              : 'border-gray-300 text-gray-500 hover:border-green-400 hover:text-green-500 bg-white'
+                          }`}
+                        >
+                          {option.id.toUpperCase()}
+                        </button>
+
+                        <div className="flex-1 space-y-2">
+                          {/* Text input - always shown */}
+                          <input
+                            type="text"
+                            value={option.text}
+                            onChange={e => {
+                              const newOptions = [...questionForm.options];
+                              newOptions[idx] = { ...option, text: e.target.value };
+                              setQuestionForm(prev => ({ ...prev, options: newOptions }));
+                            }}
+                            placeholder={`Answer ${option.id.toUpperCase()} text`}
+                            className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          />
+
+                          {/* Color picker for colors_shapes category */}
+                          {inputConfig?.color_picker && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={option.color || '#3B82F6'}
+                                onChange={e => {
+                                  const newOptions = [...questionForm.options];
+                                  newOptions[idx] = { ...option, color: e.target.value };
+                                  setQuestionForm(prev => ({ ...prev, options: newOptions }));
+                                }}
+                                className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200"
+                              />
+                              <input
+                                type="text"
+                                value={option.color || ''}
+                                onChange={e => {
+                                  const newOptions = [...questionForm.options];
+                                  newOptions[idx] = { ...option, color: e.target.value };
+                                  setQuestionForm(prev => ({ ...prev, options: newOptions }));
+                                }}
+                                placeholder="Color name or hex"
+                                className="flex-1 px-3 py-1 border rounded-lg text-sm"
+                              />
+                            </div>
+                          )}
+
+                          {/* Shape picker for colors_shapes category */}
+                          {inputConfig?.shape_picker && (
+                            <select
+                              value={option.shape || ''}
+                              onChange={e => {
+                                const newOptions = [...questionForm.options];
+                                newOptions[idx] = { ...option, shape: e.target.value };
+                                setQuestionForm(prev => ({ ...prev, options: newOptions }));
+                              }}
+                              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm"
+                            >
+                              <option value="">Select a shape...</option>
+                              <option value="circle">⬤ Circle</option>
+                              <option value="square">◼ Square</option>
+                              <option value="triangle">▲ Triangle</option>
+                              <option value="star">★ Star</option>
+                              <option value="heart">♥ Heart</option>
+                              <option value="diamond">◆ Diamond</option>
+                              <option value="rectangle">▬ Rectangle</option>
+                              <option value="oval">⬭ Oval</option>
+                            </select>
+                          )}
+
+                          {/* Image upload for option */}
+                          {supportsImages && (
+                            <div className="mt-2 p-2 bg-gray-100 rounded-lg">
+                              <div className="flex items-center gap-1 mb-1">
+                                <Image className="w-3 h-3 text-gray-500" />
+                                <span className="text-xs text-gray-600">Option image</span>
+                                {option.image && <span className="text-xs text-green-600">✓</span>}
+                              </div>
+                              <QuizMediaUploader
+                                quizId={selectedQuiz.id}
+                                allowedTypes="image"
+                                onUploadComplete={(url) => {
+                                  const newOptions = [...questionForm.options];
+                                  newOptions[idx] = { ...option, image: url };
+                                  setQuestionForm(prev => ({ ...prev, options: newOptions }));
+                                }}
+                                existingUrl={option.image}
+                                label={`Add image`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <p className="text-sm text-gray-500">Click the letter circle to mark the correct answer</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -622,7 +1133,9 @@ export default function QuizBuilder() {
                     setEditingQuestionId(null);
                     setQuestionForm({
                       questionText: '',
-                      options: [{ id: 'a', text: '' }, { id: 'b', text: '' }, { id: 'c', text: '' }, { id: 'd', text: '' }],
+                      questionImage: '',
+                      questionAudio: '',
+                      options: [{ id: 'a', text: '', image: '', color: '', shape: '' }, { id: 'b', text: '', image: '', color: '', shape: '' }, { id: 'c', text: '', image: '', color: '', shape: '' }, { id: 'd', text: '', image: '', color: '', shape: '' }],
                       correctAnswer: '',
                       hint: '',
                       explanation: '',
@@ -677,7 +1190,29 @@ export default function QuizBuilder() {
                             : 'bg-white text-gray-600'
                         }`}
                       >
-                        <span className="font-semibold">{opt.id.toUpperCase()}:</span> {opt.text}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{opt.id.toUpperCase()}:</span>
+                          {opt.image && (
+                            <img
+                              src={opt.image}
+                              alt={`Option ${opt.id}`}
+                              className="w-8 h-8 rounded-md object-cover border"
+                            />
+                          )}
+                          {opt.color && (
+                            <span
+                              className="w-4 h-4 rounded-full border"
+                              style={{ backgroundColor: opt.color }}
+                              title={opt.color}
+                            />
+                          )}
+                          {opt.shape && (
+                            <span className="text-xs uppercase tracking-wide text-gray-500">
+                              {opt.shape}
+                            </span>
+                          )}
+                          <span>{opt.text || (opt.image ? 'Image' : opt.color ? opt.color : opt.shape ? opt.shape : '')}</span>
+                        </div>
                       </div>
                     ))}
                   </div>
