@@ -1,0 +1,46 @@
+Note: Unnecessary use of -X or --request, POST is already inferred.
+* Host localhost:3002 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0   0     0   0     0     0     0  --:--:-- --:--:-- --:--:--     0*   Trying [::1]:3002...
+*   Trying 127.0.0.1:3002...
+  0     0   0     0   0     0     0     0  --:--:-- --:--:-- --:--:--     0* Established connection to localhost (127.0.0.1 port 3002) from 127.0.0.1 port 55204 
+* using HTTP/1.x
+> POST /api/family-quizzes HTTP/1.1
+> Host: localhost:3002
+> User-Agent: curl/8.17.0
+> Accept: */*
+> Content-Type: application/json
+> x-profile-id: 2
+> Content-Length: 429
+> 
+} [429 bytes data]
+* upload completely sent off: 429 bytes
+< HTTP/1.1 500 Internal Server Error
+< Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=31536000; includeSubDomains
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< Access-Control-Allow-Origin: *
+< Access-Control-Allow-Credentials: true
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 70
+< ETag: W/"46-glIm73hMZQXNUdpSocwU5DRbqXY"
+< Vary: Accept-Encoding
+< Date: Thu, 15 Jan 2026 12:55:08 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [70 bytes data]
+100   499 100    70 100   429   178  1092  --:--:-- --:--:-- --:--:--  1269{"error":"Failed to create quiz","details":"23 values for 24 columns"}
+* Connection #0 to host localhost:3002 left intact

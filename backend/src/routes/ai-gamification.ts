@@ -523,6 +523,9 @@ router.post('/suggestions/:id/approve', (req, res) => {
     const description = modifications?.description || suggestion.description;
     const points = modifications?.points_reward || suggestion.points_reward;
     const duration = modifications?.duration_days || suggestion.duration_days;
+    // Timer settings - parents can require timer for AI challenges
+    const requiresTimer = modifications?.requires_timer ? 1 : 0;
+    const timerDuration = modifications?.timer_duration || 300; // Default 5 minutes
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + duration);
@@ -531,8 +534,8 @@ router.post('/suggestions/:id/approve', (req, res) => {
       INSERT INTO custom_challenges (
         profile_id, title, description, challenge_type, target_value,
         points_reward, bonus_multiplier, difficulty, is_ai_generated,
-        ai_suggestion_id, created_by, expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+        ai_suggestion_id, created_by, expires_at, requires_timer, timer_duration
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)
     `).run(
       suggestion.profile_id,
       title,
@@ -544,7 +547,9 @@ router.post('/suggestions/:id/approve', (req, res) => {
       suggestion.difficulty,
       id,
       parent_id,
-      expiresAt.toISOString()
+      expiresAt.toISOString(),
+      requiresTimer,
+      timerDuration
     );
 
     const challenge = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(result.lastInsertRowid);
@@ -599,7 +604,8 @@ router.post('/challenges', (req, res) => {
   try {
     const {
       profile_id, title, description, target_value,
-      points_reward, difficulty, duration_days, created_by
+      points_reward, difficulty, duration_days, created_by,
+      requires_timer, timer_duration
     } = req.body;
 
     const expiresAt = new Date();
@@ -608,12 +614,15 @@ router.post('/challenges', (req, res) => {
     const result = db.prepare(`
       INSERT INTO custom_challenges (
         profile_id, title, description, target_value,
-        points_reward, difficulty, is_ai_generated, created_by, expires_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+        points_reward, difficulty, is_ai_generated, created_by, expires_at,
+        requires_timer, timer_duration
+      ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
     `).run(
       profile_id, title, description, target_value || 1,
       points_reward || 50, difficulty || 'medium', created_by,
-      expiresAt.toISOString()
+      expiresAt.toISOString(),
+      requires_timer ? 1 : 0,
+      timer_duration || 300
     );
 
     const challenge = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(result.lastInsertRowid);
@@ -632,6 +641,16 @@ router.post('/challenges/:id/progress', (req, res) => {
     const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
     if (!challenge) {
       return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // If challenge requires timer, reject direct progress updates
+    if (challenge.requires_timer) {
+      return res.status(400).json({
+        error: 'This challenge requires a timer. Use the timer to track your progress.',
+        code: 'TIMER_REQUIRED',
+        requires_timer: true,
+        timer_duration: challenge.timer_duration
+      });
     }
 
     const newProgress = challenge.current_progress + increment;
@@ -663,6 +682,315 @@ router.post('/challenges/:id/progress', (req, res) => {
     const updated = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
     res.json({ challenge: updated, just_completed: completed && !challenge.completed });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== CHALLENGE TIMER ROUTES ====================
+
+// Get timer state for a challenge
+router.get('/challenges/:id/timer', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // Get active timer state (using 'challenge' as timer_type)
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'challenge'
+      ORDER BY last_updated DESC LIMIT 1
+    `).get(id);
+
+    // Calculate current elapsed time if timer is running
+    let currentElapsed = timerState?.elapsed_seconds || 0;
+    if (timerState?.is_running && timerState.start_time) {
+      const now = Date.now();
+      const startTime = new Date(timerState.start_time).getTime();
+      const runningTime = Math.floor((now - startTime) / 1000);
+      currentElapsed = timerState.elapsed_seconds + runningTime;
+    }
+
+    res.json({
+      challenge_id: parseInt(id),
+      requires_timer: challenge.requires_timer === 1,
+      timer_duration: challenge.timer_duration,
+      timer_state: timerState ? {
+        is_running: !!timerState.is_running,
+        is_paused: !!timerState.is_paused,
+        elapsed_seconds: currentElapsed,
+        start_time: timerState.start_time,
+        pause_time: timerState.pause_time
+      } : null,
+      can_complete: !challenge.requires_timer || (timerState && currentElapsed > 0),
+      completed: challenge.completed === 1
+    });
+  } catch (error: any) {
+    console.error('[Challenge Timer] Get timer state error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start timer for a challenge
+router.post('/challenges/:id/timer/start', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // Check if challenge is already completed
+    if (challenge.completed) {
+      return res.status(400).json({
+        error: 'This challenge is already completed',
+        code: 'ALREADY_COMPLETED'
+      });
+    }
+
+    // Check if there's already an active timer
+    const existingTimer: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'challenge' AND (is_running = 1 OR is_paused = 1)
+    `).get(id);
+
+    if (existingTimer) {
+      return res.status(400).json({
+        error: 'Timer already exists for this challenge',
+        code: 'TIMER_EXISTS',
+        timer_state: existingTimer
+      });
+    }
+
+    // Create new timer state
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO timer_states (profile_id, task_id, timer_type, is_running, is_paused, elapsed_seconds, start_time, last_updated)
+      VALUES (?, ?, 'challenge', 1, 0, 0, ?, ?)
+    `).run(challenge.profile_id, id, now, now);
+
+    const newTimer = db.prepare(`
+      SELECT * FROM timer_states WHERE task_id = ? AND timer_type = 'challenge' ORDER BY id DESC LIMIT 1
+    `).get(id);
+
+    console.log(`[Challenge Timer] Started timer for challenge ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Timer started',
+      timer_state: newTimer
+    });
+  } catch (error: any) {
+    console.error('[Challenge Timer] Start timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Pause timer for a challenge
+router.post('/challenges/:id/timer/pause', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // Get running timer
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'challenge' AND is_running = 1
+    `).get(id);
+
+    if (!timerState) {
+      return res.status(400).json({
+        error: 'No running timer found for this challenge',
+        code: 'NO_RUNNING_TIMER'
+      });
+    }
+
+    // Calculate elapsed time
+    const now = new Date();
+    const startTime = new Date(timerState.start_time);
+    const additionalSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    const totalElapsed = timerState.elapsed_seconds + additionalSeconds;
+
+    // Update timer state to paused
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 0, is_paused = 1, elapsed_seconds = ?, pause_time = ?, last_updated = ?
+      WHERE id = ?
+    `).run(totalElapsed, now.toISOString(), now.toISOString(), timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    console.log(`[Challenge Timer] Paused timer for challenge ${id}, elapsed: ${totalElapsed}s`);
+
+    res.json({
+      success: true,
+      message: 'Timer paused',
+      timer_state: updatedTimer
+    });
+  } catch (error: any) {
+    console.error('[Challenge Timer] Pause timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resume timer for a challenge
+router.post('/challenges/:id/timer/resume', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // Get paused timer
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'challenge' AND is_paused = 1
+    `).get(id);
+
+    if (!timerState) {
+      return res.status(400).json({
+        error: 'No paused timer found for this challenge',
+        code: 'NO_PAUSED_TIMER'
+      });
+    }
+
+    // Update timer state to running
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 1, is_paused = 0, start_time = ?, pause_time = NULL, last_updated = ?
+      WHERE id = ?
+    `).run(now, now, timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    console.log(`[Challenge Timer] Resumed timer for challenge ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Timer resumed',
+      timer_state: updatedTimer
+    });
+  } catch (error: any) {
+    console.error('[Challenge Timer] Resume timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Finish timer and complete challenge (increment progress by 1)
+router.post('/challenges/:id/timer/finish', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const challenge: any = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    if (!challenge) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+
+    // Check if challenge is already completed
+    if (challenge.completed) {
+      return res.status(400).json({
+        error: 'This challenge is already completed',
+        code: 'ALREADY_COMPLETED'
+      });
+    }
+
+    // Get active timer (running or paused)
+    let timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'challenge' AND (is_running = 1 OR is_paused = 1)
+    `).get(id);
+
+    // If challenge requires timer but no timer state exists, reject
+    if (challenge.requires_timer && !timerState) {
+      return res.status(400).json({
+        error: 'This challenge requires a timer. Please start the timer first.',
+        code: 'TIMER_REQUIRED'
+      });
+    }
+
+    // Calculate final elapsed time
+    let finalElapsed = 0;
+    if (timerState) {
+      finalElapsed = timerState.elapsed_seconds;
+      if (timerState.is_running && timerState.start_time) {
+        const now = Date.now();
+        const startTime = new Date(timerState.start_time).getTime();
+        finalElapsed += Math.floor((now - startTime) / 1000);
+      }
+    }
+
+    // If challenge requires timer, check minimum time (at least 60 seconds)
+    if (challenge.requires_timer && finalElapsed < 60) {
+      return res.status(400).json({
+        error: 'You need to work on this challenge for at least 1 minute before completing it.',
+        code: 'MINIMUM_TIME_NOT_MET',
+        elapsed_seconds: finalElapsed,
+        minimum_seconds: 60
+      });
+    }
+
+    // Clean up timer state
+    if (timerState) {
+      db.prepare('DELETE FROM timer_states WHERE id = ?').run(timerState.id);
+    }
+
+    // Increment progress
+    const newProgress = challenge.current_progress + 1;
+    const completed = newProgress >= challenge.target_value;
+
+    db.prepare(`
+      UPDATE custom_challenges
+      SET current_progress = ?, completed = ?, completed_at = ?
+      WHERE id = ?
+    `).run(newProgress, completed ? 1 : 0, completed ? new Date().toISOString() : null, id);
+
+    // Award points if completed
+    let pointsEarned = 0;
+    if (completed && !challenge.completed) {
+      const totalReward = Math.round(challenge.points_reward * challenge.bonus_multiplier);
+      pointsEarned = totalReward;
+
+      const progress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(challenge.profile_id);
+
+      const newPoints = (progress?.total_points || 0) + totalReward;
+      const newLevel = Math.floor(newPoints / 100) + 1;
+
+      db.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, 1, ?, ?, ?)
+      `).run(challenge.profile_id, totalReward, newLevel, newPoints, (progress?.total_stars || 0) + 1);
+    }
+
+    const updatedChallenge = db.prepare('SELECT * FROM custom_challenges WHERE id = ?').get(id);
+    const progress = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(challenge.profile_id);
+
+    console.log(`[Challenge Timer] Challenge ${id} progress updated via timer, elapsed: ${finalElapsed}s, progress: ${newProgress}/${challenge.target_value}`);
+
+    res.json({
+      success: true,
+      challenge: updatedChallenge,
+      progress,
+      pointsEarned,
+      timeSpent: finalElapsed,
+      just_completed: completed && !challenge.completed
+    });
+  } catch (error: any) {
+    console.error('[Challenge Timer] Finish timer error:', error);
     res.status(500).json({ error: error.message });
   }
 });

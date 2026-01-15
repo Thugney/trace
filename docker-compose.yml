@@ -2,10 +2,11 @@
 
 services:
   backend:
+    image: family-learning-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: family-pwa-backend
+    container_name: family-learning-backend
     restart: unless-stopped
     ports:
       - "3001:3001"

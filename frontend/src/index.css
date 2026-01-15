@@ -447,3 +447,555 @@
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r;
 }
+
+/* ============================================
+   KID-FRIENDLY ANIMATIONS
+   ============================================ */
+
+/* Wiggle animation - for bells, icons */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+  75% { transform: rotate(-10deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+/* Bounce in animation */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Pop animation */
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.animate-pop {
+  animation: pop 0.3s ease-in-out;
+}
+
+/* Shake animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Jelly/Squish animation */
+@keyframes jelly {
+  0%, 100% { transform: scale(1, 1); }
+  25% { transform: scale(0.9, 1.1); }
+  50% { transform: scale(1.1, 0.9); }
+  75% { transform: scale(0.95, 1.05); }
+}
+
+.animate-jelly {
+  animation: jelly 0.5s ease-in-out;
+}
+
+/* Tada animation */
+@keyframes tada {
+  0% { transform: scale(1) rotate(0deg); }
+  10%, 20% { transform: scale(0.9) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-tada {
+  animation: tada 1s ease-in-out;
+}
+
+/* Heart beat animation */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.3); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.3); }
+  70% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Glow pulse */
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.4); }
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   KID-FRIENDLY BUTTON STYLES
+   ============================================ */
+
+.btn-fun {
+  @apply px-6 py-3 rounded-2xl font-bold text-lg
+         transition-all duration-200
+         hover:scale-105 active:scale-95
+         shadow-lg hover:shadow-xl;
+}
+
+.btn-fun-primary {
+  @apply btn-fun bg-gradient-to-r from-purple-500 to-pink-500 text-white;
+}
+
+.btn-fun-success {
+  @apply btn-fun bg-gradient-to-r from-green-400 to-emerald-500 text-white;
+}
+
+.btn-fun-warning {
+  @apply btn-fun bg-gradient-to-r from-yellow-400 to-orange-500 text-white;
+}
+
+.btn-fun-danger {
+  @apply btn-fun bg-gradient-to-r from-red-400 to-rose-500 text-white;
+}
+
+.btn-fun-ocean {
+  @apply btn-fun bg-gradient-to-r from-blue-400 to-cyan-500 text-white;
+}
+
+/* ============================================
+   MAGICAL KID-FRIENDLY ANIMATIONS
+   ============================================ */
+
+/* Wiggle animation - more dramatic */
+@keyframes wiggle-more {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(-12deg) scale(1.1); }
+  20% { transform: rotate(12deg) scale(1.1); }
+  30% { transform: rotate(-8deg) scale(1.05); }
+  40% { transform: rotate(8deg) scale(1.05); }
+  50% { transform: rotate(0deg) scale(1); }
+}
+
+.animate-wiggle-more {
+  animation: wiggle-more 0.6s ease-in-out;
+}
+
+/* Jiggle animation */
+@keyframes jiggle {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-3px) rotate(-2deg); }
+  50% { transform: translateX(3px) rotate(2deg); }
+  75% { transform: translateX(-2px) rotate(-1deg); }
+}
+
+.animate-jiggle {
+  animation: jiggle 0.4s ease-in-out;
+}
+
+.hover\:animate-jiggle:hover {
+  animation: jiggle 0.4s ease-in-out;
+}
+
+/* Small tada */
+@keyframes tada-sm {
+  0% { transform: scale(1) rotate(0); }
+  10%, 20% { transform: scale(0.95) rotate(-2deg); }
+  30%, 50%, 70% { transform: scale(1.05) rotate(2deg); }
+  40%, 60% { transform: scale(1.05) rotate(-2deg); }
+  80%, 100% { transform: scale(1) rotate(0); }
+}
+
+.animate-tada-sm {
+  animation: tada-sm 0.8s ease-in-out;
+}
+
+.hover\:animate-tada-sm:hover {
+  animation: tada-sm 0.8s ease-in-out;
+}
+
+/* Robot animation */
+@keyframes robot {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-2px) rotate(2deg); }
+  50% { transform: translateY(0) rotate(-2deg); }
+  75% { transform: translateY(-2px) rotate(1deg); }
+}
+
+.animate-robot {
+  animation: robot 0.5s ease-in-out;
+}
+
+.hover\:animate-robot:hover {
+  animation: robot 0.5s ease-in-out;
+}
+
+/* Slow spin */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+.hover\:animate-spin-slow:hover {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.hover\:animate-float:hover {
+  animation: float 1s ease-in-out infinite;
+}
+
+/* Wiggle more hover */
+.hover\:animate-wiggle-more:hover {
+  animation: wiggle-more 0.6s ease-in-out;
+}
+
+/* ============================================
+   GAME-LIKE TASK CARD STYLES
+   ============================================ */
+
+/* Power-up glow effect */
+@keyframes power-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor, 0 0 15px currentColor;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+    transform: scale(1.02);
+  }
+}
+
+.animate-power-glow {
+  animation: power-glow 2s ease-in-out infinite;
+}
+
+/* Stamp effect for completion */
+@keyframes stamp {
+  0% { transform: scale(3) rotate(-30deg); opacity: 0; }
+  50% { transform: scale(0.8) rotate(5deg); opacity: 1; }
+  70% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.animate-stamp {
+  animation: stamp 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+/* Coin collect animation */
+@keyframes coin-collect {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-30px) scale(1.3); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+}
+
+.animate-coin-collect {
+  animation: coin-collect 0.6s ease-out forwards;
+}
+
+/* Rainbow shimmer */
+@keyframes rainbow-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-rainbow {
+  background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff, #5f27cd);
+  background-size: 400% 400%;
+  animation: rainbow-shimmer 3s ease infinite;
+}
+
+/* Squish on tap */
+@keyframes squish {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.1, 0.9); }
+}
+
+.animate-squish {
+  animation: squish 0.2s ease-in-out;
+}
+
+/* Stars burst */
+@keyframes star-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  100% { transform: scale(1.5) rotate(180deg); opacity: 0; }
+}
+
+.animate-star-burst {
+  animation: star-burst 0.5s ease-out forwards;
+}
+
+/* Level up flash */
+@keyframes level-up {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+.animate-level-up {
+  animation: level-up 1s ease-out forwards;
+}
+
+/* Bouncy entrance for cards */
+@keyframes card-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9) rotate(-2deg);
+  }
+  60% {
+    transform: translateY(-10px) scale(1.02) rotate(1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.animate-card-enter {
+  animation: card-enter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* XP bar fill */
+@keyframes xp-fill {
+  from { width: 0%; }
+}
+
+.animate-xp-fill {
+  animation: xp-fill 1s ease-out forwards;
+}
+
+/* Quest complete celebration */
+@keyframes quest-complete {
+  0% { transform: scale(1); }
+  10% { transform: scale(1.1) rotate(-5deg); }
+  20% { transform: scale(1.1) rotate(5deg); }
+  30% { transform: scale(1.1) rotate(-3deg); }
+  40% { transform: scale(1.1) rotate(3deg); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.animate-quest-complete {
+  animation: quest-complete 0.8s ease-in-out;
+}
+
+/* ============================================
+   KID-FRIENDLY QUIZ ANIMATIONS
+   ============================================ */
+
+/* Quiz option hover */
+@keyframes option-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.quiz-option:hover {
+  animation: option-pop 0.3s ease-out;
+}
+
+/* Correct answer celebration */
+@keyframes correct-answer {
+  0% { transform: scale(1); background-color: transparent; }
+  25% { transform: scale(1.1); }
+  50% { transform: scale(0.95); }
+  75% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.animate-correct {
+  animation: correct-answer 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Wrong answer shake */
+@keyframes wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-wrong {
+  animation: wrong-shake 0.5s ease-in-out;
+}
+
+/* Quiz card entrance */
+@keyframes quiz-slide-up {
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-quiz-enter {
+  animation: quiz-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Fun trophy bounce */
+@keyframes trophy-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-20px); }
+  60% { transform: translateY(-10px); }
+}
+
+.animate-trophy {
+  animation: trophy-bounce 1s ease;
+}
+
+/* Star sparkle */
+@keyframes sparkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  25% { transform: scale(1.2) rotate(15deg); }
+  50% { transform: scale(0.9) rotate(-10deg); opacity: 0.8; }
+  75% { transform: scale(1.1) rotate(5deg); }
+}
+
+.animate-sparkle {
+  animation: sparkle 1.5s ease-in-out infinite;
+}
+
+/* Points earned animation */
+@keyframes points-pop {
+  0% { transform: scale(0) translateY(20px); opacity: 0; }
+  50% { transform: scale(1.3) translateY(-10px); }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.animate-points-pop {
+  animation: points-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Category card scale */
+.scale-102 {
+  --tw-scale-x: 1.02;
+  --tw-scale-y: 1.02;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+.hover\:scale-102:hover {
+  --tw-scale-x: 1.02;
+  --tw-scale-y: 1.02;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
+/* Fun gradient text */
+.text-gradient-rainbow {
+  background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #ffd700, #ffb347, #ffd700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Kid-friendly button bounce */
+.btn-kid {
+  @apply transform transition-all duration-200;
+}
+
+.btn-kid:hover {
+  transform: scale(1.05) translateY(-2px);
+}
+
+.btn-kid:active {
+  transform: scale(0.95);
+}
+
+/* Staggered fade in for lists */
+.stagger-fade > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-fade > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-fade > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-fade > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-fade > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-fade > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-fade > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-fade > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Fun navigation icons */
+.nav-icon-fun {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav-icon-fun:hover {
+  transform: scale(1.2) rotate(10deg);
+}
+
+/* Progress bar shimmer */
+@keyframes progress-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.progress-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s infinite;
+}
+
+/* Confetti burst */
+@keyframes confetti-burst {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  animation: confetti-burst 1s ease-out forwards;
+}
+
+/* Pulse glow for active elements */
+@keyframes pulse-glow-kid {
+  0%, 100% { box-shadow: 0 0 5px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow-kid 2s ease-in-out infinite;
+}

@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera, Timer } from 'lucide-react';
 import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
 import Avatar from '../components/Avatar';
+import TaskTimerCard from '../components/TaskTimerCard';
 
 // Category icons map
 const categoryIcons: Record<string, string> = {
@@ -14,12 +15,14 @@ const categoryIcons: Record<string, string> = {
   'clean-room': '🛏️',
   'clean-kitchen': '🍽️',
   'school': '🎒',
-  'watch-movies': '📺',
   'homework': '📝',
   'exercise': '🏃',
   'chore': '🧹',
   'other': '📌'
 };
+
+// Categories that require a timer
+const TIMED_CATEGORIES = ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school'];
 
 // Priority colors
 const priorityColors: Record<string, string> = {
@@ -237,7 +240,6 @@ export default function TasksManager() {
     const formData = new FormData(e.currentTarget);
 
     const category = formData.get('category') as string;
-    const isTracking = category === 'watch-movies';
     const isRecurring = formData.get('is_recurring') === 'on';
     const estimatedMinutes = formData.get('estimated_minutes') as string;
 
@@ -247,14 +249,15 @@ export default function TasksManager() {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         category: category as any,
-        difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
-        earns_points: !isTracking,
+        difficulty: formData.get('difficulty') as any,
+        earns_points: true,
         created_by: currentProfile?.id,
         priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
         is_recurring: isRecurring,
         recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
         due_date: formData.get('due_date') as string || undefined,
-        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
+        // Timer is automatically set by backend based on category
       });
 
       await loadTasks();
@@ -405,15 +408,14 @@ export default function TasksManager() {
 
     const formData = new FormData(e.currentTarget);
     const category = formData.get('category') as string;
-    const isTracking = category === 'watch-movies';
 
     try {
       await tasksAPI.update(editingTask.id, {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         category: category as any,
-        difficulty: isTracking ? 'easy' : (formData.get('difficulty') as any),
-        earns_points: !isTracking,
+        difficulty: formData.get('difficulty') as any,
+        earns_points: true,
         due_date: (formData.get('due_date') as string) || undefined
       });
 
@@ -933,106 +935,128 @@ export default function TasksManager() {
             </div>
           ) : (
             <div className="space-y-3">
-              {incompleteTasks.map(task => (
-                <div
-                  key={task.id}
-                  className={clsx(
-                    'p-4 border-2 rounded-lg transition-all',
-                    !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
-                    task.parent_approved && task.priority === 'high' && 'border-red-300 bg-red-50',
-                    task.parent_approved && task.priority === 'medium' && 'border-yellow-300 bg-yellow-50',
-                    task.parent_approved && task.priority === 'low' && 'border-green-300 bg-green-50',
-                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
-                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
-                    task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
-                    task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
-                  )}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{categoryIcons[task.category] || '📌'}</span>
-                        <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                        {task.is_recurring === 1 && (
-                          <span title="Recurring task"><Repeat size={14} className="text-blue-600" /></span>
-                        )}
-                        {!task.parent_approved && (
-                          <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
-                            ⏳ Pending Approval
-                          </span>
-                        )}
-                      </div>
-                      {task.description && (
-                        <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                      )}
-                      <div className="flex flex-wrap items-center mt-2 gap-2">
-                        {task.earns_points ? (
-                          <>
-                            <span className="badge badge-primary">{task.points} pts</span>
-                            <span className="badge badge-warning">
-                              {task.difficulty}
+              {incompleteTasks.map((task, index) => {
+                const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
+
+                // For tasks requiring timer (and approved), show the timer card
+                if (requiresTimer && task.parent_approved && !isParent) {
+                  return (
+                    <TaskTimerCard
+                      key={task.id}
+                      task={task}
+                      onComplete={(taskId) => handleCompleteTask(taskId, task)}
+                      index={index}
+                    />
+                  );
+                }
+
+                // Regular task card
+                return (
+                  <div
+                    key={task.id}
+                    className={clsx(
+                      'p-4 border-2 rounded-lg transition-all',
+                      !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
+                      task.parent_approved && task.priority === 'high' && 'border-red-300 bg-red-50',
+                      task.parent_approved && task.priority === 'medium' && 'border-yellow-300 bg-yellow-50',
+                      task.parent_approved && task.priority === 'low' && 'border-green-300 bg-green-50',
+                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
+                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
+                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
+                      task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
+                    )}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{categoryIcons[task.category] || '📌'}</span>
+                          <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                          {requiresTimer && (
+                            <span title="Timer required" className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                              <Timer size={12} /> Timer
                             </span>
-                          </>
+                          )}
+                          {task.is_recurring === 1 && (
+                            <span title="Recurring task"><Repeat size={14} className="text-blue-600" /></span>
+                          )}
+                          {!task.parent_approved && (
+                            <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
+                              ⏳ Pending Approval
+                            </span>
+                          )}
+                        </div>
+                        {task.description && (
+                          <p className="text-sm text-gray-600 mt-1">{task.description}</p>
+                        )}
+                        <div className="flex flex-wrap items-center mt-2 gap-2">
+                          {task.earns_points ? (
+                            <>
+                              <span className="badge badge-primary">{task.points} pts</span>
+                              <span className="badge badge-warning">
+                                {task.difficulty}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="badge bg-gray-500 text-white">
+                              📍 Tracking Only
+                            </span>
+                          )}
+                          {task.priority && task.priority !== 'medium' && (
+                            <span className={clsx('badge', priorityColors[task.priority])}>
+                              {task.priority === 'high' ? '🔴 High' : '🟢 Low'}
+                            </span>
+                          )}
+                          {task.due_date && (
+                            <span className="text-xs text-gray-600 flex items-center">
+                              <Calendar size={12} className="mr-1" />
+                              {new Date(task.due_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {task.estimated_minutes && (
+                            <span className="text-xs text-gray-600 flex items-center">
+                              <Clock size={12} className="mr-1" />
+                              {task.estimated_minutes} min
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex space-x-2 ml-4">
+                        {(isParent || task.parent_approved) && (
+                          <button
+                            onClick={() => setEditingTask(task)}
+                            className="btn btn-secondary btn-sm"
+                            title="Edit task"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                        )}
+                        {isParent && (
+                          <button
+                            onClick={() => handleDeleteTask(task.id)}
+                            className="btn btn-secondary btn-sm text-red-600 hover:bg-red-100"
+                            title="Delete task"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                        {task.parent_approved ? (
+                          <button
+                            onClick={() => handleCompleteTask(task.id, task)}
+                            className="btn btn-success btn-sm"
+                            title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
+                          >
+                            {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
+                          </button>
                         ) : (
-                          <span className="badge bg-gray-500 text-white">
-                            📍 Tracking Only
-                          </span>
-                        )}
-                        {task.priority && task.priority !== 'medium' && (
-                          <span className={clsx('badge', priorityColors[task.priority])}>
-                            {task.priority === 'high' ? '🔴 High' : '🟢 Low'}
-                          </span>
-                        )}
-                        {task.due_date && (
-                          <span className="text-xs text-gray-600 flex items-center">
-                            <Calendar size={12} className="mr-1" />
-                            {new Date(task.due_date).toLocaleDateString()}
-                          </span>
-                        )}
-                        {task.estimated_minutes && (
-                          <span className="text-xs text-gray-600 flex items-center">
-                            <Clock size={12} className="mr-1" />
-                            {task.estimated_minutes} min
+                          <span className="text-xs text-orange-600 italic">
+                            Needs parent approval
                           </span>
                         )}
                       </div>
-                    </div>
-                    <div className="flex space-x-2 ml-4">
-                      {(isParent || task.parent_approved) && (
-                        <button
-                          onClick={() => setEditingTask(task)}
-                          className="btn btn-secondary btn-sm"
-                          title="Edit task"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      )}
-                      {isParent && (
-                        <button
-                          onClick={() => handleDeleteTask(task.id)}
-                          className="btn btn-secondary btn-sm text-red-600 hover:bg-red-100"
-                          title="Delete task"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                      {task.parent_approved ? (
-                        <button
-                          onClick={() => handleCompleteTask(task.id, task)}
-                          className="btn btn-success btn-sm"
-                          title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
-                        >
-                          {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-orange-600 italic">
-                          Needs parent approval
-                        </span>
-                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1111,18 +1135,23 @@ export default function TasksManager() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
                   <option value="">Select category</option>
-                  <option value="read-book">📚 Read Book</option>
-                  <option value="tigrinya">✍️ Tigrinya Practice</option>
-                  <option value="clean-room">🛏️ Clean Room</option>
-                  <option value="clean-kitchen">🍽️ Clean Kitchen</option>
-                  <option value="school">🎒 School Work</option>
-                  <option value="watch-movies">📺 Watch Movies/Screen Time (Tracking Only)</option>
+                  <option value="read-book">📚 Read Book (Timer Required)</option>
+                  <option value="tigrinya">✍️ Tigrinya Practice (Timer Required)</option>
+                  <option value="clean-room">🛏️ Clean Room (Timer Required)</option>
+                  <option value="clean-kitchen">🍽️ Clean Kitchen (Timer Required)</option>
+                  <option value="school">🎒 School Work (Timer Required)</option>
                   <option value="other">📌 Other</option>
                 </select>
+                {TIMED_CATEGORIES.includes(selectedCategory) && (
+                  <p className="text-xs text-blue-600 mt-1 flex items-center">
+                    <Clock size={12} className="mr-1" />
+                    This task requires a timer. Kids must start and complete the timer to earn points.
+                  </p>
+                )}
               </div>
 
-              {/* Only show difficulty if NOT tracking task */}
-              {selectedCategory && selectedCategory !== 'watch-movies' && (
+              {/* Difficulty selection */}
+              {selectedCategory && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Difficulty * (affects points earned)
@@ -1132,15 +1161,6 @@ export default function TasksManager() {
                     <option value="medium">Medium (20 pts)</option>
                     <option value="hard">Hard (30 pts)</option>
                   </select>
-                </div>
-              )}
-
-              {selectedCategory === 'watch-movies' && (
-                <div className="p-4 bg-gray-100 rounded-lg">
-                  <p className="text-sm text-gray-700">
-                    <strong>📍 Tracking Task:</strong> This task logs screen time but doesn't earn points.
-                    It's for tracking purposes only.
-                  </p>
                 </div>
               )}
 
@@ -1408,28 +1428,25 @@ export default function TasksManager() {
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
                   <option value="">Select category</option>
-                  <option value="read-book">📚 Read Book</option>
-                  <option value="tigrinya">✍️ Tigrinya Practice</option>
-                  <option value="clean-room">🛏️ Clean Room</option>
-                  <option value="clean-kitchen">🍽️ Clean Kitchen</option>
-                  <option value="school">🎒 School Work</option>
-                  <option value="watch-movies">📺 Watch Movies/Screen Time (Tracking Only)</option>
+                  <option value="read-book">📚 Read Book (Timer Required)</option>
+                  <option value="tigrinya">✍️ Tigrinya Practice (Timer Required)</option>
+                  <option value="clean-room">🛏️ Clean Room (Timer Required)</option>
+                  <option value="clean-kitchen">🍽️ Clean Kitchen (Timer Required)</option>
+                  <option value="school">🎒 School Work (Timer Required)</option>
                   <option value="other">📌 Other</option>
                 </select>
               </div>
 
-              {selectedCategory !== 'watch-movies' && editingTask.category !== 'watch-movies' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Difficulty * (affects points earned)
-                  </label>
-                  <select name="difficulty" required className="input" defaultValue={editingTask.difficulty}>
-                    <option value="easy">Easy (10 pts)</option>
-                    <option value="medium">Medium (20 pts)</option>
-                    <option value="hard">Hard (30 pts)</option>
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Difficulty * (affects points earned)
+                </label>
+                <select name="difficulty" required className="input" defaultValue={editingTask.difficulty}>
+                  <option value="easy">Easy (10 pts)</option>
+                  <option value="medium">Medium (20 pts)</option>
+                  <option value="hard">Hard (30 pts)</option>
+                </select>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

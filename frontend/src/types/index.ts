@@ -99,6 +99,9 @@ export interface Task {
   // Photo proof fields
   proof_required?: boolean | number;
   proof_photo_url?: string | null;
+  // Timer fields
+  requires_timer?: boolean | number;
+  timer_duration_minutes?: number | null;
 }
 
 export interface Progress {

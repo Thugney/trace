@@ -10,6 +10,48 @@ import type { AuthRequest } from '../middleware/auth';
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
+const getChildProgressSnapshot = (childId: number) => {
+  const taskStats = db.prepare(`
+    SELECT
+      COUNT(*) as total_tasks,
+      SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_tasks,
+      SUM(CASE WHEN completed = 0 AND due_date IS NOT NULL AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
+    FROM tasks
+    WHERE profile_id = ?
+  `).get(childId) as any;
+
+  const progressStats = db.prepare(`
+    SELECT total_points, total_stars, level
+    FROM progress
+    WHERE profile_id = ?
+    ORDER BY logged_at DESC
+    LIMIT 1
+  `).get(childId) as any;
+
+  const streakStats = db.prepare(`
+    SELECT current_streak
+    FROM streaks
+    WHERE profile_id = ? AND streak_type = 'tasks'
+    ORDER BY updated_at DESC
+    LIMIT 1
+  `).get(childId) as any;
+
+  const totalTasks = taskStats?.total_tasks || 0;
+  const completedTasks = taskStats?.completed_tasks || 0;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  return {
+    tasks: {
+      total_tasks: totalTasks,
+      completed_tasks: completedTasks,
+      overdue_tasks: taskStats?.overdue_tasks || 0
+    },
+    progress: progressStats || { total_points: 0, total_stars: 0, level: 1 },
+    completionRate,
+    currentStreak: streakStats?.current_streak || 0
+  };
+};
+
 // Configure multer for avatar uploads
 const AVATAR_DIR = process.env.AVATAR_DIR || path.join(__dirname, '../../data/avatars');
 
@@ -68,6 +110,82 @@ router.get('/selector', (req, res) => {
 
     res.json(profiles);
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Authenticated: Get family progress for logged-in parent
+router.get('/family/progress', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied: Parent access required' });
+    }
+
+    const children = db.prepare(`
+      SELECT id, name, avatar, age
+      FROM profiles
+      WHERE parent_id = ? AND type = 'child'
+      ORDER BY name ASC
+    `).all(userProfile.id) as any[];
+
+    const childrenWithProgress = children.map(child => ({
+      ...child,
+      ...getChildProgressSnapshot(child.id)
+    }));
+
+    const summary = childrenWithProgress.reduce(
+      (acc, child) => ({
+        total_tasks: acc.total_tasks + child.tasks.total_tasks,
+        completed_tasks: acc.completed_tasks + child.tasks.completed_tasks,
+        total_points: acc.total_points + (child.progress.total_points || 0),
+        total_stars: acc.total_stars + (child.progress.total_stars || 0)
+      }),
+      { total_tasks: 0, completed_tasks: 0, total_points: 0, total_stars: 0 }
+    );
+
+    res.json({ children: childrenWithProgress, summary });
+  } catch (error: any) {
+    console.error('[ERROR] Get family progress failed:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Public: Get family progress by parent ID
+router.get('/:parentId/progress', (req, res) => {
+  try {
+    const parentId = parseInt(req.params.parentId);
+    const parent = db.prepare('SELECT id, type FROM profiles WHERE id = ?').get(parentId) as any;
+
+    if (!parent || parent.type !== 'parent') {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+
+    const children = db.prepare(`
+      SELECT id, name, avatar, age
+      FROM profiles
+      WHERE parent_id = ? AND type = 'child'
+      ORDER BY name ASC
+    `).all(parentId) as any[];
+
+    const childrenWithProgress = children.map(child => ({
+      ...child,
+      ...getChildProgressSnapshot(child.id)
+    }));
+
+    const summary = childrenWithProgress.reduce(
+      (acc, child) => ({
+        total_tasks: acc.total_tasks + child.tasks.total_tasks,
+        completed_tasks: acc.completed_tasks + child.tasks.completed_tasks,
+        total_points: acc.total_points + (child.progress.total_points || 0),
+        total_stars: acc.total_stars + (child.progress.total_stars || 0)
+      }),
+      { total_tasks: 0, completed_tasks: 0, total_points: 0, total_stars: 0 }
+    );
+
+    res.json({ children: childrenWithProgress, summary });
+  } catch (error: any) {
+    console.error('[ERROR] Get family progress failed:', error.message);
     res.status(500).json({ error: error.message });
   }
 });

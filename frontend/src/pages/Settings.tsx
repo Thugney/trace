@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { settingsAPI, profilesAPI, aiAPI, remindersAPI, ReminderPreferences } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera, Bell, Clock } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import ReminderWidget from '../components/kids/ReminderWidget';
 
 export default function Settings() {
   const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
@@ -458,6 +459,29 @@ export default function Settings() {
           </div>
         )}
 
+        {/* Reminder Settings - Kid-Friendly - PROMINENT PLACEMENT */}
+        <div className="card bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200 mb-6">
+          <div className="text-center mb-4">
+            <span className="text-4xl animate-bounce inline-block">🔔</span>
+            <h2 className="text-xl font-bold text-cyan-800 mt-2">My Reminders</h2>
+            <p className="text-sm text-cyan-600">Never forget your tasks!</p>
+          </div>
+
+          {reminderPrefs ? (
+            <ReminderWidget
+              enabled={reminderPrefs.reminder_enabled}
+              time={reminderPrefs.morning_reminder_time}
+              onToggle={handleReminderToggle}
+              onTimeChange={handleReminderTimeChange}
+              saving={savingReminders}
+            />
+          ) : (
+            <div className="flex justify-center py-4">
+              <div className="spinner"></div>
+            </div>
+          )}
+        </div>
+
         <div className="card">
           {/* Avatar Upload Section */}
           <div className="flex flex-col items-center mb-6">
@@ -580,56 +604,6 @@ export default function Settings() {
               Change PIN
             </button>
           </div>
-        </div>
-
-        {/* Reminder Settings */}
-        <div className="card mt-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center">
-            <Bell className="mr-2 text-blue-600" size={20} />
-            Task Reminders
-          </h2>
-
-          <p className="text-sm text-gray-600 mb-4">
-            Get daily reminders about your tasks!
-          </p>
-
-          {reminderPrefs && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">Morning Reminders</p>
-                  <p className="text-sm text-gray-500">Get reminded about today's tasks</p>
-                </div>
-                <button
-                  onClick={handleReminderToggle}
-                  disabled={savingReminders}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    reminderPrefs.reminder_enabled ? 'bg-blue-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      reminderPrefs.reminder_enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {reminderPrefs.reminder_enabled && (
-                <div className="flex items-center gap-4">
-                  <Clock size={20} className="text-gray-500" />
-                  <label className="text-sm text-gray-700">Remind me at:</label>
-                  <input
-                    type="time"
-                    value={reminderPrefs.morning_reminder_time}
-                    onChange={(e) => handleReminderTimeChange(e.target.value)}
-                    className="input w-32"
-                    disabled={savingReminders}
-                  />
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

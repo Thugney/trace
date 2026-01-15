@@ -30,6 +30,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+NUL
 
 # Docker
 docker-compose.override.yml

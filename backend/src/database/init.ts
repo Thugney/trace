@@ -1279,6 +1279,14 @@ export function initDatabase() {
     )
   `);
 
+  // Migration: Add timer columns to custom_challenges for existing databases
+  try {
+    db.exec(`ALTER TABLE custom_challenges ADD COLUMN requires_timer BOOLEAN DEFAULT 0`);
+  } catch (e) { /* Column already exists */ }
+  try {
+    db.exec(`ALTER TABLE custom_challenges ADD COLUMN timer_duration INTEGER DEFAULT 300`);
+  } catch (e) { /* Column already exists */ }
+
   // Custom achievements (parent-created or AI-suggested)
   db.exec(`
     CREATE TABLE IF NOT EXISTS custom_achievements (
@@ -1467,6 +1475,77 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_spin_wheel_history_profile ON spin_wheel_history(profile_id);
   `);
 
+  // ==================== TASK TIMER SUPPORT ====================
+  // Add timer columns to tasks table for timed tasks
+  try {
+    const tasksInfo: any[] = db.prepare('PRAGMA table_info(tasks)').all();
+    const hasRequiresTimer = tasksInfo.some((col: any) => col.name === 'requires_timer');
+    const hasTimerDuration = tasksInfo.some((col: any) => col.name === 'timer_duration_minutes');
+    const hasLastCompletedDate = tasksInfo.some((col: any) => col.name === 'last_completed_date');
+
+    if (!hasRequiresTimer) {
+      console.log('🔄 Migrating tasks table: adding requires_timer column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN requires_timer INTEGER DEFAULT 0').run();
+      console.log('✅ Added requires_timer column to tasks');
+    }
+
+    if (!hasTimerDuration) {
+      console.log('🔄 Migrating tasks table: adding timer_duration_minutes column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN timer_duration_minutes INTEGER DEFAULT NULL').run();
+      console.log('✅ Added timer_duration_minutes column to tasks');
+    }
+
+    if (!hasLastCompletedDate) {
+      console.log('🔄 Migrating tasks table: adding last_completed_date column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN last_completed_date TEXT DEFAULT NULL').run();
+      console.log('✅ Added last_completed_date column to tasks');
+    }
+  } catch (error: any) {
+    console.error('Migration error (task timer columns):', error.message);
+  }
+
+  // Create timer_states table for tracking active timers
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS timer_states (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      task_id INTEGER,
+      quiz_attempt_id INTEGER,
+      timer_type TEXT NOT NULL CHECK(timer_type IN ('task', 'quiz')),
+      is_running BOOLEAN NOT NULL DEFAULT 0,
+      is_paused BOOLEAN NOT NULL DEFAULT 0,
+      elapsed_seconds INTEGER NOT NULL DEFAULT 0,
+      start_time DATETIME,
+      pause_time DATETIME,
+      last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+      device_id TEXT,
+      sync_version INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for timer_states
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_timer_states_profile_task ON timer_states(profile_id, task_id);
+    CREATE INDEX IF NOT EXISTS idx_timer_states_profile_quiz ON timer_states(profile_id, quiz_attempt_id);
+    CREATE INDEX IF NOT EXISTS idx_timer_states_running ON timer_states(is_running);
+  `);
+
+  // Migration: Add quiz_attempt_id to timer_states if missing
+  try {
+    const timerInfo: any[] = db.prepare('PRAGMA table_info(timer_states)').all();
+    const hasQuizAttemptId = timerInfo.some((col: any) => col.name === 'quiz_attempt_id');
+
+    if (!hasQuizAttemptId) {
+      console.log('?? Migrating timer_states: adding quiz_attempt_id column...');
+      db.prepare('ALTER TABLE timer_states ADD COLUMN quiz_attempt_id INTEGER').run();
+      console.log('? Added quiz_attempt_id column to timer_states');
+    }
+  } catch (error: any) {
+    console.error('Migration error (timer_states quiz_attempt_id):', error.message);
+  }
+
   // ==================== HIDDEN ACHIEVEMENTS ====================
   // Add is_hidden column to achievements table if not exists
   try {
@@ -1537,6 +1616,12 @@ export function initDatabase() {
       bonus_points INTEGER DEFAULT 20,
       time_limit_seconds INTEGER,
       pass_threshold INTEGER DEFAULT 70,
+      difficulty TEXT DEFAULT 'medium',
+      questions TEXT,
+      attempts_allowed INTEGER DEFAULT 3,
+      passing_score INTEGER DEFAULT 70,
+      is_ai_generated INTEGER DEFAULT 0,
+      ai_focus_areas TEXT,
       schedule_type TEXT DEFAULT 'anytime',
       schedule_days TEXT,
       is_active INTEGER DEFAULT 1,
@@ -1583,6 +1668,7 @@ export function initDatabase() {
       score_percentage INTEGER DEFAULT 0,
       points_earned INTEGER DEFAULT 0,
       stars_earned INTEGER DEFAULT 0,
+      time_bonus_points INTEGER DEFAULT 0,
       time_taken_seconds INTEGER,
       passed INTEGER DEFAULT 0,
       FOREIGN KEY (quiz_id) REFERENCES family_quizzes(id) ON DELETE CASCADE,
@@ -1632,6 +1718,147 @@ export function initDatabase() {
     console.error('Migration error (quiz competition):', error.message);
   }
 
+  // Migration: Add missing quiz columns used by the API
+  try {
+    const quizInfo: any[] = db.prepare('PRAGMA table_info(family_quizzes)').all();
+    const hasColumn = (name: string) => quizInfo.some((col: any) => col.name === name);
+
+    if (!hasColumn('difficulty')) {
+      db.prepare("ALTER TABLE family_quizzes ADD COLUMN difficulty TEXT DEFAULT 'medium'").run();
+    }
+    if (!hasColumn('questions')) {
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN questions TEXT').run();
+    }
+    if (!hasColumn('attempts_allowed')) {
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN attempts_allowed INTEGER DEFAULT 3').run();
+    }
+    if (!hasColumn('passing_score')) {
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN passing_score INTEGER DEFAULT 70').run();
+      db.prepare('UPDATE family_quizzes SET passing_score = pass_threshold WHERE passing_score IS NULL').run();
+    }
+    if (!hasColumn('is_ai_generated')) {
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN is_ai_generated INTEGER DEFAULT 0').run();
+    }
+    if (!hasColumn('ai_focus_areas')) {
+      db.prepare('ALTER TABLE family_quizzes ADD COLUMN ai_focus_areas TEXT').run();
+    }
+  } catch (error: any) {
+    console.error('Migration error (quiz columns):', error.message);
+  }
+
+  // Migration: Normalize legacy family_quiz_attempts schema (remove score/answers columns)
+  try {
+    const attemptInfo: any[] = db.prepare('PRAGMA table_info(family_quiz_attempts)').all();
+    const columnNames = attemptInfo.map((col: any) => col.name);
+    const hasColumn = (name: string) => columnNames.includes(name);
+    const hasLegacyColumns =
+      hasColumn('score') ||
+      hasColumn('answers') ||
+      hasColumn('time_spent_seconds') ||
+      hasColumn('total_points') ||
+      hasColumn('current_question_index');
+
+    if (hasLegacyColumns) {
+      console.log('🔄 Migrating family_quiz_attempts: normalizing schema...');
+      db.exec('BEGIN');
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS family_quiz_attempts_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          quiz_id INTEGER NOT NULL,
+          profile_id INTEGER NOT NULL,
+          started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          completed_at DATETIME,
+          total_questions INTEGER NOT NULL,
+          correct_answers INTEGER DEFAULT 0,
+          wrong_answers INTEGER DEFAULT 0,
+          skipped INTEGER DEFAULT 0,
+          score_percentage INTEGER DEFAULT 0,
+          points_earned INTEGER DEFAULT 0,
+          stars_earned INTEGER DEFAULT 0,
+          time_bonus_points INTEGER DEFAULT 0,
+          time_taken_seconds INTEGER,
+          passed INTEGER DEFAULT 0,
+          competition_rank INTEGER,
+          bonus_awarded INTEGER DEFAULT 0,
+          FOREIGN KEY (quiz_id) REFERENCES family_quizzes(id) ON DELETE CASCADE,
+          FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+        )
+      `);
+
+      const startedAtExpr = hasColumn('started_at')
+        ? 'COALESCE(started_at, completed_at, CURRENT_TIMESTAMP)'
+        : 'COALESCE(completed_at, CURRENT_TIMESTAMP)';
+      const completedAtExpr = hasColumn('completed_at') ? 'completed_at' : 'NULL';
+      const correctExpr = hasColumn('correct_answers') ? 'COALESCE(correct_answers, 0)' : '0';
+      const wrongExpr = hasColumn('wrong_answers') ? 'COALESCE(wrong_answers, 0)' : '0';
+      const scoreExpr = hasColumn('score_percentage')
+        ? 'COALESCE(score_percentage, 0)'
+        : hasColumn('score')
+          ? 'COALESCE(score, 0)'
+          : '0';
+      const pointsExpr = hasColumn('points_earned')
+        ? 'COALESCE(points_earned, 0)'
+        : hasColumn('total_points')
+          ? 'COALESCE(total_points, 0)'
+          : '0';
+      const starsExpr = hasColumn('stars_earned') ? 'COALESCE(stars_earned, 0)' : '0';
+      const timeBonusExpr = hasColumn('time_bonus_points') ? 'COALESCE(time_bonus_points, 0)' : '0';
+      const timeExpr = hasColumn('time_taken_seconds')
+        ? 'time_taken_seconds'
+        : hasColumn('time_spent_seconds')
+          ? 'time_spent_seconds'
+          : 'NULL';
+      const passedExpr = hasColumn('passed') ? 'COALESCE(passed, 0)' : '0';
+      const rankExpr = hasColumn('competition_rank') ? 'competition_rank' : 'NULL';
+      const bonusExpr = hasColumn('bonus_awarded') ? 'COALESCE(bonus_awarded, 0)' : '0';
+
+      db.exec(`
+        INSERT INTO family_quiz_attempts_new (
+          id, quiz_id, profile_id, started_at, completed_at, total_questions,
+          correct_answers, wrong_answers, skipped, score_percentage,
+          points_earned, stars_earned, time_bonus_points, time_taken_seconds, passed,
+          competition_rank, bonus_awarded
+        )
+        SELECT
+          id,
+          quiz_id,
+          profile_id,
+          ${startedAtExpr},
+          ${completedAtExpr},
+          total_questions,
+          ${correctExpr},
+          ${wrongExpr},
+          0,
+          ${scoreExpr},
+          ${pointsExpr},
+          ${starsExpr},
+          ${timeBonusExpr},
+          ${timeExpr},
+          ${passedExpr},
+          ${rankExpr},
+          ${bonusExpr}
+        FROM family_quiz_attempts
+      `);
+
+      db.exec('DROP TABLE family_quiz_attempts');
+      db.exec('ALTER TABLE family_quiz_attempts_new RENAME TO family_quiz_attempts');
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_family_quiz_attempts_quiz ON family_quiz_attempts(quiz_id);
+        CREATE INDEX IF NOT EXISTS idx_family_quiz_attempts_profile ON family_quiz_attempts(profile_id);
+      `);
+      db.exec('COMMIT');
+      console.log('✅ family_quiz_attempts migration complete');
+    }
+  } catch (error: any) {
+    console.error('Migration error (attempts normalize):', error.message);
+    try {
+      db.exec('ROLLBACK');
+    } catch {
+      // ignore rollback errors
+    }
+  }
+
   // Migration: Add competition rank to quiz attempts
   try {
     const attemptInfo: any[] = db.prepare('PRAGMA table_info(family_quiz_attempts)').all();
@@ -1645,6 +1872,20 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (attempt competition):', error.message);
+  }
+
+  // Migration: Add time bonus points to quiz attempts
+  try {
+    const attemptInfo: any[] = db.prepare('PRAGMA table_info(family_quiz_attempts)').all();
+    const hasTimeBonus = attemptInfo.some((col: any) => col.name === 'time_bonus_points');
+
+    if (!hasTimeBonus) {
+      console.log('?? Migrating family_quiz_attempts: adding time_bonus_points...');
+      db.prepare('ALTER TABLE family_quiz_attempts ADD COLUMN time_bonus_points INTEGER DEFAULT 0').run();
+      console.log('? Added time_bonus_points to family_quiz_attempts');
+    }
+  } catch (error: any) {
+    console.error('Migration error (attempt time bonus):', error.message);
   }
 
   // Insert default quiz categories with theme configurations

@@ -95,6 +95,19 @@ router.get('/task/:id', (req, res) => {
   }
 });
 
+// Categories that require a timer by default
+const TIMED_CATEGORIES_CREATE = ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school'];
+
+// Default timer durations by category (in minutes)
+const DEFAULT_TIMER_DURATIONS_CREATE: Record<string, number> = {
+  'read-book': 15,
+  'tigrinya': 20,
+  'clean-room': 15,
+  'clean-kitchen': 20,
+  'school': 30,
+  'other': 10
+};
+
 // Create task
 router.post('/', (req, res) => {
   try {
@@ -110,7 +123,9 @@ router.post('/', (req, res) => {
       due_date,
       created_by,
       priority,
-      estimated_minutes
+      estimated_minutes,
+      requires_timer,
+      timer_duration_minutes
     } = req.body;
 
     if (!profile_id || !title) {
@@ -123,6 +138,16 @@ router.post('/', (req, res) => {
       const pointsMap: Record<string, number> = { easy: 10, medium: 20, hard: 30 };
       taskPoints = pointsMap[difficulty] || 10;
     }
+
+    // Determine if timer is required based on category (unless explicitly set)
+    const taskCategory = category || 'other';
+    const needsTimer = requires_timer !== undefined
+      ? (requires_timer ? 1 : 0)
+      : (TIMED_CATEGORIES_CREATE.includes(taskCategory) ? 1 : 0);
+
+    // Set default timer duration based on category
+    const timerDuration = timer_duration_minutes ||
+      (needsTimer ? DEFAULT_TIMER_DURATIONS_CREATE[taskCategory] || 10 : null);
 
     // Check if creator is parent or admin - auto-approve
     // Check if creator is child - require parent approval
@@ -141,13 +166,13 @@ router.post('/', (req, res) => {
       INSERT INTO tasks (
         profile_id, title, description, category, points, difficulty,
         is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-        priority, estimated_minutes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        priority, estimated_minutes, requires_timer, timer_duration_minutes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       profile_id,
       title,
       description || null,
-      category || 'chore',
+      taskCategory,
       taskPoints || 10,
       difficulty || 'easy',
       is_recurring ? 1 : 0,
@@ -157,7 +182,9 @@ router.post('/', (req, res) => {
       parentApproved,
       approvedBy,
       priority || 'medium',
-      estimated_minutes || null
+      estimated_minutes || null,
+      needsTimer,
+      timerDuration
     );
 
     const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
@@ -270,6 +297,25 @@ router.post('/:id/complete', (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    // ===== ANTI-ABUSE CHECK 0: Already completed today =====
+    const today = new Date().toISOString().split('T')[0];
+    if (task.last_completed_date === today) {
+      return res.status(400).json({
+        error: 'This task was already completed today. You cannot earn more points for it.',
+        code: 'ALREADY_COMPLETED_TODAY'
+      });
+    }
+
+    // ===== ANTI-ABUSE CHECK 0.5: Timer required but not used =====
+    if (task.requires_timer === 1) {
+      return res.status(400).json({
+        error: 'This task requires a timer. Please use the Start Timer button to begin.',
+        code: 'TIMER_REQUIRED',
+        requires_timer: true,
+        timer_duration_minutes: task.timer_duration_minutes
+      });
+    }
+
     // ===== ANTI-ABUSE CHECK 1: Already completed =====
     if (task.completed) {
       return res.status(400).json({ error: 'Task already completed', code: 'ALREADY_COMPLETED' });
@@ -322,9 +368,9 @@ router.post('/:id/complete', (req, res) => {
 
     // ===== ATOMICALLY mark task as completed (prevents race condition) =====
     const updateResult = db.prepare(`
-      UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP
+      UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
       WHERE id = ? AND completed = 0
-    `).run(id);
+    `).run(today, id);
 
     // If no rows updated, task was already completed (race condition caught)
     if (updateResult.changes === 0) {
@@ -1182,4 +1228,369 @@ router.delete('/:id/proof', authenticate, (req: AuthRequest, res: Response) => {
   }
 });
 
+// ==================== TIMER ENDPOINTS ====================
+
+// Categories that require a timer by default
+const TIMED_CATEGORIES = ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school'];
+
+// Default timer durations by category (in minutes)
+const DEFAULT_TIMER_DURATIONS: Record<string, number> = {
+  'read-book': 15,
+  'tigrinya': 20,
+  'clean-room': 15,
+  'clean-kitchen': 20,
+  'school': 30,
+  'other': 10
+};
+
+// Get timer state for a task
+router.get('/:id/timer', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Get active timer state
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'task'
+      ORDER BY last_updated DESC LIMIT 1
+    `).get(id);
+
+    // Calculate current elapsed time if timer is running
+    let currentElapsed = timerState?.elapsed_seconds || 0;
+    if (timerState?.is_running && timerState.start_time) {
+      const now = Date.now();
+      const startTime = new Date(timerState.start_time).getTime();
+      const runningTime = Math.floor((now - startTime) / 1000);
+      currentElapsed = timerState.elapsed_seconds + runningTime;
+    }
+
+    res.json({
+      task_id: parseInt(id),
+      requires_timer: task.requires_timer === 1,
+      timer_duration_minutes: task.timer_duration_minutes,
+      timer_state: timerState ? {
+        is_running: !!timerState.is_running,
+        is_paused: !!timerState.is_paused,
+        elapsed_seconds: currentElapsed,
+        start_time: timerState.start_time,
+        pause_time: timerState.pause_time
+      } : null,
+      can_complete: !task.requires_timer || (timerState && currentElapsed > 0),
+      completed_today: task.last_completed_date === new Date().toISOString().split('T')[0]
+    });
+  } catch (error: any) {
+    console.error('[Timer] Get timer state error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Start timer for a task
+router.post('/:id/timer/start', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Check if task is already completed today
+    const today = new Date().toISOString().split('T')[0];
+    if (task.last_completed_date === today) {
+      return res.status(400).json({
+        error: 'This task was already completed today',
+        code: 'ALREADY_COMPLETED_TODAY'
+      });
+    }
+
+    // Check if there's already an active timer
+    const existingTimer: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'task' AND (is_running = 1 OR is_paused = 1)
+    `).get(id);
+
+    if (existingTimer) {
+      return res.status(400).json({
+        error: 'Timer already exists for this task',
+        code: 'TIMER_EXISTS',
+        timer_state: existingTimer
+      });
+    }
+
+    // Create new timer state
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT INTO timer_states (profile_id, task_id, timer_type, is_running, is_paused, elapsed_seconds, start_time, last_updated)
+      VALUES (?, ?, 'task', 1, 0, 0, ?, ?)
+    `).run(task.profile_id, id, now, now);
+
+    const newTimer = db.prepare(`
+      SELECT * FROM timer_states WHERE task_id = ? AND timer_type = 'task' ORDER BY id DESC LIMIT 1
+    `).get(id);
+
+    console.log(`[Timer] Started timer for task ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Timer started',
+      timer_state: newTimer
+    });
+  } catch (error: any) {
+    console.error('[Timer] Start timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Pause timer for a task
+router.post('/:id/timer/pause', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Get running timer
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'task' AND is_running = 1
+    `).get(id);
+
+    if (!timerState) {
+      return res.status(400).json({
+        error: 'No running timer found for this task',
+        code: 'NO_RUNNING_TIMER'
+      });
+    }
+
+    // Calculate elapsed time
+    const now = new Date();
+    const startTime = new Date(timerState.start_time);
+    const additionalSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+    const totalElapsed = timerState.elapsed_seconds + additionalSeconds;
+
+    // Update timer state to paused
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 0, is_paused = 1, elapsed_seconds = ?, pause_time = ?, last_updated = ?
+      WHERE id = ?
+    `).run(totalElapsed, now.toISOString(), now.toISOString(), timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    console.log(`[Timer] Paused timer for task ${id}, elapsed: ${totalElapsed}s`);
+
+    res.json({
+      success: true,
+      message: 'Timer paused',
+      timer_state: updatedTimer
+    });
+  } catch (error: any) {
+    console.error('[Timer] Pause timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resume timer for a task
+router.post('/:id/timer/resume', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Get paused timer
+    const timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'task' AND is_paused = 1
+    `).get(id);
+
+    if (!timerState) {
+      return res.status(400).json({
+        error: 'No paused timer found for this task',
+        code: 'NO_PAUSED_TIMER'
+      });
+    }
+
+    // Update timer state to running
+    const now = new Date().toISOString();
+    db.prepare(`
+      UPDATE timer_states
+      SET is_running = 1, is_paused = 0, start_time = ?, pause_time = NULL, last_updated = ?
+      WHERE id = ?
+    `).run(now, now, timerState.id);
+
+    const updatedTimer = db.prepare('SELECT * FROM timer_states WHERE id = ?').get(timerState.id);
+
+    console.log(`[Timer] Resumed timer for task ${id}`);
+
+    res.json({
+      success: true,
+      message: 'Timer resumed',
+      timer_state: updatedTimer
+    });
+  } catch (error: any) {
+    console.error('[Timer] Resume timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Finish timer and complete task
+router.post('/:id/timer/finish', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Check if task is already completed today
+    const today = new Date().toISOString().split('T')[0];
+    if (task.last_completed_date === today) {
+      return res.status(400).json({
+        error: 'This task was already completed today. You cannot earn more points for it.',
+        code: 'ALREADY_COMPLETED_TODAY'
+      });
+    }
+
+    // Get active timer (running or paused)
+    let timerState: any = db.prepare(`
+      SELECT * FROM timer_states
+      WHERE task_id = ? AND timer_type = 'task' AND (is_running = 1 OR is_paused = 1)
+    `).get(id);
+
+    // If task requires timer but no timer state exists, reject
+    if (task.requires_timer && !timerState) {
+      return res.status(400).json({
+        error: 'This task requires a timer. Please start the timer first.',
+        code: 'TIMER_REQUIRED'
+      });
+    }
+
+    // Calculate final elapsed time
+    let finalElapsed = 0;
+    if (timerState) {
+      finalElapsed = timerState.elapsed_seconds;
+      if (timerState.is_running && timerState.start_time) {
+        const now = Date.now();
+        const startTime = new Date(timerState.start_time).getTime();
+        finalElapsed += Math.floor((now - startTime) / 1000);
+      }
+    }
+
+    // If task requires timer, check minimum time (at least 60 seconds)
+    if (task.requires_timer && finalElapsed < 60) {
+      return res.status(400).json({
+        error: 'You need to work on this task for at least 1 minute before completing it.',
+        code: 'MINIMUM_TIME_NOT_MET',
+        elapsed_seconds: finalElapsed,
+        minimum_seconds: 60
+      });
+    }
+
+    // Clean up timer state
+    if (timerState) {
+      db.prepare('DELETE FROM timer_states WHERE id = ?').run(timerState.id);
+    }
+
+    // Mark task as completed and set last_completed_date
+    db.prepare(`
+      UPDATE tasks
+      SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
+      WHERE id = ? AND completed = 0
+    `).run(today, id);
+
+    // Award points (using same logic as regular complete)
+    const rawPoints = task.points || 10;
+    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+
+    // Check caps
+    const capCheck = canEarnPoints(task.profile_id, basePoints);
+    const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
+
+    // Get current progress
+    const currentProgress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(task.profile_id);
+
+    const totalPoints = (currentProgress?.total_points || 0) + cappedPoints;
+    const totalStars = (currentProgress?.total_stars || 0) + stars;
+    const level = Math.floor(totalPoints / 100) + 1;
+
+    // Insert progress record
+    db.prepare(`
+      INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(task.profile_id, id, cappedPoints, stars, level, totalPoints, totalStars);
+
+    // Record earnings
+    recordEarnings(task.profile_id, cappedPoints, stars, true, false);
+
+    // Handle recurring tasks
+    let nextTask = null;
+    if (task.is_recurring && task.recurrence_pattern) {
+      const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
+
+      const newTaskResult = db.prepare(`
+        INSERT INTO tasks (
+          profile_id, title, description, category, points, difficulty,
+          is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        task.profile_id,
+        task.title,
+        task.description,
+        task.category,
+        task.points,
+        task.difficulty,
+        1,
+        task.recurrence_pattern,
+        nextDueDate,
+        task.created_by,
+        task.parent_approved,
+        task.approved_by,
+        task.priority || 'medium',
+        task.estimated_minutes,
+        task.proof_required || 0,
+        task.requires_timer || 0,
+        task.timer_duration_minutes
+      );
+
+      nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
+    }
+
+    const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    const progress = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(task.profile_id);
+
+    console.log(`[Timer] Task ${id} completed via timer, elapsed: ${finalElapsed}s, points: ${cappedPoints}`);
+
+    res.json({
+      success: true,
+      task: completedTask,
+      progress,
+      pointsEarned: cappedPoints,
+      starsEarned: stars,
+      timeSpent: finalElapsed,
+      nextRecurringTask: nextTask
+    });
+  } catch (error: any) {
+    console.error('[Timer] Finish timer error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export { TIMED_CATEGORIES, DEFAULT_TIMER_DURATIONS };
 export default router;
