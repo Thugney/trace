@@ -2,8 +2,8 @@ import webpush from 'web-push';
 import db from '../database/init';
 
 // VAPID keys for web push (must be provided via environment variables)
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@familylearninghub.com';
 
 if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
