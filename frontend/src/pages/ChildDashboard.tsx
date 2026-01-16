@@ -326,8 +326,13 @@ export default function ChildDashboard() {
         setLoginBonusData(bonusRes.data);
         setStreakFreezeData(freezeRes.data);
 
-        if (!bonusRes.data.claimed) {
+        const today = new Date().toLocaleDateString('en-CA');
+        const popupKey = `loginBonusPopup_${currentProfile.id}`;
+        const lastShown = localStorage.getItem(popupKey);
+
+        if (!bonusRes.data.claimed && lastShown !== today) {
           setShowLoginBonus(true);
+          localStorage.setItem(popupKey, today);
         }
       } catch (error) {
         console.error('Failed to check login bonus:', error);
@@ -335,6 +340,31 @@ export default function ChildDashboard() {
     };
 
     checkLoginBonus();
+    let dayTimer: ReturnType<typeof setTimeout> | null = null;
+    let dayInterval: ReturnType<typeof setInterval> | null = null;
+
+    const scheduleNextCheck = () => {
+      const now = new Date();
+      const nextLocalDay = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        1,
+        0
+      );
+      const delayMs = Math.max(1000, nextLocalDay.getTime() - now.getTime());
+      dayTimer = setTimeout(() => {
+        checkLoginBonus();
+        dayInterval = setInterval(checkLoginBonus, 24 * 60 * 60 * 1000);
+      }, delayMs);
+    };
+
+    scheduleNextCheck();
+    return () => {
+      if (dayTimer) clearTimeout(dayTimer);
+      if (dayInterval) clearInterval(dayInterval);
+    };
   }, [currentProfile, loading]);
 
   // Claim login bonus

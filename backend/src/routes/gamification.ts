@@ -1736,11 +1736,6 @@ export function checkHiddenAchievementsOnTaskComplete(profileId: number, taskCom
     }
   }
 
-  // Night Owl - task after 9 PM
-  if (hour >= 21) {
-    checkHiddenAchievement(profileId, 'late_task', 1);
-  }
-
   // Weekend Warrior - tasks on weekends
   if (dayOfWeek === 0 || dayOfWeek === 6) {
     const weekendTasks: any = db.prepare(`
