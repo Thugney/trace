@@ -16,6 +16,7 @@
 - **Quiz Readability**: Header, score, and feedback text now adapt to light themes for visibility.
 - **Quiz Audio**: Replaced buzzing ambient pad with a softer chime.
 - **AI Generation Timeouts**: Job polling prevents 524 errors when AI takes too long.
+- **AI Rate Limits**: Retry/backoff and clearer error messaging on 429 responses.
 
 ### Changed
 - **AI Image Prompts**: Improved kid-friendly prompt template, with retries/backoff for reliability.

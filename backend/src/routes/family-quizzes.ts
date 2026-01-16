@@ -242,6 +242,54 @@ const parseAiQuizJson = (content: string) => {
   throw new Error('Failed to parse AI quiz JSON');
 };
 
+const shouldRetryAiRequest = (error: any) => {
+  const status = error?.response?.status;
+  const code = error?.code;
+  if ([429, 502, 503, 504].includes(status)) return true;
+  if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') return true;
+  return false;
+};
+
+const requestAiQuizContent = async (apiKey: string, promptText: string) => {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await axios.post(
+        GROK_API_URL,
+        {
+          model: 'grok-2-latest',
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
+            { role: 'user', content: promptText }
+          ],
+          temperature: 0.7,
+          max_tokens: 2500
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+      return response;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (attempt < maxAttempts && shouldRetryAiRequest(error)) {
+        const backoffMs = 1000 * attempt + Math.floor(Math.random() * 500);
+        await sleep(backoffMs);
+        continue;
+      }
+      if (status === 429) {
+        throw new HttpError(429, 'AI rate limit reached. Please wait a moment and try again.');
+      }
+      throw error;
+    }
+  }
+  throw new HttpError(503, 'AI service is busy. Please try again.');
+};
+
 class HttpError extends Error {
   status: number;
 
@@ -405,25 +453,7 @@ Return ONLY valid JSON in this exact format:
 }
 `;
 
-  const response = await axios.post(
-    GROK_API_URL,
-    {
-      model: 'grok-2-latest',
-      messages: [
-        { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
-        { role: 'user', content: promptText }
-      ],
-      temperature: 0.7,
-      max_tokens: 2500
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      timeout: 30000
-    }
-  );
+  const response = await requestAiQuizContent(apiKey, promptText);
 
   const aiContent = response.data?.choices?.[0]?.message?.content;
   if (!aiContent) {
