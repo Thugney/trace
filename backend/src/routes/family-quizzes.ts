@@ -130,6 +130,42 @@ const generateImageFromPrompt = async (prompt: string, apiKey: string, errors: s
   }
 };
 
+const stripCodeFences = (content: string) => {
+  return content.replace(/```json/gi, '```').replace(/```/g, '').trim();
+};
+
+const extractJsonBlock = (content: string) => {
+  const firstBrace = content.indexOf('{');
+  const lastBrace = content.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    return null;
+  }
+  return content.slice(firstBrace, lastBrace + 1);
+};
+
+const removeTrailingCommas = (content: string) => {
+  return content.replace(/,\s*([}\]])/g, '$1');
+};
+
+const parseAiQuizJson = (content: string) => {
+  const cleaned = stripCodeFences(content);
+  const candidates = [extractJsonBlock(cleaned), cleaned].filter(Boolean) as string[];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      try {
+        return JSON.parse(removeTrailingCommas(candidate));
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  throw new Error('Failed to parse AI quiz JSON');
+};
+
 // ==================== QUIZ CATEGORIES ====================
 
 // Get all quiz categories with theme configs
@@ -226,9 +262,12 @@ Requirements:
 - Use multiple choice only.
 - Provide 4 options per question (a, b, c, d).
 - Include the correct answer as a, b, c, or d.
+- Do not reveal the correct answer in question_text, hint, or explanation.
+- Hints should be helpful but not give away the answer.
 - Keep language kid-friendly and engaging.
 - If supports_images is true, include a short image_prompt for each question and optionally for options when it helps.
 - If supports_images is false, do not include image prompts.
+- Output must be strict JSON only (double quotes, no trailing commas, no markdown).
 
 Return ONLY valid JSON in this exact format:
 {
@@ -279,8 +318,7 @@ Return ONLY valid JSON in this exact format:
 
     let aiQuiz: any;
     try {
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      aiQuiz = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(aiContent);
+      aiQuiz = parseAiQuizJson(aiContent);
     } catch (error) {
       console.error('[AI Quiz] Failed to parse response:', aiContent);
       return res.status(500).json({ error: 'Failed to parse AI quiz JSON' });
@@ -340,18 +378,32 @@ Return ONLY valid JSON in this exact format:
       const questionText = (question.question_text || question.questionText || `Question ${i + 1}`).toString();
       const normalizedOptions = ['a', 'b', 'c', 'd'].map((id, idx) => {
         const option = optionsRaw[idx] || optionsRaw.find((opt: any) => opt.id === id) || {};
+        const optionText = typeof option === 'string' ? option : option.text;
         return {
           id,
-          text: (option.text || `Option ${id.toUpperCase()}`).toString(),
+          text: (optionText || `Option ${id.toUpperCase()}`).toString(),
           image: null as string | null,
-          color: option.color || '',
-          shape: option.shape || ''
+          color: typeof option === 'object' && option ? option.color || '' : '',
+          shape: typeof option === 'object' && option ? option.shape || '' : ''
         };
       });
 
-      const correctAnswer = ['a', 'b', 'c', 'd'].includes(question.correct_answer)
-        ? question.correct_answer
+      const rawCorrectAnswer = (question.correct_answer || question.correctAnswer || question.answer || question.correct || '').toString().trim().toLowerCase();
+      let correctAnswer = ['a', 'b', 'c', 'd'].includes(rawCorrectAnswer)
+        ? rawCorrectAnswer
         : 'a';
+      if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
+        const letterMatch = rawCorrectAnswer.match(/\b([a-d])\b/);
+        if (letterMatch) {
+          correctAnswer = letterMatch[1];
+        }
+      }
+      if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
+        const matched = normalizedOptions.find(opt => opt.text.trim().toLowerCase() === rawCorrectAnswer);
+        if (matched) {
+          correctAnswer = matched.id;
+        }
+      }
       const correctOption = normalizedOptions.find(opt => opt.id === correctAnswer);
       const correctOptionText = (correctOption?.text || '').trim();
       const isSingleLetter = /^[A-Za-z]$/.test(correctOptionText);
