@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import axios from 'axios';
 import multer from 'multer';
 import path from 'path';
@@ -241,6 +242,363 @@ const parseAiQuizJson = (content: string) => {
   throw new Error('Failed to parse AI quiz JSON');
 };
 
+class HttpError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+type AiQuizPayload = {
+  prompt: string;
+  categoryId: number;
+  questionCount?: number;
+  createdBy: number;
+  assignedTo?: number;
+  includeImages?: boolean;
+  imageProvider?: string;
+};
+
+type AiQuizJobStatus = 'queued' | 'running' | 'completed' | 'failed';
+
+type AiQuizJob = {
+  id: string;
+  status: AiQuizJobStatus;
+  createdAt: number;
+  updatedAt: number;
+  result?: any;
+  error?: string;
+};
+
+const AI_QUIZ_JOB_TTL_MS = 2 * 60 * 60 * 1000;
+const aiQuizJobs = new Map<string, AiQuizJob>();
+
+const pruneAiQuizJobs = () => {
+  const now = Date.now();
+  for (const [id, job] of aiQuizJobs.entries()) {
+    if (now - job.updatedAt > AI_QUIZ_JOB_TTL_MS) {
+      aiQuizJobs.delete(id);
+    }
+  }
+};
+
+const createAiQuizJob = (payload: AiQuizPayload) => {
+  pruneAiQuizJobs();
+  const job: AiQuizJob = {
+    id: randomUUID(),
+    status: 'queued',
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  aiQuizJobs.set(job.id, job);
+  setImmediate(() => processAiQuizJob(job.id, payload));
+  return job;
+};
+
+const processAiQuizJob = async (jobId: string, payload: AiQuizPayload) => {
+  const job = aiQuizJobs.get(jobId);
+  if (!job) return;
+  job.status = 'running';
+  job.updatedAt = Date.now();
+  try {
+    job.result = await generateAiQuizInternal(payload);
+    job.status = 'completed';
+  } catch (error: any) {
+    job.error = error?.message || 'Failed to generate quiz';
+    job.status = 'failed';
+  } finally {
+    job.updatedAt = Date.now();
+  }
+};
+
+const generateAiQuizInternal = async (payload: AiQuizPayload) => {
+  const {
+    prompt,
+    categoryId,
+    questionCount = 5,
+    createdBy,
+    assignedTo,
+    includeImages = true,
+    imageProvider = 'grok'
+  } = payload;
+
+  if (!prompt || !categoryId || !createdBy) {
+    throw new HttpError(400, 'Prompt, categoryId, and createdBy are required');
+  }
+
+  const category: any = db.prepare(`
+      SELECT * FROM quiz_categories WHERE id = ?
+    `).get(categoryId);
+
+  if (!category) {
+    throw new HttpError(404, 'Quiz category not found');
+  }
+
+  const apiKey = getGrokApiKey();
+  if (!apiKey) {
+    throw new HttpError(503, 'AI service not configured. Please configure the Grok API key.');
+  }
+
+  const inputConfig = JSON.parse(category.input_config || '{}');
+  const supportsImages = !!inputConfig.supports_images;
+  const normalizedImageProvider = String(imageProvider || 'grok').toLowerCase() === 'openai' ? 'openai' : 'grok';
+  const includeOptionImages = false;
+  const imageApiKey = includeImages && supportsImages
+    ? (normalizedImageProvider === 'openai' ? getOpenAiApiKey() : apiKey)
+    : null;
+  if (includeImages && supportsImages && !imageApiKey) {
+    throw new HttpError(503, normalizedImageProvider === 'openai'
+      ? 'OpenAI image service not configured. Please configure the OpenAI API key.'
+      : 'Image service not configured. Please configure the Grok API key.'
+    );
+  }
+  const normalizedCount = Math.min(Math.max(parseInt(String(questionCount), 10) || 5, 1), 20);
+
+  const parentPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+  const buildImagePrompt = (basePrompt: string) => {
+    const theme = parentPrompt ? `Theme inspiration: ${parentPrompt}` : '';
+    return `Create a bright, kid-friendly illustration for ages 4-7. ${basePrompt} ${theme} Style: colorful, clean, high contrast, centered subject, simple background, no text, no logos, no watermarks.`;
+  };
+
+  const promptText = `
+You are an expert children's quiz creator. Create a fun, age-appropriate multiple choice quiz.
+
+Category: ${category.display_name} (${category.name})
+Category description: ${category.description || 'N/A'}
+Input config: ${JSON.stringify(inputConfig)}
+
+Parent prompt: "${prompt}"
+
+Requirements:
+- Create exactly ${normalizedCount} questions.
+- Use multiple choice only.
+- Provide 4 options per question (a, b, c, d).
+- Include the correct answer as a, b, c, or d.
+- Do not reveal the correct answer in question_text, hint, or explanation.
+- Hints should be helpful but not give away the answer.
+- Keep language kid-friendly and engaging.
+- If supports_images is true, include a short image_prompt for each question and optionally for options when it helps.
+- If supports_images is false, do not include image prompts.
+- Output must be strict JSON only (double quotes, no trailing commas, no markdown).
+
+Return ONLY valid JSON in this exact format:
+{
+  "title": "Quiz title",
+  "description": "Quiz description",
+  "questions": [
+    {
+      "question_text": "Question text",
+      "question_image_prompt": "Optional image prompt for the question",
+      "options": [
+        { "id": "a", "text": "Option A text", "image_prompt": "Optional option image prompt" },
+        { "id": "b", "text": "Option B text", "image_prompt": "Optional option image prompt" },
+        { "id": "c", "text": "Option C text", "image_prompt": "Optional option image prompt" },
+        { "id": "d", "text": "Option D text", "image_prompt": "Optional option image prompt" }
+      ],
+      "correct_answer": "a",
+      "hint": "Optional hint",
+      "explanation": "Optional explanation"
+    }
+  ]
+}
+`;
+
+  const response = await axios.post(
+    GROK_API_URL,
+    {
+      model: 'grok-2-latest',
+      messages: [
+        { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
+        { role: 'user', content: promptText }
+      ],
+      temperature: 0.7,
+      max_tokens: 2500
+    },
+    {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    }
+  );
+
+  const aiContent = response.data?.choices?.[0]?.message?.content;
+  if (!aiContent) {
+    throw new HttpError(500, 'No response from AI');
+  }
+
+  let aiQuiz: any;
+  try {
+    aiQuiz = parseAiQuizJson(aiContent);
+  } catch (error) {
+    console.error('[AI Quiz] Failed to parse response:', aiContent);
+    throw new HttpError(500, 'Failed to parse AI quiz JSON');
+  }
+
+  const title = aiQuiz.title || `${category.display_name} Quiz`;
+  const description = aiQuiz.description || prompt;
+  const assignedProfileId = assignedTo || createdBy;
+
+  const assignedProfile = db.prepare('SELECT id FROM profiles WHERE id = ?').get(assignedProfileId);
+  if (!assignedProfile) {
+    throw new HttpError(404, 'Assigned profile not found');
+  }
+
+  const questions = Array.isArray(aiQuiz.questions) ? aiQuiz.questions.slice(0, normalizedCount) : [];
+  const imageErrors: string[] = [];
+  const questionsSummary = JSON.stringify(questions.map((q: any) => ({
+    question_text: q.question_text || q.questionText || '',
+    options: q.options || [],
+    correct_answer: q.correct_answer || q.correctAnswer || ''
+  })));
+
+  const quizResult = db.prepare(`
+      INSERT INTO family_quizzes (
+        title, description, category_id, created_by, assigned_to,
+        points_per_correct, stars_per_correct, bonus_points,
+        time_limit_seconds, pass_threshold, questions, is_ai_generated
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(
+    title,
+    description,
+    categoryId,
+    createdBy,
+    assignedProfileId,
+    10,
+    0,
+    20,
+    null,
+    70,
+    questionsSummary
+  );
+
+  const quizId = quizResult.lastInsertRowid as number;
+
+  const insertQuestion = db.prepare(`
+      INSERT INTO family_quiz_questions (
+        quiz_id, question_text, question_type, question_image, question_audio,
+        options, correct_answer, hint, explanation, points, order_index
+      ) VALUES (?, ?, 'multiple_choice', ?, NULL, ?, ?, ?, ?, ?, ?)
+    `);
+
+  const savedQuestions: any[] = [];
+  for (let i = 0; i < questions.length; i++) {
+    const question = questions[i];
+    const optionsRaw = Array.isArray(question.options) ? question.options : [];
+
+    const questionText = (question.question_text || question.questionText || `Question ${i + 1}`).toString();
+    const normalizedOptions = ['a', 'b', 'c', 'd'].map((id, idx) => {
+      const option = optionsRaw[idx] || optionsRaw.find((opt: any) => opt.id === id) || {};
+      const optionText = typeof option === 'string' ? option : option.text;
+      return {
+        id,
+        text: (optionText || `Option ${id.toUpperCase()}`).toString(),
+        image: null as string | null,
+        color: typeof option === 'object' && option ? option.color || '' : '',
+        shape: typeof option === 'object' && option ? option.shape || '' : ''
+      };
+    });
+
+    const rawCorrectAnswer = (question.correct_answer || question.correctAnswer || question.answer || question.correct || '').toString().trim().toLowerCase();
+    let correctAnswer = ['a', 'b', 'c', 'd'].includes(rawCorrectAnswer)
+      ? rawCorrectAnswer
+      : 'a';
+    if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
+      const letterMatch = rawCorrectAnswer.match(/\b([a-d])\b/);
+      if (letterMatch) {
+        correctAnswer = letterMatch[1];
+      }
+    }
+    if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
+      const matched = normalizedOptions.find(opt => opt.text.trim().toLowerCase() === rawCorrectAnswer);
+      if (matched) {
+        correctAnswer = matched.id;
+      }
+    }
+    const correctOption = normalizedOptions.find(opt => opt.id === correctAnswer);
+    const correctOptionText = (correctOption?.text || '').trim();
+    const isSingleLetter = /^[A-Za-z]$/.test(correctOptionText);
+
+    let questionImage: string | null = null;
+    const questionImagePromptRaw = question.question_image_prompt || question.image_prompt || '';
+    let questionImagePrompt = questionImagePromptRaw ? buildImagePrompt(questionImagePromptRaw) : '';
+    if (!questionImagePrompt && includeImages && supportsImages) {
+      if (category.name === 'alphabet' && isSingleLetter) {
+        questionImagePrompt = buildImagePrompt(
+          `A bold, clear illustration of the letter "${correctOptionText}" in a fun superhero style.`
+        );
+      } else {
+        questionImagePrompt = buildImagePrompt(
+          `A playful illustration for this quiz question: "${questionText}".`
+        );
+      }
+    }
+    if (includeImages && supportsImages && questionImagePrompt && imageApiKey) {
+      questionImage = await generateImageFromPrompt(
+        questionImagePrompt,
+        normalizedImageProvider,
+        imageApiKey,
+        imageErrors,
+        `Question ${i + 1}`
+      );
+    }
+
+    if (includeImages && supportsImages && includeOptionImages) {
+      for (const opt of normalizedOptions) {
+        const original = optionsRaw.find((o: any) => o.id === opt.id) || {};
+        const imagePrompt = original.image_prompt || original.imagePrompt;
+        if (imagePrompt && imageApiKey) {
+          opt.image = await generateImageFromPrompt(
+            buildImagePrompt(imagePrompt),
+            normalizedImageProvider,
+            imageApiKey,
+            imageErrors,
+            `Question ${i + 1} option ${opt.id.toUpperCase()}`
+          );
+        }
+      }
+    }
+
+    const result = insertQuestion.run(
+      quizId,
+      questionText,
+      questionImage,
+      JSON.stringify(normalizedOptions),
+      correctAnswer,
+      question.hint || null,
+      question.explanation || null,
+      10,
+      i + 1
+    );
+
+    const saved = db.prepare('SELECT * FROM family_quiz_questions WHERE id = ?').get(result.lastInsertRowid) as any;
+    saved.options = JSON.parse(saved.options || '[]');
+    savedQuestions.push(saved);
+  }
+
+  const quiz = db.prepare(`
+      SELECT fq.*, qc.display_name as category_name, qc.icon as category_icon
+      FROM family_quizzes fq
+      JOIN quiz_categories qc ON fq.category_id = qc.id
+      WHERE fq.id = ?
+    `).get(quizId);
+
+  if (assignedProfileId !== createdBy) {
+    sendPushNotification(assignedProfileId, {
+      title: 'New AI Quiz Ready!',
+      message: `You have a new "${title}" quiz to try!`,
+      type: 'quiz',
+      data: { quizId },
+      url: '/quizzes'
+    });
+  }
+
+  return { quiz, questions: savedQuestions, image_warnings: imageErrors };
+};
+
 // ==================== QUIZ MEDIA (Public) ====================
 
 // Serve quiz media files
@@ -315,291 +673,46 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
     const {
       prompt,
       categoryId,
-      questionCount = 5,
+      questionCount,
       createdBy,
       assignedTo,
-      includeImages = true,
-      imageProvider = 'grok'
+      includeImages,
+      imageProvider
     } = req.body || {};
 
     if (!prompt || !categoryId || !createdBy) {
       return res.status(400).json({ error: 'Prompt, categoryId, and createdBy are required' });
     }
 
-    const category: any = db.prepare(`
-      SELECT * FROM quiz_categories WHERE id = ?
-    `).get(categoryId);
-
-    if (!category) {
-      return res.status(404).json({ error: 'Quiz category not found' });
-    }
-
-    const apiKey = getGrokApiKey();
-    if (!apiKey) {
-      return res.status(503).json({ error: 'AI service not configured. Please configure the Grok API key.' });
-    }
-
-    const inputConfig = JSON.parse(category.input_config || '{}');
-    const supportsImages = !!inputConfig.supports_images;
-    const normalizedImageProvider = String(imageProvider || 'grok').toLowerCase() === 'openai' ? 'openai' : 'grok';
-    const includeOptionImages = false;
-    const imageApiKey = includeImages && supportsImages
-      ? (normalizedImageProvider === 'openai' ? getOpenAiApiKey() : apiKey)
-      : null;
-    if (includeImages && supportsImages && !imageApiKey) {
-      return res.status(503).json({
-        error: normalizedImageProvider === 'openai'
-          ? 'OpenAI image service not configured. Please configure the OpenAI API key.'
-          : 'Image service not configured. Please configure the Grok API key.'
-      });
-    }
-    const normalizedCount = Math.min(Math.max(parseInt(questionCount, 10) || 5, 1), 20);
-
-    const parentPrompt = typeof prompt === 'string' ? prompt.trim() : '';
-    const buildImagePrompt = (basePrompt: string) => {
-      const theme = parentPrompt ? `Theme inspiration: ${parentPrompt}` : '';
-      return `Create a bright, kid-friendly illustration for ages 4-7. ${basePrompt} ${theme} Style: colorful, clean, high contrast, centered subject, simple background, no text, no logos, no watermarks.`;
-    };
-
-    const promptText = `
-You are an expert children's quiz creator. Create a fun, age-appropriate multiple choice quiz.
-
-Category: ${category.display_name} (${category.name})
-Category description: ${category.description || 'N/A'}
-Input config: ${JSON.stringify(inputConfig)}
-
-Parent prompt: "${prompt}"
-
-Requirements:
-- Create exactly ${normalizedCount} questions.
-- Use multiple choice only.
-- Provide 4 options per question (a, b, c, d).
-- Include the correct answer as a, b, c, or d.
-- Do not reveal the correct answer in question_text, hint, or explanation.
-- Hints should be helpful but not give away the answer.
-- Keep language kid-friendly and engaging.
-- If supports_images is true, include a short image_prompt for each question and optionally for options when it helps.
-- If supports_images is false, do not include image prompts.
-- Output must be strict JSON only (double quotes, no trailing commas, no markdown).
-
-Return ONLY valid JSON in this exact format:
-{
-  "title": "Quiz title",
-  "description": "Quiz description",
-  "questions": [
-    {
-      "question_text": "Question text",
-      "question_image_prompt": "Optional image prompt for the question",
-      "options": [
-        { "id": "a", "text": "Option A text", "image_prompt": "Optional option image prompt" },
-        { "id": "b", "text": "Option B text", "image_prompt": "Optional option image prompt" },
-        { "id": "c", "text": "Option C text", "image_prompt": "Optional option image prompt" },
-        { "id": "d", "text": "Option D text", "image_prompt": "Optional option image prompt" }
-      ],
-      "correct_answer": "a",
-      "hint": "Optional hint",
-      "explanation": "Optional explanation"
-    }
-  ]
-}
-`;
-
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: 'grok-2-latest',
-        messages: [
-          { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
-          { role: 'user', content: promptText }
-        ],
-        temperature: 0.7,
-        max_tokens: 2500
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000
-      }
-    );
-
-    const aiContent = response.data?.choices?.[0]?.message?.content;
-    if (!aiContent) {
-      return res.status(500).json({ error: 'No response from AI' });
-    }
-
-    let aiQuiz: any;
-    try {
-      aiQuiz = parseAiQuizJson(aiContent);
-    } catch (error) {
-      console.error('[AI Quiz] Failed to parse response:', aiContent);
-      return res.status(500).json({ error: 'Failed to parse AI quiz JSON' });
-    }
-
-    const title = aiQuiz.title || `${category.display_name} Quiz`;
-    const description = aiQuiz.description || prompt;
-    const assignedProfileId = assignedTo || createdBy;
-
-    const assignedProfile = db.prepare('SELECT id FROM profiles WHERE id = ?').get(assignedProfileId);
-    if (!assignedProfile) {
-      return res.status(404).json({ error: 'Assigned profile not found' });
-    }
-
-    const questions = Array.isArray(aiQuiz.questions) ? aiQuiz.questions.slice(0, normalizedCount) : [];
-    const imageErrors: string[] = [];
-    const questionsSummary = JSON.stringify(questions.map((q: any) => ({
-      question_text: q.question_text || q.questionText || '',
-      options: q.options || [],
-      correct_answer: q.correct_answer || q.correctAnswer || ''
-    })));
-
-    const quizResult = db.prepare(`
-      INSERT INTO family_quizzes (
-        title, description, category_id, created_by, assigned_to,
-        points_per_correct, stars_per_correct, bonus_points,
-        time_limit_seconds, pass_threshold, questions, is_ai_generated
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-    `).run(
-      title,
-      description,
+    const job = createAiQuizJob({
+      prompt,
       categoryId,
+      questionCount,
       createdBy,
-      assignedProfileId,
-      10,
-      0,
-      20,
-      null,
-      70,
-      questionsSummary
-    );
+      assignedTo,
+      includeImages,
+      imageProvider
+    });
 
-    const quizId = quizResult.lastInsertRowid as number;
-
-    const insertQuestion = db.prepare(`
-      INSERT INTO family_quiz_questions (
-        quiz_id, question_text, question_type, question_image, question_audio,
-        options, correct_answer, hint, explanation, points, order_index
-      ) VALUES (?, ?, 'multiple_choice', ?, NULL, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const savedQuestions: any[] = [];
-    for (let i = 0; i < questions.length; i++) {
-      const question = questions[i];
-      const optionsRaw = Array.isArray(question.options) ? question.options : [];
-
-      const questionText = (question.question_text || question.questionText || `Question ${i + 1}`).toString();
-      const normalizedOptions = ['a', 'b', 'c', 'd'].map((id, idx) => {
-        const option = optionsRaw[idx] || optionsRaw.find((opt: any) => opt.id === id) || {};
-        const optionText = typeof option === 'string' ? option : option.text;
-        return {
-          id,
-          text: (optionText || `Option ${id.toUpperCase()}`).toString(),
-          image: null as string | null,
-          color: typeof option === 'object' && option ? option.color || '' : '',
-          shape: typeof option === 'object' && option ? option.shape || '' : ''
-        };
-      });
-
-      const rawCorrectAnswer = (question.correct_answer || question.correctAnswer || question.answer || question.correct || '').toString().trim().toLowerCase();
-      let correctAnswer = ['a', 'b', 'c', 'd'].includes(rawCorrectAnswer)
-        ? rawCorrectAnswer
-        : 'a';
-      if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
-        const letterMatch = rawCorrectAnswer.match(/\b([a-d])\b/);
-        if (letterMatch) {
-          correctAnswer = letterMatch[1];
-        }
-      }
-      if (!['a', 'b', 'c', 'd'].includes(rawCorrectAnswer) && rawCorrectAnswer) {
-        const matched = normalizedOptions.find(opt => opt.text.trim().toLowerCase() === rawCorrectAnswer);
-        if (matched) {
-          correctAnswer = matched.id;
-        }
-      }
-      const correctOption = normalizedOptions.find(opt => opt.id === correctAnswer);
-      const correctOptionText = (correctOption?.text || '').trim();
-      const isSingleLetter = /^[A-Za-z]$/.test(correctOptionText);
-
-      let questionImage: string | null = null;
-      const questionImagePromptRaw = question.question_image_prompt || question.image_prompt || '';
-      let questionImagePrompt = questionImagePromptRaw ? buildImagePrompt(questionImagePromptRaw) : '';
-      if (!questionImagePrompt && includeImages && supportsImages) {
-        if (category.name === 'alphabet' && isSingleLetter) {
-          questionImagePrompt = buildImagePrompt(
-            `A bold, clear illustration of the letter "${correctOptionText}" in a fun superhero style.`
-          );
-        } else {
-          questionImagePrompt = buildImagePrompt(
-            `A playful illustration for this quiz question: "${questionText}".`
-          );
-        }
-      }
-      if (includeImages && supportsImages && questionImagePrompt && imageApiKey) {
-        questionImage = await generateImageFromPrompt(
-          questionImagePrompt,
-          normalizedImageProvider,
-          imageApiKey,
-          imageErrors,
-          `Question ${i + 1}`
-        );
-      }
-
-      if (includeImages && supportsImages && includeOptionImages) {
-        for (const opt of normalizedOptions) {
-          const original = optionsRaw.find((o: any) => o.id === opt.id) || {};
-          const imagePrompt = original.image_prompt || original.imagePrompt;
-          if (imagePrompt && imageApiKey) {
-            opt.image = await generateImageFromPrompt(
-              buildImagePrompt(imagePrompt),
-              normalizedImageProvider,
-              imageApiKey,
-              imageErrors,
-              `Question ${i + 1} option ${opt.id.toUpperCase()}`
-            );
-          }
-        }
-      }
-
-      const result = insertQuestion.run(
-        quizId,
-        questionText,
-        questionImage,
-        JSON.stringify(normalizedOptions),
-        correctAnswer,
-        question.hint || null,
-        question.explanation || null,
-        10,
-        i + 1
-      );
-
-      const saved = db.prepare('SELECT * FROM family_quiz_questions WHERE id = ?').get(result.lastInsertRowid) as any;
-      saved.options = JSON.parse(saved.options || '[]');
-      savedQuestions.push(saved);
-    }
-
-    const quiz = db.prepare(`
-      SELECT fq.*, qc.display_name as category_name, qc.icon as category_icon
-      FROM family_quizzes fq
-      JOIN quiz_categories qc ON fq.category_id = qc.id
-      WHERE fq.id = ?
-    `).get(quizId);
-
-    if (assignedProfileId !== createdBy) {
-      sendPushNotification(assignedProfileId, {
-        title: 'New AI Quiz Ready!',
-        message: `You have a new "${title}" quiz to try!`,
-        type: 'quiz',
-        data: { quizId },
-        url: '/quizzes'
-      });
-    }
-
-    res.json({ quiz, questions: savedQuestions, image_warnings: imageErrors });
+    res.status(202).json({ jobId: job.id, status: job.status });
   } catch (error: any) {
     console.error('[AI Quiz] Generation error:', error);
     res.status(500).json({ error: 'Failed to generate quiz' });
   }
+});
+
+router.get('/ai-generate/status/:jobId', (req: Request, res: Response) => {
+  const { jobId } = req.params;
+  pruneAiQuizJobs();
+  const job = aiQuizJobs.get(jobId);
+  if (!job) {
+    return res.status(404).json({ error: 'AI generation job not found' });
+  }
+  res.json({
+    status: job.status,
+    result: job.result,
+    error: job.error
+  });
 });
 
 // ==================== FAMILY QUIZZES CRUD ====================

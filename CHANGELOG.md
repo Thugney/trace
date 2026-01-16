@@ -5,6 +5,7 @@
 ### Added
 - **Quiz AI Provider Choice**: Quiz Builder can select Grok or OpenAI for image generation.
 - **OpenAI Image Support**: Added OpenAI image generation (gpt-image-1) with base64 handling and storage.
+- **Async AI Quiz Jobs**: AI quiz generation now runs as background jobs with status polling to avoid Cloudflare timeouts.
 
 ### Fixed
 - **Docker Access Issues**: Backend now explicitly binds to 0.0.0.0 for external accessibility
@@ -14,6 +15,7 @@
 - **Quiz Theme Crash**: Fallback theme merge prevents undefined theme fields from crashing the player.
 - **Quiz Readability**: Header, score, and feedback text now adapt to light themes for visibility.
 - **Quiz Audio**: Replaced buzzing ambient pad with a softer chime.
+- **AI Generation Timeouts**: Job polling prevents 524 errors when AI takes too long.
 
 ### Changed
 - **AI Image Prompts**: Improved kid-friendly prompt template, with retries/backoff for reliability.

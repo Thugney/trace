@@ -192,7 +192,7 @@ export default function QuizBuilder() {
 
     try {
       setAiGenerating(true);
-      const response = await familyQuizzesAPI.generateAIQuiz({
+      const startResponse = await familyQuizzesAPI.createAIQuizJob({
         prompt: aiPrompt.trim(),
         categoryId: aiCategoryId,
         questionCount: aiQuestionCount,
@@ -202,21 +202,49 @@ export default function QuizBuilder() {
         imageProvider: aiImageProvider
       });
 
-      const createdQuiz = response.data.quiz as QuizWithQuestions;
-      createdQuiz.questions = response.data.questions || [];
+      const jobId = startResponse.data.jobId;
+      const startedAt = Date.now();
+      let delayMs = 2000;
+      let jobResult: any = null;
+
+      while (true) {
+        const statusResponse = await familyQuizzesAPI.getAIQuizJobStatus(jobId);
+        const status = statusResponse.data.status;
+
+        if (status === 'completed') {
+          jobResult = statusResponse.data.result;
+          break;
+        }
+        if (status === 'failed') {
+          throw new Error(statusResponse.data.error || 'Failed to generate AI quiz');
+        }
+        if (Date.now() - startedAt > 5 * 60 * 1000) {
+          throw new Error('AI quiz generation is taking too long. Please try again.');
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        delayMs = Math.min(delayMs + 500, 5000);
+      }
+
+      if (!jobResult?.quiz) {
+        throw new Error('AI quiz generation did not return a quiz');
+      }
+
+      const createdQuiz = jobResult.quiz as QuizWithQuestions;
+      createdQuiz.questions = jobResult.questions || [];
 
       const cat = categories.find(c => c.id === createdQuiz.category_id) || null;
       setSelectedCategory(cat);
       setSelectedQuiz(createdQuiz);
       setView('questions');
       showToast('AI quiz created! Review and edit questions.', 'success');
-      if (response.data.image_warnings?.length) {
+      if (jobResult.image_warnings?.length) {
         showToast('Some images could not be generated. You can upload them manually.', 'warning');
       }
       loadData();
     } catch (error: any) {
       console.error('Failed to generate AI quiz:', error);
-      const errorMsg = error.response?.data?.error || 'Failed to generate AI quiz';
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to generate AI quiz';
       showToast(errorMsg, 'error');
     } finally {
       setAiGenerating(false);

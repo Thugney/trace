@@ -1235,6 +1235,17 @@ export interface AIQuizGenerateResponse {
   image_warnings?: string[];
 }
 
+export interface AIQuizJobStartResponse {
+  jobId: string;
+  status: 'queued' | 'running';
+}
+
+export interface AIQuizJobStatusResponse {
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  result?: AIQuizGenerateResponse;
+  error?: string;
+}
+
 // Family Quiz API
 export const familyQuizzesAPI = {
   // Categories
@@ -1257,6 +1268,17 @@ export const familyQuizzesAPI = {
     includeImages?: boolean;
     imageProvider?: 'grok' | 'openai';
   }) => api.post<AIQuizGenerateResponse>('/family-quizzes/ai-generate', data),
+  createAIQuizJob: (data: {
+    prompt: string;
+    categoryId: number;
+    questionCount: number;
+    createdBy: number;
+    assignedTo: number;
+    includeImages?: boolean;
+    imageProvider?: 'grok' | 'openai';
+  }) => api.post<AIQuizJobStartResponse>('/family-quizzes/ai-generate', data),
+  getAIQuizJobStatus: (jobId: string) =>
+    api.get<AIQuizJobStatusResponse>(`/family-quizzes/ai-generate/status/${jobId}`),
   createQuiz: (data: {
     title: string;
     description?: string;
