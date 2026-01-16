@@ -419,14 +419,22 @@ export default function QuizPlayer() {
   };
 
   const getTheme = (): QuizTheme => {
-    if (currentQuiz?.theme) return currentQuiz.theme;
-    // Default theme
-    return {
+    const fallback: QuizTheme = {
       colors: { primary: '#8B5CF6', secondary: '#7C3AED', accent: '#FCD34D', background: 'from-purple-500 to-indigo-600' },
-      mascot: '🌟',
+      mascot: '??',
       animations: ['bounce', 'pulse', 'spin', 'wiggle', 'tada', 'jelly', 'heartbeat', 'float', 'jiggle', 'wiggle-more'],
       sounds: { correct: 'sparkle', wrong: 'soft_miss', complete: 'celebration' },
       encouragements: ['Great job!', 'Amazing!', 'Wonderful!', 'You rock!', 'Fantastic!', 'Super smart!', 'Way to go!', 'You are a star!', 'Brilliant!', 'Outstanding!']
+    };
+    if (!currentQuiz?.theme) return fallback;
+    return {
+      ...fallback,
+      ...currentQuiz.theme,
+      colors: { ...fallback.colors, ...(currentQuiz.theme.colors || {}) },
+      sounds: { ...fallback.sounds, ...(currentQuiz.theme.sounds || {}) },
+      encouragements: currentQuiz.theme.encouragements?.length
+        ? currentQuiz.theme.encouragements
+        : fallback.encouragements
     };
   };
 
@@ -779,8 +787,8 @@ export default function QuizPlayer() {
   if ((gameState === 'playing' || gameState === 'feedback') && currentQuiz) {
     const theme = getTheme();
     const isLightTheme = isLightGradient(theme.colors.background);
-    const headerTextClass = isLightTheme ? 'text-slate-900' : 'text-white';
-    const headerSubTextClass = isLightTheme ? 'text-slate-600' : 'text-white/80';
+    const headerSubTextClass = isLightTheme ? 'text-slate-700' : 'text-white/80';
+    const headerPillClass = isLightTheme ? 'bg-white/85 text-slate-900' : 'bg-black/30 text-white';
     const hudClass = isLightTheme ? 'bg-white/85 text-slate-900' : 'bg-white/20 text-white';
     const scoreValueClass = isLightTheme ? 'text-emerald-700' : 'text-green-300';
     const pointsValueClass = isLightTheme ? 'text-amber-700' : 'text-yellow-300';
@@ -807,8 +815,8 @@ export default function QuizPlayer() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="text-center">
-            <div className={`font-semibold ${headerTextClass}`}>{currentQuiz.quiz.title}</div>
+          <div className={`text-center px-4 py-2 rounded-2xl backdrop-blur-sm ${headerPillClass}`}>
+            <div className="font-semibold">{currentQuiz.quiz.title}</div>
             <div className={`text-sm ${headerSubTextClass}`}>Question {currentQuestionIndex + 1} of {currentQuiz.totalQuestions}</div>
           </div>
           <div className="flex items-center gap-2">
