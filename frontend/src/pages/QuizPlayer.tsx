@@ -8,7 +8,7 @@ import playSounds, { areSoundsEnabled } from '../utils/sounds';
 
 const playQuizSound = {
   correct: () => playSounds.pointsEarned(),
-  wrong: () => playSounds.error(),
+  wrong: () => playSounds.waterLogged(),
   complete: () => playSounds.levelUp(),
   click: () => playSounds.click()
 };
@@ -38,6 +38,7 @@ export default function QuizPlayer() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [correctAnswer, setCorrectAnswer] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [score, setScore] = useState({ correct: 0, wrong: 0, points: 0 });
   const [startTime, setStartTime] = useState<number>(0);
@@ -48,7 +49,14 @@ export default function QuizPlayer() {
   const [timerElapsed, setTimerElapsed] = useState(0);
   const [timerIntervalId, setTimerIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [timerStatus, setTimerStatus] = useState<'idle' | 'running' | 'paused'>('idle');
-  const ambientRef = useRef<{ ctx: AudioContext; osc: OscillatorNode; gain: GainNode } | null>(null);
+  const ambientRef = useRef<{
+    ctx: AudioContext;
+    oscillators: OscillatorNode[];
+    gain: GainNode;
+    filter: BiquadFilterNode;
+    lfo?: OscillatorNode;
+    lfoGain?: GainNode;
+  } | null>(null);
 
   useEffect(() => {
     if (currentProfile?.id) {
@@ -183,22 +191,37 @@ export default function QuizPlayer() {
       if (ctx.state === 'suspended') {
         await ctx.resume();
       }
-      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.value = 180;
+      // Gentle ambient pad using soft sine tones and slow modulation.
+      const frequencies = [220, 277, 330];
+      const oscillators = frequencies.map(freq => {
+        const osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        return osc;
+      });
+
       filter.type = 'lowpass';
-      filter.frequency.value = 600;
-      gain.gain.value = 0.03;
+      filter.frequency.value = 480;
+      gain.gain.value = 0.008;
 
-      osc.connect(filter);
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.15;
+      lfoGain.gain.value = 0.004;
+      lfo.connect(lfoGain);
+      lfoGain.connect(gain.gain);
+
+      oscillators.forEach(osc => osc.connect(filter));
       filter.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
+      oscillators.forEach(osc => osc.start());
+      lfo.start();
 
-      ambientRef.current = { ctx, osc, gain };
+      ambientRef.current = { ctx, oscillators, gain, filter, lfo, lfoGain };
     } catch (error) {
       console.error('Failed to start quiz ambient sound:', error);
     }
@@ -208,9 +231,15 @@ export default function QuizPlayer() {
     const ambient = ambientRef.current;
     if (!ambient) return;
     try {
-      ambient.osc.stop();
-      ambient.osc.disconnect();
+      ambient.oscillators.forEach(osc => {
+        osc.stop();
+        osc.disconnect();
+      });
+      ambient.filter.disconnect();
       ambient.gain.disconnect();
+      ambient.lfo?.stop();
+      ambient.lfo?.disconnect();
+      ambient.lfoGain?.disconnect();
       ambient.ctx.close();
     } catch (error) {
       console.error('Failed to stop quiz ambient sound:', error);
@@ -261,6 +290,7 @@ export default function QuizPlayer() {
       setAttemptId(response.data.attemptId);
       setCurrentQuestionIndex(0);
       setScore({ correct: 0, wrong: 0, points: 0 });
+      setCorrectAnswer(null);
       setStartTime(Date.now());
       setQuestionStartTime(Date.now());
       setGameState('playing');
@@ -292,6 +322,7 @@ export default function QuizPlayer() {
       const response = await familyQuizzesAPI.submitAnswer(attemptId, question.id, selectedAnswer, timeTaken);
       setIsCorrect(response.data.isCorrect);
       setExplanation(response.data.explanation || null);
+      setCorrectAnswer(response.data.correctAnswer || null);
 
       if (response.data.isCorrect) {
         playQuizSound.correct();
@@ -322,6 +353,7 @@ export default function QuizPlayer() {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedAnswer(null);
       setIsCorrect(null);
+      setCorrectAnswer(null);
       setExplanation(null);
       setShowHint(false);
       setQuestionStartTime(Date.now());
@@ -372,6 +404,7 @@ export default function QuizPlayer() {
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setIsCorrect(null);
+    setCorrectAnswer(null);
     setExplanation(null);
     setShowHint(false);
     setGameState('menu');
@@ -399,7 +432,9 @@ export default function QuizPlayer() {
 
   const isLightGradient = (background?: string) => {
     if (!background) return false;
-    return /from-(white|slate-50|slate-100|gray-50|gray-100|neutral-50|neutral-100|zinc-50|zinc-100|stone-50|stone-100|sky-50|sky-100|blue-50|blue-100|indigo-50|indigo-100|emerald-50|emerald-100|teal-50|teal-100|green-50|green-100|yellow-50|yellow-100|amber-50|amber-100|orange-50|orange-100|rose-50|rose-100|pink-50|pink-100)/.test(background);
+    const lightBase = /(from|to|via)-(?:white|slate|gray|neutral|zinc|stone|sky|blue|indigo|emerald|teal|green|yellow|amber|orange|rose|pink)-(?:50|100|200|300|400)\b/;
+    const warmBright = /(from|to|via)-(?:yellow|amber|orange|rose|pink)-(?:500)\b/;
+    return lightBase.test(background) || warmBright.test(background) || /(from|to|via)-white\b/.test(background);
   };
 
   const getEncouragement = () => {
@@ -746,10 +781,16 @@ export default function QuizPlayer() {
     const isLightTheme = isLightGradient(theme.colors.background);
     const headerTextClass = isLightTheme ? 'text-slate-900' : 'text-white';
     const headerSubTextClass = isLightTheme ? 'text-slate-600' : 'text-white/80';
-    const hudClass = isLightTheme ? 'bg-white/80 text-slate-900' : 'bg-white/20 text-white';
+    const hudClass = isLightTheme ? 'bg-white/85 text-slate-900' : 'bg-white/20 text-white';
+    const scoreValueClass = isLightTheme ? 'text-emerald-700' : 'text-green-300';
+    const pointsValueClass = isLightTheme ? 'text-amber-700' : 'text-yellow-300';
+    const feedbackTextClass = isLightTheme ? 'text-slate-900' : 'text-white';
     const progressBgClass = isLightTheme ? 'bg-slate-900/20' : 'bg-white/20';
     const progressFillClass = isLightTheme ? 'bg-slate-900' : 'bg-white';
     const question = currentQuiz.questions[currentQuestionIndex];
+    const questionText = (((question as any).questionText || question.question_text || `Question ${currentQuestionIndex + 1}`) as string).toString();
+    const questionImage = (question as any).questionImage || question.question_image;
+    const questionAudio = (question as any).questionAudio || question.question_audio;
     const progress = ((currentQuestionIndex + 1) / currentQuiz.questions.length) * 100;
     const mascotAnimation = getRandomAnimation();
     const feedbackAnimation = getRandomAnimation();
@@ -860,28 +901,28 @@ export default function QuizPlayer() {
         <div className="flex justify-center gap-6 mb-6">
           <div className={`${hudClass} backdrop-blur-sm rounded-lg px-4 py-2 text-center`}>
             <div className={`text-xs ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Correct</div>
-            <div className="text-xl font-bold text-green-300">{score.correct}</div>
+            <div className={`text-xl font-bold ${scoreValueClass}`}>{score.correct}</div>
           </div>
           <div className={`${hudClass} backdrop-blur-sm rounded-lg px-4 py-2 text-center`}>
             <div className={`text-xs ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Points</div>
-            <div className="text-xl font-bold text-yellow-300">{score.points}</div>
+            <div className={`text-xl font-bold ${pointsValueClass}`}>{score.points}</div>
           </div>
         </div>
 
         {/* Question */}
         <div className="bg-white rounded-2xl p-6 text-slate-900 mb-6 shadow-xl">
-          <h2 className="text-xl font-bold text-center mb-6 text-slate-900">{question.question_text}</h2>
+          <h2 className="text-xl font-bold text-center mb-6 text-slate-900">{questionText}</h2>
 
-          {question.question_image && (
+          {questionImage && (
             <div className="flex justify-center mb-6">
-              <img src={question.question_image} alt="Question" className="max-h-40 rounded-lg" />
+              <img src={questionImage} alt="Question" className="max-h-40 rounded-lg" />
             </div>
           )}
 
-          {question.question_audio && (
+          {questionAudio && (
             <div className="flex justify-center mb-6">
               <audio controls className="w-full max-w-md">
-                <source src={question.question_audio} />
+                <source src={questionAudio} />
                 Your browser does not support audio.
               </audio>
             </div>
@@ -893,7 +934,8 @@ export default function QuizPlayer() {
               const isSelected = selectedAnswer === option.id;
               const isThisCorrect = gameState === 'feedback' && isCorrect && isSelected;
               const isThisWrong = gameState === 'feedback' && !isCorrect && isSelected;
-              const showAsCorrect = gameState === 'feedback' && option.id === question.correct_answer;
+              const correctAnswerId = correctAnswer || (question as any).correctAnswer || (question as any).correct_answer;
+              const showAsCorrect = gameState === 'feedback' && option.id === correctAnswerId;
 
               const optionTextClass = isSelected
                 ? isLightTheme
@@ -976,7 +1018,7 @@ export default function QuizPlayer() {
 
         {gameState === 'feedback' && (
           <div className="text-center">
-            <div className={`text-3xl font-bold mb-4 ${isCorrect ? feedbackAnimation : ''}`}>
+            <div className={`text-3xl font-bold mb-4 ${feedbackTextClass} ${isCorrect ? feedbackAnimation : ''}`}>
               {isCorrect ? getEncouragement() : 'Not quite!'}
             </div>
             <button

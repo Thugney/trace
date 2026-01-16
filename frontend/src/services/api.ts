@@ -1255,6 +1255,7 @@ export const familyQuizzesAPI = {
     createdBy: number;
     assignedTo: number;
     includeImages?: boolean;
+    imageProvider?: 'grok' | 'openai';
   }) => api.post<AIQuizGenerateResponse>('/family-quizzes/ai-generate', data),
   createQuiz: (data: {
     title: string;

@@ -9,9 +9,9 @@ import { authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
-router.use(authenticate, requireFeature('quizzes'));
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
+const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 
 // Configure multer for quiz media uploads
 const QUIZ_MEDIA_DIR = process.env.QUIZ_MEDIA_DIR || '/app/data/quiz-media';
@@ -85,6 +85,23 @@ const getGrokApiKey = (): string | null => {
   return apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '' ? apiKey : null;
 };
 
+const getOpenAiApiKey = (): string | null => {
+  let apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('openai_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read openai_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+};
+
 const imageExtensionFromMime = (mimeType?: string) => {
   if (!mimeType) return '.jpg';
   if (mimeType.includes('png')) return '.png';
@@ -102,35 +119,90 @@ const downloadImageToQuizMedia = async (imageUrl: string, prefix: string) => {
   return `/api/family-quizzes/media/${filename}`;
 };
 
-const generateImageFromPrompt = async (prompt: string, apiKey: string, errors: string[]) => {
-  if (!prompt) return null;
-  try {
-    const response = await axios.post(
-      GROK_IMAGE_URL,
-      {
-        model: 'grok-2-image',
-        prompt,
-        n: 1
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        timeout: 30000
-      }
-    );
+const saveBase64ImageToQuizMedia = (data: string, prefix: string) => {
+  const buffer = Buffer.from(data, 'base64');
+  const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+  const filepath = path.join(QUIZ_MEDIA_DIR, filename);
+  fs.writeFileSync(filepath, buffer);
+  return `/api/family-quizzes/media/${filename}`;
+};
 
-    const url = response.data?.data?.[0]?.url || response.data?.data?.[0]?.image_url;
-    if (!url) return null;
-    return await downloadImageToQuizMedia(url, 'quiz-ai');
-  } catch (error) {
-    const status = (error as any)?.response?.status;
-    const message = (error as any)?.response?.data?.error || (error as any)?.message || 'Image generation failed';
-    errors.push(status ? `Image generation failed (${status}): ${message}` : `Image generation failed: ${message}`);
-    console.error('[AI Quiz] Image generation failed:', error);
-    return null;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const generateImageFromPrompt = async (
+  prompt: string,
+  provider: 'grok' | 'openai',
+  apiKey: string,
+  errors: string[],
+  label?: string
+) => {
+  if (!prompt) return null;
+  const maxAttempts = 3;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        if (provider === 'openai') {
+          const response = await axios.post(
+            OPENAI_IMAGE_URL,
+            {
+              model: 'gpt-image-1',
+              prompt,
+              size: '1024x1024',
+              response_format: 'b64_json'
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 60000
+            }
+          );
+
+          const base64 = response.data?.data?.[0]?.b64_json;
+          if (!base64) {
+            throw new Error('Image data missing from response');
+          }
+          return saveBase64ImageToQuizMedia(base64, 'quiz-ai');
+        }
+
+        const response = await axios.post(
+          GROK_IMAGE_URL,
+          {
+            model: 'grok-2-image',
+            prompt,
+            n: 1
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 60000
+          }
+        );
+
+        const url = response.data?.data?.[0]?.url || response.data?.data?.[0]?.image_url;
+        if (!url) {
+          throw new Error('Image URL missing from response');
+        }
+        return await downloadImageToQuizMedia(url, 'quiz-ai');
+      } catch (error) {
+      const status = (error as any)?.response?.status;
+      const message = (error as any)?.response?.data?.error || (error as any)?.message || 'Image generation failed';
+      const prefix = label ? `${label}: ` : '';
+      if (attempt === maxAttempts) {
+        errors.push(status ? `${prefix}Image generation failed (${status}): ${message}` : `${prefix}Image generation failed: ${message}`);
+        console.error('[AI Quiz] Image generation failed:', error);
+        return null;
+      }
+
+      const backoffMs = 800 * attempt;
+      await sleep(backoffMs);
+    }
   }
+
+  return null;
 };
 
 const stripCodeFences = (content: string) => {
@@ -168,6 +240,25 @@ const parseAiQuizJson = (content: string) => {
 
   throw new Error('Failed to parse AI quiz JSON');
 };
+
+// ==================== QUIZ MEDIA (Public) ====================
+
+// Serve quiz media files
+router.get('/media/:filename', (req: Request, res: Response) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(QUIZ_MEDIA_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Error serving media:', error);
+    res.status(500).json({ error: 'Failed to serve media' });
+  }
+});
+
+router.use(authenticate, requireFeature('quizzes'));
 
 // ==================== QUIZ CATEGORIES ====================
 
@@ -227,7 +318,8 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       questionCount = 5,
       createdBy,
       assignedTo,
-      includeImages = true
+      includeImages = true,
+      imageProvider = 'grok'
     } = req.body || {};
 
     if (!prompt || !categoryId || !createdBy) {
@@ -249,7 +341,25 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
 
     const inputConfig = JSON.parse(category.input_config || '{}');
     const supportsImages = !!inputConfig.supports_images;
+    const normalizedImageProvider = String(imageProvider || 'grok').toLowerCase() === 'openai' ? 'openai' : 'grok';
+    const includeOptionImages = false;
+    const imageApiKey = includeImages && supportsImages
+      ? (normalizedImageProvider === 'openai' ? getOpenAiApiKey() : apiKey)
+      : null;
+    if (includeImages && supportsImages && !imageApiKey) {
+      return res.status(503).json({
+        error: normalizedImageProvider === 'openai'
+          ? 'OpenAI image service not configured. Please configure the OpenAI API key.'
+          : 'Image service not configured. Please configure the Grok API key.'
+      });
+    }
     const normalizedCount = Math.min(Math.max(parseInt(questionCount, 10) || 5, 1), 20);
+
+    const parentPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    const buildImagePrompt = (basePrompt: string) => {
+      const theme = parentPrompt ? `Theme inspiration: ${parentPrompt}` : '';
+      return `Create a bright, kid-friendly illustration for ages 4-7. ${basePrompt} ${theme} Style: colorful, clean, high contrast, centered subject, simple background, no text, no logos, no watermarks.`;
+    };
 
     const promptText = `
 You are an expert children's quiz creator. Create a fun, age-appropriate multiple choice quiz.
@@ -413,24 +523,40 @@ Return ONLY valid JSON in this exact format:
 
       let questionImage: string | null = null;
       const questionImagePromptRaw = question.question_image_prompt || question.image_prompt || '';
-      let questionImagePrompt = questionImagePromptRaw;
+      let questionImagePrompt = questionImagePromptRaw ? buildImagePrompt(questionImagePromptRaw) : '';
       if (!questionImagePrompt && includeImages && supportsImages) {
         if (category.name === 'alphabet' && isSingleLetter) {
-          questionImagePrompt = `A colorful, kid-friendly illustration of the letter "${correctOptionText}" in a fun superhero style, bold and clear, no other text.`;
+          questionImagePrompt = buildImagePrompt(
+            `A bold, clear illustration of the letter "${correctOptionText}" in a fun superhero style.`
+          );
         } else {
-          questionImagePrompt = `A colorful, kid-friendly illustration for this quiz question: "${questionText}".`;
+          questionImagePrompt = buildImagePrompt(
+            `A playful illustration for this quiz question: "${questionText}".`
+          );
         }
       }
-      if (includeImages && supportsImages && questionImagePrompt) {
-        questionImage = await generateImageFromPrompt(questionImagePrompt, apiKey, imageErrors);
+      if (includeImages && supportsImages && questionImagePrompt && imageApiKey) {
+        questionImage = await generateImageFromPrompt(
+          questionImagePrompt,
+          normalizedImageProvider,
+          imageApiKey,
+          imageErrors,
+          `Question ${i + 1}`
+        );
       }
 
-      if (includeImages && supportsImages) {
+      if (includeImages && supportsImages && includeOptionImages) {
         for (const opt of normalizedOptions) {
           const original = optionsRaw.find((o: any) => o.id === opt.id) || {};
           const imagePrompt = original.image_prompt || original.imagePrompt;
-          if (imagePrompt) {
-            opt.image = await generateImageFromPrompt(imagePrompt, apiKey, imageErrors);
+          if (imagePrompt && imageApiKey) {
+            opt.image = await generateImageFromPrompt(
+              buildImagePrompt(imagePrompt),
+              normalizedImageProvider,
+              imageApiKey,
+              imageErrors,
+              `Question ${i + 1} option ${opt.id.toUpperCase()}`
+            );
           }
         }
       }
@@ -902,20 +1028,6 @@ router.post('/:quizId/media', quizMediaUpload.single('media'), (req: Request, re
   }
 });
 
-// Serve quiz media files
-router.get('/media/:filename', (req: Request, res: Response) => {
-  try {
-    const { filename } = req.params;
-    const filePath = path.join(QUIZ_MEDIA_DIR, filename);
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-    res.sendFile(filePath);
-  } catch (error) {
-    console.error('Error serving media:', error);
-    res.status(500).json({ error: 'Failed to serve media' });
-  }
-});
 
 // ==================== QUIZ ATTEMPTS (PLAYING) ====================
 

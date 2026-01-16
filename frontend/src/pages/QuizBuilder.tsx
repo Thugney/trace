@@ -51,6 +51,7 @@ export default function QuizBuilder() {
   const [aiAssignedTo, setAiAssignedTo] = useState(0);
   const [aiQuestionCount, setAiQuestionCount] = useState(5);
   const [aiIncludeImages, setAiIncludeImages] = useState(true);
+  const [aiImageProvider, setAiImageProvider] = useState<'grok' | 'openai'>('grok');
   const [aiGenerating, setAiGenerating] = useState(false);
 
   // UI State
@@ -197,7 +198,8 @@ export default function QuizBuilder() {
         questionCount: aiQuestionCount,
         createdBy: currentProfile!.id,
         assignedTo: aiAssignedTo,
-        includeImages: aiIncludeImages
+        includeImages: aiIncludeImages,
+        imageProvider: aiImageProvider
       });
 
       const createdQuiz = response.data.quiz as QuizWithQuestions;
@@ -427,19 +429,33 @@ export default function QuizBuilder() {
           </div>
 
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={aiIncludeImages}
-                onChange={(e) => setAiIncludeImages(e.target.checked)}
-                disabled={!aiInputConfig.supports_images}
-                className="rounded border-gray-300"
-              />
-              Include AI-generated images
-            </label>
-            {!aiInputConfig.supports_images && aiCategory && (
-              <span className="text-xs text-gray-500">This category does not support images</span>
-            )}
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={aiIncludeImages}
+                  onChange={(e) => setAiIncludeImages(e.target.checked)}
+                  disabled={!aiInputConfig.supports_images}
+                  className="rounded border-gray-300"
+                />
+                Include AI-generated images
+              </label>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span>Image provider</span>
+                <select
+                  value={aiImageProvider}
+                  onChange={(e) => setAiImageProvider(e.target.value as 'grok' | 'openai')}
+                  disabled={!aiIncludeImages || !aiInputConfig.supports_images}
+                  className="px-3 py-1 border border-gray-200 rounded-lg"
+                >
+                  <option value="grok">Grok</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </div>
+              {!aiInputConfig.supports_images && aiCategory && (
+                <span className="text-xs text-gray-500">This category does not support images</span>
+              )}
+            </div>
             <button
               onClick={handleGenerateAIQuiz}
               disabled={aiGenerating}
