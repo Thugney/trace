@@ -46,7 +46,7 @@ export default function QuizPlayer() {
   const [results, setResults] = useState<any>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [timerElapsed, setTimerElapsed] = useState(0);
-  const [timerIntervalId, setTimerIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [timerIntervalId, setTimerIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [timerStatus, setTimerStatus] = useState<'idle' | 'running' | 'paused'>('idle');
   const ambientRef = useRef<{ ctx: AudioContext; osc: OscillatorNode; gain: GainNode } | null>(null);
 
