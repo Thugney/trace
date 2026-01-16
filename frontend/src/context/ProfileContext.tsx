@@ -61,6 +61,30 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     loadProfiles();
   }, []);
 
+  useEffect(() => {
+    const refreshIfAuthenticated = () => {
+      if (localStorage.getItem('family_auth') === 'true') {
+        refreshProfiles();
+      }
+    };
+
+    const intervalId = setInterval(refreshIfAuthenticated, 5 * 60 * 1000);
+    const handleFocus = () => refreshIfAuthenticated();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshIfAuthenticated();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [refreshProfiles]);
+
   // Restore saved profile when profiles are loaded OR update current profile when profiles change
   useEffect(() => {
     if (profiles.length > 0) {
@@ -81,6 +105,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
           // Check if any key attributes have changed
           const hasChanges =
             updatedProfile.ai_enabled !== currentProfile.ai_enabled ||
+            updatedProfile.diet_enabled !== currentProfile.diet_enabled ||
             updatedProfile.pin !== currentProfile.pin ||
             updatedProfile.name !== currentProfile.name ||
             updatedProfile.avatar !== currentProfile.avatar;

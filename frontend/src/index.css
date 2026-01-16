@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -41,6 +43,14 @@
   /* Better focus states */
   :focus-visible {
     @apply outline-none ring-2 ring-primary-500/50 ring-offset-2;
+  }
+
+  .admin-shell {
+    font-family: 'Space Grotesk', 'IBM Plex Sans', 'Noto Sans', sans-serif;
+  }
+
+  .admin-shell .admin-mono {
+    font-family: 'JetBrains Mono', 'Noto Sans Mono', monospace;
   }
 }
 

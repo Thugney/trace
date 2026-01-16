@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
+import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { tasksAPI } from '../services/api';
 import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, notificationsAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
 import { ProfileStats } from '../types';
@@ -17,7 +18,6 @@ import playSounds from '../utils/sounds';
 import { HeroStats } from '../components/kids/QuickStats';
 import ReminderWidget from '../components/kids/ReminderWidget';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
-import FunCard from '../components/kids/FunCard';
 
 // Goal type display helper
 const GOAL_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
@@ -120,20 +120,11 @@ interface DailyChallenge {
   current_progress: number;
 }
 
-interface LeaderboardEntry {
-  id: number;
-  name: string;
-  avatar: string;
-  points: number;
-  tasksCompleted: number;
-  currentStreak: number;
-  achievements: number;
-  rank: number;
-}
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const { isYoungChild, settings } = useAge();
+  const { flags: featureFlags } = useFeatureFlags();
   const [simpleTasks, setSimpleTasks] = useState<any[]>([]);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,7 +132,6 @@ export default function ChildDashboard() {
   const [streaks, setStreaks] = useState<Record<string, { current: number; longest: number }>>({});
   const [, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
   const [prevLevel, setPrevLevel] = useState<number | null>(null);
@@ -194,8 +184,10 @@ export default function ChildDashboard() {
   } | null>(null);
 
   // Collapsible sections
-  const [showChallenges, setShowChallenges] = useState(true);
+  const [showChallenges, setShowChallenges] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showBoosters, setShowBoosters] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
 
   useEffect(() => {
     if (!currentProfile) return;
@@ -229,15 +221,6 @@ export default function ChildDashboard() {
           });
         }
 
-        // Load leaderboard
-        if (currentProfile.parent_id) {
-          try {
-            const leaderboardRes = await gamificationAPI.getLeaderboard(currentProfile.parent_id, 'week');
-            setLeaderboard(leaderboardRes.data);
-          } catch (e) {
-            console.error('Failed to load leaderboard:', e);
-          }
-        }
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -679,398 +662,191 @@ export default function ChildDashboard() {
   // REGULAR VIEW (Ages 7+) - Clean & Organized
   // ============================================
   return (
-    <div className={`max-w-4xl mx-auto px-4 pb-8 ${settings.themeClass}`}>
-      {/* === MODALS === */}
-      {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
+  <div className={`max-w-5xl mx-auto px-4 pb-10 ${settings.themeClass}`}>
+    {/* === MODALS === */}
+    {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
 
-      {showLoginBonus && loginBonusData && (
-        <LoginBonusModal
-          data={loginBonusData}
-          claimed={bonusClaimed}
-          claiming={claimingBonus}
-          onClaim={claimLoginBonus}
-          onClose={() => setShowLoginBonus(false)}
-        />
-      )}
+    {showLoginBonus && loginBonusData && (
+      <LoginBonusModal
+        data={loginBonusData}
+        claimed={bonusClaimed}
+        claiming={claimingBonus}
+        onClaim={claimLoginBonus}
+        onClose={() => setShowLoginBonus(false)}
+      />
+    )}
 
-      {showSurpriseBonus && surpriseBonusData && (
-        <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
-      )}
+    {showSurpriseBonus && surpriseBonusData && (
+      <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
+    )}
 
-      {showAvatarPicker && (
-        <AvatarPickerModal
-          level={level}
-          currentAvatar={currentProfile?.avatar}
-          onSelect={updateAvatar}
-          onClose={() => setShowAvatarPicker(false)}
-          saving={savingAvatar}
-        />
-      )}
+    {showAvatarPicker && (
+      <AvatarPickerModal
+        level={level}
+        currentAvatar={currentProfile?.avatar}
+        onSelect={updateAvatar}
+        onClose={() => setShowAvatarPicker(false)}
+        saving={savingAvatar}
+      />
+    )}
 
-      {/* === HERO SECTION === */}
-      <div className="mb-6">
-        <HeroStats
-          name={currentProfile?.name?.split(' ')[0] || 'Friend'}
-          avatar={<Avatar avatar={currentProfile?.avatar} size="lg" alt={currentProfile?.name || ''} />}
-          level={level}
-          points={totalPoints}
-          pointsToNextLevel={100 - (totalPoints % 100)}
-          onAvatarClick={() => setShowAvatarPicker(true)}
-        />
+    <div className="space-y-6">
+      {/* === HERO === */}
+      <HeroStats
+        name={currentProfile?.name?.split(' ')[0] || 'Friend'}
+        avatar={<Avatar avatar={currentProfile?.avatar} size="lg" alt={currentProfile?.name || ''} />}
+        level={level}
+        points={totalPoints}
+        pointsToNextLevel={100 - (totalPoints % 100)}
+        onAvatarClick={() => setShowAvatarPicker(true)}
+      />
+
+      {/* === AT-A-GLANCE === */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-4">
+          <p className="text-xs font-semibold text-amber-700">Points</p>
+          <p className="text-2xl font-bold text-amber-900">{totalPoints}</p>
+        </div>
+        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100 p-4">
+          <p className="text-xs font-semibold text-sky-700">Stars</p>
+          <p className="text-2xl font-bold text-sky-900">{totalStars}</p>
+        </div>
+        <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 p-4">
+          <p className="text-xs font-semibold text-orange-700">Streak</p>
+          <p className="text-2xl font-bold text-orange-900">{streaks?.tasks?.current || 0}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
+          <p className="text-xs font-semibold text-emerald-700">Today</p>
+          <p className="text-lg font-bold text-emerald-900">
+            {economyData ? `${economyData.todayEarned} / ${economyData.settings.daily_points_cap} pts` : `${simpleTasks.length} tasks`}
+          </p>
+          {economyData && (
+            <div className="mt-2 h-2 rounded-full bg-emerald-200">
+              <div
+                className="h-2 rounded-full bg-emerald-500 transition-all"
+                style={{ width: `${Math.min((economyData.todayEarned / economyData.settings.daily_points_cap) * 100, 100)}%` }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* === QUICK STATS ROW === */}
-      <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <div className="flex-1 min-w-[100px] bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-4 text-center">
-          <div className="text-3xl mb-1">⭐</div>
-          <div className="text-2xl font-bold text-amber-700">{totalStars}</div>
-          <div className="text-xs text-amber-600">Stars</div>
-        </div>
-        <div className="flex-1 min-w-[100px] bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl p-4 text-center">
-          <div className="text-3xl mb-1">✅</div>
-          <div className="text-2xl font-bold text-emerald-700">{completedTasks}</div>
-          <div className="text-xs text-emerald-600">Done</div>
-        </div>
-        <div className="flex-1 min-w-[100px] bg-gradient-to-br from-blue-100 to-cyan-100 rounded-2xl p-4 text-center">
-          <div className="text-3xl mb-1">🧩</div>
-          <div className="text-2xl font-bold text-cyan-700">{simpleTasks.length}</div>
-          <div className="text-xs text-cyan-600">To Do</div>
-        </div>
-        {streaks?.tasks?.current > 0 && (
-          <div className="flex-1 min-w-[100px] bg-gradient-to-br from-orange-100 to-red-100 rounded-2xl p-4 text-center">
-            <div className="text-3xl mb-1">🔥</div>
-            <div className="text-2xl font-bold text-orange-700">{streaks.tasks.current}</div>
-            <div className="text-xs text-orange-600">Streak</div>
-          </div>
-        )}
-      </div>
-
-      {/* === TODAY'S TASKS === */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <span className="text-2xl">🦸</span> Today's Tasks
-          </h2>
-          <Link to="/tasks" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1">
-            See All <ChevronRight size={16} />
-          </Link>
-        </div>
-        <SimpleTaskGrid tasks={simpleTasks} onComplete={handleTaskComplete} />
-      </div>
-
-      {/* === FUN WIDGETS ROW === */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {/* Water Tracker */}
-        <FunCard theme="ocean" size="md">
-          <div className="flex items-center gap-3 mb-3">
-            <span className="text-3xl">💧</span>
-            <div>
-              <p className="font-bold text-white">Water Today</p>
-              <p className="text-sm text-white/80">{waterData.total_ml} / {waterData.goal_ml} ml</p>
-            </div>
-          </div>
-          <div className="w-full bg-white/20 rounded-full h-3 mb-3">
-            <div
-              className="bg-white h-3 rounded-full transition-all"
-              style={{ width: `${Math.min((waterData.total_ml / waterData.goal_ml) * 100, 100)}%` }}
-            />
-          </div>
-          <div className="flex gap-2">
-            {[150, 250, 500].map((amt) => (
-              <button
-                key={amt}
-                onClick={() => logWater(amt)}
-                className="flex-1 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white text-sm font-medium transition-colors"
-              >
-                +{amt}
-              </button>
-            ))}
-          </div>
-        </FunCard>
-
-        {/* Reminder Widget */}
-        <ReminderWidget
-          enabled={reminderEnabled}
-          time={reminderTime}
-          onToggle={toggleReminder}
-          onTimeChange={handleReminderTimeChange}
-          saving={savingReminder}
-          compact
-        />
-
-        {/* Leaderboard Preview */}
-        {leaderboard.length > 1 ? (
-          <FunCard theme="sports" size="md">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-2xl">🏅</span>
-              <p className="font-bold text-white">Leaderboard</p>
-            </div>
-            <div className="space-y-2">
-              {leaderboard.slice(0, 3).map((entry) => {
-                const isMe = entry.id === currentProfile?.id;
-                const rankEmoji = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉';
-                return (
-                  <div
-                    key={entry.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg ${isMe ? 'bg-white/30' : 'bg-white/10'}`}
-                  >
-                    <span className="text-lg">{rankEmoji}</span>
-                    <span className="font-medium text-white text-sm truncate flex-1">
-                      {entry.name} {isMe && '(You)'}
-                    </span>
-                    <span className="text-white/80 text-xs">{entry.points} pts</span>
-                  </div>
-                );
-              })}
-            </div>
-            <Link
-              to="/leaderboard"
-              className="block mt-2 text-center text-white/80 text-xs hover:text-white"
-            >
-              View Full Leaderboard →
+      {/* === TODAY FOCUS === */}
+      <section className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
+        <div className="card border border-slate-200 bg-white p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <span className="text-2xl">📝</span> Today's Tasks
+            </h2>
+            <Link to="/tasks" className="text-sm text-slate-500 hover:text-slate-700 font-medium flex items-center gap-1">
+              See all <ChevronRight size={16} />
             </Link>
-          </FunCard>
-        ) : (
-          <FunCard theme="sports" size="md">
-            <div className="text-center py-4">
-              <span className="text-4xl mb-2 block">🏅</span>
-              <p className="font-bold text-white">Leaderboard</p>
-              <p className="text-white/70 text-sm">Coming soon!</p>
-            </div>
-          </FunCard>
-        )}
-      </div>
-
-      {/* === DAILY CHALLENGES (Collapsible) === */}
-      {(challenges.length > 0 || customChallenges.length > 0) && (
-        <div className="mb-6">
-          <button
-            onClick={() => setShowChallenges(!showChallenges)}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-yellow-100 to-amber-100 rounded-2xl border-2 border-yellow-200 hover:border-yellow-300 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Zap className="text-yellow-600" size={24} />
-              <span className="font-bold text-slate-800">Daily Challenges</span>
-              <span className="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {challenges.filter(c => c.completed !== 1).length + customChallenges.filter(c => !c.completed).length}
-              </span>
-            </div>
-            {showChallenges ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-          </button>
-
-          {showChallenges && (
-            <div className="mt-3 space-y-3">
-              {/* Standard Challenges */}
-              {challenges.map((challenge) => {
-                const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
-                const isComplete = challenge.current_progress >= challenge.target_value;
-                const isClaimed = challenge.completed === 1;
-
-                return (
-                  <div
-                    key={challenge.id}
-                    className={`p-4 rounded-xl border-2 ${
-                      isClaimed ? 'bg-green-50 border-green-200' :
-                      isComplete ? 'bg-yellow-50 border-yellow-300' :
-                      'bg-white border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <p className={`font-medium ${isClaimed ? 'text-green-700' : 'text-slate-800'}`}>
-                          {isClaimed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
-                          {challenge.description}
-                        </p>
-                        <p className="text-xs text-slate-500">+{challenge.bonus_points} bonus pts</p>
-                      </div>
-                      {isComplete && !isClaimed && (
-                        <button
-                          onClick={() => claimChallenge(challenge.id)}
-                          className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-bold animate-pulse"
-                        >
-                          Claim! 🎁
-                        </button>
-                      )}
-                    </div>
-                    {!isClaimed && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${isComplete ? 'bg-yellow-500' : 'bg-blue-500'}`}
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* AI Custom Challenges */}
-              {customChallenges.map((challenge, index) => {
-                const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
-                const isComplete = challenge.current_progress >= challenge.target_value;
-                const requiresTimer = challenge.requires_timer === true || challenge.requires_timer === 1;
-
-                if (requiresTimer) {
-                  return (
-                    <ChallengeTimerCard
-                      key={challenge.id}
-                      challenge={challenge}
-                      onUpdate={refreshCustomChallenges}
-                      index={index}
-                    />
-                  );
-                }
-
-                return (
-                  <div
-                    key={challenge.id}
-                    className={`p-4 rounded-xl border-2 ${
-                      challenge.completed ? 'bg-green-50 border-green-200' :
-                      isComplete ? 'bg-purple-50 border-purple-300' :
-                      'bg-white border-purple-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className={`font-medium ${challenge.completed ? 'text-green-700' : 'text-slate-800'}`}>
-                            {challenge.completed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
-                            {challenge.title}
-                          </p>
-                          <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded">AI</span>
-                        </div>
-                        <p className="text-sm text-slate-600">{challenge.description}</p>
-                        <p className="text-xs text-purple-600">+{Math.round(challenge.points_reward * challenge.bonus_multiplier)} pts</p>
-                      </div>
-                      {!challenge.completed && challenge.target_value > 1 && (
-                        <button
-                          onClick={() => updateCustomChallengeProgress(challenge.id)}
-                          className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
-                        >
-                          +1
-                        </button>
-                      )}
-                    </div>
-                    {!challenge.completed && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-slate-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all ${isComplete ? 'bg-green-500' : 'bg-purple-500'}`}
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+          </div>
+          <SimpleTaskGrid tasks={simpleTasks} onComplete={handleTaskComplete} />
+          {completedTasks > 0 && (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700">
+              <CheckCircle size={16} /> {completedTasks} done today
             </div>
           )}
         </div>
-      )}
 
-      {/* === ACTIVE GOALS (Collapsible) === */}
-      {activeGoals.length > 0 && (
-        <div className="mb-6">
-          <button
-            onClick={() => setShowGoals(!showGoals)}
-            className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-violet-100 to-purple-100 rounded-2xl border-2 border-violet-200 hover:border-violet-300 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Target className="text-violet-600" size={24} />
-              <span className="font-bold text-slate-800">My Goals</span>
-              <span className="bg-violet-500 text-white text-xs px-2 py-0.5 rounded-full">{activeGoals.length}</span>
+        <div className="space-y-4">
+          <div className="card border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xl">💧</span>
+              <p className="font-semibold text-slate-800">Water</p>
             </div>
-            {showGoals ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-          </button>
+            <p className="text-sm text-slate-500 mb-2">{waterData.total_ml} / {waterData.goal_ml} ml</p>
+            <div className="h-2 bg-slate-200 rounded-full mb-3">
+              <div
+                className="h-2 rounded-full bg-sky-500 transition-all"
+                style={{ width: `${Math.min((waterData.total_ml / waterData.goal_ml) * 100, 100)}%` }}
+              />
+            </div>
+            <div className="flex gap-2">
+              {[150, 250, 500].map((amt) => (
+                <button
+                  key={amt}
+                  onClick={() => logWater(amt)}
+                  className="flex-1 rounded-xl border border-sky-200 bg-sky-50 py-1.5 text-sm font-semibold text-sky-700 hover:bg-sky-100"
+                >
+                  +{amt}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {showGoals && (
-            <div className="mt-3 space-y-3">
-              {activeGoals.map((goal) => {
-                const progress = goal.goal_points > 0
-                  ? Math.min(100, ((goal.current_points || 0) / goal.goal_points) * 100)
-                  : 0;
+          <ReminderWidget
+            enabled={reminderEnabled}
+            time={reminderTime}
+            onToggle={toggleReminder}
+            onTimeChange={handleReminderTimeChange}
+            saving={savingReminder}
+            compact
+          />
 
-                return (
-                  <div key={goal.id} className="bg-white rounded-xl p-4 border-2 border-violet-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-3xl">{goal.reward_image || getGoalTypeDisplay(goal.goal_type).emoji}</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-800">{goal.goal_description}</p>
-                        <p className="text-sm text-slate-600">
-                          {goal.current_points || 0} / {goal.goal_points} pts
-                        </p>
-                      </div>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3">
-                      <div
-                        className="bg-gradient-to-r from-violet-500 to-purple-500 h-3 rounded-full transition-all"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2 text-right">{Math.round(progress)}% complete</p>
-                  </div>
-                );
-              })}
+          {activeGoals.length > 0 && (
+            <div className="card border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{activeGoals[0].reward_image || getGoalTypeDisplay(activeGoals[0].goal_type).emoji}</span>
+                  <p className="font-semibold text-slate-800">Top Goal</p>
+                </div>
+                <button
+                  onClick={() => setShowGoals(true)}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  View all
+                </button>
+              </div>
+              <p className="text-sm text-slate-600 mt-2">{activeGoals[0].goal_description}</p>
+              <div className="mt-3 h-2 rounded-full bg-slate-200">
+                <div
+                  className="h-2 rounded-full bg-violet-500 transition-all"
+                  style={{
+                    width: `${Math.min(((activeGoals[0].current_points || 0) / activeGoals[0].goal_points) * 100, 100)}%`
+                  }}
+                />
+              </div>
             </div>
           )}
         </div>
-      )}
-
-      {/* === SPIN WHEEL & COUNTDOWN === */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <CountdownChallengeCard
-          profileId={currentProfile?.id || 0}
-          onChallengeComplete={() => {
-            if (currentProfile) {
-              profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
-            }
-          }}
-        />
-        <SpinWheel
-          profileId={currentProfile?.id || 0}
-          onSpinComplete={() => {
-            if (currentProfile) {
-              profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
-            }
-          }}
-        />
-      </div>
-
-      {/* === ACHIEVEMENTS === */}
-      <div className="mb-6">
-        <HiddenAchievements profileId={currentProfile?.id || 0} />
-      </div>
+      </section>
 
       {/* === QUICK ACTIONS === */}
-      <div className="mb-6">
+      <section>
         <h2 className="text-lg font-bold mb-3 text-slate-800">Quick Actions</h2>
-              <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link
             to="/tasks"
             className="p-4 bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 rounded-2xl transition-all text-center hover:scale-105"
           >
-            <div className="text-3xl mb-1">🦸</div>
+            <div className="text-3xl mb-1">📝</div>
             <p className="text-xs font-bold text-slate-700">Tasks</p>
           </Link>
           <Link
             to="/quizzes"
             className="p-4 bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-2xl transition-all text-center hover:scale-105"
           >
-            <div className="text-3xl mb-1">🧠</div>
+            <div className="text-3xl mb-1">🦁</div>
             <p className="text-xs font-bold text-slate-700">Quizzes</p>
           </Link>
           <Link
             to="/shop"
             className="p-4 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-2xl transition-all text-center hover:scale-105"
           >
-            <div className="text-3xl mb-1">🐯</div>
+            <div className="text-3xl mb-1">🛍️</div>
             <p className="text-xs font-bold text-slate-700">Shop</p>
           </Link>
+          {featureFlags.diet_enabled && currentProfile?.diet_enabled === 1 && (
+            <Link
+              to="/diet"
+              className="p-4 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 rounded-2xl transition-all text-center hover:scale-105"
+            >
+              <div className="text-3xl mb-1">🥗</div>
+              <p className="text-xs font-bold text-slate-700">Diet</p>
+            </Link>
+          )}
           {currentProfile?.ai_enabled === 1 ? (
             <Link
               to="/ai"
@@ -1086,29 +862,235 @@ export default function ChildDashboard() {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* === DAILY PROGRESS === */}
-      {economyData && (
-        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-          <p className="text-sm font-medium text-slate-600 mb-2">Today's Progress</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-slate-200 rounded-full h-2">
-              <div
-                className="bg-emerald-500 h-2 rounded-full transition-all"
-                style={{ width: `${Math.min((economyData.todayEarned / economyData.settings.daily_points_cap) * 100, 100)}%` }}
+      {/* === EXPLORE MORE === */}
+      <section className="space-y-3">
+        {activeGoals.length > 0 && (
+          <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
+            <button
+              onClick={() => setShowGoals(!showGoals)}
+              className="w-full flex items-center justify-between text-slate-800 font-semibold"
+            >
+              <span className="flex items-center gap-2">
+                <Target size={18} className="text-violet-500" />
+                Goals & rewards
+              </span>
+              {showGoals ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+            </button>
+            {showGoals && (
+              <div className="mt-3 space-y-3">
+                {activeGoals.map((goal) => {
+                  const progress = goal.goal_points > 0
+                    ? Math.min(100, ((goal.current_points || 0) / goal.goal_points) * 100)
+                    : 0;
+
+                  return (
+                    <div key={goal.id} className="bg-white rounded-xl p-4 border border-violet-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-3xl">{goal.reward_image || getGoalTypeDisplay(goal.goal_type).emoji}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-slate-800">{goal.goal_description}</p>
+                          <p className="text-sm text-slate-600">
+                            {goal.current_points || 0} / {goal.goal_points} pts
+                          </p>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-3">
+                        <div
+                          className="bg-gradient-to-r from-violet-500 to-purple-500 h-3 rounded-full transition-all"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2 text-right">{Math.round(progress)}% complete</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {(challenges.length > 0 || customChallenges.length > 0) && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+            <button
+              onClick={() => setShowChallenges(!showChallenges)}
+              className="w-full flex items-center justify-between text-slate-800 font-semibold"
+            >
+              <span className="flex items-center gap-2">
+                <Zap size={18} className="text-amber-500" />
+                Challenges
+              </span>
+              {showChallenges ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+            </button>
+            {showChallenges && (
+              <div className="mt-3 space-y-3">
+                {challenges.map((challenge) => {
+                  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+                  const isComplete = challenge.current_progress >= challenge.target_value;
+                  const isClaimed = challenge.completed === 1;
+
+                  return (
+                    <div
+                      key={challenge.id}
+                      className={`p-4 rounded-xl border ${
+                        isClaimed ? 'bg-green-50 border-green-200' :
+                        isComplete ? 'bg-yellow-50 border-yellow-300' :
+                        'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <p className={`font-medium ${isClaimed ? 'text-green-700' : 'text-slate-800'}`}>
+                            {isClaimed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
+                            {challenge.description}
+                          </p>
+                          <p className="text-xs text-slate-500">+{challenge.bonus_points} bonus pts</p>
+                        </div>
+                        {isComplete && !isClaimed && (
+                          <button
+                            onClick={() => claimChallenge(challenge.id)}
+                            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-bold"
+                          >
+                            Claim
+                          </button>
+                        )}
+                      </div>
+                      {!isClaimed && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-slate-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {customChallenges.map((challenge, index) => {
+                  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+                  const isComplete = challenge.current_progress >= challenge.target_value;
+                  const requiresTimer = challenge.requires_timer === true || challenge.requires_timer === 1;
+
+                  if (requiresTimer) {
+                    return (
+                      <ChallengeTimerCard
+                        key={challenge.id}
+                        challenge={challenge}
+                        onUpdate={refreshCustomChallenges}
+                        index={index}
+                      />
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={challenge.id}
+                      className={`p-4 rounded-xl border ${
+                        challenge.completed ? 'bg-green-50 border-green-200' :
+                        isComplete ? 'bg-purple-50 border-purple-300' :
+                        'bg-white border-purple-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={`font-medium ${challenge.completed ? 'text-green-700' : 'text-slate-800'}`}>
+                              {challenge.completed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
+                              {challenge.title}
+                            </p>
+                            <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded">AI</span>
+                          </div>
+                          <p className="text-sm text-slate-600">{challenge.description}</p>
+                          <p className="text-xs text-purple-600">+{Math.round(challenge.points_reward * challenge.bonus_multiplier)} pts</p>
+                        </div>
+                        {!challenge.completed && challenge.target_value > 1 && (
+                          <button
+                            onClick={() => updateCustomChallengeProgress(challenge.id)}
+                            className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
+                          >
+                            +1
+                          </button>
+                        )}
+                      </div>
+                      {!challenge.completed && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-slate-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-green-500' : 'bg-purple-500'}`}
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <button
+            onClick={() => setShowBoosters(!showBoosters)}
+            className="w-full flex items-center justify-between text-slate-800 font-semibold"
+          >
+            <span className="flex items-center gap-2">
+              <Star size={18} className="text-slate-500" />
+              Boosters
+            </span>
+            {showBoosters ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </button>
+          {showBoosters && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CountdownChallengeCard
+                profileId={currentProfile?.id || 0}
+                onChallengeComplete={() => {
+                  if (currentProfile) {
+                    profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
+                  }
+                }}
+              />
+              <SpinWheel
+                profileId={currentProfile?.id || 0}
+                onSpinComplete={() => {
+                  if (currentProfile) {
+                    profilesAPI.getStats(currentProfile.id).then(res => setStats(res.data));
+                  }
+                }}
               />
             </div>
-            <span className="text-xs text-slate-600">
-              {economyData.todayEarned} / {economyData.settings.daily_points_cap} pts
-            </span>
-          </div>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
 
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <button
+            onClick={() => setShowAchievements(!showAchievements)}
+            className="w-full flex items-center justify-between text-slate-800 font-semibold"
+          >
+            <span className="flex items-center gap-2">
+              <Star size={18} className="text-amber-500" />
+              Achievements
+            </span>
+            {showAchievements ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </button>
+          {showAchievements && (
+            <div className="mt-3">
+              <HiddenAchievements profileId={currentProfile?.id || 0} />
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  </div>
+);
+}
 // ============================================
 // MODAL COMPONENTS
 // ============================================
@@ -1287,7 +1269,7 @@ function AvatarPickerModal({
         </div>
 
         <div className="p-4 overflow-y-auto max-h-[50vh]">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
             {AVATAR_CATEGORIES[categoryIndex].avatars.map((avatar) => {
               const isUnlocked = level >= avatar.minLevel;
               const isSelected = currentAvatar === avatar.emoji;
@@ -1334,3 +1316,6 @@ function AvatarPickerModal({
     </div>
   );
 }
+
+
+
