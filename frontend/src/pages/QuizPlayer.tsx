@@ -51,11 +51,9 @@ export default function QuizPlayer() {
   const [timerStatus, setTimerStatus] = useState<'idle' | 'running' | 'paused'>('idle');
   const ambientRef = useRef<{
     ctx: AudioContext;
-    oscillators: OscillatorNode[];
     gain: GainNode;
     filter: BiquadFilterNode;
-    lfo?: OscillatorNode;
-    lfoGain?: GainNode;
+    intervalId?: number;
   } | null>(null);
 
   useEffect(() => {
@@ -193,35 +191,38 @@ export default function QuizPlayer() {
       }
       const gain = ctx.createGain();
       const filter = ctx.createBiquadFilter();
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-
-      // Gentle ambient pad using soft sine tones and slow modulation.
-      const frequencies = [220, 277, 330];
-      const oscillators = frequencies.map(freq => {
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        return osc;
-      });
 
       filter.type = 'lowpass';
-      filter.frequency.value = 480;
-      gain.gain.value = 0.008;
+      filter.frequency.value = 1200;
+      gain.gain.value = 0.2;
 
-      lfo.type = 'sine';
-      lfo.frequency.value = 0.15;
-      lfoGain.gain.value = 0.004;
-      lfo.connect(lfoGain);
-      lfoGain.connect(gain.gain);
-
-      oscillators.forEach(osc => osc.connect(filter));
       filter.connect(gain);
       gain.connect(ctx.destination);
-      oscillators.forEach(osc => osc.start());
-      lfo.start();
 
-      ambientRef.current = { ctx, oscillators, gain, filter, lfo, lfoGain };
+      const playChime = (startTime: number) => {
+        const notes = [523, 659, 784];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const noteGain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          osc.connect(noteGain);
+          noteGain.connect(filter);
+          const t = startTime + idx * 0.12;
+          noteGain.gain.setValueAtTime(0.0001, t);
+          noteGain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+          noteGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+          osc.start(t);
+          osc.stop(t + 0.28);
+        });
+      };
+
+      playChime(ctx.currentTime + 0.1);
+      const intervalId = window.setInterval(() => {
+        playChime(ctx.currentTime + 0.05);
+      }, 6000);
+
+      ambientRef.current = { ctx, gain, filter, intervalId };
     } catch (error) {
       console.error('Failed to start quiz ambient sound:', error);
     }
@@ -231,15 +232,11 @@ export default function QuizPlayer() {
     const ambient = ambientRef.current;
     if (!ambient) return;
     try {
-      ambient.oscillators.forEach(osc => {
-        osc.stop();
-        osc.disconnect();
-      });
+      if (ambient.intervalId) {
+        clearInterval(ambient.intervalId);
+      }
       ambient.filter.disconnect();
       ambient.gain.disconnect();
-      ambient.lfo?.stop();
-      ambient.lfo?.disconnect();
-      ambient.lfoGain?.disconnect();
       ambient.ctx.close();
     } catch (error) {
       console.error('Failed to stop quiz ambient sound:', error);
