@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../database/init';
+import { authenticate } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
+router.use(authenticate, requireFeature('rewards'));
 
 // Get available rewards for the shop (for a specific child or all available)
 router.get('/shop/:profileId', (req: Request, res: Response) => {

@@ -22,6 +22,7 @@ import CalendarView from './pages/CalendarView';
 import ControlsPage from './pages/ControlsPage';
 import QuizBuilder from './pages/QuizBuilder';
 import QuizPlayer from './pages/QuizPlayer';
+import School from './pages/School';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -41,6 +42,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
       return <Navigate to="/parent/dashboard" replace />;
     } else if (currentProfile.type === 'child') {
       return <Navigate to="/child/dashboard" replace />;
+    } else if (currentProfile.type === 'teacher') {
+      return <Navigate to="/school" replace />;
     }
     return <Navigate to="/" replace />;
   }
@@ -109,10 +112,14 @@ function AppRoutes() {
           element={
             currentProfile?.type === 'admin' ? (
               <Navigate to="/admin/dashboard" replace />
+            ) : featureFlags.school_only_mode ? (
+              <Navigate to="/school" replace />
             ) : currentProfile?.type === 'parent' ? (
               <Navigate to="/parent/dashboard" replace />
             ) : currentProfile?.type === 'child' ? (
               <Navigate to="/child/dashboard" replace />
+            ) : currentProfile?.type === 'teacher' ? (
+              <Navigate to="/school" replace />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -131,22 +138,39 @@ function AppRoutes() {
         <Route
           path="/parent/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['parent']}>
-              <ParentDashboard />
-            </ProtectedRoute>
+            featureFlags.school_only_mode ? (
+              <Navigate to="/school" replace />
+            ) : (
+              <ProtectedRoute allowedRoles={['parent']}>
+                <ParentDashboard />
+              </ProtectedRoute>
+            )
           }
         />
         <Route
           path="/child/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['child']}>
-              <ChildDashboard />
+            featureFlags.school_only_mode ? (
+              <Navigate to="/school" replace />
+            ) : (
+              <ProtectedRoute allowedRoles={['child']}>
+                <ChildDashboard />
+              </ProtectedRoute>
+            )
+          }
+        />
+
+        <Route
+          path="/school"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'child']}>
+              <School />
             </ProtectedRoute>
           }
         />
 
         {/* Diet - Only shown when diet feature flag is enabled */}
-        {featureFlags.diet_enabled && (
+        {featureFlags.diet_enabled && !featureFlags.school_only_mode && (
           <Route
             path="/diet"
             element={
@@ -162,45 +186,51 @@ function AppRoutes() {
         )}
 
         {/* Tasks - Only parent, admin, child */}
-        <Route
-          path="/tasks"
-          element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
-              <TasksManager />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/tasks"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <TasksManager />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
 
         {/* AI - Only children with ai_enabled=1 (admin controls access) */}
-        <Route
-          path="/ai"
-          element={
-            currentProfile?.type === 'child' && currentProfile?.ai_enabled !== 1 ? (
-              <Navigate to="/" replace />
-            ) : (
-              <ProtectedRoute allowedRoles={['child']}>
-                <AIAssistant />
-              </ProtectedRoute>
-            )
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/ai"
+            element={
+              currentProfile?.type === 'child' && currentProfile?.ai_enabled !== 1 ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ProtectedRoute allowedRoles={['child']}>
+                  <AIAssistant />
+                </ProtectedRoute>
+              )
+            }
+          />
+        )}
 
         {/* Notes - Only parent, admin, child */}
-        <Route
-          path="/notes"
-          element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
-              <Notes />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/notes"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <Notes />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Settings */}
         <Route
           path="/settings"
           element={
-            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child', 'teacher']}>
               <Settings />
             </ProtectedRoute>
           }
@@ -217,74 +247,88 @@ function AppRoutes() {
         />
 
         {/* My Journey - Child, parent, admin */}
-        <Route
-          path="/journey"
-          element={
-            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
-              <MyJourney />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/journey"
+            element={
+              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+                <MyJourney />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Family Leaderboard - All roles */}
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
-              <FamilyLeaderboard />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/leaderboard"
+            element={
+              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+                <FamilyLeaderboard />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Reward Shop - Children and parents */}
-        <Route
-          path="/shop"
-          element={
-            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
-              <RewardShop />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/shop"
+            element={
+              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+                <RewardShop />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Parental Controls - Parents only */}
-        <Route
-          path="/controls"
-          element={
-            <ProtectedRoute allowedRoles={['parent']}>
-              <ControlsPage />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/controls"
+            element={
+              <ProtectedRoute allowedRoles={['parent']}>
+                <ControlsPage />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Calendar View - All roles */}
-        <Route
-          path="/calendar"
-          element={
-            <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
-              <CalendarView />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+                <CalendarView />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Quiz Builder - Parents and Admin */}
-        <Route
-          path="/quizzes/builder"
-          element={
-            <ProtectedRoute allowedRoles={['parent', 'admin']}>
-              <QuizBuilder />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/quizzes/builder"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+                <QuizBuilder />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Quiz Player - Children */}
-        <Route
-          path="/quizzes"
-          element={
-            <ProtectedRoute allowedRoles={['child']}>
-              <QuizPlayer />
-            </ProtectedRoute>
-          }
-        />
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/quizzes"
+            element={
+              <ProtectedRoute allowedRoles={['child']}>
+                <QuizPlayer />
+              </ProtectedRoute>
+            }
+          />
+        )}
 
         {/* Catch all - redirect to home (which redirects to role dashboard) */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,8 +1,10 @@
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 import { getReminderPreferences, setReminderPreferences } from '../services/scheduler';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('reminders'));
 
 // Get reminder preferences for a profile
 router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {

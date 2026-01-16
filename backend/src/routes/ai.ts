@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
 import { AuthRequest, authenticate, authenticateEventSource, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = express.Router();
 
@@ -872,7 +873,7 @@ function generateFallbackResponse(message: string, profile: any, context: string
 }
 
 // Chat with AI (GET endpoint for EventSource streaming)
-router.get('/chat', authenticateEventSource, requireRole(['admin', 'parent', 'child']), async (req: AuthRequest, res) => {
+router.get('/chat', authenticateEventSource, requireFeature('ai'), requireRole(['admin', 'parent', 'child']), async (req: AuthRequest, res) => {
   try {
     const profile_id = req.profile!.id;  // Use authenticated profile
     const message = req.query.message as string;
@@ -1501,7 +1502,7 @@ router.put('/message-limit/:profileId', (req, res) => {
 });
 
 // Get AI insights for a parent's children (encouragement logs, quiz suggestions, mood indicators)
-router.get('/insights/:parentId', authenticate, requireRole(['admin', 'parent']), (req: AuthRequest, res) => {
+router.get('/insights/:parentId', authenticate, requireFeature('ai'), requireRole(['admin', 'parent']), (req: AuthRequest, res) => {
   try {
     const { parentId } = req.params;
     const { days = 7 } = req.query;

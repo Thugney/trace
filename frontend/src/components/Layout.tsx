@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
+import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
@@ -41,6 +42,7 @@ const KID_NAV_ITEMS: KidNavItem[] = [
 export default function Layout({ children }: LayoutProps) {
   const { currentProfile, setCurrentProfile } = useProfile();
   const { settings } = useAge();
+  const { flags } = useFeatureFlags();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -52,6 +54,24 @@ export default function Layout({ children }: LayoutProps) {
   const getNavItems = () => {
     if (!currentProfile) return [];
     const { type } = currentProfile;
+
+    if (flags.school_only_mode) {
+      if (type === 'admin') {
+        return [
+          { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
+          { path: '/admin', icon: Users, label: 'Users' },
+          { path: '/school', icon: BookOpen, label: 'School' },
+          { path: '/settings', icon: Settings, label: 'Settings' }
+        ];
+      }
+
+      if (type === 'parent' || type === 'teacher') {
+        return [
+          { path: '/school', icon: BookOpen, label: 'School' },
+          { path: '/settings', icon: Settings, label: 'Settings' }
+        ];
+      }
+    }
 
     if (type === 'admin') {
       return [
@@ -66,6 +86,7 @@ export default function Layout({ children }: LayoutProps) {
     if (type === 'parent') {
       return [
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
+        { path: '/school', icon: BookOpen, label: 'School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/quizzes/builder', icon: BookOpen, label: 'Quizzes' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -78,9 +99,17 @@ export default function Layout({ children }: LayoutProps) {
       ];
     }
 
+    if (type === 'teacher') {
+      return [
+        { path: '/school', icon: BookOpen, label: 'School' },
+        { path: '/settings', icon: Settings, label: 'Settings' }
+      ];
+    }
+
     if (type === 'child') {
       const items = [
         { path: '/child/dashboard', icon: Home, label: 'Home' },
+        { path: '/school', icon: BookOpen, label: 'School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/quizzes', icon: BookOpen, label: 'Quizzes' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -109,7 +138,14 @@ export default function Layout({ children }: LayoutProps) {
         ? ageGroup
         : undefined;
 
-    const available = KID_NAV_ITEMS.filter(item => {
+    const baseItems = flags.school_only_mode
+      ? [
+          { path: '/school', emoji: '📖', label: 'School', labels: { young: 'School', middle: 'School', older: 'School' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
+          { path: '/settings', emoji: '⚙️', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' }
+        ]
+      : KID_NAV_ITEMS;
+
+    const available = baseItems.filter(item => {
       if (item.path === '/ai') {
         return currentProfile.ai_enabled === 1;
       }
@@ -143,7 +179,8 @@ export default function Layout({ children }: LayoutProps) {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
       admin: { bg: 'bg-rose-50', text: 'text-rose-600', label: 'Admin' },
       parent: { bg: 'bg-sky-50', text: 'text-sky-600', label: 'Parent' },
-      child: { bg: 'bg-violet-50', text: 'text-violet-600', label: 'Child' }
+      child: { bg: 'bg-violet-50', text: 'text-violet-600', label: 'Child' },
+      teacher: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Teacher' }
     };
     const badge = badges[currentProfile.type];
     if (!badge) return null;

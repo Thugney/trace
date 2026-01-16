@@ -3,26 +3,45 @@ import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, aiAPI, settingsAPI } from '../services/api';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { Profile } from '../types';
-import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal, GraduationCap } from 'lucide-react';
 import clsx from 'clsx';
 import Avatar from '../components/Avatar';
 
 export default function AdminPanel() {
   const { currentProfile, refreshProfiles } = useProfile();
-  const { refreshFlags } = useFeatureFlags();
+  const { flags, refreshFlags } = useFeatureFlags();
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [featureProfile, setFeatureProfile] = useState<Profile | null>(null);
+  const [featureAccess, setFeatureAccess] = useState<Record<string, boolean>>({});
+  const [featuresLoading, setFeaturesLoading] = useState(false);
+  const [savingFeatures, setSavingFeatures] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    type: 'child' as 'admin' | 'parent' | 'child',
+    type: 'child' as 'admin' | 'parent' | 'child' | 'teacher',
     age: '',
     gender: 'other' as 'male' | 'female' | 'other',
     avatar: '',
     pin: '',
     parent_id: ''
   });
+
+  const featureOptions = [
+    { key: 'school', label: 'School', description: 'Assignments, submissions, feedback' },
+    { key: 'tasks', label: 'Tasks', description: 'Chores and daily missions' },
+    { key: 'quizzes', label: 'Quizzes', description: 'Quiz builder and player' },
+    { key: 'notes', label: 'Notes', description: 'Personal notes and reminders' },
+    { key: 'calendar', label: 'Calendar', description: 'Schedules and reminders' },
+    { key: 'goals', label: 'Goals', description: 'Monthly goals and progress' },
+    { key: 'rewards', label: 'Rewards', description: 'Reward shop and claims' },
+    { key: 'gamification', label: 'Gamification', description: 'Points, streaks, leaderboard' },
+    { key: 'journey', label: 'Journey', description: 'Adventure map' },
+    { key: 'leaderboard', label: 'Leaderboard', description: 'Family rankings' },
+    { key: 'ai', label: 'AI', description: 'AI assistant and insights' },
+    { key: 'diet', label: 'Diet', description: 'Food tracking' }
+  ];
 
   useEffect(() => {
     loadAllProfiles();
@@ -37,6 +56,42 @@ export default function AdminPanel() {
       console.error('Failed to load profiles:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openFeatureAccess = async (profile: Profile) => {
+    try {
+      setFeatureProfile(profile);
+      setFeaturesLoading(true);
+      const response = await profilesAPI.getFeatures(profile.id);
+      const nextAccess: Record<string, boolean> = {};
+      featureOptions.forEach(option => {
+        nextAccess[option.key] = false;
+      });
+      response.data.forEach(entry => {
+        nextAccess[entry.feature_key] = entry.enabled === 1;
+      });
+      setFeatureAccess(nextAccess);
+    } catch (error) {
+      console.error('Failed to load feature access:', error);
+      alert('Failed to load feature access. Please try again.');
+    } finally {
+      setFeaturesLoading(false);
+    }
+  };
+
+  const saveFeatureAccess = async () => {
+    if (!featureProfile) return;
+    try {
+      setSavingFeatures(true);
+      await profilesAPI.updateFeatures(featureProfile.id, featureAccess);
+      alert(`Feature access updated for ${featureProfile.name}.`);
+      setFeatureProfile(null);
+    } catch (error) {
+      console.error('Failed to update feature access:', error);
+      alert('Failed to update feature access. Please try again.');
+    } finally {
+      setSavingFeatures(false);
     }
   };
 
@@ -172,6 +227,18 @@ export default function AdminPanel() {
     }
   };
 
+  const handleToggleSchoolOnlyMode = async () => {
+    try {
+      const nextValue = flags.school_only_mode ? 'false' : 'true';
+      await settingsAPI.set('school_only_mode', nextValue);
+      await refreshFlags();
+      alert(`School-only mode ${nextValue === 'true' ? 'enabled' : 'disabled'}.`);
+    } catch (error) {
+      console.error('Failed to toggle school-only mode:', error);
+      alert('Failed to update school-only mode. Please try again.');
+    }
+  };
+
   const handleUpdateMessageLimit = async (profile: Profile, limitType: 'limited' | 'extended' | 'unlimited') => {
     try {
       await aiAPI.updateMessageLimit(profile.id, limitType);
@@ -213,6 +280,7 @@ export default function AdminPanel() {
 
   const admins = allProfiles.filter(p => p.type === 'admin');
   const parents = allProfiles.filter(p => p.type === 'parent');
+  const teachers = allProfiles.filter(p => p.type === 'teacher');
   const children = allProfiles.filter(p => p.type === 'child');
   const availableParents = allProfiles.filter(p => p.type === 'parent' || p.type === 'admin');
 
@@ -257,6 +325,18 @@ export default function AdminPanel() {
                 <Plus size={18} /> Create Profile
               </button>
               <button
+                onClick={handleToggleSchoolOnlyMode}
+                className={clsx(
+                  'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition',
+                  flags.school_only_mode
+                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30 hover:bg-rose-600'
+                    : 'border border-white/30 bg-white/10 text-white hover:bg-white/20'
+                )}
+              >
+                <Shield size={16} />
+                {flags.school_only_mode ? 'School-Only On' : 'School-Only Off'}
+              </button>
+              <button
                 onClick={loadAllProfiles}
                 className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
               >
@@ -265,7 +345,7 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-4">
             <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-white/70">Admins</p>
               <p className="admin-mono text-3xl font-semibold mt-2">{admins.length}</p>
@@ -273,6 +353,10 @@ export default function AdminPanel() {
             <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-white/70">Parents</p>
               <p className="admin-mono text-3xl font-semibold mt-2">{parents.length}</p>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/70">Teachers</p>
+              <p className="admin-mono text-3xl font-semibold mt-2">{teachers.length}</p>
             </div>
             <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.2em] text-white/70">Children</p>
@@ -318,6 +402,7 @@ export default function AdminPanel() {
                 >
                   <option value="child">Child</option>
                   <option value="parent">Parent</option>
+                  <option value="teacher">Teacher</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
@@ -431,6 +516,7 @@ export default function AdminPanel() {
                   profile={profile}
                   onEdit={startEdit}
                   onDelete={handleDeleteProfile}
+                  onManageFeatures={openFeatureAccess}
                   isCurrentUser={profile.id === currentProfile?.id}
                 />
               ))}
@@ -451,10 +537,32 @@ export default function AdminPanel() {
                   profile={profile}
                   onEdit={startEdit}
                   onDelete={handleDeleteProfile}
+                  onManageFeatures={openFeatureAccess}
                   onToggleAI={handleToggleAI}
                   onToggleDiet={handleToggleDiet}
                   isCurrentUser={profile.id === currentProfile?.id}
                   children={children.filter(c => c.parent_id === profile.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {teachers.length > 0 && (
+          <div className="card border border-slate-200/80 bg-white p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <GraduationCap className="text-emerald-500" size={20} />
+              Teachers ({teachers.length})
+            </h2>
+            <div className="space-y-3">
+              {teachers.map(profile => (
+                <ProfileRow
+                  key={profile.id}
+                  profile={profile}
+                  onEdit={startEdit}
+                  onDelete={handleDeleteProfile}
+                  onManageFeatures={openFeatureAccess}
+                  isCurrentUser={profile.id === currentProfile?.id}
                 />
               ))}
             </div>
@@ -476,6 +584,7 @@ export default function AdminPanel() {
                     profile={profile}
                     onEdit={startEdit}
                     onDelete={handleDeleteProfile}
+                    onManageFeatures={openFeatureAccess}
                     onToggleAI={handleToggleAI}
                     onToggleDiet={handleToggleDiet}
                     onUpdateMessageLimit={handleUpdateMessageLimit}
@@ -488,6 +597,76 @@ export default function AdminPanel() {
           </div>
         )}
       </section>
+
+      {featureProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Feature Access</h2>
+                <p className="text-sm text-slate-500">
+                  {featureProfile.name} ({featureProfile.type})
+                </p>
+              </div>
+              <button
+                onClick={() => setFeatureProfile(null)}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {featuresLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="spinner"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {featureOptions.map(option => (
+                    <label
+                      key={option.key}
+                      className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 hover:border-indigo-300"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={Boolean(featureAccess[option.key])}
+                        onChange={() =>
+                          setFeatureAccess(prev => ({
+                            ...prev,
+                            [option.key]: !prev[option.key]
+                          }))
+                        }
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{option.label}</p>
+                        <p className="text-xs text-slate-500">{option.description}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={saveFeatureAccess}
+                disabled={savingFeatures}
+                className="btn btn-primary"
+              >
+                {savingFeatures ? 'Saving...' : 'Save Access'}
+              </button>
+              <button
+                onClick={() => setFeatureProfile(null)}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -496,6 +675,7 @@ interface ProfileRowProps {
   profile: Profile;
   onEdit: (profile: Profile) => void;
   onDelete: (profile: Profile) => void;
+  onManageFeatures?: (profile: Profile) => void;
   onToggleAI?: (profile: Profile) => void;
   onToggleDiet?: (profile: Profile) => void;
   onUpdateMessageLimit?: (profile: Profile, limitType: 'limited' | 'extended' | 'unlimited') => void;
@@ -504,7 +684,7 @@ interface ProfileRowProps {
   parentName?: string;
 }
 
-function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, onUpdateMessageLimit, isCurrentUser, children, parentName }: ProfileRowProps) {
+function ProfileRow({ profile, onEdit, onDelete, onManageFeatures, onToggleAI, onToggleDiet, onUpdateMessageLimit, isCurrentUser, children, parentName }: ProfileRowProps) {
   const [showLimitDropdown, setShowLimitDropdown] = useState(false);
 
   const getProfileIcon = (type: string) => {
@@ -512,6 +692,7 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, onUpd
       case 'admin': return <Shield className="text-amber-500" size={18} />;
       case 'parent': return <User className="text-sky-500" size={18} />;
       case 'child': return <Baby className="text-orange-500" size={18} />;
+      case 'teacher': return <GraduationCap className="text-emerald-500" size={18} />;
       default: return <User size={18} />;
     }
   };
@@ -548,6 +729,16 @@ function ProfileRow({ profile, onEdit, onDelete, onToggleAI, onToggleDiet, onUpd
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {onManageFeatures && (
+          <button
+            onClick={() => onManageFeatures(profile)}
+            className="flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-md hover:bg-indigo-700"
+            title="Manage feature access"
+          >
+            <SlidersHorizontal size={14} />
+            Access
+          </button>
+        )}
         {(profile.type === 'child' || profile.type === 'parent') && onToggleAI && (
           <button
             onClick={() => onToggleAI(profile)}

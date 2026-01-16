@@ -5,8 +5,11 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
+import { authenticate } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
+router.use(authenticate, requireFeature('quizzes'));
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
 

@@ -3,6 +3,7 @@ import { settingsAPI } from '../services/api';
 
 interface FeatureFlags {
   diet_enabled: boolean;
+  school_only_mode: boolean;
 }
 
 interface FeatureFlagsContextType {
@@ -12,7 +13,8 @@ interface FeatureFlagsContextType {
 }
 
 const defaultFlags: FeatureFlags = {
-  diet_enabled: false
+  diet_enabled: false,
+  school_only_mode: false
 };
 
 const FeatureFlagsContext = createContext<FeatureFlagsContextType>({

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import { runProductionReadyMigrations } from './migrations/production-ready';
+import { FEATURE_KEYS } from '../services/feature-keys';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../../data/family.db');
 
@@ -256,6 +257,19 @@ export function initDatabase() {
     )
   `);
 
+  // Profile feature access table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profile_features (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      feature_key TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, feature_key)
+    )
+  `);
+
   // AI settings table for parental controls
   db.exec(`
     CREATE TABLE IF NOT EXISTS ai_settings (
@@ -287,6 +301,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_parent_approved ON monthly_goals(parent_approved);
     CREATE INDEX IF NOT EXISTS idx_ai_settings_profile ON ai_settings(profile_id);
     CREATE INDEX IF NOT EXISTS idx_profiles_parent_id ON profiles(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_profile_features_profile ON profile_features(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_profile_features_feature ON profile_features(feature_key);
   `);
 
   // Insert default settings if none exist
@@ -298,7 +314,8 @@ export function initDatabase() {
     const settings = [
       { key: 'grok_api_enabled', value: 'false' },
       { key: 'norwegian_food_api', value: 'matvaretabellen' },
-      { key: 'parent_pin', value: '' }
+      { key: 'parent_pin', value: '' },
+      { key: 'school_only_mode', value: 'false' }
     ];
 
     const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
@@ -335,6 +352,33 @@ export function initDatabase() {
     )
   `);
 
+  // Guardian-student relationships (optional multi-parent support)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guardian_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guardian_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      relationship TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (guardian_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(guardian_id, student_id)
+    )
+  `);
+
+  // Teacher-class assignments (many-to-many)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS teacher_class_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      teacher_id INTEGER NOT NULL,
+      class_id INTEGER NOT NULL,
+      assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+      UNIQUE(teacher_id, class_id)
+    )
+  `);
+
   // School Assignments (homework, psalms, videos, quizzes)
   db.exec(`
     CREATE TABLE IF NOT EXISTS school_assignments (
@@ -346,11 +390,28 @@ export function initDatabase() {
       type TEXT CHECK(type IN ('homework', 'psalm', 'alphabet', 'video', 'quiz', 'other')) DEFAULT 'homework',
       youtube_link TEXT,
       attachment_url TEXT,
+      linked_quiz_id INTEGER,
       due_date DATE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
-      FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE
+      FOREIGN KEY (teacher_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (linked_quiz_id) REFERENCES family_quizzes(id) ON DELETE SET NULL
+    )
+  `);
+
+  // School Assignment Attachments (multiple files)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_assignment_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      uploaded_by INTEGER,
+      file_url TEXT NOT NULL,
+      file_name TEXT,
+      file_type TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (assignment_id) REFERENCES school_assignments(id) ON DELETE CASCADE,
+      FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE SET NULL
     )
   `);
 
@@ -366,6 +427,21 @@ export function initDatabase() {
       FOREIGN KEY (assignment_id) REFERENCES school_assignments(id) ON DELETE CASCADE,
       FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
       UNIQUE(assignment_id, student_id)
+    )
+  `);
+
+  // School Submission Attachments (multiple files)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_submission_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      submission_id INTEGER NOT NULL,
+      uploaded_by INTEGER,
+      file_url TEXT NOT NULL,
+      file_name TEXT,
+      file_type TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (submission_id) REFERENCES school_submissions(id) ON DELETE CASCADE,
+      FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE SET NULL
     )
   `);
 
@@ -493,6 +569,21 @@ export function initDatabase() {
       FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
       UNIQUE(student_id)
     )
+  `);
+
+  // School indexes
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_school_enrollments_student ON school_enrollments(student_id);
+    CREATE INDEX IF NOT EXISTS idx_school_enrollments_class ON school_enrollments(class_id);
+    CREATE INDEX IF NOT EXISTS idx_guardian_students_guardian ON guardian_students(guardian_id);
+    CREATE INDEX IF NOT EXISTS idx_guardian_students_student ON guardian_students(student_id);
+    CREATE INDEX IF NOT EXISTS idx_teacher_class_assignments_teacher ON teacher_class_assignments(teacher_id);
+    CREATE INDEX IF NOT EXISTS idx_teacher_class_assignments_class ON teacher_class_assignments(class_id);
+    CREATE INDEX IF NOT EXISTS idx_school_assignments_class ON school_assignments(class_id);
+    CREATE INDEX IF NOT EXISTS idx_school_submissions_assignment ON school_submissions(assignment_id);
+    CREATE INDEX IF NOT EXISTS idx_school_submissions_student ON school_submissions(student_id);
+    CREATE INDEX IF NOT EXISTS idx_school_assignment_attachments_assignment ON school_assignment_attachments(assignment_id);
+    CREATE INDEX IF NOT EXISTS idx_school_submission_attachments_submission ON school_submission_attachments(submission_id);
   `);
 
   // Push notification subscriptions
@@ -924,6 +1015,110 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (assigned_class_id):', error.message);
+  }
+
+  // Migration: Add linked_quiz_id to school_assignments for quiz linkage
+  try {
+    const assignmentColumns = db.prepare('PRAGMA table_info(school_assignments)').all() as { name: string }[];
+    const hasLinkedQuizId = assignmentColumns.some(col => col.name === 'linked_quiz_id');
+
+    if (!hasLinkedQuizId) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN linked_quiz_id INTEGER').run();
+      console.log('? Added linked_quiz_id column to school_assignments for quiz linkage');
+    }
+  } catch (error: any) {
+    console.error('Migration error (linked_quiz_id):', error.message);
+  }
+
+  // Migration: Backfill school_assignments columns for legacy schemas
+  try {
+    const assignmentColumns = db.prepare('PRAGMA table_info(school_assignments)').all() as { name: string }[];
+    const columnNames = assignmentColumns.map(col => col.name);
+
+    if (!columnNames.includes('teacher_id')) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN teacher_id INTEGER').run();
+      console.log('? Added teacher_id column to school_assignments');
+      db.prepare('UPDATE school_assignments SET teacher_id = 1 WHERE teacher_id IS NULL').run();
+    }
+
+    if (!columnNames.includes('type')) {
+      db.prepare("ALTER TABLE school_assignments ADD COLUMN type TEXT DEFAULT 'homework'").run();
+      console.log('? Added type column to school_assignments');
+    }
+
+    if (!columnNames.includes('youtube_link')) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN youtube_link TEXT').run();
+      console.log('? Added youtube_link column to school_assignments');
+    }
+
+    if (!columnNames.includes('attachment_url')) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN attachment_url TEXT').run();
+      console.log('? Added attachment_url column to school_assignments');
+    }
+
+    if (!columnNames.includes('updated_at')) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP').run();
+      console.log('? Added updated_at column to school_assignments');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_assignments columns):', error.message);
+  }
+
+  // Migration: Ensure school-only mode setting exists
+  try {
+    const existingSetting: any = db.prepare('SELECT 1 FROM settings WHERE key = ?').get('school_only_mode');
+    if (!existingSetting) {
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('school_only_mode', 'false');
+      console.log('? Added school_only_mode setting (default false)');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_only_mode setting):', error.message);
+  }
+
+  // Migration: Seed profile feature access for existing profiles
+  try {
+    const featureCount: any = db.prepare('SELECT COUNT(*) as count FROM profile_features').get();
+    if (featureCount?.count === 0) {
+      const profiles: any[] = db.prepare('SELECT id, type FROM profiles').all();
+      const insertFeature = db.prepare(`
+        INSERT INTO profile_features (profile_id, feature_key, enabled)
+        VALUES (?, ?, ?)
+      `);
+
+      profiles.forEach(profile => {
+        FEATURE_KEYS.forEach(featureKey => {
+          insertFeature.run(profile.id, featureKey, 1);
+        });
+      });
+      console.log('? Seeded profile feature access for existing profiles');
+    }
+  } catch (error: any) {
+    console.error('Migration error (profile feature seed):', error.message);
+  }
+
+  // Migration: Populate guardian_students from legacy parent_id
+  try {
+    const parentLinks: any[] = db.prepare('SELECT id, parent_id FROM profiles WHERE parent_id IS NOT NULL').all();
+    const insertGuardian = db.prepare(`
+      INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
+      VALUES (?, ?, 'parent')
+    `);
+    parentLinks.forEach(link => {
+      insertGuardian.run(link.parent_id, link.id);
+    });
+  } catch (error: any) {
+    console.error('Migration error (guardian_students backfill):', error.message);
+  }
+
+  // Migration: Populate teacher_class_assignments from assigned_class_id
+  try {
+    db.prepare(`
+      INSERT OR IGNORE INTO teacher_class_assignments (teacher_id, class_id)
+      SELECT id, assigned_class_id FROM profiles
+      WHERE type = 'teacher' AND assigned_class_id IS NOT NULL
+    `).run();
+  } catch (error: any) {
+    console.error('Migration error (teacher_class_assignments backfill):', error.message);
   }
 
   // Migration: Remove category CHECK constraint from tasks table to allow custom categories

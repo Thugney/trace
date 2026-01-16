@@ -2,6 +2,11 @@ import axios from 'axios';
 import type {
   Profile,
   ProfileStats,
+  SchoolClass,
+  SchoolAssignment,
+  SchoolSubmission,
+  SchoolAttachment,
+  SchoolFeedback,
   FoodItem,
   MealLog,
   NutritionSummary,
@@ -52,6 +57,9 @@ export const profilesAPI = {
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
   delete: (id: number) => api.delete(`/profiles/${id}`),
+  getFeatures: (id: number) => api.get<Array<{ feature_key: string; enabled: number }>>(`/profiles/${id}/features`),
+  updateFeatures: (id: number, features: Record<string, boolean>) =>
+    api.put<Array<{ feature_key: string; enabled: number }>>(`/profiles/${id}/features`, { features }),
   getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),
   getHistory: (id: number, period: string) => api.get<JourneyData>(`/profiles/${id}/history`, { params: { period } }),
   verifyPIN: (id: number, pin: string) => api.post<{ verified: boolean }>(`/profiles/${id}/verify-pin`, { pin }),
@@ -296,7 +304,60 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin }),
-  getFeatureFlags: () => api.get<{ diet_enabled: boolean }>('/settings/features/flags')
+  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean }>('/settings/features/flags')
+};
+
+// School
+export const schoolAPI = {
+  getClasses: (params?: { scope?: 'all'; student_id?: number }) => api.get<SchoolClass[]>('/school/classes', { params }),
+  getAllClasses: () => api.get<SchoolClass[]>('/school/classes', { params: { scope: 'all' } }),
+  createClass: (data: Partial<SchoolClass>) => api.post<SchoolClass>('/school/classes', data),
+  updateClass: (classId: number, data: Partial<SchoolClass>) => api.put<SchoolClass>(`/school/classes/${classId}`, data),
+  getClassStudents: (classId: number) => api.get<Profile[]>(`/school/classes/${classId}/students`),
+  getClassTeachers: (classId: number) => api.get<Profile[]>(`/school/classes/${classId}/teachers`),
+  assignTeacher: (classId: number, teacher_id: number) => api.post(`/school/classes/${classId}/teachers`, { teacher_id }),
+  removeTeacher: (classId: number, teacherId: number) => api.delete(`/school/classes/${classId}/teachers/${teacherId}`),
+  enrollStudent: (student_id: number, class_id: number) => api.post('/school/enrollments', { student_id, class_id }),
+  unenrollStudent: (student_id: number, class_id: number) => api.delete('/school/enrollments', { data: { student_id, class_id } }),
+  getAssignments: (params?: { class_id?: number; student_id?: number }) =>
+    api.get<SchoolAssignment[]>('/school/assignments', { params }),
+  createAssignment: (data: Partial<SchoolAssignment> & { class_id: number; title: string }) =>
+    api.post<SchoolAssignment>('/school/assignments', data),
+  updateAssignment: (assignmentId: number, data: Partial<SchoolAssignment>) =>
+    api.put<SchoolAssignment>(`/school/assignments/${assignmentId}`, data),
+  deleteAssignment: (assignmentId: number) => api.delete(`/school/assignments/${assignmentId}`),
+  getAssignmentAttachments: (assignmentId: number, student_id?: number) =>
+    api.get<SchoolAttachment[]>(`/school/assignments/${assignmentId}/attachments`, { params: { student_id } }),
+  uploadAssignmentAttachment: (assignmentId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<SchoolAttachment>(
+      `/school/assignments/${assignmentId}/attachments`,
+      formData,
+      { headers: { 'Content-Type': undefined } }
+    );
+  },
+  getSubmissions: (params?: { assignment_id?: number; student_id?: number }) =>
+    api.get<SchoolSubmission[]>('/school/submissions', { params }),
+  createSubmission: (data: { assignment_id: number; student_id?: number; notes?: string }) =>
+    api.post<SchoolSubmission>('/school/submissions', data),
+  updateSubmissionStatus: (submissionId: number, status: string) =>
+    api.patch<SchoolSubmission>(`/school/submissions/${submissionId}/status`, { status }),
+  getSubmissionAttachments: (submissionId: number) =>
+    api.get<SchoolAttachment[]>(`/school/submissions/${submissionId}/attachments`),
+  uploadSubmissionAttachment: (submissionId: number, file: File, student_id?: number) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<SchoolAttachment>(
+      `/school/submissions/${submissionId}/attachments`,
+      formData,
+      { params: { student_id }, headers: { 'Content-Type': undefined } }
+    );
+  },
+  getFeedback: (params?: { submission_id?: number; student_id?: number }) =>
+    api.get<SchoolFeedback[]>('/school/feedback', { params }),
+  createFeedback: (data: { submission_id: number; comment: string; rating?: string; status?: string }) =>
+    api.post<SchoolFeedback>('/school/feedback', data)
 };
 
 // Notes

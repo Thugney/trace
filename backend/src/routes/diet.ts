@@ -1,8 +1,11 @@
 import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
+import { authenticate } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('diet'));
 
 // Search Norwegian foods (Matvaretabellen API or OpenFoodFacts)
 router.get('/foods/search', async (req, res) => {

@@ -1,5 +1,7 @@
 import express from 'express';
 import db from '../database/init';
+import { authenticate } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 import {
   getEconomySettings,
   updateEconomySettings,
@@ -12,6 +14,7 @@ import {
 } from '../services/economyControl';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('gamification'));
 
 // ==================== WATER INTAKE ====================
 

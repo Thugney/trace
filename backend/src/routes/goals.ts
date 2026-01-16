@@ -1,9 +1,11 @@
 import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 import { NotificationHelpers, sendPushNotification } from '../services/notifications';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('goals'));
 
 // Get monthly goals for a profile
 router.get('/:profileId', (req, res) => {

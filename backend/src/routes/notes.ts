@@ -1,8 +1,10 @@
 import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('notes'));
 
 // Get all notes for a profile
 router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {

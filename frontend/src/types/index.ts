@@ -1,7 +1,7 @@
 export interface Profile {
   id: number;
   name: string;
-  type: 'admin' | 'parent' | 'child';
+  type: 'admin' | 'parent' | 'child' | 'teacher';
   username?: string; // For login (adults)
   age?: number;
   gender?: 'male' | 'female' | 'other';
@@ -14,6 +14,67 @@ export interface Profile {
   parent_id?: number;
   ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
   diet_enabled?: number; // 0 = disabled, 1 = enabled (hidden feature)
+}
+
+export interface SchoolClass {
+  id: number;
+  name: string;
+  description?: string;
+  age_min?: number;
+  age_max?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SchoolAssignment {
+  id: number;
+  class_id: number;
+  teacher_id: number;
+  title: string;
+  description?: string;
+  type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
+  youtube_link?: string;
+  attachment_url?: string;
+  linked_quiz_id?: number | null;
+  due_date?: string | null;
+  created_at: string;
+  updated_at: string;
+  class_name?: string;
+  teacher_name?: string;
+  submission_status?: string;
+  submitted_at?: string;
+}
+
+export interface SchoolSubmission {
+  id: number;
+  assignment_id: number;
+  student_id: number;
+  notes?: string;
+  submitted_at: string;
+  status: 'submitted' | 'approved' | 'needs_revision';
+  student_name?: string;
+  assignment_title?: string;
+}
+
+export interface SchoolAttachment {
+  id: number;
+  assignment_id?: number;
+  submission_id?: number;
+  uploaded_by?: number;
+  file_url: string;
+  file_name?: string;
+  file_type?: string;
+  created_at: string;
+}
+
+export interface SchoolFeedback {
+  id: number;
+  submission_id: number;
+  teacher_id: number;
+  comment: string;
+  rating?: 'excellent' | 'very_good' | 'good' | 'needs_improvement';
+  created_at: string;
+  teacher_name?: string;
 }
 
 export interface DietGoal {

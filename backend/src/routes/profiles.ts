@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { authenticate, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
+import { FEATURE_KEYS } from '../services/feature-keys';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -203,12 +204,14 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
       profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
       console.log(`[DEBUG] Admin view: ${profiles.length} total profiles`);
     } else if (userProfile.type === 'parent') {
-      // Parent sees only themselves and their children
+      // Parent sees only themselves and their linked children (guardian_students + legacy parent_id)
       profiles = db.prepare(`
         SELECT * FROM profiles
-        WHERE id = ? OR parent_id = ?
+        WHERE id = ?
+           OR parent_id = ?
+           OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?)
         ORDER BY type DESC, created_at ASC
-      `).all(userProfile.id, userProfile.id);
+      `).all(userProfile.id, userProfile.id, userProfile.id);
       console.log(`[DEBUG] Parent view: ${profiles.length} profiles (self + children)`);
     } else {
       // Child sees only themselves
@@ -239,8 +242,13 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
       // Admin can see anyone
       return res.json(profile);
     } else if (userProfile.type === 'parent') {
-      // Parent can see themselves or their children
+      // Parent can see themselves or their children (guardian_students + legacy parent_id)
       if (profile.id === userProfile.id || profile.parent_id === userProfile.id) {
+        return res.json(profile);
+      }
+
+      const guardianLink = db.prepare('SELECT 1 FROM guardian_students WHERE guardian_id = ? AND student_id = ?').get(userProfile.id, profile.id);
+      if (guardianLink) {
         return res.json(profile);
       }
     } else {
@@ -301,8 +309,104 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null, finalAssignedClassId);
 
-    const newProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+    const newProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
+
+    try {
+      const enabledFeatures = type === 'admin' ? FEATURE_KEYS : ['school'];
+      const insertFeature = db.prepare(`
+        INSERT INTO profile_features (profile_id, feature_key, enabled)
+        VALUES (?, ?, ?)
+      `);
+      enabledFeatures.forEach(featureKey => {
+        insertFeature.run(newProfile.id, featureKey, 1);
+      });
+    } catch (featureError: any) {
+      console.error('[Profile] Feature initialization failed:', featureError.message);
+    }
+
+    if (type === 'child' && finalParentId) {
+      db.prepare(`
+        INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
+        VALUES (?, ?, 'parent')
+      `).run(finalParentId, newProfile.id);
+    }
+
+    if (type === 'teacher' && finalAssignedClassId) {
+      db.prepare(`
+        INSERT OR IGNORE INTO teacher_class_assignments (teacher_id, class_id)
+        VALUES (?, ?)
+      `).run(newProfile.id, finalAssignedClassId);
+    }
     res.status(201).json(newProfile);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get profile feature access (admin only)
+router.get('/:id/features', adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const profileId = parseInt(req.params.id, 10);
+    const profile: any = db.prepare('SELECT id FROM profiles WHERE id = ?').get(profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const features = db.prepare(`
+      SELECT feature_key, enabled, updated_at
+      FROM profile_features
+      WHERE profile_id = ?
+      ORDER BY feature_key
+    `).all(profileId);
+
+    res.json(features);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update profile feature access (admin only)
+router.put('/:id/features', adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const profileId = parseInt(req.params.id, 10);
+    const profile: any = db.prepare('SELECT id FROM profiles WHERE id = ?').get(profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const { features } = req.body;
+    if (!features) {
+      return res.status(400).json({ error: 'features is required' });
+    }
+
+    const upsert = db.prepare(`
+      INSERT INTO profile_features (profile_id, feature_key, enabled, updated_at)
+      VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(profile_id, feature_key) DO UPDATE SET
+        enabled = excluded.enabled,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    const normalized = Array.isArray(features)
+      ? features
+      : Object.entries(features).map(([feature_key, enabled]) => ({ feature_key, enabled }));
+
+    normalized.forEach((item: any) => {
+      if (!FEATURE_KEYS.includes(item.feature_key)) {
+        return;
+      }
+      const enabledValue = item.enabled === true || item.enabled === 1 ? 1 : 0;
+      upsert.run(profileId, item.feature_key, enabledValue);
+    });
+
+    const updated = db.prepare(`
+      SELECT feature_key, enabled, updated_at
+      FROM profile_features
+      WHERE profile_id = ?
+      ORDER BY feature_key
+    `).all(profileId);
+
+    res.json(updated);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -404,7 +508,22 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       WHERE id = ?
     `).run(...values);
 
-    const updatedProfile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+    const updatedProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
+
+    if (updatedProfile?.type === 'child' && parent_id) {
+      db.prepare(`
+        INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
+        VALUES (?, ?, 'parent')
+      `).run(parent_id, updatedProfile.id);
+    }
+
+    if (assigned_class_id && updatedProfile?.type === 'teacher') {
+      db.prepare(`
+        INSERT OR IGNORE INTO teacher_class_assignments (teacher_id, class_id)
+        VALUES (?, ?)
+      `).run(updatedProfile.id, assigned_class_id);
+    }
+
     res.json(updatedProfile);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

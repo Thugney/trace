@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 import { NotificationHelpers } from '../services/notifications';
 import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
 import {
@@ -19,6 +20,7 @@ import {
 } from '../services/economyControl';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('tasks'));
 
 // Configure multer for photo proof uploads
 const PROOF_DIR = process.env.PROOF_DIR || '/app/data/proofs';

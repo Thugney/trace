@@ -2,11 +2,12 @@ import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
 import { authenticate, requireRole } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(authenticate);
+router.use(authenticate, requireFeature('ai'));
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 

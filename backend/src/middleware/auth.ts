@@ -7,7 +7,7 @@ import db from '../database/init';
 export interface AuthRequest extends Request {
   profile?: {
     id: number;
-    type: 'admin' | 'parent' | 'child';
+    type: 'admin' | 'parent' | 'child' | 'teacher';
     parent_id?: number;
   };
 }
@@ -53,7 +53,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
  *
  * Usage: requireRole(['admin', 'parent'])
  */
-export const requireRole = (allowedRoles: Array<'admin' | 'parent' | 'child'>) => {
+export const requireRole = (allowedRoles: Array<'admin' | 'parent' | 'child' | 'teacher'>) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.profile) {
       return res.status(401).json({ error: 'Authentication required' });
@@ -108,7 +108,13 @@ export const verifyParentChild = (paramName: string = 'studentId') => {
     }
 
     if (child.parent_id !== req.profile.id) {
-      return res.status(403).json({ error: 'Access denied: You can only access your own children' });
+      const guardianLink: any = db.prepare(`
+        SELECT 1 FROM guardian_students WHERE guardian_id = ? AND student_id = ?
+      `).get(req.profile.id, childId);
+
+      if (!guardianLink) {
+        return res.status(403).json({ error: 'Access denied: You can only access your own children' });
+      }
     }
 
     next();
