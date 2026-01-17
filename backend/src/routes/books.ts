@@ -684,7 +684,8 @@ router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => 
       return res.status(400).json({ error: 'profileId is required' });
     }
 
-    const existing = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const existing: any = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const wasAlreadyCompleted = existing?.completed === 1;
 
     if (existing) {
       db.prepare(`
@@ -699,6 +700,22 @@ router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => 
         INSERT INTO book_reading_progress (book_id, profile_id, current_page, pages_read, completed, completed_at)
         VALUES (?, ?, ?, ?, ?, CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END)
       `).run(bookId, profileId, currentPage, currentPage, completed ? 1 : 0, completed ? 1 : 0);
+    }
+
+    // Notify parent when book is completed for the first time
+    if (completed && !wasAlreadyCompleted) {
+      const reader: any = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(profileId);
+      const book: any = db.prepare('SELECT title FROM books WHERE id = ?').get(bookId);
+
+      if (reader?.parent_id && book) {
+        sendPushNotification(reader.parent_id, {
+          type: 'book_completed' as any,
+          title: 'Book Finished! 📖',
+          message: `${reader.name} finished reading "${book.title}"!`,
+          data: { bookId, profileId },
+          url: '/books'
+        });
+      }
     }
 
     const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);

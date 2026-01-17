@@ -383,8 +383,11 @@ export default function ParentDashboard() {
               <Brain className="text-purple-600 flex-shrink-0 mt-1" size={24} />
               <div className="flex-1">
                 <h3 className="font-semibold text-purple-900 mb-1">Generate AI Challenges</h3>
-                <p className="text-sm text-purple-700 mb-3">
+                <p className="text-sm text-purple-700 mb-2">
                   AI analyzes each child's behavior patterns, strengths, and areas to improve to create personalized challenges.
+                </p>
+                <p className="text-xs text-purple-600 mb-3 flex items-center gap-1">
+                  💰 Estimated cost: ~$0.01 per child (text generation only)
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {children.map((child) => (

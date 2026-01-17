@@ -797,7 +797,7 @@ Return ONLY valid JSON in this exact format:
     sendPushNotification(assignedProfileId, {
       title: 'New AI Quiz Ready!',
       message: `You have a new "${title}" quiz to try!`,
-      type: 'quiz',
+      type: 'new_quiz' as any,
       data: { quizId },
       url: '/quizzes'
     });
@@ -1093,7 +1093,7 @@ router.post('/', (req: Request, res: Response) => {
 
     // Notify the child about the new quiz
     sendPushNotification(assignedTo, {
-      type: 'general',
+      type: 'new_quiz' as any,
       title: 'New Quiz Available! 📝',
       message: `You have a new ${title} quiz to try!`,
       icon: '🎓',
@@ -1756,7 +1756,7 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
     const child = db.prepare('SELECT name FROM profiles WHERE id = ?').get(attempt.profile_id) as any;
 
     sendPushNotification(attempt.created_by, {
-      type: 'achievement',
+      type: 'quiz_completed' as any,
       title: passed ? 'Quiz Passed! 🎉' : 'Quiz Completed',
       message: `${child?.name || 'Your child'} scored ${scorePercentage}% on their quiz!`,
       icon: passed ? '⭐' : '📝',

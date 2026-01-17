@@ -244,6 +244,81 @@ export const sounds = {
       { freq: 1568, duration: 0.1, delay: 0.16 }  // G6 - sparkle!
     ], 'triangle');
     vibrate(20);
+  },
+
+  // ==================== NOTIFICATION SOUNDS ====================
+
+  // New assignment notification - friendly alert
+  newAssignment: () => {
+    playMelody([
+      { freq: 587, duration: 0.1, delay: 0 },     // D5
+      { freq: 784, duration: 0.1, delay: 0.1 },   // G5
+      { freq: 988, duration: 0.15, delay: 0.2 },  // B5
+      { freq: 1175, duration: 0.2, delay: 0.35 }  // D6 - attention!
+    ], 'sine');
+    vibrate([50, 30, 50]);
+  },
+
+  // New book ready - magical book opening sound
+  newBook: () => {
+    playMelody([
+      { freq: 440, duration: 0.08, delay: 0 },    // A4
+      { freq: 523, duration: 0.08, delay: 0.08 }, // C5
+      { freq: 659, duration: 0.1, delay: 0.16 },  // E5
+      { freq: 880, duration: 0.12, delay: 0.26 }, // A5
+      { freq: 1047, duration: 0.18, delay: 0.38 } // C6 - magical!
+    ], 'sine');
+    vibrate([30, 20, 30, 20, 50]);
+  },
+
+  // New quiz ready - exciting challenge alert
+  newQuiz: () => {
+    playMelody([
+      { freq: 523, duration: 0.08, delay: 0 },    // C5
+      { freq: 659, duration: 0.08, delay: 0.08 }, // E5
+      { freq: 784, duration: 0.1, delay: 0.16 },  // G5
+      { freq: 880, duration: 0.12, delay: 0.26 }  // A5 - quiz time!
+    ], 'sine');
+    vibrate([40, 30, 60]);
+  },
+
+  // Task completed by child - parent notification
+  childCompleted: () => {
+    playMelody([
+      { freq: 659, duration: 0.1, delay: 0 },     // E5
+      { freq: 784, duration: 0.1, delay: 0.1 },   // G5
+      { freq: 988, duration: 0.12, delay: 0.2 },  // B5
+      { freq: 1319, duration: 0.2, delay: 0.32 }  // E6 - celebration!
+    ], 'sine');
+    vibrate([30, 20, 30, 20, 60]);
+  },
+
+  // General notification - subtle chime
+  notification: () => {
+    playMelody([
+      { freq: 880, duration: 0.1, delay: 0 },     // A5
+      { freq: 1175, duration: 0.15, delay: 0.1 }  // D6 - simple alert
+    ], 'sine');
+    vibrate(40);
+  },
+
+  // Reminder alert - gentle nudge
+  reminder: () => {
+    playMelody([
+      { freq: 698, duration: 0.1, delay: 0 },     // F5
+      { freq: 880, duration: 0.1, delay: 0.12 },  // A5
+      { freq: 698, duration: 0.12, delay: 0.24 }  // F5 - reminder ping
+    ], 'triangle');
+    vibrate([30, 50, 30]);
+  },
+
+  // Message received - chat notification
+  messageReceived: () => {
+    playMelody([
+      { freq: 784, duration: 0.06, delay: 0 },    // G5
+      { freq: 988, duration: 0.1, delay: 0.08 }   // B5 - quick ping
+    ], 'sine');
+    vibrate(25);
   }
 };
 
@@ -278,7 +353,15 @@ export const playSounds = {
   timerTick: () => areSoundsEnabled() && sounds.timerTick(),
   timerWarning: () => areSoundsEnabled() && sounds.timerWarning(),
   questionAppear: () => areSoundsEnabled() && sounds.questionAppear(),
-  hintReveal: () => areSoundsEnabled() && sounds.hintReveal()
+  hintReveal: () => areSoundsEnabled() && sounds.hintReveal(),
+  // Notification sounds
+  newAssignment: () => areSoundsEnabled() && sounds.newAssignment(),
+  newBook: () => areSoundsEnabled() && sounds.newBook(),
+  newQuiz: () => areSoundsEnabled() && sounds.newQuiz(),
+  childCompleted: () => areSoundsEnabled() && sounds.childCompleted(),
+  notification: () => areSoundsEnabled() && sounds.notification(),
+  reminder: () => areSoundsEnabled() && sounds.reminder(),
+  messageReceived: () => areSoundsEnabled() && sounds.messageReceived()
 };
 
 export default playSounds;

@@ -120,7 +120,22 @@ self.addEventListener('push', (event: PushEvent) => {
   } as NotificationOptions;
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    Promise.all([
+      self.registration.showNotification(data.title, options),
+      // Notify all clients about the push so they can play sound
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'PUSH_RECEIVED',
+            payload: {
+              notificationType: (data.data as any)?.type || 'general',
+              title: data.title,
+              body: data.body
+            }
+          });
+        });
+      })
+    ])
   );
 });
 

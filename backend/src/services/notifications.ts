@@ -21,7 +21,9 @@ export interface NotificationPayload {
   type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
         'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
-        'school_assignment' | 'school_feedback' | 'school_due_soon';
+        'school_assignment' | 'school_feedback' | 'school_due_soon' |
+        'new_book' | 'book_completed' | 'new_quiz' | 'quiz_assigned' | 'quiz_completed' |
+        'new_task' | 'task_assigned' | 'child_completed' | 'level_up' | 'reward';
   data?: any;
   icon?: string;
   url?: string;
@@ -320,6 +322,83 @@ export const NotificationHelpers = {
       message: `${senderName}: ${subject || 'New message'}`,
       icon: '💬',
       url: '/messages'
+    });
+  },
+
+  // New book assigned to child
+  async newBookAssigned(childId: number, bookTitle: string, assignedBy: string) {
+    await sendPushNotification(childId, {
+      type: 'new_book',
+      title: 'New Book Ready! 📚',
+      message: `${assignedBy} created a new book for you: "${bookTitle}"`,
+      icon: '📚',
+      url: '/books'
+    });
+  },
+
+  // Book reading completed - notify parent
+  async bookCompleted(childId: number, childName: string, bookTitle: string) {
+    await notifyParent(childId, {
+      type: 'book_completed',
+      title: 'Book Finished! 📖',
+      message: `${childName} finished reading "${bookTitle}"!`,
+      icon: '📖',
+      url: '/books'
+    });
+  },
+
+  // New quiz assigned to child
+  async newQuizAssigned(childId: number, quizTitle: string, assignedBy: string) {
+    await sendPushNotification(childId, {
+      type: 'new_quiz',
+      title: 'New Quiz Ready! 🎯',
+      message: `${assignedBy} created a new quiz for you: "${quizTitle}"`,
+      icon: '🎯',
+      url: '/quizzes'
+    });
+  },
+
+  // Quiz completed - notify parent
+  async quizCompleted(childId: number, childName: string, quizTitle: string, score: number, totalQuestions: number) {
+    await notifyParent(childId, {
+      type: 'quiz_completed',
+      title: 'Quiz Completed! ✨',
+      message: `${childName} scored ${score}/${totalQuestions} on "${quizTitle}"!`,
+      icon: '✨',
+      url: '/quizzes'
+    });
+  },
+
+  // Level up notification
+  async levelUp(profileId: number, newLevel: number) {
+    await sendPushNotification(profileId, {
+      type: 'level_up',
+      title: 'Level Up! 🎉',
+      message: `Congratulations! You reached Level ${newLevel}!`,
+      icon: '🎉',
+      url: '/journey'
+    });
+  },
+
+  // Achievement unlocked
+  async achievementUnlocked(profileId: number, achievementTitle: string) {
+    await sendPushNotification(profileId, {
+      type: 'achievement',
+      title: 'Achievement Unlocked! 🏆',
+      message: `You earned: "${achievementTitle}"!`,
+      icon: '🏆',
+      url: '/journey'
+    });
+  },
+
+  // Reminder notification
+  async sendReminder(profileId: number, reminderText: string) {
+    await sendPushNotification(profileId, {
+      type: 'reminder',
+      title: 'Reminder ⏰',
+      message: reminderText,
+      icon: '⏰',
+      url: '/'
     });
   }
 };

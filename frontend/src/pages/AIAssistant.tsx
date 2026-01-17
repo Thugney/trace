@@ -409,6 +409,11 @@ export default function AIAssistant() {
             </div>
           </div>
         )}
+
+        {/* Cost indicator */}
+        <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+          💰 ~$0.001-$0.01 per message (text generation only)
+        </div>
       </div>
     </div>
   );
