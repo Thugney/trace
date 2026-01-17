@@ -11,6 +11,7 @@ router.use(authenticate, requireFeature('ai'));
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // Helper: Get Grok API key from env or settings table
 function getGrokApiKey(): string | null {
@@ -53,9 +54,27 @@ function isGrokAvailable(): boolean {
   return !!getGrokApiKey();
 }
 
+// Helper: Get Gemini API key from env or settings table
+function getGeminiApiKey(): string | null {
+  let apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('gemini_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read gemini_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+}
+
 // Helper: Check if any AI API is available
 function isAnyAiAvailable(): boolean {
-  return !!getGrokApiKey() || !!getOpenAiApiKey();
+  return !!getGrokApiKey() || !!getOpenAiApiKey() || !!getGeminiApiKey();
 }
 
 // ==================== BEHAVIOR ANALYSIS ====================
@@ -336,14 +355,15 @@ router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req
     // Check if any AI API is available
     const grokApiKey = getGrokApiKey();
     const openAiApiKey = getOpenAiApiKey();
+    const geminiApiKey = getGeminiApiKey();
 
-    if (!grokApiKey && !openAiApiKey) {
+    if (!grokApiKey && !openAiApiKey && !geminiApiKey) {
       return res.status(503).json({
-        error: 'AI service not configured. Please configure the Grok or OpenAI API key.'
+        error: 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.'
       });
     }
 
-    // Helper function to call AI API
+    // Helper function to call OpenAI-compatible API (Grok/OpenAI)
     const callAiApi = async (apiUrl: string, model: string, apiKey: string) => {
       return await axios.post(
         apiUrl,
@@ -366,14 +386,37 @@ router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req
       );
     };
 
-    // Try Grok first, then fall back to OpenAI
+    // Helper function to call Gemini API
+    const callGeminiApi = async (apiKey: string) => {
+      const systemInstructions = 'You are a helpful AI assistant that creates personalized gamification challenges for children. Always respond with valid JSON arrays as specified.';
+      return await axios.post(
+        `${GEMINI_API_URL}?key=${apiKey}`,
+        {
+          contents: [
+            { role: 'user', parts: [{ text: `${systemInstructions}\n\n${prompt}` }] }
+          ],
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 2000
+          }
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 30000
+        }
+      );
+    };
+
+    // Try Grok first, then OpenAI, then Gemini
     let response;
     let usedProvider = 'Grok';
+    let aiContent: string | undefined;
 
     if (grokApiKey) {
       try {
         console.log('[AI Gamification] Trying Grok API...');
         response = await callAiApi(GROK_API_URL, 'grok-2-latest', grokApiKey);
+        aiContent = response.data.choices?.[0]?.message?.content;
       } catch (grokError: any) {
         const errorStatus = grokError.response?.status;
         console.error('[AI Gamification] Grok failed:', grokError.response?.data || grokError.message);
@@ -382,7 +425,29 @@ router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req
         if (openAiApiKey && (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503)) {
           console.log('[AI Gamification] Falling back to OpenAI...');
           usedProvider = 'OpenAI';
-          response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+          try {
+            response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+            aiContent = response.data.choices?.[0]?.message?.content;
+          } catch (openAiError: any) {
+            const openAiErrorStatus = openAiError.response?.status;
+            console.error('[AI Gamification] OpenAI also failed:', openAiError.response?.data || openAiError.message);
+
+            // Fall back to Gemini
+            if (geminiApiKey && (openAiErrorStatus === 429 || openAiErrorStatus === 500 || openAiErrorStatus === 502 || openAiErrorStatus === 503)) {
+              console.log('[AI Gamification] Falling back to Gemini...');
+              usedProvider = 'Gemini';
+              response = await callGeminiApi(geminiApiKey);
+              aiContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+            } else {
+              throw openAiError;
+            }
+          }
+        } else if (geminiApiKey && (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503)) {
+          // No OpenAI, fall back to Gemini
+          console.log('[AI Gamification] Falling back to Gemini (no OpenAI)...');
+          usedProvider = 'Gemini';
+          response = await callGeminiApi(geminiApiKey);
+          aiContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
         } else {
           throw grokError;
         }
@@ -390,13 +455,33 @@ router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req
     } else if (openAiApiKey) {
       console.log('[AI Gamification] Using OpenAI (Grok not configured)...');
       usedProvider = 'OpenAI';
-      response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+      try {
+        response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+        aiContent = response.data.choices?.[0]?.message?.content;
+      } catch (openAiError: any) {
+        const openAiErrorStatus = openAiError.response?.status;
+        console.error('[AI Gamification] OpenAI failed:', openAiError.response?.data || openAiError.message);
+
+        // Fall back to Gemini
+        if (geminiApiKey && (openAiErrorStatus === 429 || openAiErrorStatus === 500 || openAiErrorStatus === 502 || openAiErrorStatus === 503)) {
+          console.log('[AI Gamification] Falling back to Gemini...');
+          usedProvider = 'Gemini';
+          response = await callGeminiApi(geminiApiKey);
+          aiContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+        } else {
+          throw openAiError;
+        }
+      }
+    } else if (geminiApiKey) {
+      console.log('[AI Gamification] Using Gemini (Grok and OpenAI not configured)...');
+      usedProvider = 'Gemini';
+      response = await callGeminiApi(geminiApiKey);
+      aiContent = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
     console.log(`[AI Gamification] Successfully got response from ${usedProvider}`);
 
-    // Parse AI response
-    const aiContent = response!.data.choices?.[0]?.message?.content;
+    // Verify we have AI content
     if (!aiContent) {
       throw new Error('No response from AI');
     }

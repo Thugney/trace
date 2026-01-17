@@ -562,16 +562,22 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
 
   const inputConfig = JSON.parse(category.input_config || '{}');
   const supportsImages = !!inputConfig.supports_images;
-  const normalizedImageProvider = String(imageProvider || 'grok').toLowerCase() === 'openai' ? 'openai' : 'grok';
+  // Normalize image provider - Gemini doesn't have image generation, so fall back to Grok/OpenAI
+  const rawImageProvider = String(imageProvider || 'grok').toLowerCase();
+  let normalizedImageProvider: 'grok' | 'openai' = 'grok';
+  if (rawImageProvider === 'openai') {
+    normalizedImageProvider = 'openai';
+  } else if (rawImageProvider === 'gemini') {
+    // Gemini doesn't have image generation - use Grok if available, else OpenAI
+    normalizedImageProvider = grokApiKey ? 'grok' : 'openai';
+  }
   const includeOptionImages = false;
   const imageApiKey = includeImages && supportsImages
     ? (normalizedImageProvider === 'openai' ? openAiApiKey : grokApiKey)
     : null;
   if (includeImages && supportsImages && !imageApiKey) {
-    throw new HttpError(503, normalizedImageProvider === 'openai'
-      ? 'OpenAI image service not configured. Please configure the OpenAI API key.'
-      : 'Image service not configured. Please configure the Grok API key.'
-    );
+    // If no image API available, continue without images rather than failing
+    console.log('[AI Quiz] No image API available, proceeding without images');
   }
   const normalizedCount = Math.min(Math.max(parseInt(String(questionCount), 10) || 5, 1), 20);
 

@@ -8,6 +8,7 @@ const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // AI Tool definitions for function calling
 const AI_TOOLS = [
@@ -560,9 +561,92 @@ function isOpenAiAvailable(): boolean {
   return !!getOpenAiApiKey();
 }
 
+// Helper: Get Gemini API key from env or settings table
+function getGeminiApiKey(): string | null {
+  let apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('gemini_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read gemini_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+}
+
+// Helper: Check if Gemini API is available
+function isGeminiAvailable(): boolean {
+  return !!getGeminiApiKey();
+}
+
 // Helper: Check if any AI API is available
 function isAnyAiAvailable(): boolean {
-  return isGrokAvailable() || isOpenAiAvailable();
+  return isGrokAvailable() || isOpenAiAvailable() || isGeminiAvailable();
+}
+
+// Helper: Call Gemini API as fallback (non-streaming)
+async function callGeminiApi(messages: { role: string; content: string }[], systemPrompt: string): Promise<string> {
+  const geminiApiKey = getGeminiApiKey();
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  // Convert OpenAI message format to Gemini format
+  // Gemini expects: { contents: [{ role: 'user'|'model', parts: [{ text: '...' }] }] }
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+
+  // Add system prompt as first user message (Gemini doesn't have system role)
+  contents.push({
+    role: 'user',
+    parts: [{ text: `System Instructions:\n${systemPrompt}\n\nNow respond to the following conversation:` }]
+  });
+  contents.push({
+    role: 'model',
+    parts: [{ text: 'I understand. I will follow those instructions.' }]
+  });
+
+  // Add conversation messages (skip system messages)
+  for (const msg of messages) {
+    if (msg.role === 'system') continue;
+
+    // Skip if content is null or undefined (tool call messages)
+    if (!msg.content) continue;
+
+    contents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    });
+  }
+
+  console.log('[AI Chat] Calling Gemini API as fallback...');
+
+  const response = await axios.post(
+    `${GEMINI_API_URL}?key=${geminiApiKey}`,
+    {
+      contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 500
+      }
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    }
+  );
+
+  const geminiResponse = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!geminiResponse) {
+    throw new Error('No response from Gemini');
+  }
+
+  console.log('[AI Chat] Gemini response received successfully');
+  return geminiResponse;
 }
 
 
@@ -1275,9 +1359,58 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
             try {
               response = await makeStreamingRequest(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
             } catch (openAiError: any) {
-              console.error('[AI Chat] OpenAI also failed:', openAiError.response?.status, openAiError.message);
+              const openAiErrorStatus = openAiError.response?.status;
+              console.error('[AI Chat] OpenAI also failed:', openAiErrorStatus, openAiError.message);
+
+              // Try Gemini as third fallback (non-streaming)
+              const geminiApiKey = getGeminiApiKey();
+              if (geminiApiKey && (openAiErrorStatus === 429 || openAiErrorStatus === 500 || openAiErrorStatus === 502 || openAiErrorStatus === 503)) {
+                console.log('[AI Chat] Falling back to Gemini (non-streaming)...');
+                try {
+                  const geminiResponse = await callGeminiApi(messages, systemPrompt);
+
+                  // Send as non-streaming JSON response
+                  db.prepare(`
+                    INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
+                    VALUES (?, ?, ?, ?)
+                  `).run(profile_id, context, message, geminiResponse);
+
+                  return res.json({
+                    response: geminiResponse,
+                    profile: { id: profile.id, name: profile.name, type: profile.type },
+                    provider: 'gemini'
+                  });
+                } catch (geminiError: any) {
+                  console.error('[AI Chat] Gemini also failed:', geminiError.message);
+                  throw geminiError;
+                }
+              }
               throw openAiError;
             }
+          } else if (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503) {
+            // Grok failed, no OpenAI - try Gemini directly
+            const geminiApiKey = getGeminiApiKey();
+            if (geminiApiKey) {
+              console.log('[AI Chat] Falling back to Gemini (no OpenAI configured)...');
+              try {
+                const geminiResponse = await callGeminiApi(messages, systemPrompt);
+
+                db.prepare(`
+                  INSERT INTO ai_conversations (profile_id, context, user_message, ai_response)
+                  VALUES (?, ?, ?, ?)
+                `).run(profile_id, context, message, geminiResponse);
+
+                return res.json({
+                  response: geminiResponse,
+                  profile: { id: profile.id, name: profile.name, type: profile.type },
+                  provider: 'gemini'
+                });
+              } catch (geminiError: any) {
+                console.error('[AI Chat] Gemini also failed:', geminiError.message);
+                throw geminiError;
+              }
+            }
+            throw streamError;
           } else {
             throw streamError;
           }
@@ -1490,9 +1623,19 @@ router.delete('/conversations/:profileId', (req, res) => {
 
 // Check API status
 router.get('/status', (req, res) => {
+  const grokAvailable = isGrokAvailable();
+  const openAiAvailable = isOpenAiAvailable();
+  const geminiAvailable = isGeminiAvailable();
+
   res.json({
-    apiConfigured: isGrokAvailable(),
-    fallbackMode: !isGrokAvailable()
+    apiConfigured: grokAvailable || openAiAvailable || geminiAvailable,
+    fallbackMode: !grokAvailable && (openAiAvailable || geminiAvailable),
+    providers: {
+      grok: grokAvailable,
+      openai: openAiAvailable,
+      gemini: geminiAvailable
+    },
+    activeProvider: grokAvailable ? 'Grok' : openAiAvailable ? 'OpenAI' : geminiAvailable ? 'Gemini' : 'None'
   });
 });
 

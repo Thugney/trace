@@ -51,7 +51,7 @@ export default function QuizBuilder() {
   const [aiAssignedTo, setAiAssignedTo] = useState(0);
   const [aiQuestionCount, setAiQuestionCount] = useState(5);
   const [aiIncludeImages, setAiIncludeImages] = useState(true);
-  const [aiImageProvider, setAiImageProvider] = useState<'grok' | 'openai'>('grok');
+  const [aiImageProvider, setAiImageProvider] = useState<'grok' | 'openai' | 'gemini'>('gemini');
   const [aiGenerating, setAiGenerating] = useState(false);
 
   // UI State
@@ -397,7 +397,7 @@ export default function QuizBuilder() {
             <Sparkles className="w-6 h-6 text-purple-600" />
             <div>
               <h2 className="text-lg font-bold text-gray-900">AI Quiz Generator</h2>
-              <p className="text-sm text-gray-500">Give a prompt and let Grok build the quiz.</p>
+              <p className="text-sm text-gray-500">Give a prompt and let AI build the quiz.</p>
             </div>
           </div>
 
@@ -472,10 +472,11 @@ export default function QuizBuilder() {
                 <span>Image provider</span>
                 <select
                   value={aiImageProvider}
-                  onChange={(e) => setAiImageProvider(e.target.value as 'grok' | 'openai')}
+                  onChange={(e) => setAiImageProvider(e.target.value as 'grok' | 'openai' | 'gemini')}
                   disabled={!aiIncludeImages || !aiInputConfig.supports_images}
                   className="px-3 py-1 border border-gray-200 rounded-lg"
                 >
+                  <option value="gemini">Gemini</option>
                   <option value="grok">Grok</option>
                   <option value="openai">OpenAI</option>
                 </select>
