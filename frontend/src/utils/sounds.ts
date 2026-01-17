@@ -166,6 +166,84 @@ export const sounds = {
       { freq: 1319, duration: 0.25, delay: 0.28 } // E6
     ], 'sine');
     vibrate([40, 30, 80]);
+  },
+
+  // ==================== KID-FRIENDLY QUIZ SOUNDS ====================
+
+  // Quiz correct answer - cheerful happy "yay!" sound
+  quizCorrect: () => {
+    playMelody([
+      { freq: 523, duration: 0.08, delay: 0 },    // C5
+      { freq: 659, duration: 0.08, delay: 0.07 }, // E5
+      { freq: 784, duration: 0.1, delay: 0.14 },  // G5
+      { freq: 1047, duration: 0.15, delay: 0.22 } // C6 - happy high note!
+    ], 'sine');
+    vibrate([30, 20, 50]);
+  },
+
+  // Quiz wrong answer - gentle encouraging "try again" sound (not harsh!)
+  quizWrong: () => {
+    playMelody([
+      { freq: 392, duration: 0.12, delay: 0 },    // G4 - soft low note
+      { freq: 349, duration: 0.15, delay: 0.12 }  // F4 - gentle descend
+    ], 'sine');
+    vibrate(30);
+  },
+
+  // Quiz complete - magical celebration!
+  quizComplete: () => {
+    playMelody([
+      { freq: 523, duration: 0.1, delay: 0 },     // C5
+      { freq: 659, duration: 0.1, delay: 0.1 },   // E5
+      { freq: 784, duration: 0.1, delay: 0.2 },   // G5
+      { freq: 1047, duration: 0.15, delay: 0.3 }, // C6
+      { freq: 1319, duration: 0.15, delay: 0.42 },// E6
+      { freq: 1568, duration: 0.25, delay: 0.55 } // G6 - big finish!
+    ], 'sine');
+    vibrate([40, 30, 40, 30, 100]);
+  },
+
+  // Quiz start - exciting ready sound
+  quizStart: () => {
+    playMelody([
+      { freq: 392, duration: 0.1, delay: 0 },     // G4
+      { freq: 523, duration: 0.12, delay: 0.1 },  // C5
+      { freq: 659, duration: 0.15, delay: 0.22 }  // E5 - rising excitement!
+    ], 'sine');
+    vibrate([30, 30, 50]);
+  },
+
+  // Timer tick - soft tick sound for countdown
+  timerTick: () => {
+    playTone(880, 0.03, 'sine', 0.08);
+  },
+
+  // Timer warning - gentle alert when time is running low
+  timerWarning: () => {
+    playMelody([
+      { freq: 659, duration: 0.08, delay: 0 },    // E5
+      { freq: 523, duration: 0.1, delay: 0.1 }    // C5
+    ], 'triangle');
+    vibrate(20);
+  },
+
+  // Question appear - soft whoosh for new question
+  questionAppear: () => {
+    playMelody([
+      { freq: 440, duration: 0.05, delay: 0 },    // A4
+      { freq: 523, duration: 0.08, delay: 0.05 }, // C5
+      { freq: 659, duration: 0.06, delay: 0.12 }  // E5
+    ], 'sine');
+  },
+
+  // Hint reveal - magical sparkle
+  hintReveal: () => {
+    playMelody([
+      { freq: 1047, duration: 0.08, delay: 0 },   // C6
+      { freq: 1319, duration: 0.08, delay: 0.08 },// E6
+      { freq: 1568, duration: 0.1, delay: 0.16 }  // G6 - sparkle!
+    ], 'triangle');
+    vibrate(20);
   }
 };
 
@@ -191,7 +269,16 @@ export const playSounds = {
   click: () => areSoundsEnabled() && sounds.click(),
   error: () => areSoundsEnabled() && sounds.error(),
   streakFreeze: () => areSoundsEnabled() && sounds.streakFreeze(),
-  challengeComplete: () => areSoundsEnabled() && sounds.challengeComplete()
+  challengeComplete: () => areSoundsEnabled() && sounds.challengeComplete(),
+  // Kid-friendly quiz sounds
+  quizCorrect: () => areSoundsEnabled() && sounds.quizCorrect(),
+  quizWrong: () => areSoundsEnabled() && sounds.quizWrong(),
+  quizComplete: () => areSoundsEnabled() && sounds.quizComplete(),
+  quizStart: () => areSoundsEnabled() && sounds.quizStart(),
+  timerTick: () => areSoundsEnabled() && sounds.timerTick(),
+  timerWarning: () => areSoundsEnabled() && sounds.timerWarning(),
+  questionAppear: () => areSoundsEnabled() && sounds.questionAppear(),
+  hintReveal: () => areSoundsEnabled() && sounds.hintReveal()
 };
 
 export default playSounds;

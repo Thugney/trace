@@ -7,10 +7,14 @@ import { Brain, Trophy, Zap, Star, Sparkles, Target, Clock, Play, Pause, Refresh
 import playSounds, { areSoundsEnabled } from '../utils/sounds';
 
 const playQuizSound = {
-  correct: () => playSounds.pointsEarned(),
-  wrong: () => playSounds.waterLogged(),
-  complete: () => playSounds.levelUp(),
-  click: () => playSounds.click()
+  correct: () => playSounds.quizCorrect(),
+  wrong: () => playSounds.quizWrong(),
+  complete: () => playSounds.quizComplete(),
+  start: () => playSounds.quizStart(),
+  click: () => playSounds.click(),
+  hint: () => playSounds.hintReveal(),
+  questionAppear: () => playSounds.questionAppear(),
+  timerWarning: () => playSounds.timerWarning()
 };
 
 // Confetti celebration
@@ -273,7 +277,7 @@ export default function QuizPlayer() {
 
   const startQuiz = async (quiz: FamilyQuiz) => {
     try {
-      playQuizSound.click();
+      playQuizSound.start();
       const response = await familyQuizzesAPI.startQuiz(quiz.id, currentProfile!.id);
       setCurrentQuiz(response.data);
       startAmbient();
@@ -437,9 +441,13 @@ export default function QuizPlayer() {
 
   const isLightGradient = (background?: string) => {
     if (!background) return false;
-    const lightBase = /(from|to|via)-(?:white|slate|gray|neutral|zinc|stone|sky|blue|indigo|emerald|teal|green|yellow|amber|orange|rose|pink)-(?:50|100|200|300|400)\b/;
-    const warmBright = /(from|to|via)-(?:yellow|amber|orange|rose|pink)-(?:500)\b/;
-    return lightBase.test(background) || warmBright.test(background) || /(from|to|via)-white\b/.test(background);
+    // Check for light color stops (50-400 range are typically light)
+    const lightBase = /(from|to|via)-(?:white|slate|gray|neutral|zinc|stone|sky|blue|cyan|teal|emerald|green|lime|yellow|amber|orange|red|rose|pink|fuchsia|purple|violet|indigo)-(?:50|100|200|300|400)\b/;
+    // Bright warm colors at 500 level that still need dark text
+    const warmBright = /(from|to|via)-(?:yellow|amber|lime|cyan)-(?:500|600)\b/;
+    // Explicit white backgrounds
+    const whiteBackground = /(from|to|via)-white\b|bg-white/;
+    return lightBase.test(background) || warmBright.test(background) || whiteBackground.test(background);
   };
 
   const getEncouragement = () => {
@@ -681,9 +689,9 @@ export default function QuizPlayer() {
                           )}
                         </div>
                       </div>
-                      <h3 className="text-xl font-black mt-3 drop-shadow-sm">{quiz.title}</h3>
+                      <h3 className={`text-xl font-black mt-3 ${isLightCard ? 'text-slate-900' : 'text-white drop-shadow-md'}`}>{quiz.title}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-sm ${isLightCard ? 'text-slate-600' : 'text-white/80'}`}>{quiz.question_count} questions</span>
+                        <span className={`text-sm font-medium ${isLightCard ? 'text-slate-700' : 'text-white/90 drop-shadow-sm'}`}>{quiz.question_count} questions</span>
                         {quiz.time_limit_seconds && (
                           <span className={`flex items-center gap-1 text-xs ${isLightCard ? 'text-slate-600' : 'text-white/70'}`}>
                             <Clock className="w-3 h-3" /> {Math.floor(quiz.time_limit_seconds / 60)}min
@@ -987,7 +995,7 @@ export default function QuizPlayer() {
           {/* Hint Button */}
           {question.hint && gameState === 'playing' && !showHint && (
             <button
-              onClick={() => setShowHint(true)}
+              onClick={() => { playQuizSound.hint(); setShowHint(true); }}
               className="mt-4 w-full py-2 text-purple-600 hover:bg-purple-50 rounded-lg text-sm"
             >
               Need a hint? Click here
