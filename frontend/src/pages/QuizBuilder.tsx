@@ -485,6 +485,36 @@ export default function QuizBuilder() {
                 <span className="text-xs text-gray-500">This category does not support images</span>
               )}
             </div>
+
+            {/* Cost Estimate */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+              <div className="font-semibold text-amber-800 mb-1">💰 Estimated Cost</div>
+              {aiIncludeImages && aiInputConfig.supports_images ? (
+                <div className="space-y-0.5 text-amber-700">
+                  <div className="flex justify-between">
+                    <span>{aiQuestionCount} question images × $0.04</span>
+                    <span>${(aiQuestionCount * 0.04).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Text generation</span>
+                    <span>~$0.01</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-amber-900 border-t border-amber-300 pt-1 mt-1">
+                    <span>Total</span>
+                    <span>${(aiQuestionCount * 0.04 + 0.01).toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-amber-700">
+                  <div className="flex justify-between">
+                    <span>Text generation only</span>
+                    <span>~$0.01</span>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-amber-600 mt-1">* Based on OpenAI DALL-E 3 pricing</p>
+            </div>
+
             <button
               onClick={handleGenerateAIQuiz}
               disabled={aiGenerating}
