@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
-import { booksAPI, Book, BookCategory } from '../services/api';
+import { booksAPI, Book, BookCategory, profilesAPI } from '../services/api';
+import type { Profile } from '../types';
 import {
   BookOpen, Trash2, Sparkles, Clock, CheckCircle,
-  BookMarked, Filter, Search, ChevronRight
+  BookMarked, Filter, Search, ChevronRight, Users
 } from 'lucide-react';
 
 export default function BookLibrary() {
@@ -16,6 +17,7 @@ export default function BookLibrary() {
   const [loading, setLoading] = useState(true);
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<BookCategory[]>([]);
+  const [children, setChildren] = useState<Profile[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -32,6 +34,7 @@ export default function BookLibrary() {
   const [ageRange, setAgeRange] = useState('4-8');
   const [selectedGenre, setSelectedGenre] = useState('story');
   const [includeImages, setIncludeImages] = useState(true);
+  const [assignedTo, setAssignedTo] = useState<number | null>(null);
 
   const isParentOrTeacher = currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin';
 
@@ -43,12 +46,19 @@ export default function BookLibrary() {
 
   const loadData = async () => {
     try {
-      const [booksRes, categoriesRes] = await Promise.all([
+      const [booksRes, categoriesRes, profilesRes] = await Promise.all([
         booksAPI.getProfileBooks(currentProfile!.id),
-        booksAPI.getCategories()
+        booksAPI.getCategories(),
+        profilesAPI.getAll()
       ]);
       setBooks(booksRes.data);
       setCategories(categoriesRes.data);
+
+      // Filter to get children (profiles where parent_id matches current user or type is 'child')
+      const childProfiles = profilesRes.data.filter(
+        (p: Profile) => p.type === 'child' && (p.parent_id === currentProfile!.id || !p.parent_id)
+      );
+      setChildren(childProfiles);
     } catch (error) {
       showToast('Failed to load books', 'error');
     } finally {
@@ -70,7 +80,7 @@ export default function BookLibrary() {
         prompt: bookPrompt,
         pageCount,
         createdBy: currentProfile!.id,
-        assignedTo: currentProfile!.id,
+        assignedTo: assignedTo || currentProfile!.id,
         ageRange,
         genre: selectedGenre,
         includeImages
@@ -91,6 +101,7 @@ export default function BookLibrary() {
             setGenerationProgress(null);
             setShowCreateModal(false);
             setBookPrompt('');
+            setAssignedTo(null);
             showToast('Book created successfully!', 'success');
             loadData();
 
@@ -404,23 +415,44 @@ export default function BookLibrary() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Genre
-                    </label>
-                    <select
-                      value={selectedGenre}
-                      onChange={(e) => setSelectedGenre(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
-                    >
-                      <option value="story">Story</option>
-                      <option value="adventure">Adventure</option>
-                      <option value="fantasy">Fantasy</option>
-                      <option value="educational">Educational</option>
-                      <option value="bedtime">Bedtime</option>
-                      <option value="animals">Animals</option>
-                      <option value="friendship">Friendship</option>
-                    </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Genre
+                      </label>
+                      <select
+                        value={selectedGenre}
+                        onChange={(e) => setSelectedGenre(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                      >
+                        <option value="story">Story</option>
+                        <option value="adventure">Adventure</option>
+                        <option value="fantasy">Fantasy</option>
+                        <option value="educational">Educational</option>
+                        <option value="bedtime">Bedtime</option>
+                        <option value="animals">Animals</option>
+                        <option value="friendship">Friendship</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                        <Users size={14} />
+                        Assign To
+                      </label>
+                      <select
+                        value={assignedTo || ''}
+                        onChange={(e) => setAssignedTo(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                      >
+                        <option value="">Myself</option>
+                        {children.map(child => (
+                          <option key={child.id} value={child.id}>
+                            {child.name} {child.avatar || ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-3">
