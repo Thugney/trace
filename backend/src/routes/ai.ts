@@ -7,6 +7,7 @@ import { requireFeature } from '../middleware/feature-access';
 const router = express.Router();
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // AI Tool definitions for function calling
 const AI_TOOLS = [
@@ -536,6 +537,34 @@ function isGrokAvailable(): boolean {
   return !!getGrokApiKey();
 }
 
+// Helper: Get OpenAI API key from env or settings table
+function getOpenAiApiKey(): string | null {
+  let apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('openai_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read openai_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+}
+
+// Helper: Check if OpenAI API is available
+function isOpenAiAvailable(): boolean {
+  return !!getOpenAiApiKey();
+}
+
+// Helper: Check if any AI API is available
+function isAnyAiAvailable(): boolean {
+  return isGrokAvailable() || isOpenAiAvailable();
+}
+
 
 
 // Helper: Get comprehensive profile context (tasks, progress, diet, goals, notes, quizzes, behavior)
@@ -925,9 +954,9 @@ router.get('/chat', authenticateEventSource, requireFeature('ai'), requireRole([
 
     let aiResponse: string;
 
-    // Check if Grok API is available
-    if (!isGrokAvailable()) {
-      // Fallback mode
+    // Check if any AI API is available (Grok or OpenAI)
+    if (!isAnyAiAvailable()) {
+      // Fallback mode - no AI API configured
       aiResponse = generateFallbackResponse(message, profile, context);
     } else {
       // Build system prompt based on context, user type, and AI settings
@@ -1099,38 +1128,57 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
       messages.push({ role: 'user', content: message });
 
       try {
-        // First, call Grok API with tools (non-streaming to check for tool calls)
-        const apiKey = getGrokApiKey();
+        // Determine which API to use (prefer Grok, fallback to OpenAI)
+        const grokApiKey = getGrokApiKey();
+        const openAiApiKey = getOpenAiApiKey();
+        let useOpenAi = !grokApiKey;
+        let apiKey = grokApiKey || openAiApiKey;
+        let apiUrl = useOpenAi ? OPENAI_API_URL : GROK_API_URL;
+        let model = useOpenAi ? 'gpt-4o-mini' : 'grok-2-latest';
+
+        console.log(`[AI Chat] Using ${useOpenAi ? 'OpenAI' : 'Grok'} API`);
+
         let toolResults: { toolName: string; result: any }[] = [];
         let toolCheckMessage: any = null;
 
-        // Try to detect tool calls first
-        try {
-          console.log('[AI Chat] Checking for tool calls with grok-2-latest...');
-          const toolCheckResponse = await axios.post(
-            GROK_API_URL,
-            {
-              model: 'grok-2-latest',  // Use Grok 2 for tool detection (better function calling support)
-              messages,
-              tools: AI_TOOLS,
-              tool_choice: 'auto',
-              temperature: 0.7,
-              max_tokens: 500
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
+        // Try to detect tool calls first (only with Grok, OpenAI has different format)
+        if (!useOpenAi && grokApiKey) {
+          try {
+            console.log('[AI Chat] Checking for tool calls with grok-2-latest...');
+            const toolCheckResponse = await axios.post(
+              GROK_API_URL,
+              {
+                model: 'grok-2-latest',
+                messages,
+                tools: AI_TOOLS,
+                tool_choice: 'auto',
+                temperature: 0.7,
+                max_tokens: 500
               },
-              timeout: 30000
-            }
-          );
+              {
+                headers: {
+                  'Authorization': `Bearer ${grokApiKey}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 30000
+              }
+            );
 
-          toolCheckMessage = toolCheckResponse.data.choices?.[0]?.message;
-          console.log('[AI Chat] Tool check response:', JSON.stringify(toolCheckMessage, null, 2));
-        } catch (toolError: any) {
-          console.error('[AI Chat] Tool check failed, continuing without tools:', toolError.response?.data || toolError.message);
-          // Continue without tools if function calling fails
+            toolCheckMessage = toolCheckResponse.data.choices?.[0]?.message;
+            console.log('[AI Chat] Tool check response:', JSON.stringify(toolCheckMessage, null, 2));
+          } catch (toolError: any) {
+            const errorStatus = toolError.response?.status;
+            console.error('[AI Chat] Tool check failed:', toolError.response?.data || toolError.message);
+
+            // If Grok rate limited (429), switch to OpenAI
+            if (errorStatus === 429 && openAiApiKey) {
+              console.log('[AI Chat] Grok rate limited, switching to OpenAI...');
+              useOpenAi = true;
+              apiKey = openAiApiKey;
+              apiUrl = OPENAI_API_URL;
+              model = 'gpt-4o-mini';
+            }
+          }
         }
 
         // Check if the AI wants to call tools
@@ -1177,24 +1225,48 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
         }
 
         // Now make the final streaming call for the response
-        const response = await axios.post(
-          GROK_API_URL,
-          {
-            model: 'grok-2-latest',  // Grok model for response
-            messages,
-            temperature: 0.7,
-            max_tokens: 500,
-            stream: true  // Enable streaming
-          },
-          {
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
+        // Use a helper function to handle streaming with fallback
+        const makeStreamingRequest = async (url: string, modelName: string, key: string) => {
+          return await axios.post(
+            url,
+            {
+              model: modelName,
+              messages,
+              temperature: 0.7,
+              max_tokens: 500,
+              stream: true
             },
-            timeout: 30000,
-            responseType: 'stream'  // Receive stream
+            {
+              headers: {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 30000,
+              responseType: 'stream'
+            }
+          );
+        };
+
+        let response;
+        try {
+          console.log(`[AI Chat] Making streaming request to ${useOpenAi ? 'OpenAI' : 'Grok'}...`);
+          response = await makeStreamingRequest(apiUrl, model, apiKey!);
+        } catch (streamError: any) {
+          const errorStatus = streamError.response?.status;
+          console.error(`[AI Chat] ${useOpenAi ? 'OpenAI' : 'Grok'} streaming failed:`, streamError.response?.data || streamError.message);
+
+          // If Grok failed and OpenAI is available, try OpenAI
+          if (!useOpenAi && openAiApiKey && (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503)) {
+            console.log('[AI Chat] Falling back to OpenAI...');
+            useOpenAi = true;
+            apiUrl = OPENAI_API_URL;
+            model = 'gpt-4o-mini';
+            apiKey = openAiApiKey;
+            response = await makeStreamingRequest(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+          } else {
+            throw streamError;
           }
-        );
+        }
 
         // Set up SSE (Server-Sent Events) for streaming to frontend
         res.setHeader('Content-Type', 'text/event-stream');
@@ -1203,7 +1275,7 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
 
         let fullResponse = '';
 
-        // Handle streaming data from Grok
+        // Handle streaming data
         response.data.on('data', (chunk: Buffer) => {
           const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
 

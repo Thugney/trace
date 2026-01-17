@@ -10,6 +10,7 @@ const router = express.Router();
 router.use(authenticate, requireFeature('ai'));
 
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Helper: Get Grok API key from env or settings table
 function getGrokApiKey(): string | null {
@@ -29,9 +30,32 @@ function getGrokApiKey(): string | null {
   return apiKey && apiKey !== 'your_grok_api_key_here' && apiKey.trim() !== '' ? apiKey : null;
 }
 
+// Helper: Get OpenAI API key from env or settings table
+function getOpenAiApiKey(): string | null {
+  let apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('openai_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read openai_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+}
+
 // Helper: Check if Grok API is available
 function isGrokAvailable(): boolean {
   return !!getGrokApiKey();
+}
+
+// Helper: Check if any AI API is available
+function isAnyAiAvailable(): boolean {
+  return !!getGrokApiKey() || !!getOpenAiApiKey();
 }
 
 // ==================== BEHAVIOR ANALYSIS ====================
@@ -309,37 +333,70 @@ router.post('/generate/:profileId', requireRole(['admin', 'parent']), async (req
     // Build AI prompt
     const prompt = buildChallengePrompt(profile, behaviorData, focusAreas, count);
 
-    // Check if Grok API is available
-    const apiKey = getGrokApiKey();
-    if (!apiKey) {
+    // Check if any AI API is available
+    const grokApiKey = getGrokApiKey();
+    const openAiApiKey = getOpenAiApiKey();
+
+    if (!grokApiKey && !openAiApiKey) {
       return res.status(503).json({
-        error: 'AI service not configured. Please configure the Grok API key.'
+        error: 'AI service not configured. Please configure the Grok or OpenAI API key.'
       });
     }
 
-    // Call Grok AI API
-    const response = await axios.post(
-      GROK_API_URL,
-      {
-        model: 'grok-2-latest',
-        messages: [
-          { role: 'system', content: 'You are a helpful AI assistant that creates personalized gamification challenges for children. Always respond with valid JSON arrays as specified.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 2000
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
+    // Helper function to call AI API
+    const callAiApi = async (apiUrl: string, model: string, apiKey: string) => {
+      return await axios.post(
+        apiUrl,
+        {
+          model,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant that creates personalized gamification challenges for children. Always respond with valid JSON arrays as specified.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.8,
+          max_tokens: 2000
         },
-        timeout: 30000
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+    };
+
+    // Try Grok first, then fall back to OpenAI
+    let response;
+    let usedProvider = 'Grok';
+
+    if (grokApiKey) {
+      try {
+        console.log('[AI Gamification] Trying Grok API...');
+        response = await callAiApi(GROK_API_URL, 'grok-2-latest', grokApiKey);
+      } catch (grokError: any) {
+        const errorStatus = grokError.response?.status;
+        console.error('[AI Gamification] Grok failed:', grokError.response?.data || grokError.message);
+
+        // Fall back to OpenAI if Grok fails with rate limit or server error
+        if (openAiApiKey && (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503)) {
+          console.log('[AI Gamification] Falling back to OpenAI...');
+          usedProvider = 'OpenAI';
+          response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+        } else {
+          throw grokError;
+        }
       }
-    );
+    } else if (openAiApiKey) {
+      console.log('[AI Gamification] Using OpenAI (Grok not configured)...');
+      usedProvider = 'OpenAI';
+      response = await callAiApi(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+    }
+
+    console.log(`[AI Gamification] Successfully got response from ${usedProvider}`);
 
     // Parse AI response
-    const aiContent = response.data.choices?.[0]?.message?.content;
+    const aiContent = response!.data.choices?.[0]?.message?.content;
     if (!aiContent) {
       throw new Error('No response from AI');
     }
