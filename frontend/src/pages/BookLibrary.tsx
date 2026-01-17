@@ -515,6 +515,49 @@ export default function BookLibrary() {
                     </label>
                   </div>
 
+                  {/* Cost Estimate */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                      💰 Estimated Cost
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      {includeImages ? (
+                        <>
+                          <div className="flex justify-between text-amber-700">
+                            <span>Cover image (DALL-E 3)</span>
+                            <span>$0.04</span>
+                          </div>
+                          <div className="flex justify-between text-amber-700">
+                            <span>{pageCount} page images × $0.04</span>
+                            <span>${(pageCount * 0.04).toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-amber-700">
+                            <span>Text generation (AI)</span>
+                            <span>~$0.01</span>
+                          </div>
+                          <div className="border-t border-amber-300 pt-1 mt-2 flex justify-between font-bold text-amber-900">
+                            <span>Total</span>
+                            <span>${((pageCount + 1) * 0.04 + 0.01).toFixed(2)}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex justify-between text-amber-700">
+                            <span>Text generation only (AI)</span>
+                            <span>~$0.01</span>
+                          </div>
+                          <div className="border-t border-amber-300 pt-1 mt-2 flex justify-between font-bold text-amber-900">
+                            <span>Total</span>
+                            <span>~$0.01</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-amber-600 mt-2">
+                      * Costs are estimates based on OpenAI DALL-E 3 pricing. Actual costs may vary if using Grok fallback.
+                    </p>
+                  </div>
+
                   <div className="flex gap-3 pt-4">
                     <button
                       onClick={() => setShowCreateModal(false)}
