@@ -2425,6 +2425,27 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_book_reading_progress_profile ON book_reading_progress(profile_id);
   `);
 
+  // Book feedback/ratings from kids
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+      liked INTEGER DEFAULT 0,
+      comment TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(book_id, profile_id)
+    )
+  `);
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_book_feedback_book ON book_feedback(book_id);
+    CREATE INDEX IF NOT EXISTS idx_book_feedback_profile ON book_feedback(profile_id);
+  `);
+  console.log('✅ Book feedback table created');
+
   // Insert default book categories
   const bookCategories = [
     { name: 'adventure', display_name: 'Adventure', icon: '🗺️', description: 'Exciting adventures and exploration stories' },

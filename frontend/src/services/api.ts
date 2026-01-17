@@ -1501,6 +1501,18 @@ export interface BookWithPages extends Book {
   categories: BookCategory[];
 }
 
+export interface BookFeedback {
+  id: number;
+  book_id: number;
+  profile_id: number;
+  rating: number;
+  liked: number;
+  comment?: string;
+  created_at: string;
+  profile_name?: string;
+  profile_avatar?: string;
+}
+
 export interface BookGenerateRequest {
   prompt: string;
   pageCount?: number;
@@ -1582,7 +1594,24 @@ export const booksAPI = {
     api.get<BookReadingProgress[]>(`/books/progress/${profileId}`),
 
   // Media
-  getMediaUrl: (filename: string) => `/api/books/media/${filename}`
+  getMediaUrl: (filename: string) => `/api/books/media/${filename}`,
+
+  // Feedback/Ratings
+  submitFeedback: (bookId: number, data: {
+    profileId: number;
+    rating: number;
+    liked?: boolean;
+    comment?: string;
+  }) => api.post<BookFeedback>(`/books/${bookId}/feedback`, data),
+
+  getBookFeedback: (bookId: number) =>
+    api.get<{ feedback: BookFeedback[]; stats: { totalReviews: number; averageRating: number; likesCount: number } }>(`/books/${bookId}/feedback`),
+
+  getMyFeedback: (bookId: number, profileId: number) =>
+    api.get<BookFeedback | null>(`/books/${bookId}/my-feedback/${profileId}`),
+
+  getProfileFeedback: (profileId: number) =>
+    api.get<(BookFeedback & { book_title: string; cover_image?: string })[]>(`/books/feedback/profile/${profileId}`)
 };
 
 export default api;

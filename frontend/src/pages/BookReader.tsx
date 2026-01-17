@@ -5,7 +5,7 @@ import { useToast } from '../components/Toast';
 import { booksAPI, BookWithPages, BookPage } from '../services/api';
 import {
   ChevronLeft, ChevronRight, Home, BookOpen,
-  Maximize2, Minimize2, X, Menu, CheckCircle
+  Maximize2, Minimize2, X, Menu, CheckCircle, Star, Heart, Send
 } from 'lucide-react';
 
 export default function BookReader() {
@@ -24,6 +24,11 @@ export default function BookReader() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+  // Rating state
+  const [myRating, setMyRating] = useState<number>(0);
+  const [liked, setLiked] = useState<boolean>(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
+
   const bookContainerRef = useRef<HTMLDivElement>(null);
   const minSwipeDistance = 50;
 
@@ -38,7 +43,7 @@ export default function BookReader() {
       const { data } = await booksAPI.getBook(Number(bookId));
       setBook(data);
 
-      // Resume from last read page
+      // Resume from last read page and load existing feedback
       if (data.pages && currentProfile?.id) {
         try {
           const progressRes = await booksAPI.getProfileProgress(currentProfile.id);
@@ -49,12 +54,40 @@ export default function BookReader() {
         } catch (e) {
           // Ignore progress errors
         }
+
+        // Load existing feedback
+        try {
+          const feedbackRes = await booksAPI.getMyFeedback(Number(bookId), currentProfile.id);
+          if (feedbackRes.data) {
+            setMyRating(feedbackRes.data.rating);
+            setLiked(feedbackRes.data.liked === 1);
+            setFeedbackSubmitted(true);
+          }
+        } catch (e) {
+          // Ignore feedback errors
+        }
       }
     } catch (error) {
       showToast('Failed to load book', 'error');
       navigate('/books');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const submitFeedback = async () => {
+    if (!currentProfile?.id || !bookId || myRating === 0) return;
+
+    try {
+      await booksAPI.submitFeedback(Number(bookId), {
+        profileId: currentProfile.id,
+        rating: myRating,
+        liked
+      });
+      setFeedbackSubmitted(true);
+      showToast('Thanks for your feedback!', 'success');
+    } catch (e) {
+      showToast('Could not save feedback', 'error');
     }
   };
 
@@ -239,9 +272,11 @@ export default function BookReader() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/books')}
-            className="p-2 rounded-full hover:bg-amber-100 text-amber-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-full bg-red-100 hover:bg-red-200 text-red-700 font-medium transition-colors"
+            title="Exit to Library"
           >
-            <X size={24} />
+            <X size={20} />
+            <span className="hidden sm:inline">Exit</span>
           </button>
           <div>
             <h1 className="font-semibold text-gray-900 truncate max-w-[200px] md:max-w-none">
@@ -406,16 +441,74 @@ export default function BookReader() {
                 </div>
               </div>
             ) : (
-              // End Page
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-                <CheckCircle className="mb-6" size={64} />
-                <h2 className="text-3xl font-bold mb-4">The End!</h2>
-                <p className="text-lg opacity-90 mb-8">
+              // End Page with Rating
+              <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-y-auto">
+                <CheckCircle className="mb-4" size={56} />
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">The End!</h2>
+                <p className="text-base md:text-lg opacity-90 mb-6">
                   You finished reading "{book.title}"
                 </p>
+
+                {/* Rating Section */}
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 md:p-6 mb-6 w-full max-w-sm">
+                  <p className="text-sm md:text-base font-medium mb-3">
+                    {feedbackSubmitted ? 'Your Rating:' : 'Did you like this book?'}
+                  </p>
+
+                  {/* Star Rating */}
+                  <div className="flex justify-center gap-1 md:gap-2 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => !feedbackSubmitted && setMyRating(star)}
+                        disabled={feedbackSubmitted}
+                        className={`transition-transform ${feedbackSubmitted ? 'cursor-default' : 'hover:scale-110 active:scale-95'}`}
+                      >
+                        <Star
+                          size={32}
+                          className={`${
+                            star <= myRating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-white/50'
+                          } transition-colors`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Like Button */}
+                  <button
+                    onClick={() => !feedbackSubmitted && setLiked(!liked)}
+                    disabled={feedbackSubmitted}
+                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-full mb-4 transition-all ${
+                      liked
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-white/30 text-white hover:bg-white/40'
+                    } ${feedbackSubmitted ? 'cursor-default' : ''}`}
+                  >
+                    <Heart size={20} className={liked ? 'fill-white' : ''} />
+                    <span className="text-sm font-medium">{liked ? 'I loved it!' : 'I loved it!'}</span>
+                  </button>
+
+                  {/* Submit Button */}
+                  {!feedbackSubmitted && myRating > 0 && (
+                    <button
+                      onClick={submitFeedback}
+                      className="flex items-center justify-center gap-2 w-full py-2 bg-white text-emerald-600 rounded-full font-semibold hover:bg-emerald-50 transition-colors"
+                    >
+                      <Send size={18} />
+                      <span>Submit</span>
+                    </button>
+                  )}
+
+                  {feedbackSubmitted && (
+                    <p className="text-sm text-white/80">Thanks for your feedback!</p>
+                  )}
+                </div>
+
                 <button
                   onClick={() => navigate('/books')}
-                  className="px-8 py-3 bg-white text-emerald-600 rounded-full font-semibold hover:bg-emerald-50 transition-colors flex items-center gap-2"
+                  className="px-6 py-3 bg-white text-emerald-600 rounded-full font-semibold hover:bg-emerald-50 transition-colors flex items-center gap-2"
                 >
                   <Home size={20} />
                   Back to Library

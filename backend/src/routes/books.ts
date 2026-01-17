@@ -285,7 +285,7 @@ const generateBookImage = async (prompt: string, errors: string[], label: string
       if (openAiApiKey) {
         const response = await axios.post(
           OPENAI_IMAGE_URL,
-          { model: 'gpt-image-1', prompt, size: '1024x1024', response_format: 'b64_json' },
+          { model: 'dall-e-3', prompt, size: '1024x1024', response_format: 'b64_json', quality: 'standard' },
           { headers: { 'Authorization': `Bearer ${openAiApiKey}`, 'Content-Type': 'application/json' }, timeout: 60000 }
         );
         const base64 = response.data?.data?.[0]?.b64_json;
@@ -797,6 +797,110 @@ router.post('/:bookId/pages', authenticate, (req: Request, res: Response) => {
 
     const page = db.prepare('SELECT * FROM book_pages WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(page);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== BOOK FEEDBACK/RATINGS ====================
+
+// Submit feedback for a book (kids can rate books)
+router.post('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
+  try {
+    const { bookId } = req.params;
+    const { profileId, rating, liked, comment } = req.body;
+
+    if (!profileId || !rating) {
+      return res.status(400).json({ error: 'profileId and rating are required' });
+    }
+
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    // Check if feedback already exists
+    const existing = db.prepare('SELECT id FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+
+    if (existing) {
+      // Update existing feedback
+      db.prepare(`
+        UPDATE book_feedback
+        SET rating = ?, liked = ?, comment = ?, created_at = CURRENT_TIMESTAMP
+        WHERE book_id = ? AND profile_id = ?
+      `).run(rating, liked ? 1 : 0, comment || null, bookId, profileId);
+    } else {
+      // Insert new feedback
+      db.prepare(`
+        INSERT INTO book_feedback (book_id, profile_id, rating, liked, comment)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(bookId, profileId, rating, liked ? 1 : 0, comment || null);
+    }
+
+    const feedback = db.prepare('SELECT * FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    res.json(feedback);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get feedback for a specific book
+router.get('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
+  try {
+    const { bookId } = req.params;
+    const feedback = db.prepare(`
+      SELECT bf.*, p.name as profile_name, p.avatar as profile_avatar
+      FROM book_feedback bf
+      JOIN profiles p ON bf.profile_id = p.id
+      WHERE bf.book_id = ?
+      ORDER BY bf.created_at DESC
+    `).all(bookId);
+
+    // Calculate average rating
+    const stats: any = db.prepare(`
+      SELECT
+        COUNT(*) as total_reviews,
+        AVG(rating) as average_rating,
+        SUM(CASE WHEN liked = 1 THEN 1 ELSE 0 END) as likes_count
+      FROM book_feedback WHERE book_id = ?
+    `).get(bookId);
+
+    res.json({
+      feedback,
+      stats: {
+        totalReviews: stats.total_reviews || 0,
+        averageRating: stats.average_rating ? Math.round(stats.average_rating * 10) / 10 : 0,
+        likesCount: stats.likes_count || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all feedback from a child (for parents to see)
+router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const feedback = db.prepare(`
+      SELECT bf.*, b.title as book_title, b.cover_image
+      FROM book_feedback bf
+      JOIN books b ON bf.book_id = b.id
+      WHERE bf.profile_id = ?
+      ORDER BY bf.created_at DESC
+    `).all(profileId);
+
+    res.json(feedback);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get my feedback for a specific book
+router.get('/:bookId/my-feedback/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { bookId, profileId } = req.params;
+    const feedback = db.prepare('SELECT * FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    res.json(feedback || null);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

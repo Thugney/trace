@@ -32,9 +32,23 @@ export default function BookLibrary() {
   const [bookPrompt, setBookPrompt] = useState('');
   const [pageCount, setPageCount] = useState(8);
   const [ageRange, setAgeRange] = useState('4-8');
-  const [selectedGenre, setSelectedGenre] = useState('story');
+  const [selectedGenre, setSelectedGenre] = useState('adventure');
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [includeImages, setIncludeImages] = useState(true);
   const [assignedTo, setAssignedTo] = useState<number | null>(null);
+
+  // Genre options for filtering and creating books (must match what's stored in book.genre)
+  const genreOptions = [
+    { value: 'adventure', label: '🗺️ Adventure' },
+    { value: 'animals', label: '🐾 Animals' },
+    { value: 'fantasy', label: '🧙 Fantasy' },
+    { value: 'educational', label: '📚 Educational' },
+    { value: 'bedtime', label: '🌙 Bedtime' },
+    { value: 'friendship', label: '🤝 Friendship' },
+    { value: 'family', label: '👨‍👩‍👧‍👦 Family' },
+    { value: 'science', label: '🔬 Science' },
+    { value: 'history', label: '📜 History' },
+  ];
 
   const isParentOrTeacher = currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin';
 
@@ -83,6 +97,7 @@ export default function BookLibrary() {
         assignedTo: assignedTo || currentProfile!.id,
         ageRange,
         genre: selectedGenre,
+        categoryIds: selectedCategoryIds,
         includeImages
       });
 
@@ -102,6 +117,7 @@ export default function BookLibrary() {
             setShowCreateModal(false);
             setBookPrompt('');
             setAssignedTo(null);
+            setSelectedCategoryIds([]);
             showToast('Book created successfully!', 'success');
             loadData();
 
@@ -205,9 +221,9 @@ export default function BookLibrary() {
             onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
           >
-            <option value="all">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.name}>{cat.icon} {cat.display_name}</option>
+            <option value="all">All Genres</option>
+            {genreOptions.map(genre => (
+              <option key={genre.value} value={genre.value}>{genre.label}</option>
             ))}
           </select>
         </div>
@@ -425,13 +441,9 @@ export default function BookLibrary() {
                         onChange={(e) => setSelectedGenre(e.target.value)}
                         className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
                       >
-                        <option value="story">Story</option>
-                        <option value="adventure">Adventure</option>
-                        <option value="fantasy">Fantasy</option>
-                        <option value="educational">Educational</option>
-                        <option value="bedtime">Bedtime</option>
-                        <option value="animals">Animals</option>
-                        <option value="friendship">Friendship</option>
+                        {genreOptions.map(genre => (
+                          <option key={genre.value} value={genre.value}>{genre.label}</option>
+                        ))}
                       </select>
                     </div>
 
@@ -453,6 +465,41 @@ export default function BookLibrary() {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {/* Additional Categories (optional) */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Additional Categories (optional)
+                    </label>
+                    <div className="flex flex-wrap gap-2 p-3 border border-slate-200 rounded-xl bg-gray-50 max-h-32 overflow-y-auto">
+                      {categories.map(cat => (
+                        <label
+                          key={cat.id}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm cursor-pointer transition-colors ${
+                            selectedCategoryIds.includes(cat.id)
+                              ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
+                              : 'bg-white border border-gray-200 hover:border-primary-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategoryIds.includes(cat.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCategoryIds([...selectedCategoryIds, cat.id]);
+                              } else {
+                                setSelectedCategoryIds(selectedCategoryIds.filter(id => id !== cat.id));
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          <span>{cat.icon}</span>
+                          <span>{cat.display_name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Select additional categories for easier organization</p>
                   </div>
 
                   <div className="flex items-center gap-3">
