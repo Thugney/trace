@@ -1253,7 +1253,17 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
           response = await makeStreamingRequest(apiUrl, model, apiKey!);
         } catch (streamError: any) {
           const errorStatus = streamError.response?.status;
-          console.error(`[AI Chat] ${useOpenAi ? 'OpenAI' : 'Grok'} streaming failed:`, streamError.response?.data || streamError.message);
+          // For streaming errors, try to extract the error message
+          let errorMessage = streamError.message;
+          if (streamError.response?.data) {
+            try {
+              // If it's a stream, we can't easily read it here, just log the status
+              errorMessage = `Status ${errorStatus}: ${streamError.message}`;
+            } catch (e) {
+              errorMessage = streamError.message;
+            }
+          }
+          console.error(`[AI Chat] ${useOpenAi ? 'OpenAI' : 'Grok'} streaming failed (${errorStatus}):`, errorMessage);
 
           // If Grok failed and OpenAI is available, try OpenAI
           if (!useOpenAi && openAiApiKey && (errorStatus === 429 || errorStatus === 500 || errorStatus === 502 || errorStatus === 503)) {
@@ -1262,7 +1272,12 @@ NEVER say "I cannot create this task" or "this category is not valid" - ALL cate
             apiUrl = OPENAI_API_URL;
             model = 'gpt-4o-mini';
             apiKey = openAiApiKey;
-            response = await makeStreamingRequest(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+            try {
+              response = await makeStreamingRequest(OPENAI_API_URL, 'gpt-4o-mini', openAiApiKey);
+            } catch (openAiError: any) {
+              console.error('[AI Chat] OpenAI also failed:', openAiError.response?.status, openAiError.message);
+              throw openAiError;
+            }
           } else {
             throw streamError;
           }
