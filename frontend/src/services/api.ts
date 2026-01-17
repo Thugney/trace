@@ -1436,4 +1436,153 @@ export const photoProofAPI = {
     api.delete<{ success: boolean; message: string }>(`/tasks/${taskId}/proof`)
 };
 
+// Book Types
+export interface Book {
+  id: number;
+  title: string;
+  description?: string;
+  cover_image?: string;
+  created_by: number;
+  assigned_to?: number;
+  creator_name?: string;
+  assigned_to_name?: string;
+  age_range: string;
+  language: string;
+  genre: string;
+  theme?: string;
+  total_pages: number;
+  is_published: number;
+  is_ai_generated: number;
+  ai_provider?: string;
+  created_at: string;
+  updated_at: string;
+  page_count?: number;
+  current_page?: number;
+  is_read?: number;
+}
+
+export interface BookPage {
+  id: number;
+  book_id: number;
+  page_number: number;
+  title?: string;
+  content: string;
+  image_prompt?: string;
+  image_url?: string;
+  audio_url?: string;
+  created_at: string;
+}
+
+export interface BookCategory {
+  id: number;
+  name: string;
+  display_name: string;
+  icon: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface BookReadingProgress {
+  id: number;
+  book_id: number;
+  profile_id: number;
+  current_page: number;
+  pages_read: number;
+  completed: number;
+  completed_at?: string;
+  started_at: string;
+  last_read_at: string;
+  book_title?: string;
+  cover_image?: string;
+}
+
+export interface BookWithPages extends Book {
+  pages: BookPage[];
+  categories: BookCategory[];
+}
+
+export interface BookGenerateRequest {
+  prompt: string;
+  pageCount?: number;
+  createdBy: number;
+  assignedTo?: number;
+  ageRange?: string;
+  language?: string;
+  genre?: string;
+  categoryIds?: number[];
+  includeImages?: boolean;
+}
+
+export interface BookJobStatus {
+  jobId: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  progress?: {
+    current: number;
+    total: number;
+    message: string;
+  };
+  result?: {
+    book: Book;
+    pages: BookPage[];
+    imageErrors?: string[];
+    provider: string;
+  };
+  error?: string;
+}
+
+// Books API
+export const booksAPI = {
+  // Categories
+  getCategories: () => api.get<BookCategory[]>('/books/categories'),
+
+  // AI Generation
+  generateAIBook: (data: BookGenerateRequest) =>
+    api.post<{ jobId: string; status: string }>('/books/ai-generate', data),
+
+  getAIBookJobStatus: (jobId: string) =>
+    api.get<BookJobStatus>(`/books/ai-generate/status/${jobId}`),
+
+  // CRUD
+  getProfileBooks: (profileId: number) =>
+    api.get<Book[]>(`/books/profile/${profileId}`),
+
+  getBook: (bookId: number) =>
+    api.get<BookWithPages>(`/books/${bookId}`),
+
+  createBook: (data: {
+    title: string;
+    description?: string;
+    createdBy: number;
+    assignedTo?: number;
+    ageRange?: string;
+    language?: string;
+    genre?: string;
+    categoryIds?: number[];
+  }) => api.post<Book>('/books', data),
+
+  deleteBook: (bookId: number) =>
+    api.delete<{ success: boolean; message: string }>(`/books/${bookId}`),
+
+  // Pages
+  addPage: (bookId: number, data: {
+    pageNumber?: number;
+    title?: string;
+    content: string;
+    imageUrl?: string;
+  }) => api.post<BookPage>(`/books/${bookId}/pages`, data),
+
+  // Reading Progress
+  updateProgress: (bookId: number, data: {
+    profileId: number;
+    currentPage: number;
+    completed?: boolean;
+  }) => api.post<BookReadingProgress>(`/books/${bookId}/progress`, data),
+
+  getProfileProgress: (profileId: number) =>
+    api.get<BookReadingProgress[]>(`/books/progress/${profileId}`),
+
+  // Media
+  getMediaUrl: (filename: string) => `/api/books/media/${filename}`
+};
+
 export default api;

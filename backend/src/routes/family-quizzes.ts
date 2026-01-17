@@ -14,6 +14,7 @@ const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
 // Configure multer for quiz media uploads
 const QUIZ_MEDIA_DIR = process.env.QUIZ_MEDIA_DIR || '/app/data/quiz-media';
@@ -98,6 +99,23 @@ const getOpenAiApiKey = (): string | null => {
       }
     } catch (error) {
       console.error('Failed to read openai_api_key from settings:', error);
+    }
+  }
+
+  return apiKey && apiKey.trim() !== '' ? apiKey : null;
+};
+
+const getGeminiApiKey = (): string | null => {
+  let apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey || apiKey.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('gemini_api_key');
+      if (setting && setting.value) {
+        apiKey = setting.value;
+      }
+    } catch (error) {
+      console.error('Failed to read gemini_api_key from settings:', error);
     }
   }
 
@@ -292,10 +310,68 @@ const requestOpenAiQuizContent = async (apiKey: string, promptText: string) => {
   throw new HttpError(503, 'OpenAI service is busy. Please try again.');
 };
 
+const requestGeminiQuizContent = async (apiKey: string, promptText: string) => {
+  const maxAttempts = 5;
+  const backoffDelays = [10000, 20000, 30000, 45000, 60000];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await axios.post(
+        `${GEMINI_API_URL}?key=${apiKey}`,
+        {
+          contents: [
+            {
+              parts: [
+                { text: `You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.\n\n${promptText}` }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json'
+          }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        }
+      );
+
+      // Transform Gemini response to match OpenAI structure
+      const geminiContent = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      return {
+        data: {
+          choices: [
+            {
+              message: {
+                content: geminiContent
+              }
+            }
+          ]
+        }
+      };
+    } catch (error: any) {
+      if (attempt < maxAttempts && shouldRetryAiRequest(error)) {
+        const backoffMs = backoffDelays[attempt - 1] + Math.floor(Math.random() * 2000);
+        console.log(`[AI Quiz] Gemini attempt ${attempt}/${maxAttempts} failed with ${error?.response?.status || error?.code}, retrying in ${Math.round(backoffMs / 1000)}s...`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new HttpError(503, 'Gemini service is busy. Please try again.');
+};
+
 const requestAiQuizContent = async (
   grokApiKey: string | null,
   promptText: string,
-  openAiApiKey?: string | null
+  openAiApiKey?: string | null,
+  geminiApiKey?: string | null
 ) => {
   const maxAttempts = 5;
   // Longer backoffs for rate limits: 10s, 20s, 30s, 45s, 60s
@@ -304,10 +380,14 @@ const requestAiQuizContent = async (
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       if (!grokApiKey) {
-        if (!openAiApiKey) {
-          throw new HttpError(503, 'AI service not configured. Please configure the Grok or OpenAI API key.');
+        // Try OpenAI first, then Gemini
+        if (openAiApiKey) {
+          return await requestOpenAiQuizContent(openAiApiKey, promptText);
         }
-        return await requestOpenAiQuizContent(openAiApiKey, promptText);
+        if (geminiApiKey) {
+          return await requestGeminiQuizContent(geminiApiKey, promptText);
+        }
+        throw new HttpError(503, 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.');
       }
 
       const response = await axios.post(
@@ -341,7 +421,19 @@ const requestAiQuizContent = async (
       if (status === 429) {
         console.log(`[AI Quiz] Grok rate limited after ${maxAttempts} attempts, falling back to OpenAI...`);
         if (openAiApiKey) {
-          return await requestOpenAiQuizContent(openAiApiKey, promptText);
+          try {
+            return await requestOpenAiQuizContent(openAiApiKey, promptText);
+          } catch (openAiError: any) {
+            if (openAiError?.response?.status === 429 && geminiApiKey) {
+              console.log(`[AI Quiz] OpenAI also rate limited, falling back to Gemini...`);
+              return await requestGeminiQuizContent(geminiApiKey, promptText);
+            }
+            throw openAiError;
+          }
+        }
+        if (geminiApiKey) {
+          console.log(`[AI Quiz] Grok rate limited, falling back to Gemini...`);
+          return await requestGeminiQuizContent(geminiApiKey, promptText);
         }
         throw new HttpError(429, 'AI rate limit reached. Please wait a few minutes and try again.');
       }
@@ -463,8 +555,9 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
 
   const grokApiKey = getGrokApiKey();
   const openAiApiKey = getOpenAiApiKey();
-  if (!grokApiKey && !openAiApiKey) {
-    throw new HttpError(503, 'AI service not configured. Please configure the Grok or OpenAI API key.');
+  const geminiApiKey = getGeminiApiKey();
+  if (!grokApiKey && !openAiApiKey && !geminiApiKey) {
+    throw new HttpError(503, 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.');
   }
 
   const inputConfig = JSON.parse(category.input_config || '{}');
@@ -531,7 +624,7 @@ Return ONLY valid JSON in this exact format:
 }
 `;
 
-  const response = await requestAiQuizContent(grokApiKey, promptText, openAiApiKey);
+  const response = await requestAiQuizContent(grokApiKey, promptText, openAiApiKey, geminiApiKey);
 
   const aiContent = response.data?.choices?.[0]?.message?.content;
   if (!aiContent) {

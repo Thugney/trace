@@ -2330,6 +2330,126 @@ export function initDatabase() {
 
   console.log('✅ Quiz system tables created');
 
+  // =============================================
+  // AI BOOK SYSTEM - AI-generated children's books
+  // =============================================
+
+  // Books table - stores AI-generated books
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      cover_image TEXT,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER,
+      age_range TEXT DEFAULT '4-8',
+      language TEXT DEFAULT 'en',
+      genre TEXT DEFAULT 'story',
+      theme TEXT,
+      total_pages INTEGER DEFAULT 0,
+      is_published INTEGER DEFAULT 0,
+      is_ai_generated INTEGER DEFAULT 1,
+      ai_provider TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Book pages - individual pages of each book
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      page_number INTEGER NOT NULL,
+      title TEXT,
+      content TEXT NOT NULL,
+      image_prompt TEXT,
+      image_url TEXT,
+      audio_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      UNIQUE(book_id, page_number)
+    )
+  `);
+
+  // Book reading progress - tracks reading progress per profile
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_reading_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      current_page INTEGER DEFAULT 1,
+      pages_read INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      completed_at DATETIME,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      last_read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(book_id, profile_id)
+    )
+  `);
+
+  // Book categories for organizing books
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Book-category relationship (many-to-many)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_category_mapping (
+      book_id INTEGER NOT NULL,
+      category_id INTEGER NOT NULL,
+      PRIMARY KEY (book_id, category_id),
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES book_categories(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for book tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_books_created_by ON books(created_by);
+    CREATE INDEX IF NOT EXISTS idx_books_assigned_to ON books(assigned_to);
+    CREATE INDEX IF NOT EXISTS idx_book_pages_book ON book_pages(book_id);
+    CREATE INDEX IF NOT EXISTS idx_book_reading_progress_book ON book_reading_progress(book_id);
+    CREATE INDEX IF NOT EXISTS idx_book_reading_progress_profile ON book_reading_progress(profile_id);
+  `);
+
+  // Insert default book categories
+  const bookCategories = [
+    { name: 'adventure', display_name: 'Adventure', icon: '🗺️', description: 'Exciting adventures and exploration stories' },
+    { name: 'animals', display_name: 'Animals', icon: '🐾', description: 'Stories about animals and nature' },
+    { name: 'fantasy', display_name: 'Fantasy', icon: '🧙', description: 'Magical worlds and fantastical creatures' },
+    { name: 'educational', display_name: 'Educational', icon: '📚', description: 'Learning through stories' },
+    { name: 'bedtime', display_name: 'Bedtime', icon: '🌙', description: 'Calm stories for bedtime' },
+    { name: 'friendship', display_name: 'Friendship', icon: '🤝', description: 'Stories about making and keeping friends' },
+    { name: 'family', display_name: 'Family', icon: '👨‍👩‍👧‍👦', description: 'Stories about family relationships' },
+    { name: 'science', display_name: 'Science', icon: '🔬', description: 'Science and discovery stories' },
+    { name: 'history', display_name: 'History', icon: '📜', description: 'Historical stories and legends' },
+    { name: 'tigrinya', display_name: 'Tigrinya', icon: '🇪🇷', description: 'Stories in Tigrinya language' }
+  ];
+
+  const insertBookCategory = db.prepare(`
+    INSERT OR IGNORE INTO book_categories (name, display_name, icon, description)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  for (const cat of bookCategories) {
+    insertBookCategory.run(cat.name, cat.display_name, cat.icon, cat.description);
+  }
+
+  console.log('✅ Book system tables created');
+
   // Run production-ready migrations
   runProductionReadyMigrations();
 

@@ -19,6 +19,7 @@ import rewardsRoutes from './routes/rewards';
 import remindersRoutes from './routes/reminders';
 import familyQuizzesRoutes from './routes/family-quizzes';
 import schoolRoutes from './routes/school';
+import booksRoutes from './routes/books';
 import { initScheduler } from './services/scheduler';
 
 dotenv.config();
@@ -74,6 +75,7 @@ app.use('/api/rewards', rewardsRoutes);
 app.use('/api/reminders', remindersRoutes);
 app.use('/api/family-quizzes', familyQuizzesRoutes);
 app.use('/api/school', schoolRoutes);
+app.use('/api/books', booksRoutes);
 
 // Initialize scheduler after database
 initScheduler();

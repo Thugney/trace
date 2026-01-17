@@ -23,6 +23,8 @@ import ControlsPage from './pages/ControlsPage';
 import QuizBuilder from './pages/QuizBuilder';
 import QuizPlayer from './pages/QuizPlayer';
 import School from './pages/School';
+import BookLibrary from './pages/BookLibrary';
+import BookReader from './pages/BookReader';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -325,6 +327,30 @@ function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={['child']}>
                 <QuizPlayer />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Book Library - Parents and Children */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/books"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <BookLibrary />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Book Reader - All roles */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/books/read/:bookId"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <BookReader />
               </ProtectedRoute>
             }
           />
