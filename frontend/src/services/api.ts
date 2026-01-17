@@ -1266,7 +1266,7 @@ export const familyQuizzesAPI = {
     createdBy: number;
     assignedTo: number;
     includeImages?: boolean;
-    imageProvider?: 'grok' | 'openai';
+    imageProvider?: 'grok' | 'openai' | 'gemini';
   }) => api.post<AIQuizGenerateResponse>('/family-quizzes/ai-generate', data),
   createAIQuizJob: (data: {
     prompt: string;
@@ -1275,7 +1275,7 @@ export const familyQuizzesAPI = {
     createdBy: number;
     assignedTo: number;
     includeImages?: boolean;
-    imageProvider?: 'grok' | 'openai';
+    imageProvider?: 'grok' | 'openai' | 'gemini';
   }) => api.post<AIQuizJobStartResponse>('/family-quizzes/ai-generate', data),
   getAIQuizJobStatus: (jobId: string) =>
     api.get<AIQuizJobStatusResponse>(`/family-quizzes/ai-generate/status/${jobId}`),
