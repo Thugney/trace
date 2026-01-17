@@ -20,7 +20,8 @@ export interface NotificationPayload {
   message: string;
   type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
-        'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general';
+        'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
+        'school_assignment' | 'school_feedback' | 'school_due_soon';
   data?: any;
   icon?: string;
   url?: string;

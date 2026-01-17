@@ -5,6 +5,7 @@ import multer from 'multer';
 import db from '../database/init';
 import { authenticate, type AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { sendPushNotification, sendPushToProfiles } from '../services/notifications';
 
 const router = express.Router();
 router.use(authenticate, requireFeature('school'));
@@ -63,6 +64,23 @@ const teacherHasClass = (teacherId: number, classId: number) => {
   if (assigned) return true;
   const legacy: any = db.prepare('SELECT assigned_class_id FROM profiles WHERE id = ?').get(teacherId);
   return legacy?.assigned_class_id === classId;
+};
+
+// Get all enrolled students in a class
+const getEnrolledStudents = (classId: number): number[] => {
+  const enrolled = db.prepare('SELECT student_id FROM school_enrollments WHERE class_id = ?').all(classId) as { student_id: number }[];
+  return enrolled.map(row => row.student_id);
+};
+
+// Get guardians (parents) for a student
+const getGuardiansForStudent = (studentId: number): number[] => {
+  const guardians = db.prepare('SELECT guardian_id FROM guardian_students WHERE student_id = ?').all(studentId) as { guardian_id: number }[];
+  if (guardians.length > 0) {
+    return guardians.map(row => row.guardian_id);
+  }
+  // Fallback to legacy parent_id
+  const student: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(studentId);
+  return student?.parent_id ? [student.parent_id] : [];
 };
 
 // ==================== CLASSES ====================
@@ -498,6 +516,32 @@ router.post('/assignments', authenticate, (req: AuthRequest, res: Response) => {
     );
 
     const assignment = db.prepare('SELECT * FROM school_assignments WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notifications to enrolled students and their parents
+    const schoolClass: any = db.prepare('SELECT name FROM school_classes WHERE id = ?').get(class_id);
+    const className = schoolClass?.name || 'class';
+    const enrolledStudents = getEnrolledStudents(Number(class_id));
+
+    // Collect all profile IDs to notify (students + their guardians)
+    const profilesToNotify: number[] = [...enrolledStudents];
+    for (const studentId of enrolledStudents) {
+      const guardians = getGuardiansForStudent(studentId);
+      profilesToNotify.push(...guardians);
+    }
+
+    // Remove duplicates
+    const uniqueProfiles = [...new Set(profilesToNotify)];
+
+    if (uniqueProfiles.length > 0) {
+      sendPushToProfiles(uniqueProfiles, {
+        type: 'school_assignment',
+        title: 'New Assignment',
+        message: `New assignment in ${className}: "${title}"`,
+        url: '/school',
+        data: { assignmentId: result.lastInsertRowid, classId: class_id }
+      }).catch(err => console.error('[School] Notification error:', err));
+    }
+
     res.json(assignment);
   } catch (error: any) {
     console.error('[School] Create assignment error:', error);
@@ -1065,9 +1109,116 @@ router.post('/feedback', authenticate, (req: AuthRequest, res: Response) => {
     }
 
     const feedback = db.prepare('SELECT * FROM school_feedback WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notification to student and their guardians
+    const assignmentInfo: any = db.prepare(`
+      SELECT sa.title FROM school_assignments sa
+      WHERE sa.id = ?
+    `).get(submission.assignment_id);
+
+    const studentId = submission.student_id;
+    const assignmentTitle = assignmentInfo?.title || 'assignment';
+
+    // Determine notification message based on status
+    let notificationTitle = 'New Feedback';
+    let notificationMessage = `Your teacher left feedback on "${assignmentTitle}"`;
+    if (status === 'approved') {
+      notificationTitle = 'Work Approved!';
+      notificationMessage = `Your work on "${assignmentTitle}" has been approved!`;
+    } else if (status === 'needs_revision') {
+      notificationTitle = 'Revision Needed';
+      notificationMessage = `Your teacher requested changes to "${assignmentTitle}"`;
+    }
+
+    // Notify student and their guardians
+    const profilesToNotify: number[] = [studentId];
+    const guardians = getGuardiansForStudent(studentId);
+    profilesToNotify.push(...guardians);
+
+    const uniqueProfiles = [...new Set(profilesToNotify)];
+
+    if (uniqueProfiles.length > 0) {
+      sendPushToProfiles(uniqueProfiles, {
+        type: 'school_feedback',
+        title: notificationTitle,
+        message: notificationMessage,
+        url: '/school',
+        data: { submissionId: submission_id, assignmentId: submission.assignment_id, status }
+      }).catch(err => console.error('[School] Feedback notification error:', err));
+    }
+
     res.json(feedback);
   } catch (error: any) {
     console.error('[School] Create feedback error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== DUE SOON REMINDERS ====================
+// Send reminders for assignments due within the next 24 hours
+router.post('/send-due-reminders', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (profile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can trigger due reminders' });
+    }
+
+    const now = new Date();
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // Find assignments due within 24 hours that haven't been submitted
+    const dueSoonAssignments: any[] = db.prepare(`
+      SELECT sa.id, sa.title, sa.due_date, sa.class_id, sc.name as class_name
+      FROM school_assignments sa
+      JOIN school_classes sc ON sc.id = sa.class_id
+      WHERE sa.due_date IS NOT NULL
+        AND sa.due_date > ?
+        AND sa.due_date <= ?
+    `).all(now.toISOString(), tomorrow.toISOString());
+
+    let notificationsSent = 0;
+
+    for (const assignment of dueSoonAssignments) {
+      const enrolledStudents = getEnrolledStudents(assignment.class_id);
+
+      // For each student, check if they've already submitted
+      for (const studentId of enrolledStudents) {
+        const submission: any = db.prepare(`
+          SELECT 1 FROM school_submissions
+          WHERE assignment_id = ? AND student_id = ?
+        `).get(assignment.id, studentId);
+
+        // Only notify if not yet submitted
+        if (!submission) {
+          const profilesToNotify: number[] = [studentId];
+          const guardians = getGuardiansForStudent(studentId);
+          profilesToNotify.push(...guardians);
+
+          const uniqueProfiles = [...new Set(profilesToNotify)];
+
+          const dueDate = new Date(assignment.due_date);
+          const hoursLeft = Math.round((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+
+          await sendPushToProfiles(uniqueProfiles, {
+            type: 'school_due_soon',
+            title: 'Assignment Due Soon',
+            message: `"${assignment.title}" in ${assignment.class_name} is due in ${hoursLeft} hours!`,
+            url: '/school',
+            data: { assignmentId: assignment.id, classId: assignment.class_id }
+          });
+
+          notificationsSent += uniqueProfiles.length;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      assignmentsChecked: dueSoonAssignments.length,
+      notificationsSent
+    });
+  } catch (error: any) {
+    console.error('[School] Due reminder error:', error);
     res.status(500).json({ error: error.message });
   }
 });

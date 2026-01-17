@@ -12,6 +12,7 @@ import { requireFeature } from '../middleware/feature-access';
 const router = Router();
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
+const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 
 // Configure multer for quiz media uploads
@@ -140,39 +141,16 @@ const generateImageFromPrompt = async (
   if (!prompt) return null;
   const maxAttempts = 3;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      try {
-        if (provider === 'openai') {
-          const response = await axios.post(
-            OPENAI_IMAGE_URL,
-            {
-              model: 'gpt-image-1',
-              prompt,
-              size: '1024x1024',
-              response_format: 'b64_json'
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              timeout: 60000
-            }
-          );
-
-          const base64 = response.data?.data?.[0]?.b64_json;
-          if (!base64) {
-            throw new Error('Image data missing from response');
-          }
-          return saveBase64ImageToQuizMedia(base64, 'quiz-ai');
-        }
-
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      if (provider === 'openai') {
         const response = await axios.post(
-          GROK_IMAGE_URL,
+          OPENAI_IMAGE_URL,
           {
-            model: 'grok-2-image',
+            model: 'gpt-image-1',
             prompt,
-            n: 1
+            size: '1024x1024',
+            response_format: 'b64_json'
           },
           {
             headers: {
@@ -183,12 +161,35 @@ const generateImageFromPrompt = async (
           }
         );
 
-        const url = response.data?.data?.[0]?.url || response.data?.data?.[0]?.image_url;
-        if (!url) {
-          throw new Error('Image URL missing from response');
+        const base64 = response.data?.data?.[0]?.b64_json;
+        if (!base64) {
+          throw new Error('Image data missing from response');
         }
-        return await downloadImageToQuizMedia(url, 'quiz-ai');
-      } catch (error) {
+        return saveBase64ImageToQuizMedia(base64, 'quiz-ai');
+      }
+
+      const response = await axios.post(
+        GROK_IMAGE_URL,
+        {
+          model: 'grok-2-image',
+          prompt,
+          n: 1
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 60000
+        }
+      );
+
+      const url = response.data?.data?.[0]?.url || response.data?.data?.[0]?.image_url;
+      if (!url) {
+        throw new Error('Image URL missing from response');
+      }
+      return await downloadImageToQuizMedia(url, 'quiz-ai');
+    } catch (error) {
       const status = (error as any)?.response?.status;
       const message = (error as any)?.response?.data?.error || (error as any)?.message || 'Image generation failed';
       const prefix = label ? `${label}: ` : '';
@@ -250,10 +251,65 @@ const shouldRetryAiRequest = (error: any) => {
   return false;
 };
 
-const requestAiQuizContent = async (apiKey: string, promptText: string) => {
-  const maxAttempts = 3;
+const requestOpenAiQuizContent = async (apiKey: string, promptText: string) => {
+  const maxAttempts = 5;
+  // Longer backoffs for rate limits: 10s, 20s, 30s, 45s, 60s
+  const backoffDelays = [10000, 20000, 30000, 45000, 60000];
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      return await axios.post(
+        OPENAI_CHAT_URL,
+        {
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only.' },
+            { role: 'user', content: promptText }
+          ],
+          temperature: 0.7,
+          max_tokens: 2500,
+          response_format: { type: 'json_object' }
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        }
+      );
+    } catch (error: any) {
+      if (attempt < maxAttempts && shouldRetryAiRequest(error)) {
+        const backoffMs = backoffDelays[attempt - 1] + Math.floor(Math.random() * 2000);
+        console.log(`[AI Quiz] OpenAI attempt ${attempt}/${maxAttempts} failed with ${error?.response?.status || error?.code}, retrying in ${Math.round(backoffMs / 1000)}s...`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new HttpError(503, 'OpenAI service is busy. Please try again.');
+};
+
+const requestAiQuizContent = async (
+  grokApiKey: string | null,
+  promptText: string,
+  openAiApiKey?: string | null
+) => {
+  const maxAttempts = 5;
+  // Longer backoffs for rate limits: 10s, 20s, 30s, 45s, 60s
+  const backoffDelays = [10000, 20000, 30000, 45000, 60000];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      if (!grokApiKey) {
+        if (!openAiApiKey) {
+          throw new HttpError(503, 'AI service not configured. Please configure the Grok or OpenAI API key.');
+        }
+        return await requestOpenAiQuizContent(openAiApiKey, promptText);
+      }
+
       const response = await axios.post(
         GROK_API_URL,
         {
@@ -267,7 +323,7 @@ const requestAiQuizContent = async (apiKey: string, promptText: string) => {
         },
         {
           headers: {
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Bearer ${grokApiKey}`,
             'Content-Type': 'application/json'
           },
           timeout: 30000
@@ -277,12 +333,17 @@ const requestAiQuizContent = async (apiKey: string, promptText: string) => {
     } catch (error: any) {
       const status = error?.response?.status;
       if (attempt < maxAttempts && shouldRetryAiRequest(error)) {
-        const backoffMs = 1000 * attempt + Math.floor(Math.random() * 500);
+        const backoffMs = backoffDelays[attempt - 1] + Math.floor(Math.random() * 2000);
+        console.log(`[AI Quiz] Grok attempt ${attempt}/${maxAttempts} failed with ${status || error?.code}, retrying in ${Math.round(backoffMs / 1000)}s...`);
         await sleep(backoffMs);
         continue;
       }
       if (status === 429) {
-        throw new HttpError(429, 'AI rate limit reached. Please wait a moment and try again.');
+        console.log(`[AI Quiz] Grok rate limited after ${maxAttempts} attempts, falling back to OpenAI...`);
+        if (openAiApiKey) {
+          return await requestOpenAiQuizContent(openAiApiKey, promptText);
+        }
+        throw new HttpError(429, 'AI rate limit reached. Please wait a few minutes and try again.');
       }
       throw error;
     }
@@ -332,16 +393,32 @@ const pruneAiQuizJobs = () => {
   }
 };
 
+const createAiQuizJobId = () => {
+  if (typeof randomUUID === 'function') {
+    return randomUUID();
+  }
+  return `ai-quiz-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const scheduleAiQuizJob = (jobId: string, payload: AiQuizPayload) => {
+  const runner = () => processAiQuizJob(jobId, payload);
+  if (typeof setImmediate === 'function') {
+    setImmediate(runner);
+    return;
+  }
+  setTimeout(runner, 0);
+};
+
 const createAiQuizJob = (payload: AiQuizPayload) => {
   pruneAiQuizJobs();
   const job: AiQuizJob = {
-    id: randomUUID(),
+    id: createAiQuizJobId(),
     status: 'queued',
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
   aiQuizJobs.set(job.id, job);
-  setImmediate(() => processAiQuizJob(job.id, payload));
+  scheduleAiQuizJob(job.id, payload);
   return job;
 };
 
@@ -384,9 +461,10 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
     throw new HttpError(404, 'Quiz category not found');
   }
 
-  const apiKey = getGrokApiKey();
-  if (!apiKey) {
-    throw new HttpError(503, 'AI service not configured. Please configure the Grok API key.');
+  const grokApiKey = getGrokApiKey();
+  const openAiApiKey = getOpenAiApiKey();
+  if (!grokApiKey && !openAiApiKey) {
+    throw new HttpError(503, 'AI service not configured. Please configure the Grok or OpenAI API key.');
   }
 
   const inputConfig = JSON.parse(category.input_config || '{}');
@@ -394,7 +472,7 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
   const normalizedImageProvider = String(imageProvider || 'grok').toLowerCase() === 'openai' ? 'openai' : 'grok';
   const includeOptionImages = false;
   const imageApiKey = includeImages && supportsImages
-    ? (normalizedImageProvider === 'openai' ? getOpenAiApiKey() : apiKey)
+    ? (normalizedImageProvider === 'openai' ? openAiApiKey : grokApiKey)
     : null;
   if (includeImages && supportsImages && !imageApiKey) {
     throw new HttpError(503, normalizedImageProvider === 'openai'
@@ -453,7 +531,7 @@ Return ONLY valid JSON in this exact format:
 }
 `;
 
-  const response = await requestAiQuizContent(apiKey, promptText);
+  const response = await requestAiQuizContent(grokApiKey, promptText, openAiApiKey);
 
   const aiContent = response.data?.choices?.[0]?.message?.content;
   if (!aiContent) {
