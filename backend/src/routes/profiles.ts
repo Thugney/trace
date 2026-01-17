@@ -305,19 +305,20 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id, assigned_class_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id, assigned_class_id, ai_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null, finalAssignedClassId);
 
     const newProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
 
     try {
-      const enabledFeatures = type === 'admin' ? FEATURE_KEYS : ['school'];
+      // Enable all features for all profile types (parents, children, teachers, admins)
+      // This ensures AI and other features work out of the box
       const insertFeature = db.prepare(`
         INSERT INTO profile_features (profile_id, feature_key, enabled)
         VALUES (?, ?, ?)
       `);
-      enabledFeatures.forEach(featureKey => {
+      FEATURE_KEYS.forEach(featureKey => {
         insertFeature.run(newProfile.id, featureKey, 1);
       });
     } catch (featureError: any) {

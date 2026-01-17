@@ -847,12 +847,23 @@ export function initDatabase() {
 
     if (!hasAiEnabled) {
       console.log('🔄 Migrating profiles table: adding ai_enabled column for AI access control...');
-      // Default: AI disabled for everyone, admin can enable it per student
-      db.prepare('ALTER TABLE profiles ADD COLUMN ai_enabled INTEGER DEFAULT 0').run();
+      // Default: AI enabled for everyone
+      db.prepare('ALTER TABLE profiles ADD COLUMN ai_enabled INTEGER DEFAULT 1').run();
       console.log('✅ Migration completed: ai_enabled column added');
     }
   } catch (error: any) {
     console.error('Migration error (ai_enabled):', error.message);
+  }
+
+  // Migration: Enable AI for all existing profiles that have it disabled
+  // This fixes profiles created before AI was enabled by default
+  try {
+    const result = db.prepare('UPDATE profiles SET ai_enabled = 1 WHERE ai_enabled = 0 OR ai_enabled IS NULL').run();
+    if (result.changes > 0) {
+      console.log(`✅ Enabled AI for ${result.changes} profiles`);
+    }
+  } catch (error: any) {
+    console.error('Migration error (enable AI for existing profiles):', error.message);
   }
 
   // Migration: Add diet_enabled column to profiles table for Diet access control
@@ -1094,6 +1105,29 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (profile feature seed):', error.message);
+  }
+
+  // Migration: Ensure AI feature is enabled for all profiles
+  // This fixes any profiles that were created with only 'school' feature enabled
+  try {
+    const profiles: any[] = db.prepare('SELECT id FROM profiles').all();
+    const upsertFeature = db.prepare(`
+      INSERT INTO profile_features (profile_id, feature_key, enabled)
+      VALUES (?, 'ai', 1)
+      ON CONFLICT(profile_id, feature_key) DO UPDATE SET enabled = 1
+    `);
+
+    let updatedCount = 0;
+    profiles.forEach(profile => {
+      const result = upsertFeature.run(profile.id);
+      if (result.changes > 0) updatedCount++;
+    });
+
+    if (updatedCount > 0) {
+      console.log(`? Enabled AI feature for ${updatedCount} profiles`);
+    }
+  } catch (error: any) {
+    console.error('Migration error (enable AI feature):', error.message);
   }
 
   // Migration: Populate guardian_students from legacy parent_id
