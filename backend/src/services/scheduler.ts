@@ -154,6 +154,72 @@ async function processRemindersForTime(hour: number, minute: number): Promise<vo
   }
 }
 
+// Get tasks scheduled for a specific time that haven't been reminded today
+interface ScheduledTask {
+  id: number;
+  title: string;
+  profile_id: number;
+  scheduled_time: string;
+  points: number;
+  category: string;
+}
+
+function getTasksScheduledForTime(hour: number, minute: number): ScheduledTask[] {
+  const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  const today = new Date().toISOString().split('T')[0];
+
+  return db.prepare(`
+    SELECT id, title, profile_id, scheduled_time, points, category
+    FROM tasks
+    WHERE scheduled_time = ?
+    AND completed = 0
+    AND parent_approved = 1
+    AND (last_reminder_sent IS NULL OR last_reminder_sent < ?)
+  `).all(timeStr, today) as ScheduledTask[];
+}
+
+// Send reminder for a specific scheduled task
+async function sendTaskScheduledReminder(task: ScheduledTask): Promise<void> {
+  const profile: Profile | undefined = db.prepare(
+    'SELECT id, name, type FROM profiles WHERE id = ?'
+  ).get(task.profile_id) as Profile | undefined;
+
+  if (!profile) return;
+
+  // Send push notification
+  await sendPushNotification(task.profile_id, {
+    type: 'reminder',
+    title: `Time for: ${task.title}! ⏰`,
+    message: `It's ${task.scheduled_time} - time to start your task! Earn ${task.points} points when you complete it.`,
+    icon: '⏰',
+    url: '/tasks',
+    data: { taskId: task.id, playSound: true }
+  });
+
+  // Update last_reminder_sent to today
+  const today = new Date().toISOString().split('T')[0];
+  db.prepare('UPDATE tasks SET last_reminder_sent = ? WHERE id = ?').run(today, task.id);
+
+  console.log(`[Scheduler] Sent task reminder to ${profile.name}: "${task.title}" at ${task.scheduled_time}`);
+}
+
+// Process task-specific scheduled reminders
+async function processScheduledTaskReminders(hour: number, minute: number): Promise<void> {
+  const tasks = getTasksScheduledForTime(hour, minute);
+
+  if (tasks.length > 0) {
+    console.log(`[Scheduler] Found ${tasks.length} task(s) scheduled for ${hour}:${minute.toString().padStart(2, '0')}`);
+  }
+
+  for (const task of tasks) {
+    try {
+      await sendTaskScheduledReminder(task);
+    } catch (error) {
+      console.error(`[Scheduler] Error sending task reminder for task ${task.id}:`, error);
+    }
+  }
+}
+
 // Initialize the scheduler
 export function initScheduler(): void {
   console.log('🕐 Initializing task reminder scheduler...');
@@ -165,8 +231,11 @@ export function initScheduler(): void {
     const hour = now.getHours();
     const minute = now.getMinutes();
 
-    // Only process on the exact minute (not every minute polling)
+    // Process profile-based morning reminders
     await processRemindersForTime(hour, minute);
+
+    // Process task-specific scheduled reminders
+    await processScheduledTaskReminders(hour, minute);
   });
 
   // Evening reminder at 6 PM for incomplete tasks
@@ -242,6 +311,7 @@ export function initScheduler(): void {
   });
 
   console.log('✅ Task reminder scheduler initialized');
+  console.log('   - Task-specific reminders: Based on each task\'s scheduled_time');
   console.log('   - Morning reminders: Based on individual preferences (default 7:30 AM)');
   console.log('   - Evening reminders: 6:00 PM daily');
   console.log('   - Weekly summaries: Sunday 10:00 AM');

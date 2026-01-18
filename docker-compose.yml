@@ -21,6 +21,10 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - PORT=3001
+      - VAPID_PUBLIC_KEY=BPn3bMdUoc5IL5F0x_Kf-Neb0LAkq4AduqdpuBqsz6SAWnpE_vqBHjXFK3kDlZrSs41dnhB0dnwy5Tpo33KW16U
+      - VAPID_PRIVATE_KEY=CyX4P6NeBTFgeWvKDPdwHDjl4Z0zaxTZ_I11YnjgAvM
+      - VAPID_SUBJECT=mailto:admin@familylearninghub.com
+      - TZ=Europe/Oslo
     networks:
       - family-network
 

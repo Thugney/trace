@@ -1745,6 +1745,22 @@ export function initDatabase() {
       db.prepare('ALTER TABLE tasks ADD COLUMN last_completed_date TEXT DEFAULT NULL').run();
       console.log('✅ Added last_completed_date column to tasks');
     }
+
+    // Add scheduled_time for task-specific reminders (e.g., "08:30" or "15:00")
+    const hasScheduledTime = tasksInfo.some((col: any) => col.name === 'scheduled_time');
+    if (!hasScheduledTime) {
+      console.log('🔄 Migrating tasks table: adding scheduled_time column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN scheduled_time TEXT DEFAULT NULL').run();
+      console.log('✅ Added scheduled_time column to tasks');
+    }
+
+    // Add last_reminder_sent to track when we last sent a reminder for this task
+    const hasLastReminderSent = tasksInfo.some((col: any) => col.name === 'last_reminder_sent');
+    if (!hasLastReminderSent) {
+      console.log('🔄 Migrating tasks table: adding last_reminder_sent column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN last_reminder_sent TEXT DEFAULT NULL').run();
+      console.log('✅ Added last_reminder_sent column to tasks');
+    }
   } catch (error: any) {
     console.error('Migration error (task timer columns):', error.message);
   }

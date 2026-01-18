@@ -163,6 +163,9 @@ export interface Task {
   // Timer fields
   requires_timer?: boolean | number;
   timer_duration_minutes?: number | null;
+  // Task-specific reminder (HH:MM format)
+  scheduled_time?: string | null;
+  last_reminder_sent?: string | null;
 }
 
 export interface Progress {

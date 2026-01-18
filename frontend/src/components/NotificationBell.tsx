@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, BellRing } from 'lucide-react';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { notificationsAPI } from '../services/api';
+import { playSounds } from '../utils/sounds';
 import type { Notification } from '../types';
 
 export function NotificationBell() {
@@ -11,6 +12,7 @@ export function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const lastUnreadCountRef = useRef(0);
 
   const {
     isSupported,
@@ -38,8 +40,30 @@ export function NotificationBell() {
   const loadNotifications = async () => {
     try {
       const { data } = await notificationsAPI.getNotifications(20);
-      setNotifications(data.notifications || []);
-      setUnreadCount(data.unreadCount || 0);
+      const newNotifications = data.notifications || [];
+      const newUnreadCount = data.unreadCount || 0;
+
+      // Play sound if there are new unread notifications
+      if (newUnreadCount > lastUnreadCountRef.current && lastUnreadCountRef.current >= 0) {
+        // Find the newest unread notification to determine which sound to play
+        const newestUnread = newNotifications.find((n: Notification) => !n.is_read);
+        if (newestUnread) {
+          // Play appropriate sound based on notification type
+          if (newestUnread.type === 'reminder') {
+            playSounds.reminder();
+          } else if (newestUnread.type === 'task_completed' || newestUnread.type === 'goal_achieved') {
+            playSounds.taskComplete();
+          } else if (newestUnread.type === 'achievement') {
+            playSounds.achievement();
+          } else {
+            playSounds.notification();
+          }
+        }
+      }
+
+      lastUnreadCountRef.current = newUnreadCount;
+      setNotifications(newNotifications);
+      setUnreadCount(newUnreadCount);
     } catch (error) {
       console.error('[Notifications] Failed to load:', error);
     }

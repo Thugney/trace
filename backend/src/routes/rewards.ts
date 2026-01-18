@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../database/init';
 import { authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { sendPushNotification } from '../services/notifications';
 
 const router = Router();
 router.use(authenticate, requireFeature('rewards'));
@@ -140,6 +141,18 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
     // Get the created claim
     const claim = db.prepare('SELECT * FROM reward_claims WHERE id = ?').get(result.lastInsertRowid);
 
+    // Notify parent about reward claim
+    const child = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(profileId) as { name: string; parent_id: number } | undefined;
+    if (child?.parent_id) {
+      sendPushNotification(child.parent_id, {
+        type: 'general',
+        title: `${child.name} wants a reward! 🎁`,
+        message: `${child.name} is requesting "${reward.title}" for ${reward.points_required} points`,
+        icon: '🎁',
+        url: '/shop'
+      }).catch(console.error);
+    }
+
     res.json({
       success: true,
       claim,
@@ -243,7 +256,28 @@ router.put('/claims/:claimId/status', (req: Request, res: Response) => {
       JOIN rewards r ON rc.reward_id = r.id
       JOIN profiles p ON rc.profile_id = p.id
       WHERE rc.id = ?
-    `).get(claimId);
+    `).get(claimId) as any;
+
+    // Notify child about approval/rejection
+    if (claim) {
+      if (status === 'approved' || status === 'given') {
+        sendPushNotification(claim.profile_id, {
+          type: 'general',
+          title: `Reward approved! 🎉`,
+          message: `Your reward "${claim.title}" has been approved! ${status === 'given' ? 'Enjoy!' : 'Ask your parent to give it to you.'}`,
+          icon: '🎁',
+          url: '/shop'
+        }).catch(console.error);
+      } else if (status === 'rejected') {
+        sendPushNotification(claim.profile_id, {
+          type: 'general',
+          title: `Reward request declined 😢`,
+          message: `Your request for "${claim.title}" was not approved${notes ? `: ${notes}` : '. Try another reward!'}`,
+          icon: '❌',
+          url: '/shop'
+        }).catch(console.error);
+      }
+    }
 
     res.json(claim);
   } catch (error) {

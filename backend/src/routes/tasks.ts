@@ -127,7 +127,8 @@ router.post('/', (req, res) => {
       priority,
       estimated_minutes,
       requires_timer,
-      timer_duration_minutes
+      timer_duration_minutes,
+      scheduled_time // HH:MM format for task-specific reminders
     } = req.body;
 
     if (!profile_id || !title) {
@@ -168,8 +169,8 @@ router.post('/', (req, res) => {
       INSERT INTO tasks (
         profile_id, title, description, category, points, difficulty,
         is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-        priority, estimated_minutes, requires_timer, timer_duration_minutes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        priority, estimated_minutes, requires_timer, timer_duration_minutes, scheduled_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       profile_id,
       title,
@@ -186,7 +187,8 @@ router.post('/', (req, res) => {
       priority || 'medium',
       estimated_minutes || null,
       needsTimer,
-      timerDuration
+      timerDuration,
+      scheduled_time || null // HH:MM format
     );
 
     const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
@@ -270,6 +272,10 @@ router.put('/:id', (req, res) => {
       if (completed) {
         updates.push('completed_at = CURRENT_TIMESTAMP');
       }
+    }
+    if (req.body.scheduled_time !== undefined) {
+      updates.push('scheduled_time = ?');
+      values.push(req.body.scheduled_time || null);
     }
 
     values.push(id);

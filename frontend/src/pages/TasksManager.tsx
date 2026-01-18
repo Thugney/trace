@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera, Timer } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera, Timer, Bell } from 'lucide-react';
 import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
 import Avatar from '../components/Avatar';
@@ -242,6 +242,7 @@ export default function TasksManager() {
     const category = formData.get('category') as string;
     const isRecurring = formData.get('is_recurring') === 'on';
     const estimatedMinutes = formData.get('estimated_minutes') as string;
+    const scheduledTime = formData.get('scheduled_time') as string;
 
     try {
       await tasksAPI.create({
@@ -257,6 +258,7 @@ export default function TasksManager() {
         recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
         due_date: formData.get('due_date') as string || undefined,
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
+        scheduled_time: scheduledTime || undefined,
         // Timer is automatically set by backend based on category
       });
 
@@ -1018,6 +1020,12 @@ export default function TasksManager() {
                               {task.estimated_minutes} min
                             </span>
                           )}
+                          {task.scheduled_time && (
+                            <span className="text-xs text-orange-600 flex items-center font-medium">
+                              <Bell size={12} className="mr-1" />
+                              {task.scheduled_time}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex space-x-2 ml-4">
@@ -1203,6 +1211,22 @@ export default function TasksManager() {
                   <option value="90">1.5 hours</option>
                   <option value="120">2 hours</option>
                 </select>
+              </div>
+
+              {/* Scheduled Time - Task-specific reminder */}
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Bell size={16} className="inline mr-1 text-orange-600" />
+                  Scheduled Reminder Time
+                </label>
+                <input
+                  type="time"
+                  name="scheduled_time"
+                  className="input"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Set a time to receive a reminder notification for this task (plays sound)
+                </p>
               </div>
 
               {/* Recurring Task */}

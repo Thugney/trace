@@ -86,21 +86,21 @@ export async function sendPushNotification(
   payload: NotificationPayload
 ): Promise<{ success: boolean; sent: number; failed: number }> {
   try {
+    // ALWAYS save notification to database for in-app display (regardless of push subscription)
+    db.prepare(`
+      INSERT INTO notifications (profile_id, type, title, message, metadata)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(profileId, payload.type, payload.title, payload.message, JSON.stringify(payload.data || {}));
+
     // Get all subscriptions for this profile
     const subscriptions: any[] = db.prepare(
       'SELECT * FROM push_subscriptions WHERE profile_id = ?'
     ).all(profileId);
 
     if (subscriptions.length === 0) {
-      console.log(`[Push] No subscriptions for profile ${profileId}`);
+      console.log(`[Push] No subscriptions for profile ${profileId}, but in-app notification saved`);
       return { success: true, sent: 0, failed: 0 };
     }
-
-    // Save notification to database for in-app display
-    db.prepare(`
-      INSERT INTO notifications (profile_id, type, title, message, data)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(profileId, payload.type, payload.title, payload.message, JSON.stringify(payload.data || {}));
 
     // Prepare push payload
     const pushPayload = JSON.stringify({
