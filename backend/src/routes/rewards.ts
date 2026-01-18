@@ -174,16 +174,27 @@ router.get('/claimed/:profileId', (req: Request, res: Response) => {
 // Get all pending claims (for parents to review)
 router.get('/pending', (req: Request, res: Response) => {
   try {
-    const claims = db.prepare(`
+    const { parentId } = req.query;
+
+    let sql = `
       SELECT rc.*, r.title, r.description, r.icon, r.image_url, r.type, r.points_required,
              p.name as child_name, p.avatar as child_avatar
       FROM reward_claims rc
       JOIN rewards r ON rc.reward_id = r.id
       JOIN profiles p ON rc.profile_id = p.id
       WHERE rc.status = 'pending'
-      ORDER BY rc.claimed_at DESC
-    `).all();
+    `;
+    const params: any[] = [];
 
+    // If parentId is provided, only show claims from this parent's children
+    if (parentId) {
+      sql += ` AND p.parent_id = ?`;
+      params.push(parentId);
+    }
+
+    sql += ` ORDER BY rc.claimed_at DESC`;
+
+    const claims = db.prepare(sql).all(...params);
     res.json(claims);
   } catch (error) {
     console.error('Error fetching pending claims:', error);
@@ -298,13 +309,22 @@ router.put('/:rewardId', (req: Request, res: Response) => {
       title,
       description,
       pointsRequired,
+      points_required, // Handle both camelCase and snake_case
       icon,
       imageUrl,
       type,
       category,
       availableForAll,
+      available_for_all, // Handle both cases
+      profileId,
+      profile_id, // Handle both cases
       stock
     } = req.body;
+
+    // Normalize to handle both naming conventions
+    const normalizedPointsRequired = pointsRequired ?? points_required;
+    const normalizedAvailableForAll = availableForAll ?? available_for_all;
+    const normalizedProfileId = profileId ?? profile_id;
 
     const updateFields: string[] = [];
     const values: any[] = [];
@@ -317,9 +337,9 @@ router.put('/:rewardId', (req: Request, res: Response) => {
       updateFields.push('description = ?');
       values.push(description);
     }
-    if (pointsRequired !== undefined) {
+    if (normalizedPointsRequired !== undefined) {
       updateFields.push('points_required = ?');
-      values.push(pointsRequired);
+      values.push(normalizedPointsRequired);
     }
     if (icon !== undefined) {
       updateFields.push('icon = ?');
@@ -337,9 +357,13 @@ router.put('/:rewardId', (req: Request, res: Response) => {
       updateFields.push('category = ?');
       values.push(category);
     }
-    if (availableForAll !== undefined) {
+    if (normalizedAvailableForAll !== undefined) {
       updateFields.push('available_for_all = ?');
-      values.push(availableForAll ? 1 : 0);
+      values.push(normalizedAvailableForAll ? 1 : 0);
+    }
+    if (normalizedProfileId !== undefined) {
+      updateFields.push('profile_id = ?');
+      values.push(normalizedProfileId);
     }
     if (stock !== undefined) {
       updateFields.push('stock = ?');
@@ -395,20 +419,51 @@ router.delete('/:rewardId', (req: Request, res: Response) => {
 });
 
 // Get all rewards (for admin/parent management)
+// If parentId query param is provided, filter to only rewards created by this parent
 router.get('/all', (req: Request, res: Response) => {
   try {
-    const rewards = db.prepare(`
+    const { parentId } = req.query;
+
+    let sql = `
       SELECT r.*,
              (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id) as total_claims,
-             (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status = 'pending') as pending_claims
+             (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status = 'pending') as pending_claims,
+             (SELECT name FROM profiles WHERE id = r.profile_id) as target_child_name
       FROM rewards r
-      ORDER BY r.created_at DESC
-    `).all();
+    `;
+    const params: any[] = [];
 
+    if (parentId) {
+      sql += ` WHERE r.created_by = ?`;
+      params.push(parentId);
+    }
+
+    sql += ` ORDER BY r.created_at DESC`;
+
+    const rewards = db.prepare(sql).all(...params);
     res.json(rewards);
   } catch (error) {
     console.error('Error fetching all rewards:', error);
     res.status(500).json({ error: 'Failed to fetch rewards' });
+  }
+});
+
+// Get children for a parent (for reward targeting dropdown)
+router.get('/parent/:parentId/children', (req: Request, res: Response) => {
+  try {
+    const { parentId } = req.params;
+
+    const children = db.prepare(`
+      SELECT id, name, avatar, age
+      FROM profiles
+      WHERE parent_id = ? AND type = 'child'
+      ORDER BY name
+    `).all(parentId);
+
+    res.json(children);
+  } catch (error: any) {
+    console.error('Error fetching parent children:', error.message);
+    res.status(500).json({ error: 'Failed to fetch children' });
   }
 });
 

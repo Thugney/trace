@@ -810,8 +810,8 @@ export default function QuizPlayer() {
 
     return (
       <div className={`min-h-[80vh] bg-gradient-to-br ${theme.colors.background} rounded-2xl p-6 ${isLightTheme ? 'text-slate-900' : 'text-white'}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Header with Quiz Title - More Prominent */}
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={handleExitQuiz}
             className={`p-2 rounded-lg transition-colors ${isLightTheme ? 'hover:bg-slate-900/10' : 'hover:bg-white/20'}`}
@@ -820,33 +820,34 @@ export default function QuizPlayer() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className={`text-center px-4 py-2 rounded-2xl backdrop-blur-sm ${headerPillClass}`}>
-            <div className="font-semibold">{currentQuiz.quiz.title}</div>
-            <div className={`text-sm ${headerSubTextClass}`}>Question {currentQuestionIndex + 1} of {currentQuiz.totalQuestions}</div>
+          <div className={`text-center px-6 py-3 rounded-2xl backdrop-blur-sm shadow-lg ${headerPillClass}`}>
+            <div className="text-lg md:text-xl font-black">{currentQuiz.quiz.title}</div>
+            <div className={`text-sm font-medium ${headerSubTextClass}`}>Question {currentQuestionIndex + 1} of {currentQuiz.totalQuestions}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-2xl ${mascotAnimation}`}>{theme.mascot}</span>
           </div>
         </div>
 
-        {/* Timer Display */}
+        {/* Timer Display - Enhanced */}
         {timeRemaining !== null && (
           <div className="flex flex-col items-center gap-3 mb-4">
-            <div className={`px-4 py-2 rounded-lg font-bold text-lg ${
-              timeRemaining < 30 ? 'bg-red-500/80 text-white animate-pulse' : `${hudClass} backdrop-blur-sm`
+            <div className={`px-6 py-3 rounded-xl font-bold text-xl shadow-lg ${
+              timeRemaining < 30 ? 'bg-red-500/90 text-white animate-pulse' : `${hudClass} backdrop-blur-sm`
             }`}>
-              ⏱️ Time: {formatTime(timeRemaining)}
+              <Clock className="w-5 h-5 inline-block mr-2" />
+              {formatTime(timeRemaining)}
             </div>
             <div className="flex items-center gap-2">
               {timerStatus === 'idle' && (
                 <button
                   onClick={startCountdown}
-                  className={`px-4 py-2 rounded-full text-sm font-bold shadow-sm transition-all ${
-                    isLightTheme ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-white text-purple-600 hover:bg-white/90'
+                  className={`px-6 py-3 rounded-full text-base font-black shadow-lg transition-all transform hover:scale-105 animate-pulse ${
+                    isLightTheme ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-green-500 text-white hover:bg-green-400'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
-                    <Play className="w-4 h-4" /> Start Timer
+                    <Play className="w-5 h-5 fill-white" /> START TIMER TO BEGIN!
                   </span>
                 </button>
               )}
@@ -910,16 +911,30 @@ export default function QuizPlayer() {
           />
         </div>
 
-        {/* Score Display */}
-        <div className="flex justify-center gap-6 mb-6">
-          <div className={`${hudClass} backdrop-blur-sm rounded-lg px-4 py-2 text-center`}>
-            <div className={`text-xs ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Correct</div>
-            <div className={`text-xl font-bold ${scoreValueClass}`}>{score.correct}</div>
+        {/* Score Display - Enhanced */}
+        <div className="flex justify-center gap-4 mb-6">
+          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+            <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Correct</div>
+            <div className={`text-2xl font-black ${scoreValueClass}`}>{score.correct}</div>
           </div>
-          <div className={`${hudClass} backdrop-blur-sm rounded-lg px-4 py-2 text-center`}>
-            <div className={`text-xs ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Points</div>
-            <div className={`text-xl font-bold ${pointsValueClass}`}>{score.points}</div>
+          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+            <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Points</div>
+            <div className={`text-2xl font-black ${pointsValueClass}`}>
+              {score.points}
+              <span className={`text-xs font-normal ml-1 ${isLightTheme ? 'text-slate-500' : 'opacity-60'}`}>
+                (+{currentQuiz.quiz.pointsPerCorrect}/ea)
+              </span>
+            </div>
           </div>
+          {currentQuiz.quiz.starsPerCorrect > 0 && (
+            <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+              <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Stars</div>
+              <div className="text-2xl font-black text-yellow-500 flex items-center justify-center gap-1">
+                <Star className="w-5 h-5 fill-yellow-400" />
+                <span>+{currentQuiz.quiz.starsPerCorrect}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Question */}

@@ -1,8 +1,24 @@
 # Changelog
 
-## [Unreleased] - 2025-12-31
+## [Unreleased] - 2025-01-18
 
 ### Added
+- **Split AI Provider Selection**: Parents can choose different AI providers for text vs images in Quiz Builder (e.g., Gemini for questions, OpenAI for images)
+- **Admin Family Feature Controls**: Admins can enable/disable features per family from AdminPanel (overrides individual profile settings)
+- **Parent Reward Customization**: Parents can target rewards to specific children or all family children
+- **Book Feedback for Parents**: Parents can see star ratings and feedback on books their children read
+- **Cost Estimates**: AI features now show estimated costs before generation
+
+### Fixed
+- **Critical Points Loss Bug**: Fixed quiz completion inserting progress records without total_points/total_stars, causing kids to appear to lose all points
+- **Mobile Book Display**: Books now display properly on mobile with flexible height and smaller images
+- **Quiz Title/Points Visibility**: Made quiz title larger and score display more prominent for kids
+- **Quiz Timer Visibility**: Added animated "START TIMER TO BEGIN!" button that's impossible to miss
+- **Quiz Image Generation**: Made question images required (not optional) with robust fallback generation
+- **AI Economy Compliance**: AI-generated tasks now respect parent's points multiplier and caps
+- **Reward Claims Display**: Pending claims now show child name with avatar instead of profile ID
+
+### Changed
 - **Quiz AI Provider Choice**: Quiz Builder can select Grok or OpenAI for image generation.
 - **OpenAI Image Support**: Added OpenAI image generation (gpt-image-1) with base64 handling and storage.
 - **Async AI Quiz Jobs**: AI quiz generation now runs as background jobs with status polling to avoid Cloudflare timeouts.

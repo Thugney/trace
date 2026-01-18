@@ -270,6 +270,22 @@ export function initDatabase() {
     )
   `);
 
+  // Family feature access table (admin-controlled, overrides profile_features)
+  // parent_id = the parent profile who heads this family
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_features (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL,
+      feature_key TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_by INTEGER,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL,
+      UNIQUE(parent_id, feature_key)
+    )
+  `);
+
   // AI settings table for parental controls
   db.exec(`
     CREATE TABLE IF NOT EXISTS ai_settings (

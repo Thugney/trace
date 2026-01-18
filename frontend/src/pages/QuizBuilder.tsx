@@ -51,7 +51,8 @@ export default function QuizBuilder() {
   const [aiAssignedTo, setAiAssignedTo] = useState(0);
   const [aiQuestionCount, setAiQuestionCount] = useState(5);
   const [aiIncludeImages, setAiIncludeImages] = useState(true);
-  const [aiImageProvider, setAiImageProvider] = useState<'grok' | 'openai' | 'gemini'>('gemini');
+  const [aiTextProvider, setAiTextProvider] = useState<'grok' | 'openai' | 'gemini'>('gemini');
+  const [aiImageProvider, setAiImageProvider] = useState<'grok' | 'openai' | 'gemini'>('openai');
   const [aiGenerating, setAiGenerating] = useState(false);
 
   // UI State
@@ -199,6 +200,7 @@ export default function QuizBuilder() {
         createdBy: currentProfile!.id,
         assignedTo: aiAssignedTo,
         includeImages: aiIncludeImages,
+        textProvider: aiTextProvider,
         imageProvider: aiImageProvider
       });
 
@@ -456,63 +458,83 @@ export default function QuizBuilder() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={aiIncludeImages}
-                  onChange={(e) => setAiIncludeImages(e.target.checked)}
-                  disabled={!aiInputConfig.supports_images}
-                  className="rounded border-gray-300"
-                />
-                Include AI-generated images
-              </label>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <span>Image provider</span>
+          {/* AI Provider Selection */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <div className="text-sm font-semibold text-gray-700 mb-2">AI Provider Settings</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Text Provider */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700 font-medium">Questions by:</span>
                 <select
-                  value={aiImageProvider}
-                  onChange={(e) => setAiImageProvider(e.target.value as 'grok' | 'openai' | 'gemini')}
-                  disabled={!aiIncludeImages || !aiInputConfig.supports_images}
-                  className="px-3 py-1 border border-gray-200 rounded-lg"
+                  value={aiTextProvider}
+                  onChange={(e) => setAiTextProvider(e.target.value as 'grok' | 'openai' | 'gemini')}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-white"
                 >
-                  <option value="gemini">Gemini</option>
+                  <option value="gemini">Gemini (Recommended)</option>
                   <option value="grok">Grok</option>
                   <option value="openai">OpenAI</option>
                 </select>
               </div>
-              {!aiInputConfig.supports_images && aiCategory && (
-                <span className="text-xs text-gray-500">This category does not support images</span>
-              )}
-            </div>
 
+              {/* Image Provider */}
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={aiIncludeImages}
+                    onChange={(e) => setAiIncludeImages(e.target.checked)}
+                    disabled={!aiInputConfig.supports_images}
+                    className="rounded border-gray-300"
+                  />
+                  <span className="font-medium">Images by:</span>
+                </label>
+                <select
+                  value={aiImageProvider}
+                  onChange={(e) => setAiImageProvider(e.target.value as 'grok' | 'openai' | 'gemini')}
+                  disabled={!aiIncludeImages || !aiInputConfig.supports_images}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg bg-white disabled:opacity-50"
+                >
+                  <option value="openai">OpenAI DALL-E (Best)</option>
+                  <option value="grok">Grok</option>
+                  <option value="gemini">Gemini (falls back to others)</option>
+                </select>
+              </div>
+            </div>
+            {!aiInputConfig.supports_images && aiCategory && (
+              <span className="text-xs text-gray-500">This category does not support images</span>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Split providers to optimize cost: use cheaper models for text, higher quality for images.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-3">
             {/* Cost Estimate */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm flex-1 min-w-[200px]">
               <div className="font-semibold text-amber-800 mb-1">💰 Estimated Cost</div>
               {aiIncludeImages && aiInputConfig.supports_images ? (
                 <div className="space-y-0.5 text-amber-700">
                   <div className="flex justify-between">
-                    <span>{aiQuestionCount} question images × $0.04</span>
-                    <span>${(aiQuestionCount * 0.04).toFixed(2)}</span>
+                    <span>Text ({aiTextProvider})</span>
+                    <span>~${aiTextProvider === 'openai' ? '0.02' : '0.01'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Text generation</span>
-                    <span>~$0.01</span>
+                    <span>{aiQuestionCount} images ({aiImageProvider})</span>
+                    <span>${(aiQuestionCount * (aiImageProvider === 'openai' ? 0.04 : 0.02)).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-amber-900 border-t border-amber-300 pt-1 mt-1">
                     <span>Total</span>
-                    <span>${(aiQuestionCount * 0.04 + 0.01).toFixed(2)}</span>
+                    <span>~${(aiQuestionCount * (aiImageProvider === 'openai' ? 0.04 : 0.02) + (aiTextProvider === 'openai' ? 0.02 : 0.01)).toFixed(2)}</span>
                   </div>
                 </div>
               ) : (
                 <div className="text-amber-700">
                   <div className="flex justify-between">
-                    <span>Text generation only</span>
-                    <span>~$0.01</span>
+                    <span>Text generation ({aiTextProvider})</span>
+                    <span>~${aiTextProvider === 'openai' ? '0.02' : '0.01'}</span>
                   </div>
                 </div>
               )}
-              <p className="text-xs text-amber-600 mt-1">* Based on OpenAI DALL-E 3 pricing</p>
             </div>
 
             <button

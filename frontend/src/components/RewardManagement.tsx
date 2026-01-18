@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save } from 'lucide-react';
+import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save, Users, User } from 'lucide-react';
 import { rewardsAPI, Reward, RewardClaim } from '../services/api';
 import playSounds from '../utils/sounds';
 import { useToast } from './Toast';
+import Avatar from './Avatar';
+
+interface ChildInfo {
+  id: number;
+  name: string;
+  avatar: string;
+  age: number;
+}
 
 interface RewardManagementProps {
   parentId: number;
@@ -12,6 +20,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const toast = useToast();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pendingClaims, setPendingClaims] = useState<RewardClaim[]>([]);
+  const [children, setChildren] = useState<ChildInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -24,7 +33,8 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
     description: '',
     pointsRequired: 100,
     icon: '🎁',
-    stock: -1 // -1 = unlimited
+    stock: -1, // -1 = unlimited
+    targetChild: 'all' as 'all' | number // 'all' or specific child ID
   });
 
   useEffect(() => {
@@ -34,12 +44,14 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [rewardsRes, claimsRes] = await Promise.all([
-        rewardsAPI.getAll(),
-        rewardsAPI.getPending()
+      const [rewardsRes, claimsRes, childrenRes] = await Promise.all([
+        rewardsAPI.getAll(parentId),
+        rewardsAPI.getPending(parentId),
+        rewardsAPI.getParentChildren(parentId)
       ]);
       setRewards(rewardsRes.data);
       setPendingClaims(claimsRes.data);
+      setChildren(childrenRes.data);
     } catch (error: any) {
       console.error('Failed to load rewards data:', error);
       toast.error('Failed to load rewards');
@@ -63,13 +75,18 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
 
     setSaving(true);
     try {
+      const isForAllChildren = formData.targetChild === 'all';
+      const targetProfileId: number | null = isForAllChildren ? null : (formData.targetChild as number);
+
       if (editingReward) {
         await rewardsAPI.update(editingReward.id, {
           title: formData.title,
           description: formData.description,
           points_required: formData.pointsRequired,
           icon: formData.icon,
-          stock: formData.stock
+          stock: formData.stock,
+          available_for_all: isForAllChildren,
+          profile_id: targetProfileId
         });
         toast.success('Reward updated!');
       } else {
@@ -79,7 +96,9 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           pointsRequired: formData.pointsRequired,
           icon: formData.icon,
           stock: formData.stock,
-          createdBy: parentId
+          createdBy: parentId,
+          availableForAll: isForAllChildren,
+          profileId: targetProfileId
         });
         toast.success('Reward added!');
       }
@@ -118,7 +137,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1 });
+    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1, targetChild: 'all' });
     setEditingReward(null);
     setShowForm(false);
   };
@@ -129,10 +148,18 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
       description: reward.description || '',
       pointsRequired: reward.points_required,
       icon: reward.icon || '🎁',
-      stock: reward.stock ?? -1
+      stock: reward.stock ?? -1,
+      targetChild: reward.available_for_all ? 'all' : (reward.profile_id || 'all')
     });
     setEditingReward(reward);
     setShowForm(true);
+  };
+
+  // Helper to get child name from ID
+  const getChildName = (childId: number | null | undefined): string => {
+    if (!childId) return 'All Children';
+    const child = children.find(c => c.id === childId);
+    return child?.name || `Child #${childId}`;
   };
 
   const commonIcons = ['🎁', '🎮', '🍦', '🎬', '📱', '🎨', '⚽', '🎵', '📚', '🧸', '🎪', '🏆'];
@@ -230,7 +257,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
               <div className="flex flex-wrap gap-2">
@@ -265,6 +292,28 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                 <option value={5}>5</option>
                 <option value={10}>10</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Available For</label>
+              <select
+                value={formData.targetChild}
+                onChange={e => setFormData({ ...formData, targetChild: e.target.value === 'all' ? 'all' : parseInt(e.target.value) })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="all">All My Children</option>
+                {children.map(child => (
+                  <option key={child.id} value={child.id}>
+                    {child.name} only
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                {formData.targetChild === 'all'
+                  ? 'All your children can claim this reward'
+                  : `Only ${getChildName(formData.targetChild as number)} can see and claim this reward`
+                }
+              </p>
             </div>
           </div>
 
@@ -320,13 +369,30 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                   {reward.description && (
                     <p className="text-sm text-slate-500 truncate">{reward.description}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-1">
+                  <div className="flex flex-wrap items-center gap-3 mt-1">
                     <span className="flex items-center gap-1 text-sm text-purple-600 font-medium">
                       <Star size={14} className="fill-current" />
                       {reward.points_required} pts
                     </span>
                     <span className="text-sm text-slate-400">
                       Stock: {reward.stock === -1 ? '∞' : reward.stock}
+                    </span>
+                    <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${
+                      reward.available_for_all
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {reward.available_for_all ? (
+                        <>
+                          <Users size={12} />
+                          All children
+                        </>
+                      ) : (
+                        <>
+                          <User size={12} />
+                          {(reward as any).target_child_name || getChildName(reward.profile_id)}
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -364,13 +430,20 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                 key={claim.id}
                 className="flex items-center gap-4 p-4 bg-white rounded-xl border border-yellow-200 shadow-sm"
               >
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center text-3xl">
-                  {claim.icon || '🎁'}
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center text-3xl">
+                    {claim.icon || '🎁'}
+                  </div>
+                  {/* Child avatar overlay */}
+                  <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full border-2 border-white shadow-sm overflow-hidden bg-slate-100">
+                    <Avatar avatar={(claim as any).child_avatar} size="sm" alt={(claim as any).child_name} />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-slate-800">{claim.title}</h3>
-                  <p className="text-sm text-slate-500">
-                    Profile ID: <span className="font-medium">#{claim.profile_id}</span>
+                  <p className="text-sm text-slate-600">
+                    <span className="font-medium text-amber-700">{(claim as any).child_name || `Child #${claim.profile_id}`}</span>
+                    {' '}wants this reward
                   </p>
                   <p className="text-sm text-purple-600 font-medium">
                     {claim.points_spent} points spent
@@ -388,7 +461,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                   <button
                     onClick={() => handleClaimAction(claim.id, 'rejected')}
                     className="flex items-center gap-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
-                    title="Reject claim"
+                    title="Reject claim (refunds points)"
                   >
                     <X size={18} />
                   </button>

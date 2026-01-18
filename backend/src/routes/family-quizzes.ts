@@ -371,26 +371,29 @@ const requestAiQuizContent = async (
   grokApiKey: string | null,
   promptText: string,
   openAiApiKey?: string | null,
-  geminiApiKey?: string | null
+  geminiApiKey?: string | null,
+  textProvider?: string
 ) => {
   const maxAttempts = 5;
   // Longer backoffs for rate limits: 10s, 20s, 30s, 45s, 60s
   const backoffDelays = [10000, 20000, 30000, 45000, 60000];
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      if (!grokApiKey) {
-        // Try OpenAI first, then Gemini
-        if (openAiApiKey) {
-          return await requestOpenAiQuizContent(openAiApiKey, promptText);
-        }
-        if (geminiApiKey) {
-          return await requestGeminiQuizContent(geminiApiKey, promptText);
-        }
-        throw new HttpError(503, 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.');
-      }
+  // Determine provider order based on user preference
+  const normalizedTextProvider = (textProvider || 'gemini').toLowerCase();
 
-      const response = await axios.post(
+  // Helper function to try a specific provider
+  const tryProvider = async (provider: string): Promise<any | null> => {
+    if (provider === 'gemini' && geminiApiKey) {
+      console.log(`[AI Quiz] Using Gemini for text generation`);
+      return await requestGeminiQuizContent(geminiApiKey, promptText);
+    }
+    if (provider === 'openai' && openAiApiKey) {
+      console.log(`[AI Quiz] Using OpenAI for text generation`);
+      return await requestOpenAiQuizContent(openAiApiKey, promptText);
+    }
+    if (provider === 'grok' && grokApiKey) {
+      console.log(`[AI Quiz] Using Grok for text generation`);
+      return await axios.post(
         GROK_API_URL,
         {
           model: 'grok-2-latest',
@@ -409,12 +412,29 @@ const requestAiQuizContent = async (
           timeout: 30000
         }
       );
-      return response;
+    }
+    return null;
+  };
+
+  // Provider order based on user preference
+  const providerOrder = normalizedTextProvider === 'grok' ? ['grok', 'openai', 'gemini'] :
+                        normalizedTextProvider === 'openai' ? ['openai', 'grok', 'gemini'] :
+                        ['gemini', 'grok', 'openai'];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Try preferred provider first
+      for (const provider of providerOrder) {
+        const response = await tryProvider(provider);
+        if (response) return response;
+      }
+      // No providers available
+      throw new HttpError(503, 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.');
     } catch (error: any) {
       const status = error?.response?.status;
       if (attempt < maxAttempts && shouldRetryAiRequest(error)) {
         const backoffMs = backoffDelays[attempt - 1] + Math.floor(Math.random() * 2000);
-        console.log(`[AI Quiz] Grok attempt ${attempt}/${maxAttempts} failed with ${status || error?.code}, retrying in ${Math.round(backoffMs / 1000)}s...`);
+        console.log(`[AI Quiz] Attempt ${attempt}/${maxAttempts} failed with ${status || error?.code}, retrying in ${Math.round(backoffMs / 1000)}s...`);
         await sleep(backoffMs);
         continue;
       }
@@ -459,6 +479,7 @@ type AiQuizPayload = {
   createdBy: number;
   assignedTo?: number;
   includeImages?: boolean;
+  textProvider?: string;
   imageProvider?: string;
 };
 
@@ -538,7 +559,8 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
     createdBy,
     assignedTo,
     includeImages = true,
-    imageProvider = 'grok'
+    textProvider = 'gemini',
+    imageProvider = 'openai'
   } = payload;
 
   if (!prompt || !categoryId || !createdBy) {
@@ -587,6 +609,8 @@ const generateAiQuizInternal = async (payload: AiQuizPayload) => {
     return `Create a bright, kid-friendly illustration for ages 4-7. ${basePrompt} ${theme} Style: colorful, clean, high contrast, centered subject, simple background, no text, no logos, no watermarks.`;
   };
 
+  // Build prompt based on whether images are needed
+  const wantsImages = includeImages && supportsImages && imageApiKey;
   const promptText = `
 You are an expert children's quiz creator. Create a fun, age-appropriate multiple choice quiz.
 
@@ -604,8 +628,9 @@ Requirements:
 - Do not reveal the correct answer in question_text, hint, or explanation.
 - Hints should be helpful but not give away the answer.
 - Keep language kid-friendly and engaging.
-- If supports_images is true, include a short image_prompt for each question and optionally for options when it helps.
-- If supports_images is false, do not include image prompts.
+${wantsImages ? `- IMPORTANT: You MUST include a "question_image_prompt" for EVERY question. This is REQUIRED, not optional.
+- The image prompt should describe a colorful, kid-friendly illustration that helps visualize the question.
+- DO NOT include image_prompt for options (A, B, C, D) - only for the question itself.` : '- Do not include any image prompts.'}
 - Output must be strict JSON only (double quotes, no trailing commas, no markdown).
 
 Return ONLY valid JSON in this exact format:
@@ -615,12 +640,12 @@ Return ONLY valid JSON in this exact format:
   "questions": [
     {
       "question_text": "Question text",
-      "question_image_prompt": "Optional image prompt for the question",
+      ${wantsImages ? '"question_image_prompt": "REQUIRED: A vivid description of a kid-friendly illustration for this question",' : ''}
       "options": [
-        { "id": "a", "text": "Option A text", "image_prompt": "Optional option image prompt" },
-        { "id": "b", "text": "Option B text", "image_prompt": "Optional option image prompt" },
-        { "id": "c", "text": "Option C text", "image_prompt": "Optional option image prompt" },
-        { "id": "d", "text": "Option D text", "image_prompt": "Optional option image prompt" }
+        { "id": "a", "text": "Option A text" },
+        { "id": "b", "text": "Option B text" },
+        { "id": "c", "text": "Option C text" },
+        { "id": "d", "text": "Option D text" }
       ],
       "correct_answer": "a",
       "hint": "Optional hint",
@@ -630,7 +655,7 @@ Return ONLY valid JSON in this exact format:
 }
 `;
 
-  const response = await requestAiQuizContent(grokApiKey, promptText, openAiApiKey, geminiApiKey);
+  const response = await requestAiQuizContent(grokApiKey, promptText, openAiApiKey, geminiApiKey, textProvider);
 
   const aiContent = response.data?.choices?.[0]?.message?.content;
   if (!aiContent) {
@@ -732,18 +757,31 @@ Return ONLY valid JSON in this exact format:
     let questionImage: string | null = null;
     const questionImagePromptRaw = question.question_image_prompt || question.image_prompt || '';
     let questionImagePrompt = questionImagePromptRaw ? buildImagePrompt(questionImagePromptRaw) : '';
-    if (!questionImagePrompt && includeImages && supportsImages) {
+
+    // ALWAYS create a fallback image prompt if images are enabled but AI didn't provide one
+    if (!questionImagePrompt && includeImages && supportsImages && imageApiKey) {
+      console.log(`[AI Quiz] Question ${i + 1} missing image prompt, generating fallback`);
       if (category.name === 'alphabet' && isSingleLetter) {
         questionImagePrompt = buildImagePrompt(
           `A bold, clear illustration of the letter "${correctOptionText}" in a fun superhero style.`
         );
       } else {
         questionImagePrompt = buildImagePrompt(
-          `A playful illustration for this quiz question: "${questionText}".`
+          `A playful, colorful illustration for this quiz question: "${questionText}". Show the main subject clearly.`
         );
       }
     }
-    if (includeImages && supportsImages && questionImagePrompt && imageApiKey) {
+
+    // Generate image for this question (required when images are enabled)
+    if (includeImages && supportsImages && imageApiKey) {
+      if (!questionImagePrompt) {
+        // Final fallback - generic themed image
+        questionImagePrompt = buildImagePrompt(
+          `A fun, educational illustration about ${category.display_name} for children.`
+        );
+      }
+
+      console.log(`[AI Quiz] Generating image for question ${i + 1}/${questions.length}`);
       questionImage = await generateImageFromPrompt(
         questionImagePrompt,
         normalizedImageProvider,
@@ -751,23 +789,15 @@ Return ONLY valid JSON in this exact format:
         imageErrors,
         `Question ${i + 1}`
       );
-    }
 
-    if (includeImages && supportsImages && includeOptionImages) {
-      for (const opt of normalizedOptions) {
-        const original = optionsRaw.find((o: any) => o.id === opt.id) || {};
-        const imagePrompt = original.image_prompt || original.imagePrompt;
-        if (imagePrompt && imageApiKey) {
-          opt.image = await generateImageFromPrompt(
-            buildImagePrompt(imagePrompt),
-            normalizedImageProvider,
-            imageApiKey,
-            imageErrors,
-            `Question ${i + 1} option ${opt.id.toUpperCase()}`
-          );
-        }
+      // If image generation failed, log but continue (don't fail entire quiz)
+      if (!questionImage) {
+        console.warn(`[AI Quiz] Failed to generate image for question ${i + 1}, continuing without image`);
       }
     }
+
+    // NOTE: Option images (A/B/C/D) are intentionally disabled to reduce costs and failures
+    // Only question images are generated (1 per question instead of 5 per question)
 
     const result = insertQuestion.run(
       quizId,
@@ -884,6 +914,7 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       createdBy,
       assignedTo,
       includeImages,
+      textProvider,
       imageProvider
     } = req.body || {};
 
@@ -898,6 +929,7 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       createdBy,
       assignedTo,
       includeImages,
+      textProvider,
       imageProvider
     });
 
@@ -1744,12 +1776,22 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       `).run(attemptId);
     }
 
-    // Award points to progress
+    // Award points to progress - MUST include total_points and total_stars to prevent data loss
     if (pointsEarned > 0 || starsEarned > 0) {
+      // Get current progress totals first
+      const currentProgress: any = db.prepare(`
+        SELECT total_points, total_stars, level FROM progress
+        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(attempt.profile_id);
+
+      const newTotalPoints = (currentProgress?.total_points || 0) + pointsEarned;
+      const newTotalStars = (currentProgress?.total_stars || 0) + starsEarned;
+      const newLevel = Math.floor(newTotalPoints / 100) + 1;
+
       db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned)
-        VALUES (?, ?, ?)
-      `).run(attempt.profile_id, pointsEarned, starsEarned);
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(attempt.profile_id, pointsEarned, starsEarned, newLevel, newTotalPoints, newTotalStars);
     }
 
     // Notify parent about completion

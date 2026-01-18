@@ -324,7 +324,7 @@ export default function BookReader() {
         onMouseLeave={() => setIsDragging(false)}
       >
         {/* Book */}
-        <div className="relative w-full max-w-4xl aspect-[4/3] md:aspect-[16/10] perspective-1000">
+        <div className="relative w-full max-w-4xl h-full max-h-[75vh] md:max-h-none md:aspect-[16/10] perspective-1000">
           {/* Book Shadow */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30 rounded-2xl transform translate-y-4 blur-xl" />
 
@@ -385,7 +385,7 @@ export default function BookReader() {
 
             {currentPage === 0 ? (
               // Cover Page
-              <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 text-white">
+              <div className="h-full flex flex-col items-center justify-center p-4 md:p-8 text-center bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 text-white overflow-y-auto">
                 {book.cover_image ? (
                   <img
                     src={book.cover_image}
@@ -393,50 +393,50 @@ export default function BookReader() {
                     className="w-full h-full object-cover absolute inset-0"
                   />
                 ) : null}
-                <div className="relative z-10 bg-black/40 backdrop-blur-sm p-8 rounded-2xl">
-                  <BookOpen className="mx-auto mb-4 opacity-80" size={48} />
-                  <h1 className="text-3xl md:text-4xl font-bold mb-4">{book.title}</h1>
-                  <p className="text-lg opacity-90 mb-6">{book.description}</p>
-                  <div className="flex items-center justify-center gap-4 text-sm opacity-75">
+                <div className="relative z-10 bg-black/40 backdrop-blur-sm p-4 md:p-8 rounded-2xl max-w-full">
+                  <BookOpen className="mx-auto mb-3 md:mb-4 opacity-80" size={40} />
+                  <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">{book.title}</h1>
+                  <p className="text-sm md:text-lg opacity-90 mb-4 md:mb-6 line-clamp-3 md:line-clamp-none">{book.description}</p>
+                  <div className="flex items-center justify-center gap-2 md:gap-4 text-xs md:text-sm opacity-75">
                     <span>{book.total_pages} pages</span>
                     <span>•</span>
                     <span>Ages {book.age_range}</span>
                   </div>
                   <button
                     onClick={nextPage}
-                    className="mt-8 px-8 py-3 bg-white text-primary-600 rounded-full font-semibold hover:bg-amber-50 transition-colors flex items-center gap-2 mx-auto"
+                    className="mt-6 md:mt-8 px-6 md:px-8 py-2 md:py-3 bg-white text-primary-600 rounded-full font-semibold hover:bg-amber-50 transition-colors flex items-center gap-2 mx-auto text-sm md:text-base"
                   >
                     Start Reading
-                    <ChevronRight size={20} />
+                    <ChevronRight size={18} />
                   </button>
                 </div>
               </div>
             ) : pageContent ? (
               // Content Page
-              <div className="h-full flex flex-col p-6 md:p-8">
+              <div className="h-full flex flex-col p-4 md:p-8 overflow-y-auto">
                 {pageContent.title && (
-                  <h2 className="text-xl md:text-2xl font-bold text-amber-900 mb-4">
+                  <h2 className="text-lg md:text-2xl font-bold text-amber-900 mb-3 md:mb-4 flex-shrink-0">
                     {pageContent.title}
                   </h2>
                 )}
 
                 {pageContent.image_url && (
-                  <div className="relative mb-4 flex-shrink-0">
+                  <div className="relative mb-3 md:mb-4 flex-shrink-0">
                     <img
                       src={pageContent.image_url}
                       alt=""
-                      className="w-full h-48 md:h-64 object-cover rounded-xl shadow-lg"
+                      className="w-full h-32 sm:h-40 md:h-64 object-cover rounded-xl shadow-lg"
                     />
                   </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto">
-                  <p className="text-gray-800 text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
+                <div className="flex-1 min-h-0">
+                  <p className="text-gray-800 text-base md:text-xl leading-relaxed whitespace-pre-wrap">
                     {pageContent.content}
                   </p>
                 </div>
 
-                <div className="text-center text-sm text-gray-400 pt-4 border-t border-amber-200 flex-shrink-0">
+                <div className="text-center text-sm text-gray-400 pt-3 md:pt-4 border-t border-amber-200 flex-shrink-0 mt-3">
                   {currentPage}
                 </div>
               </div>

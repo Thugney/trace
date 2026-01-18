@@ -1013,4 +1013,135 @@ router.get('/:id/avatar/:filename', (req, res) => {
   }
 });
 
+// ==================== ADMIN FAMILY FEATURE CONTROLS ====================
+
+// Get all families with their feature access (admin only)
+router.get('/admin/families', authenticate, adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    // Get all parents (family heads)
+    const parents: any[] = db.prepare(`
+      SELECT id, name, avatar, created_at
+      FROM profiles
+      WHERE type = 'parent'
+      ORDER BY name
+    `).all();
+
+    // For each parent, get their children and family features
+    const families = parents.map(parent => {
+      const children: any[] = db.prepare(`
+        SELECT id, name, avatar, age
+        FROM profiles
+        WHERE parent_id = ? AND type = 'child'
+      `).all(parent.id);
+
+      const features: any[] = db.prepare(`
+        SELECT feature_key, enabled, updated_at
+        FROM family_features
+        WHERE parent_id = ?
+      `).all(parent.id);
+
+      // Build features map (default to enabled if not set)
+      const featuresMap: Record<string, boolean> = {};
+      FEATURE_KEYS.forEach(key => {
+        const feature = features.find(f => f.feature_key === key);
+        featuresMap[key] = feature ? feature.enabled === 1 : true;
+      });
+
+      return {
+        parent,
+        children,
+        features: featuresMap,
+        childCount: children.length
+      };
+    });
+
+    res.json({ families, featureKeys: FEATURE_KEYS });
+  } catch (error: any) {
+    console.error('[Admin] Get families error:', error.message);
+    res.status(500).json({ error: 'Failed to get families' });
+  }
+});
+
+// Update family feature access (admin only)
+router.put('/admin/families/:parentId/features', authenticate, adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { parentId } = req.params;
+    const { features } = req.body; // { featureKey: boolean, ... }
+
+    if (!features || typeof features !== 'object') {
+      return res.status(400).json({ error: 'Features object required' });
+    }
+
+    // Verify parent exists
+    const parent: any = db.prepare('SELECT id, name, type FROM profiles WHERE id = ? AND type = ?').get(parentId, 'parent');
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+
+    // Update each feature
+    const upsertFeature = db.prepare(`
+      INSERT INTO family_features (parent_id, feature_key, enabled, updated_by, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(parent_id, feature_key) DO UPDATE SET
+        enabled = excluded.enabled,
+        updated_by = excluded.updated_by,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+
+    let updatedCount = 0;
+    for (const [featureKey, enabled] of Object.entries(features)) {
+      if (FEATURE_KEYS.includes(featureKey as any)) {
+        upsertFeature.run(parentId, featureKey, enabled ? 1 : 0, req.profile?.id);
+        updatedCount++;
+      }
+    }
+
+    console.log(`[Admin] Updated ${updatedCount} family features for parent ${parent.name} (ID: ${parentId})`);
+
+    res.json({
+      success: true,
+      message: `Updated ${updatedCount} features for ${parent.name}'s family`,
+      parentId: parseInt(parentId),
+      features
+    });
+  } catch (error: any) {
+    console.error('[Admin] Update family features error:', error.message);
+    res.status(500).json({ error: 'Failed to update family features' });
+  }
+});
+
+// Get single family's features (admin only)
+router.get('/admin/families/:parentId/features', authenticate, adminOnly, async (req: AuthRequest, res: Response) => {
+  try {
+    const { parentId } = req.params;
+
+    const parent: any = db.prepare('SELECT id, name FROM profiles WHERE id = ? AND type = ?').get(parentId, 'parent');
+    if (!parent) {
+      return res.status(404).json({ error: 'Parent not found' });
+    }
+
+    const features: any[] = db.prepare(`
+      SELECT feature_key, enabled, updated_at
+      FROM family_features
+      WHERE parent_id = ?
+    `).all(parentId);
+
+    const featuresMap: Record<string, boolean> = {};
+    FEATURE_KEYS.forEach(key => {
+      const feature = features.find(f => f.feature_key === key);
+      featuresMap[key] = feature ? feature.enabled === 1 : true;
+    });
+
+    res.json({
+      parentId: parseInt(parentId),
+      parentName: parent.name,
+      features: featuresMap,
+      featureKeys: FEATURE_KEYS
+    });
+  } catch (error: any) {
+    console.error('[Admin] Get family features error:', error.message);
+    res.status(500).json({ error: 'Failed to get family features' });
+  }
+});
+
 export default router;

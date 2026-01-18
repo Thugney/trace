@@ -6,7 +6,7 @@ import { booksAPI, Book, BookCategory, profilesAPI } from '../services/api';
 import type { Profile } from '../types';
 import {
   BookOpen, Trash2, Sparkles, Clock, CheckCircle,
-  BookMarked, Filter, Search, ChevronRight, Users
+  BookMarked, Filter, Search, ChevronRight, Users, Star, MessageCircle, X as CloseIcon
 } from 'lucide-react';
 
 export default function BookLibrary() {
@@ -21,6 +21,12 @@ export default function BookLibrary() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Feedback state
+  const [bookFeedback, setBookFeedback] = useState<Record<number, { totalReviews: number; averageRating: number; likesCount: number }>>({});
+  const [showFeedbackModal, setShowFeedbackModal] = useState<{ bookId: number; title: string } | null>(null);
+  const [feedbackDetails, setFeedbackDetails] = useState<any[]>([]);
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
 
   // AI Generation state
   const [generating, setGenerating] = useState(false);
@@ -73,10 +79,40 @@ export default function BookLibrary() {
         (p: Profile) => p.type === 'child' && (p.parent_id === currentProfile!.id || !p.parent_id)
       );
       setChildren(childProfiles);
+
+      // Load feedback stats for each book (for parent/teacher view)
+      if (currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin') {
+        const feedbackPromises = booksRes.data.map(async (book: Book) => {
+          try {
+            const res = await booksAPI.getBookFeedback(book.id);
+            return { bookId: book.id, stats: res.data.stats };
+          } catch {
+            return { bookId: book.id, stats: { totalReviews: 0, averageRating: 0, likesCount: 0 } };
+          }
+        });
+        const feedbackResults = await Promise.all(feedbackPromises);
+        const feedbackMap: Record<number, any> = {};
+        feedbackResults.forEach(r => { feedbackMap[r.bookId] = r.stats; });
+        setBookFeedback(feedbackMap);
+      }
     } catch (error) {
       showToast('Failed to load books', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openFeedbackModal = async (bookId: number, title: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowFeedbackModal({ bookId, title });
+    setLoadingFeedback(true);
+    try {
+      const res = await booksAPI.getBookFeedback(bookId);
+      setFeedbackDetails(res.data.feedback || []);
+    } catch {
+      setFeedbackDetails([]);
+    } finally {
+      setLoadingFeedback(false);
     }
   };
 
@@ -328,9 +364,98 @@ export default function BookLibrary() {
                   <span>•</span>
                   <span className="capitalize">{book.genre}</span>
                 </div>
+                {/* Rating display for parents */}
+                {isParentOrTeacher && bookFeedback[book.id] && bookFeedback[book.id].totalReviews > 0 && (
+                  <button
+                    onClick={(e) => openFeedbackModal(book.id, book.title, e)}
+                    className="flex items-center gap-1 mt-2 px-2 py-1 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <Star
+                          key={star}
+                          size={12}
+                          className={star <= Math.round(bookFeedback[book.id].averageRating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs text-amber-700 font-medium">
+                      {bookFeedback[book.id].averageRating.toFixed(1)} ({bookFeedback[book.id].totalReviews})
+                    </span>
+                    <MessageCircle size={12} className="text-amber-600" />
+                  </button>
+                )}
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <MessageCircle className="text-amber-500" size={20} />
+                  Book Feedback
+                </h3>
+                <p className="text-sm text-gray-500 truncate">{showFeedbackModal.title}</p>
+              </div>
+              <button
+                onClick={() => setShowFeedbackModal(null)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <CloseIcon size={20} className="text-gray-500" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {loadingFeedback ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+              ) : feedbackDetails.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Star className="mx-auto mb-2 text-gray-300" size={32} />
+                  <p>No feedback yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {feedbackDetails.map((fb: any, idx: number) => (
+                    <div key={idx} className="bg-gray-50 rounded-xl p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-lg">
+                          {fb.profile_avatar || '👤'}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{fb.profile_name}</p>
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map(star => (
+                              <Star
+                                key={star}
+                                size={14}
+                                className={star <= fb.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                              />
+                            ))}
+                            {fb.liked === 1 && (
+                              <span className="ml-2 text-pink-500 text-xs">❤️ Loved it!</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {fb.comment && (
+                        <p className="text-sm text-gray-600 mt-2 italic">"{fb.comment}"</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-2">
+                        {new Date(fb.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

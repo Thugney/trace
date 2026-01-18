@@ -3,6 +3,7 @@ import axios from 'axios';
 import db from '../database/init';
 import { AuthRequest, authenticate, authenticateEventSource, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { applyPointsMultiplier, getEconomySettings } from '../services/economyControl';
 
 const router = express.Router();
 
@@ -346,12 +347,25 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
         const category = args.category || 'other';
         console.log(`[AI Tool] Using category: "${category}"`);
 
-        // Auto-calculate points based on difficulty if not provided
-        let points = args.points;
-        if (!points) {
+        // Auto-calculate base points based on difficulty
+        let basePoints = args.points;
+        if (!basePoints) {
           const pointsMap: Record<string, number> = { easy: 10, medium: 20, hard: 30 };
-          points = pointsMap[args.difficulty] || 10;
+          basePoints = pointsMap[args.difficulty] || 10;
         }
+
+        // Apply economy controls - multiply points by parent-set multiplier
+        const economySettings = getEconomySettings(profileId);
+        let points = applyPointsMultiplier(profileId, basePoints);
+
+        // Cap maximum points per task to prevent abuse (max 50 base points, respecting multiplier)
+        const maxTaskPoints = Math.round(50 * economySettings.points_multiplier);
+        if (points > maxTaskPoints) {
+          console.log(`[AI Tool] Capping points from ${points} to ${maxTaskPoints} (economy control)`);
+          points = maxTaskPoints;
+        }
+
+        console.log(`[AI Tool] Economy control: base=${basePoints}, multiplier=${economySettings.points_multiplier}, final=${points}`);
 
         try {
           const result = db.prepare(`

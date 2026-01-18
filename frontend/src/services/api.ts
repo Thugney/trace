@@ -75,7 +75,25 @@ export const profilesAPI = {
       formData,
       { headers: { 'Content-Type': undefined } }
     );
-  }
+  },
+  // Admin family feature controls
+  getAdminFamilies: () => api.get<{
+    families: Array<{
+      parent: { id: number; name: string; avatar: string; created_at: string };
+      children: Array<{ id: number; name: string; avatar: string; age: number }>;
+      features: Record<string, boolean>;
+      childCount: number;
+    }>;
+    featureKeys: string[];
+  }>('/profiles/admin/families'),
+  getFamilyFeatures: (parentId: number) => api.get<{
+    parentId: number;
+    parentName: string;
+    features: Record<string, boolean>;
+    featureKeys: string[];
+  }>(`/profiles/admin/families/${parentId}/features`),
+  updateFamilyFeatures: (parentId: number, features: Record<string, boolean>) =>
+    api.put<{ success: boolean; message: string }>(`/profiles/admin/families/${parentId}/features`, { features })
 };
 
 // Diet
@@ -1003,8 +1021,9 @@ export const rewardsAPI = {
     api.get<RewardClaim[]>(`/rewards/claimed/${profileId}`),
 
   // Get pending claims (for parents)
-  getPending: () =>
-    api.get<RewardClaim[]>('/rewards/pending'),
+  // If parentId provided, only shows claims from that parent's children
+  getPending: (parentId?: number) =>
+    api.get<RewardClaim[]>(`/rewards/pending${parentId ? `?parentId=${parentId}` : ''}`),
 
   // Update claim status (approve/reject/given)
   updateClaimStatus: (claimId: number, status: string, approvedBy: number, notes?: string) =>
@@ -1033,9 +1052,14 @@ export const rewardsAPI = {
   delete: (rewardId: number) =>
     api.delete(`/rewards/${rewardId}`),
 
-  // Get all rewards (admin view)
-  getAll: () =>
-    api.get<Reward[]>('/rewards/all')
+  // Get all rewards (admin view or parent-scoped)
+  // If parentId provided, only shows rewards created by that parent
+  getAll: (parentId?: number) =>
+    api.get<Reward[]>(`/rewards/all${parentId ? `?parentId=${parentId}` : ''}`),
+
+  // Get children for a parent (for reward targeting)
+  getParentChildren: (parentId: number) =>
+    api.get<Array<{ id: number; name: string; avatar: string; age: number }>>(`/rewards/parent/${parentId}/children`)
 };
 
 // Reminder Preferences API
@@ -1275,6 +1299,7 @@ export const familyQuizzesAPI = {
     createdBy: number;
     assignedTo: number;
     includeImages?: boolean;
+    textProvider?: 'grok' | 'openai' | 'gemini';
     imageProvider?: 'grok' | 'openai' | 'gemini';
   }) => api.post<AIQuizJobStartResponse>('/family-quizzes/ai-generate', data),
   getAIQuizJobStatus: (jobId: string) =>

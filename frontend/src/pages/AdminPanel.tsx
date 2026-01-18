@@ -3,9 +3,16 @@ import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, aiAPI, settingsAPI } from '../services/api';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { Profile } from '../types';
-import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal, GraduationCap } from 'lucide-react';
+import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal, GraduationCap, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import clsx from 'clsx';
 import Avatar from '../components/Avatar';
+
+interface FamilyData {
+  parent: { id: number; name: string; avatar: string; created_at: string };
+  children: Array<{ id: number; name: string; avatar: string; age: number }>;
+  features: Record<string, boolean>;
+  childCount: number;
+}
 
 export default function AdminPanel() {
   const { currentProfile, refreshProfiles } = useProfile();
@@ -18,6 +25,14 @@ export default function AdminPanel() {
   const [featureAccess, setFeatureAccess] = useState<Record<string, boolean>>({});
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [savingFeatures, setSavingFeatures] = useState(false);
+
+  // Family feature controls (admin-level)
+  const [families, setFamilies] = useState<FamilyData[]>([]);
+  const [familiesLoading, setFamiliesLoading] = useState(false);
+  const [expandedFamilyId, setExpandedFamilyId] = useState<number | null>(null);
+  const [familyFeatures, setFamilyFeatures] = useState<Record<string, boolean>>({});
+  const [savingFamilyFeatures, setSavingFamilyFeatures] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     type: 'child' as 'admin' | 'parent' | 'child' | 'teacher',
@@ -45,6 +60,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     loadAllProfiles();
+    loadFamilies();
   }, []);
 
   const loadAllProfiles = async () => {
@@ -56,6 +72,57 @@ export default function AdminPanel() {
       console.error('Failed to load profiles:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFamilies = async () => {
+    try {
+      setFamiliesLoading(true);
+      const response = await profilesAPI.getAdminFamilies();
+      setFamilies(response.data.families);
+    } catch (error) {
+      console.error('Failed to load families:', error);
+    } finally {
+      setFamiliesLoading(false);
+    }
+  };
+
+  const toggleFamilyExpand = async (parentId: number) => {
+    if (expandedFamilyId === parentId) {
+      setExpandedFamilyId(null);
+      setFamilyFeatures({});
+      return;
+    }
+
+    try {
+      const response = await profilesAPI.getFamilyFeatures(parentId);
+      const nextFeatures: Record<string, boolean> = {};
+      // Default all features to enabled
+      featureOptions.forEach(option => {
+        nextFeatures[option.key] = true;
+      });
+      // Override with actual stored values
+      Object.entries(response.data.features).forEach(([key, enabled]) => {
+        nextFeatures[key] = enabled;
+      });
+      setFamilyFeatures(nextFeatures);
+      setExpandedFamilyId(parentId);
+    } catch (error) {
+      console.error('Failed to load family features:', error);
+    }
+  };
+
+  const saveFamilyFeatures = async (parentId: number) => {
+    try {
+      setSavingFamilyFeatures(true);
+      await profilesAPI.updateFamilyFeatures(parentId, familyFeatures);
+      await loadFamilies();
+      alert('Family feature access updated successfully.');
+    } catch (error) {
+      console.error('Failed to save family features:', error);
+      alert('Failed to update family features. Please try again.');
+    } finally {
+      setSavingFamilyFeatures(false);
     }
   };
 
@@ -364,6 +431,141 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Family Feature Controls - Admin Level */}
+      <section className="card border border-slate-200/80 bg-white p-6 shadow-lg">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-purple-100 p-2">
+              <Users className="text-purple-600" size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Family Feature Controls</h2>
+              <p className="text-sm text-slate-500">Control which features each family can access. This overrides individual profile settings.</p>
+            </div>
+          </div>
+          <button
+            onClick={loadFamilies}
+            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <RefreshCcw size={16} /> Refresh
+          </button>
+        </div>
+
+        {familiesLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="spinner"></div>
+          </div>
+        ) : families.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            <Users className="mx-auto mb-2 text-slate-400" size={32} />
+            <p>No families found. Create parent profiles to see families here.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {families.map(family => (
+              <div key={family.parent.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+                <button
+                  onClick={() => toggleFamilyExpand(family.parent.id)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-slate-100/80 transition"
+                >
+                  <div className="flex items-center gap-4">
+                    <Avatar avatar={family.parent.avatar} size="md" alt={family.parent.name} />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-slate-900">{family.parent.name}'s Family</h3>
+                      <p className="text-sm text-slate-500">
+                        {family.childCount} {family.childCount === 1 ? 'child' : 'children'}
+                        {family.children.length > 0 && ': '}
+                        {family.children.map(c => c.name).join(', ')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="hidden md:flex gap-2">
+                      {Object.entries(family.features).slice(0, 4).map(([key, enabled]) => (
+                        <span
+                          key={key}
+                          className={clsx(
+                            'px-2 py-1 text-xs font-medium rounded-full',
+                            enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                          )}
+                        >
+                          {key}
+                        </span>
+                      ))}
+                      {Object.keys(family.features).length > 4 && (
+                        <span className="px-2 py-1 text-xs text-slate-500">
+                          +{Object.keys(family.features).length - 4} more
+                        </span>
+                      )}
+                    </div>
+                    {expandedFamilyId === family.parent.id ? (
+                      <ChevronUp className="text-slate-400" size={20} />
+                    ) : (
+                      <ChevronDown className="text-slate-400" size={20} />
+                    )}
+                  </div>
+                </button>
+
+                {expandedFamilyId === family.parent.id && (
+                  <div className="border-t border-slate-200 bg-white p-4">
+                    <p className="text-sm text-slate-600 mb-4">
+                      Toggle features on/off for this family. Disabled features will be blocked for all family members.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {featureOptions.map(option => (
+                        <label
+                          key={option.key}
+                          className={clsx(
+                            'flex items-center gap-3 rounded-xl border p-3 cursor-pointer transition',
+                            familyFeatures[option.key]
+                              ? 'border-emerald-300 bg-emerald-50/50'
+                              : 'border-rose-200 bg-rose-50/50'
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 accent-emerald-600"
+                            checked={Boolean(familyFeatures[option.key])}
+                            onChange={() =>
+                              setFamilyFeatures(prev => ({
+                                ...prev,
+                                [option.key]: !prev[option.key]
+                              }))
+                            }
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{option.label}</p>
+                            <p className="text-xs text-slate-500">{option.description}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={() => saveFamilyFeatures(family.parent.id)}
+                        disabled={savingFamilyFeatures}
+                        className="btn btn-primary"
+                      >
+                        {savingFamilyFeatures ? 'Saving...' : 'Save Family Features'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedFamilyId(null);
+                          setFamilyFeatures({});
+                        }}
+                        className="btn btn-secondary"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {(showCreateForm || editingProfile) && (
