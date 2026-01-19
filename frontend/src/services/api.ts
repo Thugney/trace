@@ -61,6 +61,7 @@ export const profilesAPI = {
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
   delete: (id: number) => api.delete(`/profiles/${id}`),
   getFeatures: (id: number) => api.get<Array<{ feature_key: string; enabled: number }>>(`/profiles/${id}/features`),
+  getMyFeatures: () => api.get<{ features: Record<string, boolean>; role: string }>('/profiles/me/features'),
   updateFeatures: (id: number, features: Record<string, boolean>) =>
     api.put<Array<{ feature_key: string; enabled: number }>>(`/profiles/${id}/features`, { features }),
   getStats: (id: number) => api.get<ProfileStats>(`/profiles/${id}/stats`),

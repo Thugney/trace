@@ -20,6 +20,7 @@ This document describes all implemented features, how they work, and their purpo
 12. [Economy Controls](#-economy-controls)
 13. [Church School System](#church-school-system)
 14. [Regular School Tracking](#regular-school-tracking)
+15. [Granular Access Control](#granular-access-control)
 
 ---
 
@@ -752,6 +753,73 @@ Displayed before generation so parents know approximate cost.
 
 ---
 
+## Granular Access Control
+
+**Purpose:** Admin can control which features each family has access to. Kids inherit access from their parents.
+
+### How It Works
+
+1. **Admin** has full sudo access to all features
+2. **Admin** can enable/disable features per family (parent)
+3. **Parents** inherit from family settings
+4. **Kids** inherit from their parents
+
+### Feature Hierarchy
+
+```
+Admin (all access)
+  └─► Family Features (per parent)
+        └─► Parent sees only enabled features
+              └─► Kids inherit parent's enabled features
+```
+
+### Available Features
+
+| Feature Key | Label | Description |
+|-------------|-------|-------------|
+| `school` | Church School | Weekend school assignments and submissions |
+| `regular_school` | Regular School | Homework tracking for regular school |
+| `shopping` | Shopping | Shopping gamification and trips |
+| `books` | AI Books | AI-generated personalized books |
+| `tasks` | Tasks | Chores and daily missions |
+| `quizzes` | Quizzes | Quiz builder and player |
+| `notes` | Notes | Personal notes and reminders |
+| `calendar` | Calendar | Schedules and reminders |
+| `goals` | Goals | Monthly goals and progress |
+| `rewards` | Rewards | Reward shop and claims |
+| `gamification` | Gamification | Points, streaks, leaderboard |
+| `journey` | Journey | Adventure map |
+| `leaderboard` | Leaderboard | Family rankings |
+| `ai` | AI Assistant | AI chat and insights |
+| `diet` | Diet | Food tracking |
+
+### Admin UI
+
+In the Admin Panel, under "Family Feature Controls":
+1. Click on a family to expand
+2. Toggle features on/off
+3. Click "Save Family Features"
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/profiles/me/features` | GET | Get current user's effective feature access |
+| `/profiles/admin/families` | GET | List all families with their feature access |
+| `/profiles/admin/families/:parentId/features` | GET | Get a family's feature settings |
+| `/profiles/admin/families/:parentId/features` | PUT | Update a family's feature settings |
+
+### Backend Middleware
+
+Routes use `requireFeature('feature_key')` middleware to block unauthorized access:
+```typescript
+router.use(requireFeature('regular_school'));
+```
+
+If a family doesn't have access, they receive a 403 error.
+
+---
+
 ## Technical Notes
 
 ### Database
@@ -779,4 +847,4 @@ Displayed before generation so parents know approximate cost.
 
 ---
 
-*Last Updated: 2026-01-19 (School UI redesign documented)*
+*Last Updated: 2026-01-19 (Added Regular School tracking and Granular Access Control)*

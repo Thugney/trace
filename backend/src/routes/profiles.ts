@@ -344,6 +344,54 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get my effective feature access (any authenticated user)
+router.get('/me/features', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+
+    // Admin has all features
+    if (profile.type === 'admin') {
+      const allFeatures: Record<string, boolean> = {};
+      FEATURE_KEYS.forEach(key => { allFeatures[key] = true; });
+      return res.json({ features: allFeatures, role: 'admin' });
+    }
+
+    // Get family-level features (from parent)
+    let parentId = profile.type === 'parent' ? profile.id : profile.parent_id;
+    const familyFeatures: Record<string, boolean> = {};
+    FEATURE_KEYS.forEach(key => { familyFeatures[key] = true; }); // Default all enabled
+
+    if (parentId) {
+      const familyRows: any[] = db.prepare(`
+        SELECT feature_key, enabled FROM family_features WHERE parent_id = ?
+      `).all(parentId);
+      familyRows.forEach(row => {
+        familyFeatures[row.feature_key] = row.enabled === 1;
+      });
+    }
+
+    // Get profile-level features
+    const profileRows: any[] = db.prepare(`
+      SELECT feature_key, enabled FROM profile_features WHERE profile_id = ?
+    `).all(profile.id);
+
+    // Merge: profile features override family, but disabled family features can't be enabled at profile level
+    const effectiveFeatures: Record<string, boolean> = {};
+    FEATURE_KEYS.forEach(key => {
+      const familyEnabled = familyFeatures[key];
+      const profileRow = profileRows.find(r => r.feature_key === key);
+      const profileEnabled = profileRow ? profileRow.enabled === 1 : true;
+      // Feature is only enabled if both family AND profile allow it
+      effectiveFeatures[key] = familyEnabled && profileEnabled;
+    });
+
+    res.json({ features: effectiveFeatures, role: profile.type });
+  } catch (error: any) {
+    console.error('[Profiles] Get my features error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get profile feature access (admin only)
 router.get('/:id/features', adminOnly, (req: AuthRequest, res: Response) => {
   try {

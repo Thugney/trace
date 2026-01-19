@@ -6,8 +6,12 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
+
+// Apply feature access check to all routes
+router.use(requireFeature('shopping'));
 
 // ==================== SHOPPING CATEGORIES ====================
 

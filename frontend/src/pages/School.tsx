@@ -95,6 +95,9 @@ export default function School() {
   const [subjectForm, setSubjectForm] = useState({ name: '', icon: '📚', color: 'indigo' });
   const [homeworkForm, setHomeworkForm] = useState({ title: '', description: '', due_date: '', points: '10' });
 
+  // Feature access
+  const [myFeatures, setMyFeatures] = useState<Record<string, boolean>>({});
+
   const isAdmin = currentProfile?.type === 'admin';
   const isTeacher = currentProfile?.type === 'teacher';
   const isParent = currentProfile?.type === 'parent';
@@ -121,6 +124,15 @@ export default function School() {
     const loadBase = async () => {
       try {
         setLoading(true);
+
+        // Load feature access
+        try {
+          const featuresRes = await profilesAPI.getMyFeatures();
+          setMyFeatures(featuresRes.data.features);
+        } catch (e) {
+          console.error('Failed to load features:', e);
+        }
+
         const classesRes = await schoolAPI.getClasses();
         setClasses(classesRes.data);
 
@@ -1078,32 +1090,38 @@ export default function School() {
             </div>
           )}
 
-          {/* School Mode Toggle */}
-          <div className="mb-8 flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
-            <button
-              onClick={() => setSchoolMode('church')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                schoolMode === 'church'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              ⛪ Church School
-            </button>
-            <button
-              onClick={() => setSchoolMode('regular')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                schoolMode === 'regular'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              🏫 Regular School
-            </button>
-          </div>
+          {/* School Mode Toggle - only show if user has access to both */}
+          {(myFeatures.school !== false || myFeatures.regular_school !== false) && (
+            <div className="mb-8 flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+              {myFeatures.school !== false && (
+                <button
+                  onClick={() => setSchoolMode('church')}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                    schoolMode === 'church'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  ⛪ Church School
+                </button>
+              )}
+              {myFeatures.regular_school !== false && (
+                <button
+                  onClick={() => setSchoolMode('regular')}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                    schoolMode === 'regular'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  🏫 Regular School
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Church School View */}
-          {schoolMode === 'church' && (
+          {schoolMode === 'church' && myFeatures.school !== false && (
             <>
           {/* Progress Summary */}
           <div className="mb-8 bg-white p-6 rounded-2xl border border-slate-100">
@@ -1325,7 +1343,7 @@ export default function School() {
           )}
 
           {/* Regular School View */}
-          {schoolMode === 'regular' && (
+          {schoolMode === 'regular' && myFeatures.regular_school !== false && (
             <>
               {/* Stats Summary */}
               {regularStats && (

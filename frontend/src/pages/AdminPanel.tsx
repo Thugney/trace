@@ -44,7 +44,10 @@ export default function AdminPanel() {
   });
 
   const featureOptions = [
-    { key: 'school', label: 'School', description: 'Assignments, submissions, feedback' },
+    { key: 'school', label: 'Church School', description: 'Weekend school assignments and submissions' },
+    { key: 'regular_school', label: 'Regular School', description: 'Homework tracking for regular school' },
+    { key: 'shopping', label: 'Shopping', description: 'Shopping gamification and trips' },
+    { key: 'books', label: 'AI Books', description: 'AI-generated personalized books' },
     { key: 'tasks', label: 'Tasks', description: 'Chores and daily missions' },
     { key: 'quizzes', label: 'Quizzes', description: 'Quiz builder and player' },
     { key: 'notes', label: 'Notes', description: 'Personal notes and reminders' },
@@ -54,7 +57,7 @@ export default function AdminPanel() {
     { key: 'gamification', label: 'Gamification', description: 'Points, streaks, leaderboard' },
     { key: 'journey', label: 'Journey', description: 'Adventure map' },
     { key: 'leaderboard', label: 'Leaderboard', description: 'Family rankings' },
-    { key: 'ai', label: 'AI', description: 'AI assistant and insights' },
+    { key: 'ai', label: 'AI Assistant', description: 'AI chat and insights' },
     { key: 'diet', label: 'Diet', description: 'Food tracking' }
   ];
 

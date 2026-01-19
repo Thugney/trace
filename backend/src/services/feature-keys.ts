@@ -1,5 +1,8 @@
 export const FEATURE_KEYS = [
-  'school',
+  'school',           // Church School
+  'regular_school',   // Regular School homework tracking
+  'shopping',         // Shopping Gamification
+  'books',            // AI Book Creator
   'tasks',
   'diet',
   'ai',
