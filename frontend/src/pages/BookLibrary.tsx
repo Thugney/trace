@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
+import Avatar from '../components/Avatar';
 import { booksAPI, Book, BookCategory, BookReadingProgress, BookReadingNote, profilesAPI } from '../services/api';
 import type { Profile } from '../types';
 import {
@@ -9,6 +10,17 @@ import {
   BookMarked, Filter, Search, ChevronRight, Users, Star, MessageCircle, X as CloseIcon,
   Plus, Library, BookCheck, Play, Pause, AlertCircle, Edit3, StickyNote, Lightbulb, Heart, HelpCircle, BookText, Loader2
 } from 'lucide-react';
+
+// Helper to get display avatar (emoji only, not URLs)
+const getDisplayAvatar = (avatar: string | undefined): string => {
+  if (!avatar) return '';
+  // If it's a URL or filename, don't show it in text
+  if (avatar.startsWith('/') || avatar.startsWith('http') || avatar.includes('.')) {
+    return '';
+  }
+  // It's an emoji or text, show it
+  return avatar;
+};
 
 export default function BookLibrary() {
   const navigate = useNavigate();
@@ -813,9 +825,7 @@ export default function BookLibrary() {
                 return (
                   <div key={child.id} className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
                     <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">
-                        {child.avatar || '👤'}
-                      </div>
+                      <Avatar avatar={child.avatar} size="md" alt={child.name} />
                       <div>
                         <h3 className="font-semibold text-gray-900">{child.name}</h3>
                         <p className="text-sm text-gray-500">{childBooks.length} books in progress</p>
@@ -1057,7 +1067,7 @@ export default function BookLibrary() {
                         <option value="">Myself</option>
                         {children.map(child => (
                           <option key={child.id} value={child.id}>
-                            {child.name} {child.avatar || ''}
+                            {getDisplayAvatar(child.avatar)} {child.name}
                           </option>
                         ))}
                       </select>
