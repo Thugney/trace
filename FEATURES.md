@@ -19,6 +19,7 @@ This document describes all implemented features, how they work, and their purpo
 11. [Push Notifications](#-push-notifications)
 12. [Economy Controls](#-economy-controls)
 13. [Church School System](#church-school-system)
+14. [Regular School Tracking](#regular-school-tracking)
 
 ---
 
@@ -671,6 +672,83 @@ Displayed before generation so parents know approximate cost.
 - Statistics cards: Classes, Teachers, Students
 - List of all classes with age ranges
 - Grid of all teachers
+
+---
+
+## Regular School Tracking
+
+**Purpose:** Track regular school homework at home, gamifying completion to motivate kids.
+
+**The Problem:** Parents receive weekly/monthly plans from their kids' regular schools and want to track homework completion at home. Kids often lack motivation to complete homework without incentives.
+
+**The Solution:** A simple homework tracker where parents manually add subjects and homework items. Kids earn points when they complete homework, motivating them to stay on top of their schoolwork.
+
+### How It Works
+
+1. **Parent creates subjects** (Math, Reading, Science, etc.)
+   - Each subject has a name and icon
+   - Subjects are per-child (multiple children can have different subjects)
+
+2. **Parent adds homework**
+   - Select subject
+   - Enter title and optional description
+   - Set due date (optional)
+   - Set point value (default: 10 pts)
+
+3. **Kid completes homework**
+   - Views homework list with due dates
+   - Clicks "Done" when complete
+   - Points automatically awarded
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **School Mode Toggle** | Switch between Church School and Regular School in the same UI |
+| **Subject Management** | Create, delete subjects (Math, Reading, Science, Art, etc.) |
+| **Homework Tracking** | Add homework with due dates and point values |
+| **Visual Due Dates** | Red = overdue, Amber = due today, Normal = upcoming |
+| **Points Gamification** | Kids earn points for completing homework |
+| **Progress Stats** | Dashboard shows completed, pending, overdue counts |
+
+### Point System
+
+| Action | Points |
+|--------|--------|
+| Complete homework | 5-100 pts (configurable per item) |
+| Default homework | 10 pts |
+
+### UI Design
+
+**School Mode Toggle:**
+- Pills at top: "⛪ Church School" | "🏫 Regular School"
+- Switches between the two tracking systems
+
+**Parent View:**
+- Subject pills with pending counts
+- Add subject form (name + icon selector)
+- Homework list with "Done" buttons
+- Delete options for subjects and homework
+
+**Child View:**
+- Homework list organized by subject
+- "Done" button to mark complete
+- Visual feedback for completed items (strikethrough, green)
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/regular-school/subjects` | GET | Get subjects for a student |
+| `/regular-school/subjects` | POST | Create a subject |
+| `/regular-school/subjects/:id` | PUT | Update a subject |
+| `/regular-school/subjects/:id` | DELETE | Delete a subject |
+| `/regular-school/homework` | GET | Get homework for a student |
+| `/regular-school/homework` | POST | Create homework |
+| `/regular-school/homework/:id` | PUT | Update homework |
+| `/regular-school/homework/:id` | DELETE | Delete homework |
+| `/regular-school/homework/:id/complete` | POST | Mark homework complete |
+| `/regular-school/stats` | GET | Get homework statistics |
 
 ---
 
