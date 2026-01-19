@@ -1186,48 +1186,29 @@ export function initDatabase() {
     console.error('Migration error (school_only_mode setting):', error.message);
   }
 
-  // Migration: Seed profile feature access for existing profiles
-  try {
-    const featureCount: any = db.prepare('SELECT COUNT(*) as count FROM profile_features').get();
-    if (featureCount?.count === 0) {
-      const profiles: any[] = db.prepare('SELECT id, type FROM profiles').all();
-      const insertFeature = db.prepare(`
-        INSERT INTO profile_features (profile_id, feature_key, enabled)
-        VALUES (?, ?, ?)
-      `);
-
-      profiles.forEach(profile => {
-        FEATURE_KEYS.forEach(featureKey => {
-          insertFeature.run(profile.id, featureKey, 1);
-        });
-      });
-      console.log('? Seeded profile feature access for existing profiles');
-    }
-  } catch (error: any) {
-    console.error('Migration error (profile feature seed):', error.message);
-  }
-
-  // Migration: Ensure AI feature is enabled for all profiles
-  // This fixes any profiles that were created with only 'school' feature enabled
+  // Migration: Ensure ALL features are enabled for ALL profiles
+  // This runs on every startup to ensure no features are missing
   try {
     const profiles: any[] = db.prepare('SELECT id FROM profiles').all();
     const upsertFeature = db.prepare(`
       INSERT INTO profile_features (profile_id, feature_key, enabled)
-      VALUES (?, 'ai', 1)
-      ON CONFLICT(profile_id, feature_key) DO UPDATE SET enabled = 1
+      VALUES (?, ?, 1)
+      ON CONFLICT(profile_id, feature_key) DO NOTHING
     `);
 
-    let updatedCount = 0;
+    let insertedCount = 0;
     profiles.forEach(profile => {
-      const result = upsertFeature.run(profile.id);
-      if (result.changes > 0) updatedCount++;
+      FEATURE_KEYS.forEach(featureKey => {
+        const result = upsertFeature.run(profile.id, featureKey);
+        if (result.changes > 0) insertedCount++;
+      });
     });
 
-    if (updatedCount > 0) {
-      console.log(`? Enabled AI feature for ${updatedCount} profiles`);
+    if (insertedCount > 0) {
+      console.log(`✅ Enabled ${insertedCount} missing feature entries for profiles`);
     }
   } catch (error: any) {
-    console.error('Migration error (enable AI feature):', error.message);
+    console.error('Migration error (profile feature seed):', error.message);
   }
 
   // Migration: Populate guardian_students from legacy parent_id
