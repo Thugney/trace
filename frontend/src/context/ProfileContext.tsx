@@ -16,9 +16,20 @@ const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [currentProfile, setCurrentProfileState] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const previousProfileIdRef = useRef<number | null>(null);
+
+  // Wrapper to set profile AND localStorage IMMEDIATELY (not in useEffect)
+  // This prevents race conditions where child components make API calls before localStorage is set
+  const setCurrentProfile = (profile: Profile | null) => {
+    if (profile) {
+      localStorage.setItem('currentProfileId', profile.id.toString());
+    } else {
+      localStorage.removeItem('currentProfileId');
+    }
+    setCurrentProfileState(profile);
+  };
 
   const refreshProfiles = async () => {
     // Check if user is authenticated
@@ -120,18 +131,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [profiles]);
 
   useEffect(() => {
-    // Save current profile to localStorage
+    // Refresh profiles when user logs in or switches profiles
+    // This ensures we get the correct role-based filtered data from the backend
+    // Note: localStorage is set synchronously in setCurrentProfile wrapper
     if (currentProfile) {
-      localStorage.setItem('currentProfileId', currentProfile.id.toString());
-
-      // Refresh profiles when user logs in or switches profiles
-      // This ensures we get the correct role-based filtered data from the backend
       if (previousProfileIdRef.current !== currentProfile.id) {
         previousProfileIdRef.current = currentProfile.id;
         refreshProfiles();
       }
     } else {
-      localStorage.removeItem('currentProfileId');
       previousProfileIdRef.current = null;
     }
   }, [currentProfile]);
