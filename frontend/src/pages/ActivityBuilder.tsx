@@ -57,7 +57,7 @@ const ActivityBuilder: React.FC = () => {
     assignedTo: [] as number[]
   });
   const [aiJob, setAiJob] = useState<AiGenerationJob | null>(null);
-  const [pollInterval, setPollInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
 
   // Load data
   useEffect(() => {
