@@ -254,6 +254,50 @@ Book cover images and page images stored in `/app/data/book-media/`
 - Route: `GET /api/books/media/:filename` (public, no auth required)
 - Files named: `book-ai-{timestamp}-{random}.png`
 
+### Ollama Integration (Local AI)
+Ollama provides free, local AI text generation for books and quizzes.
+
+**Configuration:**
+```bash
+# In .env file:
+OLLAMA_URL=http://192.168.1.230:11434/api/chat  # Your Ollama server
+OLLAMA_MODEL=llama3.2                            # Optional, defaults to llama3.2
+```
+
+Or configure via database settings table (`ollama_url`, `ollama_model` keys).
+
+**Provider Priority (Text Generation):**
+1. **Ollama** (local, $0) - tried first if configured
+2. **Gemini** - cloud fallback
+3. **Grok** - cloud fallback
+4. **OpenAI** - cloud fallback
+
+**Image Generation:** Always uses Grok or OpenAI (Ollama can't generate images)
+
+**Backend Files:**
+- `backend/src/routes/books.ts` - Ollama for book text generation
+- `backend/src/routes/family-quizzes.ts` - Ollama for quiz text generation
+- `backend/src/routes/settings.ts` - Ollama management endpoints
+- `backend/src/services/aiUsageControl.ts` - Cost tracking ($0 for Ollama)
+
+**Management Endpoints:**
+- `GET /settings/ollama/status` - Check connectivity, list models
+- `POST /settings/ollama/test` - Test a specific model
+- `POST /settings/ollama/configure` - Update URL/model settings
+- `POST /settings/ollama/pull` - Pull a new model
+
+**Frontend:**
+- `Settings.tsx` - Ollama configuration UI (Admin only)
+- `api.ts` - `settingsAPI.getOllamaStatus()`, `testOllama()`, `configureOllama()`
+
+**Recommended Models for Children's Books:**
+- `gemma3:12b` - Good balance of speed/quality
+- `mistral-nemo:latest` - Great for creative writing (12B)
+- `llama3.1:latest` - Solid all-rounder (8B)
+- `llama3.2:latest` - Fast but smaller (3B)
+
+**Custom Instructions:** Parent's custom instructions are passed to ALL providers including Ollama. Stored in `profiles.settings.book_generation_instructions`.
+
 ---
 
 **Remember:** When in doubt, ASK the user. It's better to ask a clarifying question than to make assumptions that break their app.
