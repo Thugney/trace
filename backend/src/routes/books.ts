@@ -11,7 +11,31 @@ import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageCont
 
 const router = Router();
 
-// Apply authentication and feature access check to all routes
+// Book media directory (needed before routes)
+const BOOK_MEDIA_DIR = process.env.BOOK_MEDIA_DIR || '/app/data/book-media';
+
+// Ensure book media directory exists
+if (!fs.existsSync(BOOK_MEDIA_DIR)) {
+  fs.mkdirSync(BOOK_MEDIA_DIR, { recursive: true });
+  console.log(`[Book Media] Created directory: ${BOOK_MEDIA_DIR}`);
+}
+
+// PUBLIC ROUTE - Serve book media files (no auth required for img tags)
+router.get('/media/:filename', (req: Request, res: Response) => {
+  const { filename } = req.params;
+  // Security: only allow alphanumeric, dash, underscore, dot
+  if (!/^[a-zA-Z0-9_.-]+$/.test(filename)) {
+    return res.status(400).json({ error: 'Invalid filename' });
+  }
+  const filepath = path.join(BOOK_MEDIA_DIR, filename);
+  if (fs.existsSync(filepath)) {
+    res.sendFile(filepath);
+  } else {
+    res.status(404).json({ error: 'Media file not found' });
+  }
+});
+
+// Apply authentication and feature access check to all routes below
 router.use(authenticate, requireFeature('books'));
 
 // API URLs
@@ -20,15 +44,6 @@ const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
 const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
-
-// Book media directory
-const BOOK_MEDIA_DIR = process.env.BOOK_MEDIA_DIR || '/app/data/book-media';
-
-// Ensure book media directory exists
-if (!fs.existsSync(BOOK_MEDIA_DIR)) {
-  fs.mkdirSync(BOOK_MEDIA_DIR, { recursive: true });
-  console.log(`[Book Media] Created directory: ${BOOK_MEDIA_DIR}`);
-}
 
 // API Key getters
 const getGeminiApiKey = (): string | null => {
@@ -555,17 +570,7 @@ Return ONLY valid JSON in this exact format:
 };
 
 // ============ ROUTES ============
-
-// Serve book media files
-router.get('/media/:filename', (req: Request, res: Response) => {
-  const { filename } = req.params;
-  const filepath = path.join(BOOK_MEDIA_DIR, filename);
-  if (fs.existsSync(filepath)) {
-    res.sendFile(filepath);
-  } else {
-    res.status(404).json({ error: 'Media file not found' });
-  }
-});
+// Note: /media/:filename route is defined at the top (before auth middleware) for public access
 
 // Get all book categories
 router.get('/categories', (req: Request, res: Response) => {

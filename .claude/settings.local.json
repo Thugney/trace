@@ -77,7 +77,11 @@
       "Bash(sqlite3:*)",
       "Bash(start \"\" \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
       "Bash(bash:*)",
-      "Bash(npx kill-port@latest:*)"
+      "Bash(npx kill-port@latest:*)",
+      "Bash(git restore:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }
