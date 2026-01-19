@@ -1,5 +1,175 @@
 # Claude Session Notes - Family Learning Hub
 
+---
+
+## 📚 Feature Guide - What Each Feature Does & Why
+
+This section explains the PURPOSE of each feature in plain language.
+
+---
+
+### 🛒 Shopping Gamification
+**Type:** Gamification + Utility
+**Purpose:** Turn grocery shopping into a fun, rewarding activity for kids
+
+**The Problem:** Kids often get bored or misbehave during shopping trips.
+
+**The Solution:** Parents create shopping lists, then start "shopping trips" where kids are assigned as helpers. Kids earn points by finding items on the list, behaving well, and helping complete the trip.
+
+**How It Works:**
+1. **Parent creates a list** (e.g., "Weekly Groceries") with items and point values
+2. **Parent starts a trip** and assigns which kids are helping
+3. **During shopping:** Kids use their phone/tablet to mark items as "found"
+4. **After shopping:** Parent rates behavior (1-5 stars) and completes the trip
+5. **Points awarded:** Items found + completion bonus + good behavior bonus
+
+**Point Example:**
+- Find 10 items × 5 pts = 50 pts
+- All items found bonus = 20 pts
+- Good behavior (4+ stars) = 15 pts
+- **Total: 85 points earned!**
+
+---
+
+### 📖 AI Book Creator
+**Type:** Educational Content Generation
+**Purpose:** Generate personalized children's books using AI
+
+**The Problem:** Finding age-appropriate, engaging books on specific topics is hard.
+
+**The Solution:** Parents describe what they want ("a story about a brave rabbit learning to share") and AI generates a complete illustrated children's book.
+
+**Features:**
+- Age-appropriate content (adjusts vocabulary/complexity)
+- Multiple languages supported
+- AI-generated illustrations
+- Kids can rate and review books they read
+
+---
+
+### 🧠 Family Quizzes
+**Type:** Educational Gamification
+**Purpose:** Make learning fun through customizable quizzes with rewards
+
+**The Problem:** Kids need engaging ways to learn and practice knowledge.
+
+**The Solution:** Parents create quizzes (manually or AI-generated) on any topic. Kids earn points for correct answers and time bonuses for speed.
+
+**Quiz Modes:**
+- **Practice:** Learn at your own pace, retry questions
+- **Timed:** Race against the clock for bonus points
+- **Competition:** Family members compete on the same quiz (leaderboard!)
+
+**Point System:**
+- Base points per correct answer
+- Time bonus: Faster completion = more points
+- Competition rankings with medals 🥇🥈🥉
+
+---
+
+### ✅ Task Management
+**Type:** Chore/Responsibility Tracking
+**Purpose:** Assign tasks to kids and reward completion with points
+
+**The Problem:** Getting kids to do chores without constant nagging.
+
+**The Solution:** Parents create tasks with point values. Kids complete tasks, optionally submit photo proof, and earn points.
+
+**Features:**
+- Recurring tasks (daily, weekly)
+- Photo proof for verification
+- Subtasks for complex chores
+- Scheduled reminders via push notifications
+
+---
+
+### 🎯 Family Goals
+**Type:** Collaborative Savings/Achievement
+**Purpose:** Work together as a family toward shared rewards
+
+**The Problem:** Kids don't understand saving toward bigger rewards.
+
+**The Solution:** Set family goals (e.g., "Theme Park Trip - 500 points") that everyone contributes to. When the goal is reached, the family enjoys the reward together.
+
+**Templates Included:**
+- Family Outings (movies, restaurants, theme parks)
+- Treats (ice cream, pizza night)
+- Toys & Games (video games, LEGO)
+- Screen Time (extra TV/gaming time)
+- Special Activities (sleepovers, parties)
+
+---
+
+### 🎁 Rewards Shop
+**Type:** Point Redemption
+**Purpose:** Let kids spend their earned points on rewards
+
+**The Problem:** Points need to be meaningful and redeemable.
+
+**The Solution:** Parents create a "shop" of rewards with point costs. Kids can browse and redeem points for rewards they want.
+
+**Categories:**
+- 📚 Education - Books, learning materials
+- 🌳 Outdoor - Sports, outdoor activities
+- 🎨 Creative - Arts & crafts
+- 🎮 Entertainment - Games, movies
+- 🍕 Food & Treats - Special snacks
+- 🎢 Experiences - Trips, events
+
+---
+
+### 🤖 AI Chat Assistant
+**Type:** Educational AI Companion
+**Purpose:** Safe, educational AI chat for kids with parental controls
+
+**Features:**
+- Age-appropriate responses
+- Parental content filtering (strict/moderate/relaxed)
+- Daily message limits
+- Custom instructions per child
+- Multi-provider support (Gemini, Grok, OpenAI)
+
+---
+
+### 🎰 Daily Gamification
+**Type:** Engagement & Retention
+**Purpose:** Keep kids coming back daily with bonuses and mini-games
+
+**Features:**
+- **Login Bonus:** Points for daily app opens (streak multiplier!)
+- **Spin Wheel:** Daily chance to win bonus points
+- **Achievements:** Unlock badges for milestones
+
+---
+
+### 📊 AI Usage Controls
+**Type:** Parental Management
+**Purpose:** Control and monitor AI feature usage and costs
+
+**The Problem:** AI features cost money and parents need oversight.
+
+**The Solution:** Set daily/monthly limits on AI generations and track usage.
+
+**Configurable Limits:**
+- Books per day (default: 5)
+- Quizzes per day (default: 10)
+- Tasks per day (default: 20)
+- Monthly cost limit (default: $10)
+
+---
+
+### 🔔 Push Notifications
+**Type:** Engagement
+**Purpose:** Remind kids about tasks and keep them engaged
+
+**Notification Types:**
+- Morning task reminders (customizable time per child)
+- Task-specific scheduled reminders
+- Evening reminders for incomplete tasks
+- Weekly progress summaries
+
+---
+
 ## Session: 2026-01-19 - Comprehensive Bug Fixes & Feature Additions
 
 **Branch:** `feature/gemini-book-creation`
