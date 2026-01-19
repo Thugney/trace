@@ -2666,6 +2666,169 @@ export function initDatabase() {
 
   console.log('✅ Goal templates created');
 
+  // ==================== SHOPPING GAMIFICATION ====================
+  // Shopping lists created by parents
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_lists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      store_name TEXT,
+      budget REAL,
+      points_per_item INTEGER DEFAULT 5,
+      bonus_for_completion INTEGER DEFAULT 20,
+      bonus_for_good_behavior INTEGER DEFAULT 15,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Items in shopping lists
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      list_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT DEFAULT 'general',
+      quantity INTEGER DEFAULT 1,
+      unit TEXT,
+      estimated_price REAL,
+      notes TEXT,
+      is_optional BOOLEAN DEFAULT 0,
+      points_value INTEGER,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Shopping trips (instances of going shopping)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_trips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      list_id INTEGER NOT NULL,
+      parent_id INTEGER NOT NULL,
+      store_name TEXT,
+      status TEXT DEFAULT 'planned' CHECK(status IN ('planned', 'in_progress', 'completed', 'cancelled')),
+      scheduled_at DATETIME,
+      started_at DATETIME,
+      completed_at DATETIME,
+      total_spent REAL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Kids assigned to help with shopping trips
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_helpers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      status TEXT DEFAULT 'assigned' CHECK(status IN ('assigned', 'participated', 'completed')),
+      behavior_rating INTEGER CHECK(behavior_rating >= 1 AND behavior_rating <= 5),
+      items_found INTEGER DEFAULT 0,
+      points_earned INTEGER DEFAULT 0,
+      bonus_earned INTEGER DEFAULT 0,
+      parent_notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      FOREIGN KEY (trip_id) REFERENCES shopping_trips(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(trip_id, profile_id)
+    )
+  `);
+
+  // Individual item completion during shopping
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_item_completions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trip_id INTEGER NOT NULL,
+      item_id INTEGER NOT NULL,
+      found_by INTEGER,
+      actual_price REAL,
+      quantity_bought INTEGER,
+      was_substituted BOOLEAN DEFAULT 0,
+      substitution_notes TEXT,
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (trip_id) REFERENCES shopping_trips(id) ON DELETE CASCADE,
+      FOREIGN KEY (item_id) REFERENCES shopping_items(id) ON DELETE CASCADE,
+      FOREIGN KEY (found_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create indexes for shopping tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_shopping_lists_parent ON shopping_lists(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_shopping_items_list ON shopping_items(list_id);
+    CREATE INDEX IF NOT EXISTS idx_shopping_trips_list ON shopping_trips(list_id);
+    CREATE INDEX IF NOT EXISTS idx_shopping_trips_status ON shopping_trips(status);
+    CREATE INDEX IF NOT EXISTS idx_shopping_helpers_trip ON shopping_helpers(trip_id);
+    CREATE INDEX IF NOT EXISTS idx_shopping_helpers_profile ON shopping_helpers(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_shopping_completions_trip ON shopping_item_completions(trip_id);
+  `);
+
+  // Default item categories for shopping
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS shopping_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      icon TEXT DEFAULT '🛒',
+      color TEXT DEFAULT '#6366f1',
+      sort_order INTEGER DEFAULT 0,
+      is_default BOOLEAN DEFAULT 0
+    )
+  `);
+
+  // Insert default shopping categories
+  const defaultShoppingCategories = [
+    { name: 'produce', display_name: 'Fruits & Vegetables', icon: '🥬', color: '#22c55e', order: 1 },
+    { name: 'dairy', display_name: 'Dairy & Eggs', icon: '🥛', color: '#3b82f6', order: 2 },
+    { name: 'meat', display_name: 'Meat & Seafood', icon: '🥩', color: '#ef4444', order: 3 },
+    { name: 'bakery', display_name: 'Bakery & Bread', icon: '🍞', color: '#f59e0b', order: 4 },
+    { name: 'frozen', display_name: 'Frozen Foods', icon: '🧊', color: '#06b6d4', order: 5 },
+    { name: 'snacks', display_name: 'Snacks & Candy', icon: '🍿', color: '#8b5cf6', order: 6 },
+    { name: 'beverages', display_name: 'Drinks & Beverages', icon: '🥤', color: '#ec4899', order: 7 },
+    { name: 'pantry', display_name: 'Pantry & Canned', icon: '🥫', color: '#f97316', order: 8 },
+    { name: 'household', display_name: 'Household Items', icon: '🧹', color: '#64748b', order: 9 },
+    { name: 'personal', display_name: 'Personal Care', icon: '🧴', color: '#14b8a6', order: 10 },
+    { name: 'other', display_name: 'Other', icon: '📦', color: '#6b7280', order: 99 }
+  ];
+
+  const insertShoppingCategory = db.prepare(`
+    INSERT OR IGNORE INTO shopping_categories (name, display_name, icon, color, sort_order, is_default)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `);
+
+  for (const cat of defaultShoppingCategories) {
+    insertShoppingCategory.run(cat.name, cat.display_name, cat.icon, cat.color, cat.order);
+  }
+
+  console.log('✅ Shopping gamification tables created');
+
+  // Migration: Add category_id to shopping_items if it doesn't exist
+  try {
+    const columns = db.prepare('PRAGMA table_info(shopping_items)').all() as any[];
+    const hasCategoryId = columns.some((col: any) => col.name === 'category_id');
+
+    if (!hasCategoryId) {
+      console.log('🔄 Migrating shopping_items table: adding category_id...');
+      db.prepare('ALTER TABLE shopping_items ADD COLUMN category_id INTEGER REFERENCES shopping_categories(id)').run();
+      console.log('✅ Added category_id column to shopping_items');
+    }
+  } catch (error: any) {
+    // Column might already exist or table doesn't exist yet
+    if (!error.message.includes('duplicate column')) {
+      console.error('Migration error (shopping_items category_id):', error.message);
+    }
+  }
+
   // Run production-ready migrations
   runProductionReadyMigrations();
 

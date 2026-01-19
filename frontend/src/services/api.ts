@@ -1711,4 +1711,218 @@ export const booksAPI = {
     api.get<(BookFeedback & { book_title: string; cover_image?: string })[]>(`/books/feedback/profile/${profileId}`)
 };
 
+// ==================== SHOPPING GAMIFICATION ====================
+
+export interface ShoppingCategory {
+  id: number;
+  name: string;
+  display_name: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  is_default: boolean;
+}
+
+export interface ShoppingList {
+  id: number;
+  parent_id: number;
+  name: string;
+  description?: string;
+  store_name?: string;
+  budget?: number;
+  points_per_item: number;
+  bonus_for_completion: number;
+  bonus_for_good_behavior: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  item_count?: number;
+  trip_count?: number;
+  items?: ShoppingItem[];
+}
+
+export interface ShoppingItem {
+  id: number;
+  list_id: number;
+  name: string;
+  category?: string;
+  category_id?: number | null;
+  category_name?: string;
+  category_icon?: string;
+  quantity: number;
+  unit?: string;
+  estimated_price?: number;
+  notes?: string;
+  is_optional: boolean;
+  points_value?: number;
+  sort_order: number;
+  created_at: string;
+  // During trip - added when fetching trip details
+  is_found?: boolean;
+  // During trip - legacy
+  completion_id?: number;
+  found_by?: number;
+  found_by_name?: string;
+  actual_price?: number;
+  quantity_bought?: number;
+  was_substituted?: boolean;
+  substitution_notes?: string;
+  completed_at?: string;
+}
+
+export interface ShoppingTrip {
+  id: number;
+  list_id: number;
+  parent_id: number;
+  store_name?: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  scheduled_at?: string;
+  scheduled_date?: string; // Alias for scheduled_at
+  started_at?: string;
+  completed_at?: string;
+  total_spent?: number;
+  notes?: string;
+  created_at: string;
+  list_name?: string;
+  helper_count?: number;
+  items_completed?: number;
+  items_found?: number; // From query
+  total_items?: number; // From query
+  points_per_item?: number;
+  points_earned?: number; // For child helpers
+  bonus_for_completion?: number;
+  bonus_for_good_behavior?: number;
+  helpers?: ShoppingHelper[];
+  items?: ShoppingItem[];
+}
+
+export interface ShoppingHelper {
+  id: number;
+  trip_id: number;
+  profile_id: number;
+  status: 'assigned' | 'participated' | 'completed';
+  behavior_rating?: number;
+  items_found: number;
+  points_earned: number;
+  bonus_earned: number;
+  parent_notes?: string;
+  created_at: string;
+  completed_at?: string;
+  name?: string;
+  avatar?: string;
+}
+
+export interface ShoppingStats {
+  total_trips: number;
+  items_found: number;
+  total_points: number;
+  avg_behavior_rating: number | null;
+}
+
+export interface ShoppingLeaderboardEntry {
+  profile_id: number;
+  name: string;
+  avatar?: string;
+  trips_completed: number;
+  items_found: number;
+  total_points: number;
+  avg_rating: number | null;
+}
+
+export const shoppingAPI = {
+  // Categories
+  getCategories: () =>
+    api.get<ShoppingCategory[]>('/shopping/categories'),
+
+  // Lists
+  getLists: (parentId: number, includeItems = false) =>
+    api.get<ShoppingList[]>(`/shopping/lists/${parentId}`, { params: { includeItems } }),
+
+  getList: (listId: number) =>
+    api.get<ShoppingList>(`/shopping/lists/detail/${listId}`),
+
+  createList: (data: {
+    parent_id: number;
+    name: string;
+    description?: string;
+    store_name?: string;
+    budget?: number;
+    points_per_item?: number;
+    bonus_for_completion?: number;
+    bonus_for_good_behavior?: number;
+  }) => api.post<ShoppingList>('/shopping/lists', data),
+
+  updateList: (listId: number, data: Partial<ShoppingList>) =>
+    api.put<ShoppingList>(`/shopping/lists/${listId}`, data),
+
+  deleteList: (listId: number) =>
+    api.delete(`/shopping/lists/${listId}`),
+
+  // Items
+  addItem: (listId: number, data: {
+    name: string;
+    category_id?: number;
+    quantity?: number;
+    unit?: string;
+    estimated_price?: number;
+    notes?: string;
+    is_optional?: boolean;
+    points_value?: number;
+    sort_order?: number;
+  }) => api.post<ShoppingItem>(`/shopping/lists/${listId}/items`, data),
+
+  updateItem: (itemId: number, data: Partial<ShoppingItem>) =>
+    api.put<ShoppingItem>(`/shopping/items/${itemId}`, data),
+
+  deleteItem: (itemId: number) =>
+    api.delete(`/shopping/items/${itemId}`),
+
+  // Trips
+  getActiveTrips: (parentId: number) =>
+    api.get<ShoppingTrip[]>(`/shopping/trips/active/${parentId}`),
+
+  getMyTrips: (profileId: number) =>
+    api.get<ShoppingTrip[]>(`/shopping/trips/helper/${profileId}`),
+
+  getTrip: (tripId: number) =>
+    api.get<ShoppingTrip>(`/shopping/trips/detail/${tripId}`),
+
+  createTrip: (data: {
+    list_id: number;
+    scheduled_date?: string;
+  }) => api.post<ShoppingTrip>('/shopping/trips', data),
+
+  startTrip: (tripId: number) =>
+    api.post<ShoppingTrip>(`/shopping/trips/${tripId}/start`),
+
+  markItemFound: (tripId: number, itemId: number, data: {
+    found_by_profile_id: number;
+    found: boolean;
+  }) => api.post(`/shopping/trips/${tripId}/items/${itemId}/found`, data),
+
+  completeTrip: (tripId: number, data: {
+    behavior_rating?: number;
+    notes?: string;
+  }) => api.post<{
+    message: string;
+    total_points_awarded: number;
+  }>(`/shopping/trips/${tripId}/complete`, data),
+
+  cancelTrip: (tripId: number) =>
+    api.post(`/shopping/trips/${tripId}/cancel`),
+
+  addHelper: (tripId: number, profileId: number) =>
+    api.post(`/shopping/trips/${tripId}/helpers`, { profile_id: profileId }),
+
+  removeHelper: (tripId: number, profileId: number) =>
+    api.delete(`/shopping/trips/${tripId}/helpers/${profileId}`),
+
+  // Stats
+  getStats: (profileId: number) =>
+    api.get<ShoppingStats>(`/shopping/stats/${profileId}`),
+
+  getLeaderboard: (parentId: number) =>
+    api.get<ShoppingLeaderboardEntry[]>(`/shopping/leaderboard/${parentId}`)
+};
+
 export default api;

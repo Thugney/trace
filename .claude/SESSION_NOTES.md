@@ -314,23 +314,58 @@ Requirements:
 
 ---
 
-### Shopping Gamification ❌ NOT IMPLEMENTED
+### Shopping Gamification ✅ IMPLEMENTED
 
-**Current Status:** No dedicated shopping/grocery gamification feature exists.
+**Current Status:** Full shopping gamification system with lists, trips, and points!
 
-**What Exists:**
-- General **Reward Shop** where kids spend points on rewards
-- Rewards can be any type (treats, activities, screen time)
-- Parents can create custom reward categories
-- Notes can be categorized as "shopping-list" (just a tag, not a feature)
+**Database Tables:**
+| Table | Purpose |
+|-------|---------|
+| `shopping_lists` | Parent-created lists with point settings |
+| `shopping_items` | Items on lists with categories and bonus points |
+| `shopping_trips` | Trip instances (planned → in_progress → completed) |
+| `shopping_helpers` | Kids assigned to trips, tracks points earned |
+| `shopping_item_completions` | Which items found by whom |
+| `shopping_categories` | 11 default categories (produce, dairy, etc.) |
 
-**If Implementing Shopping Gamification, Consider:**
-1. Shopping list feature where parents add items
-2. Kids earn points for helping with grocery shopping
-3. Kids can "claim" items from shopping list as rewards
-4. Track shopping trips and participation
-5. Integration with existing reward system
+**Point System:**
+- Base points per item found (default: 5 pts)
+- Completion bonus when all items found (default: 20 pts)
+- Good behavior bonus for rating ≥4 (default: 15 pts)
+- Points awarded to `progress` table on trip completion
+
+**Workflow:**
+1. Parent creates shopping list with items
+2. Parent creates a trip and assigns kid helpers
+3. Parent starts the trip (status: in_progress)
+4. Kids mark items as found in real-time
+5. Parent completes trip with behavior rating
+6. Points automatically awarded to all helpers
+
+**API Endpoints:**
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /shopping/categories` | List item categories |
+| `GET /shopping/lists/:parentId` | Get all lists |
+| `POST /shopping/lists` | Create a list |
+| `POST /shopping/lists/:id/items` | Add item to list |
+| `GET /shopping/trips/active/:parentId` | Active trips |
+| `GET /shopping/trips/helper/:profileId` | Kid's trips |
+| `POST /shopping/trips` | Create a trip |
+| `POST /shopping/trips/:id/start` | Start shopping |
+| `POST /shopping/trips/:id/items/:itemId/found` | Mark item found |
+| `POST /shopping/trips/:id/complete` | Complete & award points |
+| `GET /shopping/stats/:profileId` | Kid's shopping stats |
+| `GET /shopping/leaderboard/:parentId` | Family leaderboard |
+
+**Frontend Components:**
+- `ShoppingList.tsx` - Parent management (lists, items, trips, leaderboard)
+- `ShoppingHelper.tsx` - Kid-friendly interface to help with shopping
+
+**Navigation:**
+- Parents: `/shopping` route in sidebar
+- Kids: `/shopping/help` route with fun kid nav item
 
 ---
 
-*Last Updated: 2026-01-19 (Session 2)*
+*Last Updated: 2026-01-19 (Session 3)*

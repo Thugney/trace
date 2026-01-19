@@ -25,6 +25,8 @@ import QuizPlayer from './pages/QuizPlayer';
 import School from './pages/School';
 import BookLibrary from './pages/BookLibrary';
 import BookReader from './pages/BookReader';
+import ShoppingList from './pages/ShoppingList';
+import ShoppingHelper from './pages/ShoppingHelper';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -351,6 +353,30 @@ function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
                 <BookReader />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Shopping List - Parents */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/shopping"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+                <ShoppingList />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Shopping Helper - Children */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/shopping/help"
+            element={
+              <ProtectedRoute allowedRoles={['child']}>
+                <ShoppingHelper />
               </ProtectedRoute>
             }
           />
