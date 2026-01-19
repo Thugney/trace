@@ -10,8 +10,8 @@ import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
 
-// Apply feature access check to all routes
-router.use(requireFeature('shopping'));
+// Apply authentication and feature access check to all routes
+router.use(authenticate, requireFeature('shopping'));
 
 // ==================== SHOPPING CATEGORIES ====================
 

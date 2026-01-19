@@ -11,8 +11,8 @@ import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageCont
 
 const router = Router();
 
-// Apply feature access check to all routes
-router.use(requireFeature('books'));
+// Apply authentication and feature access check to all routes
+router.use(authenticate, requireFeature('books'));
 
 // API URLs
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';

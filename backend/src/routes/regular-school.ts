@@ -5,8 +5,8 @@ import { requireFeature } from '../middleware/feature-access';
 
 const router = Router();
 
-// Apply feature access check to all routes
-router.use(requireFeature('regular_school'));
+// Apply authentication and feature access check to all routes
+router.use(authenticate, requireFeature('regular_school'));
 
 // Helper to check if profile is guardian of student
 function isGuardianOf(guardianId: number, studentId: number): boolean {
