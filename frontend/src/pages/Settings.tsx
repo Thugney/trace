@@ -297,16 +297,23 @@ export default function Settings() {
       const age = formData.get('age') as string;
       const gender = formData.get('gender') as string;
 
+      // For parent/admin profiles, use password; for children use PIN
+      const isAdultProfile = profileType === 'parent' || profileType === 'admin';
+
       await profilesAPI.create({
         name: formData.get('name') as string,
         type: profileType as any,
         age: age ? parseInt(age, 10) : undefined,
         gender: gender as any,
-        pin,
+        // Adults get password, children get PIN
+        ...(isAdultProfile ? { password: pin } : { pin }),
         avatar: getAvatar(profileType, gender)
       });
 
-      alert('Profile created successfully!');
+      const successMsg = profileType === 'parent'
+        ? 'Parent profile created! They can now log in and access the family.'
+        : 'Profile created successfully!';
+      alert(successMsg);
       await refreshProfiles();
       setShowAddProfile(false);
       e.currentTarget.reset();
@@ -1189,18 +1196,18 @@ Context: Tasks, Points, Level, Progress`}
                 </label>
                 <select id="profile-type" name="profileType" required className="input">
                   <option value="child">Child</option>
+                  {(isParent || isAdmin) && (
+                    <option value="parent">Parent (Spouse/Co-parent)</option>
+                  )}
                   {isAdmin && (
-                    <>
-                      <option value="parent">Parent</option>
-                      <option value="admin">Admin</option>
-                    </>
+                    <option value="admin">Admin</option>
                   )}
                 </select>
-                {isAdmin && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Admin can create any profile type. Parents can only create children.
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  {isAdmin
+                    ? 'Admin can create any profile type.'
+                    : 'Add a child or another parent (spouse) to your family.'}
+                </p>
               </div>
 
               <div>
@@ -1246,7 +1253,7 @@ Context: Tasks, Points, Level, Progress`}
 
               <div>
                 <label htmlFor="profile-pin" className="block text-sm font-medium text-gray-700 mb-1">
-                  Create PIN *
+                  Create PIN/Password *
                 </label>
                 <input
                   id="profile-pin"
@@ -1254,21 +1261,18 @@ Context: Tasks, Points, Level, Progress`}
                   name="pin"
                   required
                   minLength={4}
-                  maxLength={8}
                   className="input"
-                  placeholder="Enter 4-8 digit PIN"
-                  pattern="[0-9]*"
-                  inputMode="numeric"
+                  placeholder="Enter PIN (children) or password (parents)"
                   autoComplete="new-password"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  This PIN will protect the profile
+                  Children use 4-8 digit PIN. Parents can use a longer password.
                 </p>
               </div>
 
               <div>
                 <label htmlFor="profile-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm PIN *
+                  Confirm PIN/Password *
                 </label>
                 <input
                   id="profile-confirm-pin"
@@ -1276,11 +1280,8 @@ Context: Tasks, Points, Level, Progress`}
                   name="confirmPin"
                   required
                   minLength={4}
-                  maxLength={8}
                   className="input"
-                  placeholder="Re-enter PIN"
-                  pattern="[0-9]*"
-                  inputMode="numeric"
+                  placeholder="Re-enter PIN/password"
                   autoComplete="new-password"
                 />
               </div>

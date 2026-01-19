@@ -275,8 +275,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     // Authorization check
-    if (type !== 'child' && userProfile.type !== 'admin') {
-      return res.status(403).json({ error: 'Only admins can create parent/teacher/admin profiles' });
+    // Parents can create children OR other parents (spouse/co-parent)
+    // Only admins can create teacher/admin profiles
+    if (type !== 'child' && type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create teacher/admin profiles' });
+    }
+
+    // Non-admins cannot create admin profiles
+    if (type === 'admin' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create admin profiles' });
     }
 
     // If parent is creating a child, link to themselves
@@ -330,6 +337,22 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
         VALUES (?, ?, 'parent')
       `).run(finalParentId, newProfile.id);
+    }
+
+    // If a parent created another parent (spouse/co-parent), link the new parent to all existing children
+    if (type === 'parent' && userProfile.type === 'parent') {
+      const existingChildren: any[] = db.prepare(`
+        SELECT id FROM profiles WHERE parent_id = ? AND type = 'child'
+      `).all(userProfile.id);
+
+      existingChildren.forEach((child: any) => {
+        db.prepare(`
+          INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
+          VALUES (?, ?, 'parent')
+        `).run(newProfile.id, child.id);
+      });
+
+      console.log(`[Profile] Linked new parent ${newProfile.name} to ${existingChildren.length} existing children`);
     }
 
     if (type === 'teacher' && finalAssignedClassId) {
