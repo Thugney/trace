@@ -1718,6 +1718,7 @@ export interface BookGenerateRequest {
   genre?: string;
   categoryIds?: number[];
   includeImages?: boolean;
+  customInstructions?: string;
 }
 
 export interface BookJobStatus {
@@ -1844,7 +1845,14 @@ export const booksAPI = {
 
   // Book Lookup (for physical books)
   lookupBook: (title: string) =>
-    api.get<{ found: boolean; book?: Partial<Book> }>(`/books/lookup`, { params: { title } })
+    api.get<{ found: boolean; book?: Partial<Book> }>(`/books/lookup`, { params: { title } }),
+
+  // Book Generation Instructions
+  getGenerationInstructions: (profileId: number) =>
+    api.get<{ instructions: string }>(`/books/generation-instructions/${profileId}`),
+
+  saveGenerationInstructions: (profileId: number, instructions: string) =>
+    api.put<{ success: boolean; instructions: string }>(`/books/generation-instructions/${profileId}`, { instructions })
 };
 
 // ==================== SHOPPING GAMIFICATION ====================

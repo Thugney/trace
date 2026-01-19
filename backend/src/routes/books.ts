@@ -365,6 +365,7 @@ type BookGeneratePayload = {
   genre?: string;
   categoryIds?: number[];
   includeImages?: boolean;
+  customInstructions?: string;
 };
 
 const scheduleBookJob = (jobId: string, payload: BookGeneratePayload) => {
@@ -415,7 +416,8 @@ const generateBookInternal = async (
     language = 'en',
     genre = 'story',
     categoryIds = [],
-    includeImages = true
+    includeImages = true,
+    customInstructions = ''
   } = payload;
 
   if (!prompt || !createdBy) {
@@ -426,35 +428,92 @@ const generateBookInternal = async (
 
   onProgress?.({ current: 1, total: 3, message: 'Generating story content...' });
 
-  const bookPrompt = `
-You are an expert children's book author. Create a complete children's book based on the following request.
+  // Build custom instructions section if provided
+  const customInstructionsSection = customInstructions?.trim()
+    ? `
+PARENT'S CUSTOM INSTRUCTIONS (MUST FOLLOW):
+${customInstructions.trim()}
+`
+    : '';
 
-Request: "${prompt}"
+  // Detect if this is an educational book (alphabet, numbers, colors, shapes)
+  const educationalKeywords = ['alphabet', 'abc', 'abcs', 'letters', 'numbers', 'counting', 'colors', 'shapes', '123', 'a to z', 'a-z'];
+  const isEducational = educationalKeywords.some(kw => prompt.toLowerCase().includes(kw));
+
+  const bookPrompt = `
+You are an expert children's book author. Create a complete children's book that STRICTLY follows the parent's request.
+
+CRITICAL INSTRUCTION: Follow the parent's request EXACTLY. Read it carefully and deliver what they asked for.
+
+Parent's Request: "${prompt}"
 Target age range: ${ageRange} years old
 Language: ${language}
 Genre: ${genre}
 Number of pages: ${normalizedPageCount}
+Book Type Detected: ${isEducational ? 'EDUCATIONAL (alphabet/numbers/learning)' : 'NARRATIVE STORY'}
+${customInstructionsSection}
 
-Requirements:
-- Create an engaging, age-appropriate story
-- Each page should have a title, content (2-4 short paragraphs suitable for the age range), and an image description
-- The story should have a clear beginning, middle, and end
-- Include educational value or a moral lesson where appropriate
-- Use simple vocabulary for younger ages, more complex for older
-- Image descriptions should be detailed enough for AI image generation (colorful, child-friendly, no scary elements)
-- Output must be strict JSON only (double quotes, no trailing commas, no markdown)
+=== BOOK TYPE RULES ===
 
-Return ONLY valid JSON in this exact format:
+${isEducational ? `
+**THIS IS AN EDUCATIONAL BOOK** - Follow these rules:
+- Use simple, direct format: "A is for Apple", "B is for Ball", etc.
+- Each page = ONE letter/number/concept with ONE familiar object
+- Use CONCRETE objects children recognize (apple, ball, cat, dog) - NOT abstract concepts
+- Keep text minimal: just the letter/word and maybe one simple sentence
+- Image should show EXACTLY the object mentioned (Apple = picture of apple)
+- Do NOT add characters, plot, or narrative elements
+- Do NOT use "This is a..." for every page - vary the format slightly
+` : `
+**THIS IS A NARRATIVE STORY** - Follow these rules:
+- Create actual CHARACTERS who SPEAK and ACT
+- Characters must have names and personalities
+- Write DIALOGUE between characters
+- Build a PLOT with beginning, middle, and end
+- Show actions happening, not just descriptions
+- NEVER use "This is a..." format
+- NEVER write like a dictionary or flashcard
+- Characters should face a problem and solve it
+- Include emotional moments and interactions
+`}
+
+=== WRITING QUALITY RULES ===
+
+1. **NO STATIC LABELS**:
+   - BAD: "This is a lion. Lions are big."
+   - GOOD (story): "Luna the lion roared, 'Who wants to play?' Her friends came running."
+   - GOOD (educational): "L is for Lion. Roar!"
+
+2. **ACTION-ORIENTED WRITING**:
+   - Characters DO things, SAY things, FEEL things
+   - Use active verbs: ran, jumped, laughed, whispered, discovered
+   - Show emotions through actions, not labels
+
+3. **AGE-APPROPRIATE LANGUAGE**:
+   - Ages 2-4: 5-8 word sentences max, familiar words only
+   - Ages 4-6: Short sentences, simple plot, repetition ok
+   - Ages 6-8: Can use dialogue, emotions, simple conflict
+   - Ages 8-12: Complex emotions, internal thoughts, deeper themes
+
+4. **IMAGE PROMPTS**:
+   - For stories: Show characters in ACTION doing something
+   - For educational: Show the EXACT object, clear and simple
+   - Style: Colorful, cartoon, child-friendly, bright, joyful
+   - NO scary, dark, violent, or complex imagery
+
+=== OUTPUT FORMAT ===
+
+Return ONLY valid JSON (no markdown, no extra text):
 {
   "title": "Book title",
-  "description": "Brief book description (1-2 sentences)",
-  "cover_image_prompt": "Detailed image prompt for the book cover",
+  "description": "One sentence description",
+  "cover_image_prompt": "Detailed cover image description",
   "pages": [
     {
       "page_number": 1,
-      "title": "Chapter/Page title",
-      "content": "Page content text...",
-      "image_prompt": "Detailed image description for this page"
+      "title": "Page title",
+      "content": "Page text with dialogue and action",
+      "image_prompt": "Detailed scene description for illustration"
     }
   ]
 }
@@ -585,11 +644,26 @@ router.get('/categories', (req: Request, res: Response) => {
 // Generate AI book (async job)
 router.post('/ai-generate', authenticate, async (req: Request, res: Response) => {
   try {
-    const { prompt, pageCount, createdBy, assignedTo, ageRange, language, genre, categoryIds, includeImages } = req.body;
+    const { prompt, pageCount, createdBy, assignedTo, ageRange, language, genre, categoryIds, includeImages, customInstructions } = req.body;
 
     if (!prompt || !createdBy) {
       return res.status(400).json({ error: 'Prompt and createdBy are required' });
     }
+
+    // Fetch saved book generation instructions from parent's profile settings
+    let savedInstructions = '';
+    try {
+      const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(createdBy);
+      if (profile?.settings) {
+        const settings = JSON.parse(profile.settings || '{}');
+        savedInstructions = settings.book_generation_instructions || '';
+      }
+    } catch (e) {
+      console.warn('[Books] Failed to load saved instructions:', e);
+    }
+
+    // Combine saved instructions with request-specific instructions
+    const combinedInstructions = [savedInstructions, customInstructions].filter(Boolean).join('\n\n');
 
     // ===== AI USAGE CONTROL: Check if generation is allowed =====
     const imageCount = includeImages !== false ? (pageCount || 8) + 1 : 0; // +1 for cover
@@ -616,7 +690,8 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
       language: language || 'en',
       genre: genre || 'story',
       categoryIds: categoryIds || [],
-      includeImages: includeImages !== false
+      includeImages: includeImages !== false,
+      customInstructions: combinedInstructions
     });
 
     // Log the AI usage (will be marked success/failure when job completes)
@@ -682,6 +757,51 @@ router.get('/profile/:profileId', authenticate, (req: Request, res: Response) =>
 });
 
 // ==================== ROUTES THAT MUST BE BEFORE /:bookId ====================
+
+// Get book generation instructions for a profile
+router.get('/generation-instructions/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(profileId);
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const settings = JSON.parse(profile.settings || '{}');
+    res.json({
+      instructions: settings.book_generation_instructions || ''
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save book generation instructions for a profile
+router.put('/generation-instructions/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const { instructions } = req.body;
+
+    const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const settings = JSON.parse(profile.settings || '{}');
+    settings.book_generation_instructions = instructions || '';
+
+    db.prepare('UPDATE profiles SET settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(JSON.stringify(settings), profileId);
+
+    res.json({
+      success: true,
+      instructions: settings.book_generation_instructions
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get reading progress for a profile
 router.get('/progress/:profileId', authenticate, (req: Request, res: Response) => {

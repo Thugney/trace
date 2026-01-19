@@ -79,6 +79,13 @@ export default function BookLibrary() {
     history: Array<BookReadingProgress & { title: string; cover_image?: string; child_name: string; child_avatar: string }>;
   } | null>(null);
 
+  // Custom instructions state
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [savedInstructions, setSavedInstructions] = useState('');
+  const [instructionsInput, setInstructionsInput] = useState('');
+  const [savingInstructions, setSavingInstructions] = useState(false);
+  const [requestInstructions, setRequestInstructions] = useState(''); // Per-request instructions
+
   // Genre options for filtering and creating books (must match what's stored in book.genre)
   const genreOptions = [
     { value: 'adventure', label: '🗺️ Adventure' },
@@ -116,8 +123,9 @@ export default function BookLibrary() {
       );
       setChildren(childProfiles);
 
-      // Load feedback stats for each book (for parent/teacher view)
+      // Load feedback stats and saved instructions for each book (for parent/teacher view)
       if (currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin') {
+        // Load feedback stats
         const feedbackPromises = booksRes.data.map(async (book: Book) => {
           try {
             const res = await booksAPI.getBookFeedback(book.id);
@@ -130,6 +138,16 @@ export default function BookLibrary() {
         const feedbackMap: Record<number, any> = {};
         feedbackResults.forEach(r => { feedbackMap[r.bookId] = r.stats; });
         setBookFeedback(feedbackMap);
+
+        // Load saved book generation instructions
+        try {
+          const instructionsRes = await booksAPI.getGenerationInstructions(currentProfile!.id);
+          const instructions = instructionsRes.data.instructions || '';
+          setSavedInstructions(instructions);
+          setInstructionsInput(instructions);
+        } catch (e) {
+          console.warn('Failed to load saved instructions:', e);
+        }
       }
     } catch (error) {
       showToast('Failed to load books', 'error');
@@ -170,7 +188,8 @@ export default function BookLibrary() {
         ageRange,
         genre: selectedGenre,
         categoryIds: selectedCategoryIds,
-        includeImages
+        includeImages,
+        customInstructions: requestInstructions.trim() || undefined
       });
 
       // Poll for completion
@@ -215,6 +234,22 @@ export default function BookLibrary() {
       setGenerating(false);
       setGenerationProgress(null);
       showToast(error?.response?.data?.error || 'Failed to start book generation', 'error');
+    }
+  };
+
+  const handleSaveInstructions = async () => {
+    if (!currentProfile?.id) return;
+
+    setSavingInstructions(true);
+    try {
+      await booksAPI.saveGenerationInstructions(currentProfile.id, instructionsInput);
+      setSavedInstructions(instructionsInput);
+      setShowInstructionsModal(false);
+      showToast('Instructions saved! They will be used for all future book generations.', 'success');
+    } catch (error) {
+      showToast('Failed to save instructions', 'error');
+    } finally {
+      setSavingInstructions(false);
     }
   };
 
@@ -1165,6 +1200,44 @@ export default function BookLibrary() {
                     </p>
                   </div>
 
+                  {/* Custom Instructions */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+                        <Edit3 size={14} />
+                        AI Instructions
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setShowInstructionsModal(true)}
+                        className="text-xs text-purple-600 hover:text-purple-800 underline"
+                      >
+                        {savedInstructions ? 'Edit Saved' : 'Set Default'}
+                      </button>
+                    </div>
+
+                    {savedInstructions && (
+                      <div className="mb-2 p-2 bg-white rounded-lg border border-purple-100">
+                        <p className="text-xs text-purple-600 mb-1 font-medium">Your saved instructions:</p>
+                        <p className="text-xs text-purple-700 line-clamp-2">{savedInstructions}</p>
+                      </div>
+                    )}
+
+                    <label className="block text-xs font-medium text-purple-700 mb-1">
+                      Additional instructions for this book (optional):
+                    </label>
+                    <textarea
+                      value={requestInstructions}
+                      onChange={(e) => setRequestInstructions(e.target.value)}
+                      placeholder="e.g., Use simple words only. Each page should have max 2 sentences. The main character is a girl named Luna."
+                      className="w-full px-3 py-2 text-sm border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none bg-white"
+                      rows={2}
+                    />
+                    <p className="text-xs text-purple-600 mt-1">
+                      Tell the AI exactly how to write. For alphabet books, say "A is for Apple style, not abstract concepts."
+                    </p>
+                  </div>
+
                   <div className="flex gap-3 pt-4">
                     <button
                       onClick={() => setShowCreateModal(false)}
@@ -1452,6 +1525,102 @@ export default function BookLibrary() {
                     </div>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Book Generation Instructions Modal */}
+      {showInstructionsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <Edit3 className="text-purple-600" />
+                  Book Generation Instructions
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowInstructionsModal(false);
+                    setInstructionsInput(savedInstructions);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <CloseIcon size={24} />
+                </button>
+              </div>
+
+              <p className="text-gray-600 mb-4">
+                These instructions will be applied to ALL book generations. Use them to set your preferences for how the AI should create books.
+              </p>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <h4 className="text-sm font-semibold text-blue-800 mb-2">💡 Example Instructions:</h4>
+                <ul className="text-xs text-blue-700 space-y-1">
+                  <li>• <strong>For alphabet books:</strong> "Use 'A is for Apple' format with simple, concrete objects. NOT abstract concepts like 'Adventure'."</li>
+                  <li>• <strong>For young children (2-4):</strong> "Maximum 2 sentences per page. Use only familiar words."</li>
+                  <li>• <strong>For stories:</strong> "Create characters that SPEAK and ACT. Include dialogue. Never use 'This is a...' format."</li>
+                  <li>• <strong>For morals:</strong> "Always end with a gentle lesson about sharing/kindness/perseverance."</li>
+                  <li>• <strong>Character names:</strong> "Use my child's name: Luna, and make her the main character."</li>
+                </ul>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Default Instructions:
+                </label>
+                <textarea
+                  value={instructionsInput}
+                  onChange={(e) => setInstructionsInput(e.target.value)}
+                  placeholder="Enter your instructions here. The AI will follow these for every book you create.
+
+Example:
+- For educational books, use the exact format I request (e.g., 'A is for Apple')
+- For story books, create named characters who talk and act
+- Keep sentences short for ages 2-6
+- Always use bright, colorful imagery in illustrations"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none"
+                  rows={8}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowInstructionsModal(false);
+                    setInstructionsInput(savedInstructions);
+                  }}
+                  className="flex-1 btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveInstructions}
+                  disabled={savingInstructions}
+                  className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                >
+                  {savingInstructions ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle size={20} />
+                      Save Instructions
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {savedInstructions && (
+                <button
+                  onClick={() => {
+                    setInstructionsInput('');
+                  }}
+                  className="w-full mt-3 text-sm text-red-600 hover:text-red-800"
+                >
+                  Clear all instructions
+                </button>
               )}
             </div>
           </div>
