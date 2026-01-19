@@ -1345,6 +1345,19 @@ export default function School() {
           {/* Regular School View */}
           {schoolMode === 'regular' && myFeatures.regular_school !== false && (
             <>
+              {/* Child Indicator for Regular School */}
+              {isParent && selectedChild && (
+                <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                    {selectedChild.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-indigo-900">Managing homework for {selectedChild.name}</div>
+                    <div className="text-sm text-indigo-600">Each child has their own subjects and homework</div>
+                  </div>
+                </div>
+              )}
+
               {/* Stats Summary */}
               {regularStats && (
                 <div className="mb-8 bg-white p-6 rounded-2xl border border-slate-100">
@@ -1461,19 +1474,26 @@ export default function School() {
               )}
 
               {/* Add Homework (Parent only) */}
-              {isParent && regularSubjects.length > 0 && (
+              {isParent && (
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-slate-900">Add Homework</h2>
-                    <button
-                      onClick={() => setShowCreateHomework(!showCreateHomework)}
-                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
-                    >
-                      {showCreateHomework ? 'Cancel' : '+ Add Homework'}
-                    </button>
+                    {regularSubjects.length > 0 && (
+                      <button
+                        onClick={() => setShowCreateHomework(!showCreateHomework)}
+                        className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                      >
+                        {showCreateHomework ? 'Cancel' : '+ Add Homework'}
+                      </button>
+                    )}
                   </div>
 
-                  {showCreateHomework && (
+                  {regularSubjects.length === 0 ? (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+                      <span className="font-medium">👆 First, add subjects above</span> (Math, Reading, Science, etc.)
+                      — then you can assign homework for each subject.
+                    </div>
+                  ) : showCreateHomework && (
                     <div className="p-4 bg-white rounded-xl border border-slate-200">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                         <select
@@ -1545,7 +1565,12 @@ export default function School() {
                   <div className="text-center py-12 bg-white rounded-xl border border-slate-100">
                     <div className="text-5xl mb-3">✨</div>
                     <p className="text-slate-500">No homework yet!</p>
-                    {isParent && <p className="text-sm text-slate-400 mt-1">Add subjects first, then add homework</p>}
+                    {isParent && regularSubjects.length === 0 && (
+                      <p className="text-sm text-slate-400 mt-1">Add subjects first, then add homework</p>
+                    )}
+                    {isParent && regularSubjects.length > 0 && (
+                      <p className="text-sm text-slate-400 mt-1">Click "+ Add Homework" above to assign homework</p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
