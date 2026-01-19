@@ -501,4 +501,139 @@ router.get('/parent/:parentId/children', (req: Request, res: Response) => {
   }
 });
 
+// ==================== REWARD CATEGORIES ====================
+
+// Get all reward categories (default + custom for this parent)
+router.get('/categories/:parentId', (req: Request, res: Response) => {
+  try {
+    const { parentId } = req.params;
+
+    const categories = db.prepare(`
+      SELECT * FROM reward_categories
+      WHERE is_default = 1 OR created_by = ?
+      ORDER BY is_default DESC, display_name ASC
+    `).all(parentId);
+
+    res.json(categories);
+  } catch (error: any) {
+    console.error('Error fetching reward categories:', error.message);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+// Create a custom reward category
+router.post('/categories', (req: Request, res: Response) => {
+  try {
+    const { name, displayName, icon, description, color, createdBy } = req.body;
+
+    if (!name || !displayName || !createdBy) {
+      return res.status(400).json({ error: 'Name, display name, and createdBy are required' });
+    }
+
+    // Sanitize name for database key
+    const safeName = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+    // Check if category already exists for this user
+    const existing = db.prepare(`
+      SELECT id FROM reward_categories WHERE name = ? AND created_by = ?
+    `).get(safeName, createdBy);
+
+    if (existing) {
+      return res.status(400).json({ error: 'Category with this name already exists' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO reward_categories (name, display_name, icon, description, color, created_by, is_default)
+      VALUES (?, ?, ?, ?, ?, ?, 0)
+    `).run(safeName, displayName, icon || '🎁', description || '', color || '#9333ea', createdBy);
+
+    const category = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(result.lastInsertRowid);
+
+    res.status(201).json(category);
+  } catch (error: any) {
+    console.error('Error creating reward category:', error.message);
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+// Update a custom reward category
+router.put('/categories/:categoryId', (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.params;
+    const { displayName, icon, description, color } = req.body;
+
+    // Only allow updating non-default categories
+    const category: any = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(categoryId);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    if (category.is_default) {
+      return res.status(403).json({ error: 'Cannot modify default categories' });
+    }
+
+    const updateFields: string[] = [];
+    const values: any[] = [];
+
+    if (displayName !== undefined) {
+      updateFields.push('display_name = ?');
+      values.push(displayName);
+    }
+    if (icon !== undefined) {
+      updateFields.push('icon = ?');
+      values.push(icon);
+    }
+    if (description !== undefined) {
+      updateFields.push('description = ?');
+      values.push(description);
+    }
+    if (color !== undefined) {
+      updateFields.push('color = ?');
+      values.push(color);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(categoryId);
+    db.prepare(`UPDATE reward_categories SET ${updateFields.join(', ')} WHERE id = ?`).run(...values);
+
+    const updated = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(categoryId);
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Error updating reward category:', error.message);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+});
+
+// Delete a custom reward category
+router.delete('/categories/:categoryId', (req: Request, res: Response) => {
+  try {
+    const { categoryId } = req.params;
+
+    const category: any = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(categoryId);
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+
+    if (category.is_default) {
+      return res.status(403).json({ error: 'Cannot delete default categories' });
+    }
+
+    // Update rewards using this category to 'general'
+    db.prepare('UPDATE rewards SET category = ? WHERE category = ?').run('general', category.name);
+
+    // Delete the category
+    db.prepare('DELETE FROM reward_categories WHERE id = ?').run(categoryId);
+
+    res.json({ message: 'Category deleted', affectedRewards: 0 });
+  } catch (error: any) {
+    console.error('Error deleting reward category:', error.message);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
 export default router;

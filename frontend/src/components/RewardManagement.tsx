@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save, Users, User } from 'lucide-react';
-import { rewardsAPI, Reward, RewardClaim } from '../services/api';
+import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save, Users, User, Tag } from 'lucide-react';
+import { rewardsAPI, Reward, RewardClaim, RewardCategory } from '../services/api';
 import playSounds from '../utils/sounds';
 import { useToast } from './Toast';
 import Avatar from './Avatar';
@@ -21,11 +21,13 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pendingClaims, setPendingClaims] = useState<RewardClaim[]>([]);
   const [children, setChildren] = useState<ChildInfo[]>([]);
+  const [categories, setCategories] = useState<RewardCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [activeTab, setActiveTab] = useState<'rewards' | 'claims'>('rewards');
+  const [activeTab, setActiveTab] = useState<'rewards' | 'claims' | 'categories'>('rewards');
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -34,7 +36,17 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
     pointsRequired: 100,
     icon: '🎁',
     stock: -1, // -1 = unlimited
-    targetChild: 'all' as 'all' | number // 'all' or specific child ID
+    targetChild: 'all' as 'all' | number, // 'all' or specific child ID
+    category: 'general' // NEW: category selection
+  });
+
+  // Category form state
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    displayName: '',
+    icon: '🎁',
+    description: '',
+    color: '#9333ea'
   });
 
   useEffect(() => {
@@ -44,14 +56,16 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [rewardsRes, claimsRes, childrenRes] = await Promise.all([
+      const [rewardsRes, claimsRes, childrenRes, categoriesRes] = await Promise.all([
         rewardsAPI.getAll(parentId),
         rewardsAPI.getPending(parentId),
-        rewardsAPI.getParentChildren(parentId)
+        rewardsAPI.getParentChildren(parentId),
+        rewardsAPI.getCategories(parentId)
       ]);
       setRewards(rewardsRes.data);
       setPendingClaims(claimsRes.data);
       setChildren(childrenRes.data);
+      setCategories(categoriesRes.data);
     } catch (error: any) {
       console.error('Failed to load rewards data:', error);
       toast.error('Failed to load rewards');
@@ -86,7 +100,8 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           icon: formData.icon,
           stock: formData.stock,
           available_for_all: isForAllChildren,
-          profile_id: targetProfileId
+          profile_id: targetProfileId,
+          category: formData.category
         });
         toast.success('Reward updated!');
       } else {
@@ -98,7 +113,8 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           stock: formData.stock,
           createdBy: parentId,
           availableForAll: isForAllChildren,
-          profileId: targetProfileId
+          profileId: targetProfileId,
+          category: formData.category
         });
         toast.success('Reward added!');
       }
@@ -137,7 +153,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1, targetChild: 'all' });
+    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1, targetChild: 'all', category: 'general' });
     setEditingReward(null);
     setShowForm(false);
   };
@@ -149,10 +165,52 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
       pointsRequired: reward.points_required,
       icon: reward.icon || '🎁',
       stock: reward.stock ?? -1,
-      targetChild: reward.available_for_all ? 'all' : (reward.profile_id || 'all')
+      targetChild: reward.available_for_all ? 'all' : (reward.profile_id || 'all'),
+      category: reward.category || 'general'
     });
     setEditingReward(reward);
     setShowForm(true);
+  };
+
+  // Category management functions
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryFormData.displayName.trim()) {
+      toast.error('Please enter a category name');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await rewardsAPI.createCategory({
+        name: categoryFormData.displayName.toLowerCase().replace(/\s+/g, '_'),
+        displayName: categoryFormData.displayName,
+        icon: categoryFormData.icon,
+        description: categoryFormData.description,
+        color: categoryFormData.color,
+        createdBy: parentId
+      });
+      toast.success('Category created!');
+      playSounds.achievement();
+      setCategoryFormData({ name: '', displayName: '', icon: '🎁', description: '', color: '#9333ea' });
+      setShowCategoryForm(false);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create category');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: number) => {
+    if (!confirm('Delete this category? Rewards using it will be moved to General.')) return;
+    try {
+      await rewardsAPI.deleteCategory(categoryId);
+      toast.success('Category deleted');
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to delete category');
+    }
   };
 
   // Helper to get child name from ID
@@ -209,7 +267,16 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           }`}
         >
           <Clock className="w-4 h-4 inline mr-2" />
-          Pending Claims ({pendingClaims.length})
+          Pending ({pendingClaims.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('categories')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'categories' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          <Tag className="w-4 h-4 inline mr-2" />
+          Categories
         </button>
       </div>
 
@@ -257,7 +324,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
               <div className="flex flex-wrap gap-2">
@@ -278,6 +345,26 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+              <select
+                value={formData.category}
+                onChange={e => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.icon} {cat.display_name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Categorize rewards for easier browsing
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Stock</label>
               <select
@@ -469,6 +556,162 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Categories Management Tab */}
+      {activeTab === 'categories' && (
+        <div className="space-y-4">
+          {/* Add Category Form */}
+          {showCategoryForm ? (
+            <form onSubmit={handleCreateCategory} className="bg-indigo-50 rounded-xl p-4 space-y-4 border border-indigo-200">
+              <h3 className="font-semibold text-indigo-800">Create Custom Category</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Category Name</label>
+                  <input
+                    type="text"
+                    value={categoryFormData.displayName}
+                    onChange={e => setCategoryFormData({ ...categoryFormData, displayName: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g., Special Treats"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                  <input
+                    type="text"
+                    value={categoryFormData.description}
+                    onChange={e => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="e.g., Extra special rewards"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
+                  <div className="flex flex-wrap gap-2">
+                    {commonIcons.map(icon => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => setCategoryFormData({ ...categoryFormData, icon })}
+                        className={`w-10 h-10 text-xl rounded-lg border-2 transition-all ${
+                          categoryFormData.icon === icon
+                            ? 'border-indigo-500 bg-indigo-100'
+                            : 'border-slate-200 hover:border-indigo-300'
+                        }`}
+                      >
+                        {icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Color</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={categoryFormData.color}
+                      onChange={e => setCategoryFormData({ ...categoryFormData, color: e.target.value })}
+                      className="w-12 h-12 rounded-lg border border-slate-300 cursor-pointer"
+                    />
+                    <div
+                      className="flex-1 h-12 rounded-lg flex items-center justify-center text-white font-medium"
+                      style={{ backgroundColor: categoryFormData.color }}
+                    >
+                      {categoryFormData.icon} {categoryFormData.displayName || 'Preview'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {saving ? 'Creating...' : <><Save size={18} /> Create Category</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCategoryForm(false);
+                    setCategoryFormData({ name: '', displayName: '', icon: '🎁', description: '', color: '#9333ea' });
+                  }}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setShowCategoryForm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              <Plus size={18} />
+              Add Custom Category
+            </button>
+          )}
+
+          {/* Categories List */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Default Categories</h3>
+            {categories.filter(c => c.is_default).map(cat => (
+              <div
+                key={cat.id}
+                className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200"
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl text-white"
+                  style={{ backgroundColor: cat.color }}
+                >
+                  {cat.icon}
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-slate-800">{cat.display_name}</h4>
+                  <p className="text-sm text-slate-500">{cat.description}</p>
+                </div>
+                <span className="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded">Default</span>
+              </div>
+            ))}
+
+            {categories.filter(c => !c.is_default).length > 0 && (
+              <>
+                <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide mt-6">Your Custom Categories</h3>
+                {categories.filter(c => !c.is_default).map(cat => (
+                  <div
+                    key={cat.id}
+                    className="flex items-center gap-4 p-4 bg-white rounded-xl border border-indigo-200"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl text-white"
+                      style={{ backgroundColor: cat.color }}
+                    >
+                      {cat.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-slate-800">{cat.display_name}</h4>
+                      <p className="text-sm text-slate-500">{cat.description}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete category"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

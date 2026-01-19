@@ -3,7 +3,7 @@ import { useProfile } from '../context/ProfileContext';
 import { familyQuizzesAPI, profilesAPI, type QuizCategory, type FamilyQuiz, type QuizQuestion, type QuizOption } from '../services/api';
 import { useToast } from '../components/Toast';
 import QuizMediaUploader from '../components/QuizMediaUploader';
-import { Plus, ArrowLeft, Image, Music, Check, X, Sparkles, BookOpen, Calculator, Globe, History, Beaker, Languages, Palette, HelpCircle, Lightbulb, Upload } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowRight, Image, Music, Check, X, Sparkles, BookOpen, Calculator, Globe, History, Beaker, Languages, Palette, HelpCircle, Lightbulb, Upload, Settings, ChevronRight } from 'lucide-react';
 
 // Type for input_config
 interface InputConfig {
@@ -57,8 +57,10 @@ export default function QuizBuilder() {
 
   // UI State
   const [view, setView] = useState<'list' | 'create' | 'edit' | 'questions'>('list');
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1); // 1: Category, 2: Details, 3: Questions
   const [selectedQuiz, setSelectedQuiz] = useState<QuizWithQuestions | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<QuizCategory | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Form state for new quiz
   const [quizForm, setQuizForm] = useState({
@@ -357,6 +359,8 @@ export default function QuizBuilder() {
     setSelectedCategory(null);
     setSelectedQuiz(null);
     setEditingQuestionId(null);
+    setWizardStep(1);
+    setShowSettingsModal(false);
   };
 
   if (loading) {
@@ -640,7 +644,55 @@ export default function QuizBuilder() {
     );
   }
 
-  // Create Quiz View
+  // Wizard Step Progress Component
+  const WizardStepper = ({ currentStep }: { currentStep: 1 | 2 | 3 }) => {
+    const steps = [
+      { num: 1, label: 'Category', icon: Palette },
+      { num: 2, label: 'Details', icon: Settings },
+      { num: 3, label: 'Questions', icon: HelpCircle }
+    ];
+
+    return (
+      <div className="flex items-center justify-center mb-6">
+        {steps.map((step, idx) => {
+          const StepIcon = step.icon;
+          const isActive = currentStep === step.num;
+          const isComplete = currentStep > step.num;
+          const isLast = idx === steps.length - 1;
+
+          return (
+            <div key={step.num} className="flex items-center">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    isActive
+                      ? 'bg-purple-600 text-white shadow-lg scale-110'
+                      : isComplete
+                      ? 'bg-green-500 text-white'
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {isComplete ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    <StepIcon className="w-5 h-5" />
+                  )}
+                </div>
+                <span className={`text-xs mt-1 font-medium ${isActive ? 'text-purple-600' : isComplete ? 'text-green-600' : 'text-gray-500'}`}>
+                  {step.label}
+                </span>
+              </div>
+              {!isLast && (
+                <div className={`w-16 md:w-24 h-1 mx-2 rounded ${isComplete ? 'bg-green-500' : 'bg-gray-200'}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Create Quiz View with Wizard
   if (view === 'create') {
     return (
       <div className="space-y-6">
@@ -648,7 +700,14 @@ export default function QuizBuilder() {
         <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => { setView('list'); resetForms(); }}
+              onClick={() => {
+                if (wizardStep > 1) {
+                  setWizardStep((wizardStep - 1) as 1 | 2);
+                } else {
+                  setView('list');
+                  resetForms();
+                }
+              }}
               className="p-2 hover:bg-white/20 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-6 h-6" />
@@ -660,118 +719,145 @@ export default function QuizBuilder() {
           </div>
         </div>
 
-        {/* Step 1: Select Category - Now more visual! */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-100">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 font-bold">1</span>
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Choose Quiz Category</h2>
-              <p className="text-sm text-gray-500">Select what type of quiz you want to create</p>
-            </div>
-          </div>
+        {/* Wizard Stepper */}
+        <WizardStepper currentStep={wizardStep} />
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.map(cat => {
-              const isSelected = selectedCategory?.id === cat.id;
-              const style = getCategoryStyle(cat.name);
-              const inputConfig: InputConfig = (cat.input_config || {}) as InputConfig;
-
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat)}
-                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 transform ${
-                    isSelected
-                      ? `border-purple-500 bg-gradient-to-br ${style.bg} text-white shadow-xl scale-105`
-                      : 'border-gray-200 hover:border-purple-300 hover:shadow-lg hover:scale-102 bg-white'
-                  }`}
-                >
-                  {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                      <Check className="w-4 h-4 text-white" />
-                    </div>
-                  )}
-
-                  <div className="flex flex-col items-center text-center">
-                    <div className={`text-4xl mb-2 ${isSelected ? '' : ''}`}>{cat.icon}</div>
-                    <div className={`font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
-                      {cat.display_name}
-                    </div>
-                    <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
-                      {cat.description}
-                    </div>
-
-                    {/* Show supported features */}
-                    <div className="flex gap-1 mt-2">
-                      {inputConfig.supports_images && (
-                        <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
-                          <Image className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                        </span>
-                      )}
-                      {inputConfig.supports_audio && (
-                        <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
-                          <Music className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Category-specific help text */}
-          {selectedCategory && (
-            <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-purple-800">
-                  <strong>{selectedCategory.display_name} Quiz Tips:</strong>
-                  {selectedCategory.name === 'alphabet' && (
-                    <p className="mt-1">Upload images of letters and ask kids to identify them. You can add audio pronunciation too!</p>
-                  )}
-                  {selectedCategory.name === 'math' && (
-                    <p className="mt-1">Create simple math problems. Kids will love solving addition, subtraction, and more!</p>
-                  )}
-                  {selectedCategory.name === 'geography' && (
-                    <p className="mt-1">Add maps and flag images to teach about countries and capitals.</p>
-                  )}
-                  {selectedCategory.name === 'colors_shapes' && (
-                    <p className="mt-1">Upload colorful images and use the color/shape pickers to create visual questions.</p>
-                  )}
-                  {selectedCategory.name === 'science' && (
-                    <p className="mt-1">Add images of animals, plants, or experiments to make learning fun!</p>
-                  )}
-                  {selectedCategory.name === 'language' && (
-                    <p className="mt-1">Create word recognition and sentence completion questions with audio support.</p>
-                  )}
-                  {selectedCategory.name === 'history' && (
-                    <p className="mt-1">Add historical images and dates to teach about important events and people.</p>
-                  )}
-                </div>
+        {/* Step 1: Select Category */}
+        {wizardStep === 1 && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-purple-100">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <Palette className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Choose Quiz Category</h2>
+                <p className="text-sm text-gray-500">Select what type of quiz you want to create</p>
               </div>
             </div>
-          )}
-        </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categories.map(cat => {
+                const isSelected = selectedCategory?.id === cat.id;
+                const style = getCategoryStyle(cat.name);
+                const inputConfig: InputConfig = (cat.input_config || {}) as InputConfig;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat)}
+                    className={`relative p-5 rounded-2xl border-2 transition-all duration-300 transform ${
+                      isSelected
+                        ? `border-purple-500 bg-gradient-to-br ${style.bg} text-white shadow-xl scale-105`
+                        : 'border-gray-200 hover:border-purple-300 hover:shadow-lg hover:scale-102 bg-white'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+
+                    <div className="flex flex-col items-center text-center">
+                      <div className="text-4xl mb-2">{cat.icon}</div>
+                      <div className={`font-bold ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                        {cat.display_name}
+                      </div>
+                      <div className={`text-xs mt-1 ${isSelected ? 'text-white/80' : 'text-gray-500'}`}>
+                        {cat.description}
+                      </div>
+
+                      {/* Show supported features */}
+                      <div className="flex gap-1 mt-2">
+                        {inputConfig.supports_images && (
+                          <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
+                            <Image className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                          </span>
+                        )}
+                        {inputConfig.supports_audio && (
+                          <span className={`p-1 rounded ${isSelected ? 'bg-white/20' : 'bg-gray-100'}`}>
+                            <Music className={`w-3 h-3 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Category-specific help text */}
+            {selectedCategory && (
+              <div className="mt-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-purple-800">
+                    <strong>{selectedCategory.display_name} Quiz Tips:</strong>
+                    {selectedCategory.name === 'alphabet' && (
+                      <p className="mt-1">Upload images of letters and ask kids to identify them. You can add audio pronunciation too!</p>
+                    )}
+                    {selectedCategory.name === 'math' && (
+                      <p className="mt-1">Create simple math problems. Kids will love solving addition, subtraction, and more!</p>
+                    )}
+                    {selectedCategory.name === 'geography' && (
+                      <p className="mt-1">Add maps and flag images to teach about countries and capitals.</p>
+                    )}
+                    {selectedCategory.name === 'colors_shapes' && (
+                      <p className="mt-1">Upload colorful images and use the color/shape pickers to create visual questions.</p>
+                    )}
+                    {selectedCategory.name === 'science' && (
+                      <p className="mt-1">Add images of animals, plants, or experiments to make learning fun!</p>
+                    )}
+                    {selectedCategory.name === 'language' && (
+                      <p className="mt-1">Create word recognition and sentence completion questions with audio support.</p>
+                    )}
+                    {selectedCategory.name === 'history' && (
+                      <p className="mt-1">Add historical images and dates to teach about important events and people.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation */}
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={() => { setView('list'); resetForms(); }}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setWizardStep(2)}
+                disabled={!selectedCategory}
+                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold shadow-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+              >
+                Next: Quiz Details
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Step 2: Quiz Details */}
-        {selectedCategory && (
+        {wizardStep === 2 && selectedCategory && (
           <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-indigo-100">
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-indigo-600 font-bold">2</span>
+                <Settings className="w-5 h-5 text-indigo-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-lg font-bold text-gray-900">Quiz Details</h2>
                 <p className="text-sm text-gray-500">Set up your quiz settings and assign to a child</p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-lg">
+                <span className="text-2xl">{selectedCategory.icon}</span>
+                <span className="text-sm font-medium text-purple-700">{selectedCategory.display_name}</span>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Quiz Title</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quiz Title <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={quizForm.title}
@@ -793,7 +879,7 @@ export default function QuizBuilder() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Child</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Child <span className="text-red-500">*</span></label>
                 <select
                   value={quizForm.assignedTo}
                   onChange={e => setQuizForm(prev => ({ ...prev, assignedTo: parseInt(e.target.value) }))}
@@ -887,17 +973,59 @@ export default function QuizBuilder() {
               </div>
             </div>
 
-            <button
-              onClick={handleCreateQuiz}
-              className="mt-6 w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-            >
-              Create Quiz & Add Questions
-            </button>
+            {/* Navigation */}
+            <div className="mt-6 flex justify-between">
+              <button
+                onClick={() => setWizardStep(1)}
+                className="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium flex items-center gap-2"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                Back: Category
+              </button>
+              <button
+                onClick={handleCreateQuiz}
+                disabled={!quizForm.title || !quizForm.assignedTo}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+              >
+                Create Quiz & Add Questions
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
       </div>
     );
   }
+
+  // Handle quiz settings update
+  const handleUpdateQuizSettings = async () => {
+    if (!selectedQuiz) return;
+
+    try {
+      await familyQuizzesAPI.updateQuiz(selectedQuiz.id, {
+        title: quizForm.title,
+        description: quizForm.description,
+        assigned_to: quizForm.assignedTo,
+        points_per_correct: quizForm.pointsPerCorrect,
+        stars_per_correct: quizForm.starsPerCorrect,
+        pass_threshold: quizForm.passThreshold,
+        is_competition: quizForm.isCompetition ? 1 : 0,
+        first_place_bonus: quizForm.firstPlaceBonus,
+        second_place_bonus: quizForm.secondPlaceBonus,
+        third_place_bonus: quizForm.thirdPlaceBonus
+      });
+
+      // Reload quiz
+      const response = await familyQuizzesAPI.getQuiz(selectedQuiz.id);
+      setSelectedQuiz(response.data as QuizWithQuestions);
+      setShowSettingsModal(false);
+      showToast('Quiz settings updated!', 'success');
+      loadData();
+    } catch (error) {
+      console.error('Failed to update quiz:', error);
+      showToast('Failed to update quiz settings', 'error');
+    }
+  };
 
   // Question Editor View
   if (view === 'questions' && selectedQuiz) {
@@ -908,6 +1036,154 @@ export default function QuizBuilder() {
 
     return (
       <div className="space-y-6">
+        {/* Settings Modal */}
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-900">Quiz Settings</h2>
+                  <button
+                    onClick={() => setShowSettingsModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quiz Title</label>
+                  <input
+                    type="text"
+                    value={quizForm.title}
+                    onChange={e => setQuizForm(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea
+                    value={quizForm.description}
+                    onChange={e => setQuizForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                    rows={2}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Child</label>
+                  <select
+                    value={quizForm.assignedTo}
+                    onChange={e => setQuizForm(prev => ({ ...prev, assignedTo: parseInt(e.target.value) }))}
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value={0}>Select a child...</option>
+                    {children.map(child => (
+                      <option key={child.id} value={child.id}>{child.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Points/Correct</label>
+                    <input
+                      type="number"
+                      value={quizForm.pointsPerCorrect}
+                      onChange={e => setQuizForm(prev => ({ ...prev, pointsPerCorrect: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      min={0}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Stars/Correct</label>
+                    <input
+                      type="number"
+                      value={quizForm.starsPerCorrect}
+                      onChange={e => setQuizForm(prev => ({ ...prev, starsPerCorrect: parseInt(e.target.value) || 0 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      min={0}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Pass %</label>
+                    <input
+                      type="number"
+                      value={quizForm.passThreshold}
+                      onChange={e => setQuizForm(prev => ({ ...prev, passThreshold: parseInt(e.target.value) || 70 }))}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      min={0}
+                      max={100}
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={quizForm.isCompetition}
+                      onChange={e => setQuizForm(prev => ({ ...prev, isCompetition: e.target.checked }))}
+                      className="w-5 h-5 text-purple-600 rounded"
+                    />
+                    <span className="font-medium">Competition Mode</span>
+                  </label>
+
+                  {quizForm.isCompetition && (
+                    <div className="mt-3 grid grid-cols-3 gap-3 pl-8">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">1st Bonus</label>
+                        <input
+                          type="number"
+                          value={quizForm.firstPlaceBonus}
+                          onChange={e => setQuizForm(prev => ({ ...prev, firstPlaceBonus: parseInt(e.target.value) || 0 }))}
+                          className="w-full px-2 py-1 border rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">2nd Bonus</label>
+                        <input
+                          type="number"
+                          value={quizForm.secondPlaceBonus}
+                          onChange={e => setQuizForm(prev => ({ ...prev, secondPlaceBonus: parseInt(e.target.value) || 0 }))}
+                          className="w-full px-2 py-1 border rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">3rd Bonus</label>
+                        <input
+                          type="number"
+                          value={quizForm.thirdPlaceBonus}
+                          onChange={e => setQuizForm(prev => ({ ...prev, thirdPlaceBonus: parseInt(e.target.value) || 0 }))}
+                          className="w-full px-2 py-1 border rounded text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6 border-t flex justify-end gap-3">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateQuizSettings}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+                >
+                  Save Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header with category-specific gradient */}
         <div className={`bg-gradient-to-r ${style.bg} rounded-2xl p-6 text-white shadow-lg`}>
           <div className="flex items-center justify-between">
@@ -935,7 +1211,34 @@ export default function QuizBuilder() {
                 </div>
               </div>
             </div>
-            <span className="text-5xl drop-shadow-lg">{selectedQuiz.category_icon || selectedCategory?.icon}</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  // Load current settings into form
+                  setQuizForm({
+                    title: selectedQuiz.title,
+                    description: selectedQuiz.description || '',
+                    categoryId: selectedQuiz.category_id,
+                    assignedTo: selectedQuiz.assigned_to,
+                    pointsPerCorrect: selectedQuiz.points_per_correct,
+                    starsPerCorrect: selectedQuiz.stars_per_correct || 0,
+                    bonusPoints: selectedQuiz.bonus_points || 20,
+                    timeLimitSeconds: selectedQuiz.time_limit_seconds || 0,
+                    passThreshold: selectedQuiz.pass_threshold || 70,
+                    isCompetition: selectedQuiz.is_competition === 1,
+                    firstPlaceBonus: selectedQuiz.first_place_bonus || 50,
+                    secondPlaceBonus: selectedQuiz.second_place_bonus || 25,
+                    thirdPlaceBonus: selectedQuiz.third_place_bonus || 10
+                  });
+                  setShowSettingsModal(true);
+                }}
+                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                title="Quiz Settings"
+              >
+                <Settings className="w-6 h-6" />
+              </button>
+              <span className="text-5xl drop-shadow-lg">{selectedQuiz.category_icon || selectedCategory?.icon}</span>
+            </div>
           </div>
         </div>
 

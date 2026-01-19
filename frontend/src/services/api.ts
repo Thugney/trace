@@ -412,6 +412,29 @@ export interface GoalWithMilestones extends MonthlyGoal {
   total_milestones?: number;
 }
 
+// Goal template type for cost estimation
+export interface GoalTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  category: string;
+  icon: string;
+  suggested_points: number;
+  estimated_cost_min: number;
+  estimated_cost_max: number;
+  family_size_multiplier: number;
+  is_system: boolean;
+  is_active: boolean;
+}
+
+export interface GoalTemplateEstimate {
+  template: GoalTemplate;
+  familySize: number;
+  estimatedCostMin: number;
+  estimatedCostMax: number;
+  suggestedPoints: number;
+}
+
 // Monthly Goals
 export const goalsAPI = {
   getByProfile: (profileId: number, month?: string) =>
@@ -456,7 +479,20 @@ export const goalsAPI = {
   addMilestone: (goalId: number, milestone_points: number, milestone_reward: string) =>
     api.post<GoalMilestone>(`/goals/${goalId}/milestones`, { milestone_points, milestone_reward }),
   deleteMilestone: (goalId: number, milestoneId: number) =>
-    api.delete(`/goals/${goalId}/milestones/${milestoneId}`)
+    api.delete(`/goals/${goalId}/milestones/${milestoneId}`),
+  // Templates (for cost estimation and quick goal creation)
+  getTemplates: (category?: string) =>
+    api.get<{ templates: GoalTemplate[]; categories: string[] }>('/goals/templates/all', { params: { category } }),
+  getTemplate: (templateId: number) =>
+    api.get<GoalTemplate>(`/goals/templates/${templateId}`),
+  estimateTemplateCost: (templateId: number, familySize: number) =>
+    api.post<GoalTemplateEstimate>(`/goals/templates/${templateId}/estimate`, { familySize }),
+  createTemplate: (data: Partial<GoalTemplate>) =>
+    api.post<GoalTemplate>('/goals/templates', data),
+  updateTemplate: (templateId: number, data: Partial<GoalTemplate>) =>
+    api.put<GoalTemplate>(`/goals/templates/${templateId}`, data),
+  deleteTemplate: (templateId: number) =>
+    api.delete(`/goals/templates/${templateId}`)
 };
 
 
@@ -1059,8 +1095,44 @@ export const rewardsAPI = {
 
   // Get children for a parent (for reward targeting)
   getParentChildren: (parentId: number) =>
-    api.get<Array<{ id: number; name: string; avatar: string; age: number }>>(`/rewards/parent/${parentId}/children`)
+    api.get<Array<{ id: number; name: string; avatar: string; age: number }>>(`/rewards/parent/${parentId}/children`),
+
+  // Reward categories
+  getCategories: (parentId: number) =>
+    api.get<RewardCategory[]>(`/rewards/categories/${parentId}`),
+
+  createCategory: (data: {
+    name: string;
+    displayName: string;
+    icon?: string;
+    description?: string;
+    color?: string;
+    createdBy: number;
+  }) => api.post<RewardCategory>('/rewards/categories', data),
+
+  updateCategory: (categoryId: number, data: {
+    displayName?: string;
+    icon?: string;
+    description?: string;
+    color?: string;
+  }) => api.put<RewardCategory>(`/rewards/categories/${categoryId}`, data),
+
+  deleteCategory: (categoryId: number) =>
+    api.delete(`/rewards/categories/${categoryId}`)
 };
+
+// Reward category type
+export interface RewardCategory {
+  id: number;
+  name: string;
+  display_name: string;
+  icon: string;
+  description: string;
+  color: string;
+  created_by: number | null;
+  is_default: boolean;
+  created_at: string;
+}
 
 // Reminder Preferences API
 export interface ReminderPreferences {

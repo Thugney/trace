@@ -6,6 +6,7 @@ import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
+import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 
 const router = Router();
 
@@ -581,6 +582,22 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'Prompt and createdBy are required' });
     }
 
+    // ===== AI USAGE CONTROL: Check if generation is allowed =====
+    const imageCount = includeImages !== false ? (pageCount || 8) + 1 : 0; // +1 for cover
+    const textProvider = getGeminiApiKey() ? 'gemini' : (getGrokApiKey() ? 'grok' : 'openai');
+    const imageProvider = getGrokApiKey() ? 'grok' : (getOpenAiApiKey() ? 'openai' : null);
+    const estimatedCostValue = estimateCost(textProvider, imageProvider, imageCount);
+
+    const usageCheck = canGenerateAi(createdBy, 'book', estimatedCostValue);
+    if (!usageCheck.allowed) {
+      return res.status(429).json({
+        error: usageCheck.reason,
+        code: 'AI_LIMIT_REACHED',
+        remaining: usageCheck.remaining,
+        dailyLimit: usageCheck.dailyLimit
+      });
+    }
+
     const job = createBookJob({
       prompt,
       pageCount: pageCount || 8,
@@ -593,7 +610,19 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
       includeImages: includeImages !== false
     });
 
-    res.json({ jobId: job.id, status: job.status });
+    // Log the AI usage (will be marked success/failure when job completes)
+    logAiUsage(createdBy, 'book', textProvider, {
+      estimatedCost: estimatedCostValue,
+      imagesGenerated: imageCount,
+      success: true // Optimistically mark as success, job may fail later
+    });
+
+    res.json({
+      jobId: job.id,
+      status: job.status,
+      estimatedCost: estimatedCostValue,
+      remaining: (usageCheck.remaining || 1) - 1
+    });
   } catch (error: any) {
     console.error('[AI Book] Job creation failed:', error);
     res.status(error.status || 500).json({ error: error.message });

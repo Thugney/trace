@@ -295,18 +295,19 @@ router.put('/:id', (req, res) => {
 
 // Complete task and award points
 // WITH ECONOMY CONTROLS: rate limiting, time verification, daily caps
+// RACE CONDITION FIX: Uses transaction to ensure atomic points calculation
 router.post('/:id/complete', (req, res) => {
   try {
     const { id } = req.params;
+    const today = new Date().toISOString().split('T')[0];
 
-    // Get task
+    // Get task first (outside transaction for early validation)
     const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
     // ===== ANTI-ABUSE CHECK 0: Already completed today =====
-    const today = new Date().toISOString().split('T')[0];
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today. You cannot earn more points for it.',
@@ -374,53 +375,80 @@ router.post('/:id/complete', (req, res) => {
     // Apply cap if needed
     const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
 
-    // ===== ATOMICALLY mark task as completed (prevents race condition) =====
-    const updateResult = db.prepare(`
-      UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
-      WHERE id = ? AND completed = 0
-    `).run(today, id);
+    // ===== TRANSACTION: Complete task and award points atomically =====
+    // This prevents race conditions where two concurrent task completions
+    // read the same total_points and then both add on top, losing points
+    const completeTaskTransaction = db.transaction(() => {
+      // Atomically mark task as completed (prevents duplicate completion)
+      const updateResult = db.prepare(`
+        UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
+        WHERE id = ? AND completed = 0
+      `).run(today, id);
 
-    // If no rows updated, task was already completed (race condition caught)
-    if (updateResult.changes === 0) {
-      return res.status(400).json({ error: 'Task already completed', code: 'ALREADY_COMPLETED' });
-    }
-
-    // Update rate limit tracker
-    updateRateLimit(task.profile_id, 'task');
-
-    // Check for mystery reward (only if bonuses enabled)
-    let mysteryReward = null;
-    let bonusPoints = 0;
-    if (areBonusesEnabled(task.profile_id)) {
-      mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), cappedPoints);
-      if (mysteryReward) {
-        // Cap bonus points too
-        const maxBonusCheck = canEarnPoints(task.profile_id, mysteryReward.bonusPoints);
-        bonusPoints = maxBonusCheck.cappedAmount !== undefined
-          ? Math.min(mysteryReward.bonusPoints, maxBonusCheck.cappedAmount)
-          : mysteryReward.bonusPoints;
+      // If no rows updated, task was already completed (race condition caught)
+      if (updateResult.changes === 0) {
+        return { error: 'Task already completed', code: 'ALREADY_COMPLETED' };
       }
+
+      // Update rate limit tracker
+      updateRateLimit(task.profile_id, 'task');
+
+      // Check for mystery reward (only if bonuses enabled)
+      let mysteryReward = null;
+      let bonusPoints = 0;
+      if (areBonusesEnabled(task.profile_id)) {
+        mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), cappedPoints);
+        if (mysteryReward) {
+          // Cap bonus points too
+          const maxBonusCheck = canEarnPoints(task.profile_id, mysteryReward.bonusPoints);
+          bonusPoints = maxBonusCheck.cappedAmount !== undefined
+            ? Math.min(mysteryReward.bonusPoints, maxBonusCheck.cappedAmount)
+            : mysteryReward.bonusPoints;
+        }
+      }
+
+      const totalPointsEarned = cappedPoints + bonusPoints;
+
+      // Get current progress INSIDE transaction for consistency
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(task.profile_id);
+
+      const totalPoints = (currentProgress?.total_points || 0) + totalPointsEarned;
+      const totalStars = (currentProgress?.total_stars || 0) + stars;
+      const level = Math.floor(totalPoints / 100) + 1;
+
+      // Insert progress record
+      db.prepare(`
+        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(task.profile_id, id, totalPointsEarned, stars, level, totalPoints, totalStars);
+
+      // Record earnings in daily tracker
+      recordEarnings(task.profile_id, totalPointsEarned, stars, true, bonusPoints > 0);
+
+      return {
+        success: true,
+        totalPointsEarned,
+        bonusPoints,
+        mysteryReward,
+        totalPoints,
+        totalStars,
+        level
+      };
+    });
+
+    // Execute the transaction
+    const txResult = completeTaskTransaction();
+
+    if (txResult.error) {
+      return res.status(400).json({ error: txResult.error, code: txResult.code });
     }
 
-    const totalPointsEarned = cappedPoints + bonusPoints;
-
-    // Get current progress
-    const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(task.profile_id);
-
-    const totalPoints = (currentProgress?.total_points || 0) + totalPointsEarned;
-    const totalStars = (currentProgress?.total_stars || 0) + stars;
-    const level = Math.floor(totalPoints / 100) + 1;
-
-    // Insert progress record
-    db.prepare(`
-      INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(task.profile_id, id, totalPointsEarned, stars, level, totalPoints, totalStars);
-
-    // Record earnings in daily tracker
-    recordEarnings(task.profile_id, totalPointsEarned, stars, true, bonusPoints > 0);
+    // TypeScript narrowing: after error check, these values are guaranteed to exist
+    const totalPointsEarned = txResult.totalPointsEarned!;
+    const bonusPoints = txResult.bonusPoints!;
+    const mysteryReward = txResult.mysteryReward;
 
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`
@@ -1505,78 +1533,98 @@ router.post('/:id/timer/finish', (req, res) => {
       });
     }
 
-    // Clean up timer state
-    if (timerState) {
-      db.prepare('DELETE FROM timer_states WHERE id = ?').run(timerState.id);
+    // ===== TRANSACTION: Complete task via timer atomically =====
+    // This prevents race conditions where points could be lost
+    const finishTimerTransaction = db.transaction(() => {
+      // Clean up timer state
+      if (timerState) {
+        db.prepare('DELETE FROM timer_states WHERE id = ?').run(timerState.id);
+      }
+
+      // Mark task as completed and set last_completed_date
+      const updateResult = db.prepare(`
+        UPDATE tasks
+        SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
+        WHERE id = ? AND completed = 0
+      `).run(today, id);
+
+      // If no rows updated, task was already completed (race condition caught)
+      if (updateResult.changes === 0) {
+        return { error: 'Task already completed', code: 'ALREADY_COMPLETED' };
+      }
+
+      // Award points (using same logic as regular complete)
+      const rawPoints = task.points || 10;
+      const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+      const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+
+      // Check caps
+      const capCheck = canEarnPoints(task.profile_id, basePoints);
+      const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
+
+      // Get current progress INSIDE transaction for consistency
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(task.profile_id);
+
+      const totalPoints = (currentProgress?.total_points || 0) + cappedPoints;
+      const totalStars = (currentProgress?.total_stars || 0) + stars;
+      const level = Math.floor(totalPoints / 100) + 1;
+
+      // Insert progress record
+      db.prepare(`
+        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(task.profile_id, id, cappedPoints, stars, level, totalPoints, totalStars);
+
+      // Record earnings
+      recordEarnings(task.profile_id, cappedPoints, stars, true, false);
+
+      // Handle recurring tasks
+      let nextTask = null;
+      if (task.is_recurring && task.recurrence_pattern) {
+        const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
+
+        const newTaskResult = db.prepare(`
+          INSERT INTO tasks (
+            profile_id, title, description, category, points, difficulty,
+            is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+            priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          task.profile_id,
+          task.title,
+          task.description,
+          task.category,
+          task.points,
+          task.difficulty,
+          1,
+          task.recurrence_pattern,
+          nextDueDate,
+          task.created_by,
+          task.parent_approved,
+          task.approved_by,
+          task.priority || 'medium',
+          task.estimated_minutes,
+          task.proof_required || 0,
+          task.requires_timer || 0,
+          task.timer_duration_minutes
+        );
+
+        nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
+      }
+
+      return { success: true, cappedPoints, stars, nextTask };
+    });
+
+    // Execute the transaction
+    const txResult = finishTimerTransaction();
+
+    if (txResult.error) {
+      return res.status(400).json({ error: txResult.error, code: txResult.code });
     }
 
-    // Mark task as completed and set last_completed_date
-    db.prepare(`
-      UPDATE tasks
-      SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
-      WHERE id = ? AND completed = 0
-    `).run(today, id);
-
-    // Award points (using same logic as regular complete)
-    const rawPoints = task.points || 10;
-    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
-    const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
-
-    // Check caps
-    const capCheck = canEarnPoints(task.profile_id, basePoints);
-    const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
-
-    // Get current progress
-    const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(task.profile_id);
-
-    const totalPoints = (currentProgress?.total_points || 0) + cappedPoints;
-    const totalStars = (currentProgress?.total_stars || 0) + stars;
-    const level = Math.floor(totalPoints / 100) + 1;
-
-    // Insert progress record
-    db.prepare(`
-      INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(task.profile_id, id, cappedPoints, stars, level, totalPoints, totalStars);
-
-    // Record earnings
-    recordEarnings(task.profile_id, cappedPoints, stars, true, false);
-
-    // Handle recurring tasks
-    let nextTask = null;
-    if (task.is_recurring && task.recurrence_pattern) {
-      const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
-
-      const newTaskResult = db.prepare(`
-        INSERT INTO tasks (
-          profile_id, title, description, category, points, difficulty,
-          is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        task.profile_id,
-        task.title,
-        task.description,
-        task.category,
-        task.points,
-        task.difficulty,
-        1,
-        task.recurrence_pattern,
-        nextDueDate,
-        task.created_by,
-        task.parent_approved,
-        task.approved_by,
-        task.priority || 'medium',
-        task.estimated_minutes,
-        task.proof_required || 0,
-        task.requires_timer || 0,
-        task.timer_duration_minutes
-      );
-
-      nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
-    }
+    const { cappedPoints, stars, nextTask } = txResult;
 
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`

@@ -301,6 +301,7 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // Award bonus points (creates progress entry without task_id)
+// RACE CONDITION FIX: Uses transaction to ensure atomic points calculation
 router.post('/:profileId/bonus-points', async (req, res) => {
   try {
     const { profileId } = req.params;
@@ -310,25 +311,38 @@ router.post('/:profileId/bonus-points', async (req, res) => {
       return res.status(400).json({ error: 'Points or stars required' });
     }
 
-    // Create progress entry for bonus points
-    const result = db.prepare(`
-      INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, total_points, total_stars, achievements)
-      VALUES (?, NULL, ?, ?,
-        (SELECT COALESCE(SUM(points_earned), 0) + ? FROM progress WHERE profile_id = ?),
-        (SELECT COALESCE(SUM(stars_earned), 0) + ? FROM progress WHERE profile_id = ?),
-        ?)
-    `).run(
-      profileId,
-      points || 0,
-      stars || 0,
-      points || 0,
-      profileId,
-      stars || 0,
-      profileId,
-      JSON.stringify([{ type: 'bonus', reason, awardedBy, date: new Date().toISOString() }])
-    );
+    // Use transaction to prevent race conditions when awarding bonus points
+    const awardBonus = db.transaction(() => {
+      // Get current progress INSIDE transaction for consistency
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(profileId);
 
-    const bonusEntry = db.prepare('SELECT * FROM progress WHERE id = ?').get(result.lastInsertRowid);
+      const currentPoints = currentProgress?.total_points || 0;
+      const currentStars = currentProgress?.total_stars || 0;
+      const newTotalPoints = currentPoints + (points || 0);
+      const newTotalStars = currentStars + (stars || 0);
+      const newLevel = Math.floor(newTotalPoints / 100) + 1;
+
+      // Create progress entry for bonus points
+      const result = db.prepare(`
+        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars, achievements)
+        VALUES (?, NULL, ?, ?, ?, ?, ?, ?)
+      `).run(
+        profileId,
+        points || 0,
+        stars || 0,
+        newLevel,
+        newTotalPoints,
+        newTotalStars,
+        JSON.stringify([{ type: 'bonus', reason, awardedBy, date: new Date().toISOString() }])
+      );
+
+      return db.prepare('SELECT * FROM progress WHERE id = ?').get(result.lastInsertRowid);
+    });
+
+    // Execute the transaction
+    const bonusEntry = awardBonus();
 
     // Get awarder's name for the notification
     let awarderName = 'Parent';
@@ -349,7 +363,7 @@ router.post('/:profileId/bonus-points', async (req, res) => {
       message: `${awarderName} gave you ${rewardText}${reason ? ` for: ${reason}` : '!'}`,
       icon: '🎁',
       data: {
-        bonusId: result.lastInsertRowid,
+        bonusId: (bonusEntry as any)?.id || 0,
         points: points || 0,
         stars: stars || 0,
         reason: reason || '',
@@ -569,6 +583,195 @@ router.post('/:id/reject', (req, res) => {
     }
 
     res.json({ message: 'Goal rejected and deleted' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get goal templates (for cost estimation and quick goal creation)
+router.get('/templates/all', (req, res) => {
+  try {
+    const { category } = req.query;
+
+    let query = 'SELECT * FROM goal_templates WHERE is_active = 1';
+    const params: any[] = [];
+
+    if (category && category !== 'all') {
+      query += ' AND category = ?';
+      params.push(category);
+    }
+
+    query += ' ORDER BY category, suggested_points ASC';
+
+    const templates = db.prepare(query).all(...params);
+
+    // Get unique categories
+    const categories = db.prepare(`
+      SELECT DISTINCT category FROM goal_templates WHERE is_active = 1 ORDER BY category
+    `).all() as { category: string }[];
+
+    res.json({
+      templates,
+      categories: categories.map(c => c.category)
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get a single goal template
+router.get('/templates/:templateId', (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const template = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(templateId);
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    res.json(template);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Calculate cost estimate for a template based on family size
+router.post('/templates/:templateId/estimate', (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const { familySize } = req.body;
+
+    const template: any = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(templateId);
+
+    if (!template) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    const size = familySize || 1;
+    const multiplier = template.family_size_multiplier || 1;
+
+    // Calculate estimated costs with family size multiplier
+    const estimatedCostMin = template.estimated_cost_min * (1 + (size - 1) * multiplier);
+    const estimatedCostMax = template.estimated_cost_max * (1 + (size - 1) * multiplier);
+    const suggestedPoints = Math.round(template.suggested_points * (1 + (size - 1) * 0.5));
+
+    res.json({
+      template,
+      familySize: size,
+      estimatedCostMin: Math.round(estimatedCostMin * 100) / 100,
+      estimatedCostMax: Math.round(estimatedCostMax * 100) / 100,
+      suggestedPoints
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create custom goal template (parents/admin only)
+router.post('/templates', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents and admins can create templates' });
+    }
+
+    const { name, description, category, icon, suggested_points, estimated_cost_min, estimated_cost_max, family_size_multiplier } = req.body;
+
+    if (!name || !category || !suggested_points) {
+      return res.status(400).json({ error: 'Name, category, and suggested_points are required' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO goal_templates (name, description, category, icon, suggested_points, estimated_cost_min, estimated_cost_max, family_size_multiplier, is_system, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+    `).run(
+      name,
+      description || null,
+      category,
+      icon || '🎯',
+      suggested_points,
+      estimated_cost_min || 0,
+      estimated_cost_max || 0,
+      family_size_multiplier || 1
+    );
+
+    const newTemplate = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(result.lastInsertRowid);
+    res.status(201).json(newTemplate);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update custom goal template (parents/admin only, can't modify system templates)
+router.put('/templates/:templateId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+    const { templateId } = req.params;
+
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents and admins can update templates' });
+    }
+
+    const existing: any = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(templateId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    if (existing.is_system) {
+      return res.status(403).json({ error: 'Cannot modify system templates' });
+    }
+
+    const { name, description, category, icon, suggested_points, estimated_cost_min, estimated_cost_max, family_size_multiplier, is_active } = req.body;
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (name !== undefined) { updates.push('name = ?'); values.push(name); }
+    if (description !== undefined) { updates.push('description = ?'); values.push(description); }
+    if (category !== undefined) { updates.push('category = ?'); values.push(category); }
+    if (icon !== undefined) { updates.push('icon = ?'); values.push(icon); }
+    if (suggested_points !== undefined) { updates.push('suggested_points = ?'); values.push(suggested_points); }
+    if (estimated_cost_min !== undefined) { updates.push('estimated_cost_min = ?'); values.push(estimated_cost_min); }
+    if (estimated_cost_max !== undefined) { updates.push('estimated_cost_max = ?'); values.push(estimated_cost_max); }
+    if (family_size_multiplier !== undefined) { updates.push('family_size_multiplier = ?'); values.push(family_size_multiplier); }
+    if (is_active !== undefined) { updates.push('is_active = ?'); values.push(is_active ? 1 : 0); }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(templateId);
+    db.prepare(`UPDATE goal_templates SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+    const updatedTemplate = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(templateId);
+    res.json(updatedTemplate);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete custom goal template (parents/admin only, can't delete system templates)
+router.delete('/templates/:templateId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+    const { templateId } = req.params;
+
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents and admins can delete templates' });
+    }
+
+    const existing: any = db.prepare('SELECT * FROM goal_templates WHERE id = ?').get(templateId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+
+    if (existing.is_system) {
+      return res.status(403).json({ error: 'Cannot delete system templates' });
+    }
+
+    db.prepare('DELETE FROM goal_templates WHERE id = ?').run(templateId);
+    res.json({ message: 'Template deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

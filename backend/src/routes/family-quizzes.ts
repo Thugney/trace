@@ -8,6 +8,7 @@ import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 
 const router = Router();
 const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
@@ -922,6 +923,23 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Prompt, categoryId, and createdBy are required' });
     }
 
+    // ===== AI USAGE CONTROL: Check if generation is allowed =====
+    const normalizedQuestionCount = Math.min(Math.max(questionCount || 5, 1), 20);
+    const imageCount = includeImages !== false ? normalizedQuestionCount : 0;
+    const selectedTextProvider = textProvider || 'gemini';
+    const selectedImageProvider = includeImages !== false ? (imageProvider || 'grok') : null;
+    const estimatedCostValue = estimateCost(selectedTextProvider, selectedImageProvider, imageCount);
+
+    const usageCheck = canGenerateAi(createdBy, 'quiz', estimatedCostValue);
+    if (!usageCheck.allowed) {
+      return res.status(429).json({
+        error: usageCheck.reason,
+        code: 'AI_LIMIT_REACHED',
+        remaining: usageCheck.remaining,
+        dailyLimit: usageCheck.dailyLimit
+      });
+    }
+
     const job = createAiQuizJob({
       prompt,
       categoryId,
@@ -933,7 +951,19 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       imageProvider
     });
 
-    res.status(202).json({ jobId: job.id, status: job.status });
+    // Log the AI usage
+    logAiUsage(createdBy, 'quiz', selectedTextProvider, {
+      estimatedCost: estimatedCostValue,
+      imagesGenerated: imageCount,
+      success: true
+    });
+
+    res.status(202).json({
+      jobId: job.id,
+      status: job.status,
+      estimatedCost: estimatedCostValue,
+      remaining: (usageCheck.remaining || 1) - 1
+    });
   } catch (error: any) {
     console.error('[AI Quiz] Generation error:', error);
     res.status(500).json({ error: 'Failed to generate quiz' });

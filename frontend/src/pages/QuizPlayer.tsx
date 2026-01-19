@@ -1,10 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { familyQuizzesAPI, type FamilyQuiz, type QuizStartResponse, type QuizTheme } from '../services/api';
+import { familyQuizzesAPI, type FamilyQuiz, type QuizStartResponse, type QuizTheme, type QuizAttempt } from '../services/api';
 import { useToast } from '../components/Toast';
 import confetti from 'canvas-confetti';
 import { Brain, Trophy, Zap, Star, Sparkles, Target, Clock, Play, Pause, RefreshCw, Award, Flame, Square } from 'lucide-react';
 import playSounds, { areSoundsEnabled } from '../utils/sounds';
+
+// Leaderboard entry type
+interface LeaderboardEntry extends QuizAttempt {
+  name: string;
+  avatar: string;
+}
 
 const playQuizSound = {
   correct: () => playSounds.quizCorrect(),
@@ -53,12 +59,27 @@ export default function QuizPlayer() {
   const [timerElapsed, setTimerElapsed] = useState(0);
   const [timerIntervalId, setTimerIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
   const [timerStatus, setTimerStatus] = useState<'idle' | 'running' | 'paused'>('idle');
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const ambientRef = useRef<{
     ctx: AudioContext;
     gain: GainNode;
     filter: BiquadFilterNode;
     intervalId?: number;
   } | null>(null);
+
+  // Fetch leaderboard for competition quizzes
+  const fetchLeaderboard = useCallback(async (quizId: number) => {
+    try {
+      setLeaderboardLoading(true);
+      const response = await familyQuizzesAPI.getLeaderboard(quizId);
+      setLeaderboard(response.data);
+    } catch (error) {
+      console.error('Failed to fetch leaderboard:', error);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (currentProfile?.id) {
@@ -377,6 +398,11 @@ export default function QuizPlayer() {
         playQuizSound.complete();
         setTimeout(celebrate, 500);
         setTimeout(celebrate, 1000);
+      }
+
+      // Fetch leaderboard for competition quizzes
+      if (currentQuiz?.quiz.isCompetition) {
+        fetchLeaderboard(currentQuiz.quiz.id);
       }
 
       setGameState('results');
@@ -820,9 +846,10 @@ export default function QuizPlayer() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className={`text-center px-6 py-3 rounded-2xl backdrop-blur-sm shadow-lg ${headerPillClass}`}>
-            <div className="text-lg md:text-xl font-black">{currentQuiz.quiz.title}</div>
-            <div className={`text-sm font-medium ${headerSubTextClass}`}>Question {currentQuestionIndex + 1} of {currentQuiz.totalQuestions}</div>
+          {/* Quiz Title - Enhanced visibility across all themes including Alphabet */}
+          <div className={`text-center px-4 sm:px-6 py-2 sm:py-3 rounded-2xl backdrop-blur-sm shadow-lg border ${headerPillClass} ${isLightTheme ? 'border-slate-200' : 'border-white/20'}`}>
+            <div className="text-base sm:text-lg md:text-xl font-black leading-tight">{currentQuiz.quiz.title}</div>
+            <div className={`text-xs sm:text-sm font-medium ${headerSubTextClass}`}>Question {currentQuestionIndex + 1} of {currentQuiz.totalQuestions}</div>
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-2xl ${mascotAnimation}`}>{theme.mascot}</span>
@@ -911,26 +938,26 @@ export default function QuizPlayer() {
           />
         </div>
 
-        {/* Score Display - Enhanced */}
-        <div className="flex justify-center gap-4 mb-6">
-          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+        {/* Score Display - Enhanced visibility for all quiz types including Alphabet */}
+        <div className="flex justify-center gap-2 sm:gap-4 mb-6 flex-wrap">
+          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-center shadow-lg border ${isLightTheme ? 'border-slate-200' : 'border-white/20'}`}>
             <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Correct</div>
-            <div className={`text-2xl font-black ${scoreValueClass}`}>{score.correct}</div>
+            <div className={`text-xl sm:text-2xl font-black ${scoreValueClass}`}>{score.correct}</div>
           </div>
-          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+          <div className={`${hudClass} backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-center shadow-lg border ${isLightTheme ? 'border-slate-200' : 'border-white/20'}`}>
             <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Points</div>
-            <div className={`text-2xl font-black ${pointsValueClass}`}>
+            <div className={`text-xl sm:text-2xl font-black ${pointsValueClass}`}>
               {score.points}
-              <span className={`text-xs font-normal ml-1 ${isLightTheme ? 'text-slate-500' : 'opacity-60'}`}>
+              <span className={`text-[10px] sm:text-xs font-normal ml-1 ${isLightTheme ? 'text-slate-500' : 'opacity-60'}`}>
                 (+{currentQuiz.quiz.pointsPerCorrect}/ea)
               </span>
             </div>
           </div>
           {currentQuiz.quiz.starsPerCorrect > 0 && (
-            <div className={`${hudClass} backdrop-blur-sm rounded-xl px-4 py-3 text-center shadow-lg`}>
+            <div className={`${hudClass} backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 sm:py-3 text-center shadow-lg border ${isLightTheme ? 'border-slate-200' : 'border-white/20'}`}>
               <div className={`text-xs font-medium ${isLightTheme ? 'text-slate-600' : 'opacity-80'}`}>Stars</div>
-              <div className="text-2xl font-black text-yellow-500 flex items-center justify-center gap-1">
-                <Star className="w-5 h-5 fill-yellow-400" />
+              <div className="text-xl sm:text-2xl font-black text-yellow-500 flex items-center justify-center gap-1">
+                <Star className="w-4 sm:w-5 h-4 sm:h-5 fill-yellow-400" />
                 <span>+{currentQuiz.quiz.starsPerCorrect}</span>
               </div>
             </div>
@@ -1141,16 +1168,105 @@ export default function QuizPlayer() {
           </div>
         )}
 
-        {/* Competition Rank */}
+        {/* Competition Rank & Leaderboard */}
         {results.competitionRank && (
-          <div className="bg-yellow-400 text-yellow-900 rounded-xl px-6 py-3 mb-6">
-            <div className="text-2xl font-bold flex items-center gap-2">
-              {results.competitionRank === 1 && '🥇'}
-              {results.competitionRank === 2 && '🥈'}
-              {results.competitionRank === 3 && '🥉'}
-              {results.competitionRank > 3 && '🏅'}
-              #{results.competitionRank} Place!
-              {results.competitionBonus > 0 && ` (+${results.competitionBonus} bonus)`}
+          <div className="w-full max-w-md mb-6">
+            {/* Your Rank */}
+            <div className="bg-yellow-400 text-yellow-900 rounded-xl px-6 py-3 mb-4">
+              <div className="text-2xl font-bold flex items-center justify-center gap-2">
+                {results.competitionRank === 1 && '🥇'}
+                {results.competitionRank === 2 && '🥈'}
+                {results.competitionRank === 3 && '🥉'}
+                {results.competitionRank > 3 && '🏅'}
+                #{results.competitionRank} Place!
+                {results.competitionBonus > 0 && ` (+${results.competitionBonus} bonus)`}
+              </div>
+            </div>
+
+            {/* Leaderboard */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-400" />
+                  Leaderboard
+                </h3>
+                <button
+                  onClick={() => currentQuiz && fetchLeaderboard(currentQuiz.quiz.id)}
+                  className="text-xs bg-white/20 px-2 py-1 rounded-lg hover:bg-white/30 flex items-center gap-1"
+                >
+                  <RefreshCw className={`w-3 h-3 ${leaderboardLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {leaderboardLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                </div>
+              ) : leaderboard.length === 0 ? (
+                <div className="text-center text-white/60 py-4 text-sm">
+                  No rankings yet. Be the first to complete!
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {leaderboard.slice(0, 5).map((entry, idx) => {
+                    const isCurrentUser = entry.profile_id === currentProfile?.id;
+                    const rank = entry.competition_rank || idx + 1;
+
+                    return (
+                      <div
+                        key={entry.id}
+                        className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                          isCurrentUser
+                            ? 'bg-yellow-400/30 border border-yellow-400/50'
+                            : 'bg-white/5 hover:bg-white/10'
+                        }`}
+                      >
+                        {/* Rank */}
+                        <div className={`w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm ${
+                          rank === 1 ? 'bg-yellow-400 text-yellow-900' :
+                          rank === 2 ? 'bg-gray-300 text-gray-800' :
+                          rank === 3 ? 'bg-orange-400 text-orange-900' :
+                          'bg-white/20 text-white'
+                        }`}>
+                          {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                        </div>
+
+                        {/* Avatar */}
+                        <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                          {entry.avatar ? (
+                            <img src={entry.avatar} alt={entry.name} className="w-full h-full object-cover" />
+                          ) : (
+                            entry.name?.charAt(0)?.toUpperCase()
+                          )}
+                        </div>
+
+                        {/* Name */}
+                        <div className="flex-1 min-w-0">
+                          <div className={`font-medium truncate ${isCurrentUser ? 'text-yellow-200' : ''}`}>
+                            {entry.name} {isCurrentUser && '(You)'}
+                          </div>
+                          <div className="text-xs text-white/60">
+                            {entry.score_percentage}% • {Math.floor((entry.time_taken_seconds || 0) / 60)}:{String((entry.time_taken_seconds || 0) % 60).padStart(2, '0')}
+                          </div>
+                        </div>
+
+                        {/* Points */}
+                        <div className="text-right">
+                          <div className="font-bold text-yellow-300">{entry.points_earned}</div>
+                          <div className="text-xs text-white/60">pts</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {leaderboard.length > 5 && (
+                    <div className="text-center text-xs text-white/50 pt-2">
+                      +{leaderboard.length - 5} more participants
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

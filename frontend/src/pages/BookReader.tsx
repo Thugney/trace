@@ -278,11 +278,12 @@ export default function BookReader() {
             <X size={20} />
             <span className="hidden sm:inline">Exit</span>
           </button>
-          <div>
-            <h1 className="font-semibold text-gray-900 truncate max-w-[200px] md:max-w-none">
+          <div className="min-w-0 flex-1">
+            {/* MOBILE FIX: Allow more title width, use line-clamp instead of truncate */}
+            <h1 className="font-semibold text-gray-900 line-clamp-1 text-sm sm:text-base">
               {book.title}
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               Page {currentPage} of {totalPages - 1}
             </p>
           </div>
@@ -323,8 +324,8 @@ export default function BookReader() {
         onMouseUp={onMouseUp}
         onMouseLeave={() => setIsDragging(false)}
       >
-        {/* Book */}
-        <div className="relative w-full max-w-4xl h-full max-h-[75vh] md:max-h-none md:aspect-[16/10] perspective-1000">
+        {/* Book - MOBILE FIX: Removed restrictive max-height, use calc() for better mobile layout */}
+        <div className="relative w-full max-w-4xl h-[calc(100vh-180px)] md:h-full md:max-h-none md:aspect-[16/10] perspective-1000">
           {/* Book Shadow */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 to-black/30 rounded-2xl transform translate-y-4 blur-xl" />
 
@@ -441,16 +442,16 @@ export default function BookReader() {
                 </div>
               </div>
             ) : (
-              // End Page with Rating
-              <div className="h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-y-auto">
-                <CheckCircle className="mb-4" size={56} />
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">The End!</h2>
-                <p className="text-base md:text-lg opacity-90 mb-6">
+              // End Page with Rating - MOBILE FIX: Better padding and scrolling
+              <div className="h-full flex flex-col items-center justify-start p-4 sm:p-6 pt-6 sm:pt-8 text-center bg-gradient-to-br from-green-500 to-emerald-600 text-white overflow-y-auto">
+                <CheckCircle className="mb-3 sm:mb-4 flex-shrink-0" size={48} />
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 flex-shrink-0">The End!</h2>
+                <p className="text-sm sm:text-base md:text-lg opacity-90 mb-4 sm:mb-6 line-clamp-2 flex-shrink-0">
                   You finished reading "{book.title}"
                 </p>
 
-                {/* Rating Section */}
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 md:p-6 mb-6 w-full max-w-sm">
+                {/* Rating Section - MOBILE FIX: Responsive width */}
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3 sm:p-4 md:p-6 mb-4 sm:mb-6 w-full max-w-[280px] sm:max-w-sm flex-shrink-0">
                   <p className="text-sm md:text-base font-medium mb-3">
                     {feedbackSubmitted ? 'Your Rating:' : 'Did you like this book?'}
                   </p>
@@ -597,7 +598,8 @@ export default function BookReader() {
             className="fixed inset-0 bg-black/30 z-40"
             onClick={() => setShowToc(false)}
           />
-          <div className="fixed right-0 top-0 bottom-0 w-72 bg-white shadow-2xl z-50 overflow-y-auto">
+          {/* MOBILE FIX: Responsive sidebar width - 80% on mobile, 288px (w-72) on larger screens */}
+          <div className="fixed right-0 top-0 bottom-0 w-[80vw] max-w-72 bg-white shadow-2xl z-50 overflow-y-auto">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Contents</h3>
               <button

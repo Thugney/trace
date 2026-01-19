@@ -12,6 +12,12 @@ import {
   recordEarnings,
   isSpinWheelEnabled
 } from '../services/economyControl';
+import {
+  getAiLimits,
+  updateAiLimits,
+  getUsageStats,
+  getParentIdForProfile
+} from '../services/aiUsageControl';
 
 const router = express.Router();
 router.use(authenticate, requireFeature('gamification'));
@@ -871,63 +877,84 @@ router.get('/login-bonus/:profileId', (req, res) => {
   }
 });
 
-// Claim daily login bonus
+// Claim daily login bonus - uses transaction to prevent race conditions
 router.post('/login-bonus/:profileId/claim', (req, res) => {
   try {
     const { profileId } = req.params;
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Check if already claimed
-    const existing: any = db.prepare(`
-      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
-    `).get(profileId, today);
+    // Use a transaction to prevent duplicate claims (race condition fix)
+    const claimBonus = db.transaction(() => {
+      // Check if already claimed (inside transaction for consistency)
+      const existing: any = db.prepare(`
+        SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+      `).get(profileId, today);
 
-    if (existing) {
-      return res.status(400).json({ error: 'Already claimed today', claimed: true });
+      if (existing) {
+        return { error: 'Already claimed today', claimed: true };
+      }
+
+      // Check streak
+      const yesterdayBonus: any = db.prepare(`
+        SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
+      `).get(profileId, yesterday);
+
+      const consecutiveDays = yesterdayBonus ? (yesterdayBonus.consecutive_days % 7) + 1 : 1;
+      const pointsToEarn = DAILY_BONUS_POINTS[consecutiveDays - 1];
+
+      // Insert login bonus - UNIQUE constraint provides additional safety
+      try {
+        db.prepare(`
+          INSERT INTO login_bonuses (profile_id, login_date, consecutive_days, points_earned)
+          VALUES (?, ?, ?, ?)
+        `).run(profileId, today, consecutiveDays, pointsToEarn);
+      } catch (insertError: any) {
+        // UNIQUE constraint violation means already claimed (race condition caught)
+        if (insertError.code === 'SQLITE_CONSTRAINT_UNIQUE' || insertError.message?.includes('UNIQUE')) {
+          return { error: 'Already claimed today', claimed: true };
+        }
+        throw insertError;
+      }
+
+      // Get current progress and calculate new totals atomically
+      const currentProgress: any = db.prepare(`
+        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(profileId);
+
+      const currentPoints = currentProgress?.total_points || 0;
+      const currentStars = currentProgress?.total_stars || 0;
+      const newPoints = currentPoints + pointsToEarn;
+      const newLevel = Math.floor(newPoints / 100) + 1;
+
+      db.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+        VALUES (?, ?, 0, ?, ?, ?)
+      `).run(profileId, pointsToEarn, newLevel, newPoints, currentStars);
+
+      return {
+        success: true,
+        points_earned: pointsToEarn,
+        consecutive_days: consecutiveDays,
+        total_points: newPoints,
+        next_bonus: DAILY_BONUS_POINTS[consecutiveDays % 7],
+        is_week_complete: consecutiveDays === 7
+      };
+    });
+
+    // Execute the transaction
+    const result = claimBonus();
+
+    if (result.error) {
+      return res.status(400).json(result);
     }
 
-    // Check streak
-    const yesterdayBonus: any = db.prepare(`
-      SELECT * FROM login_bonuses WHERE profile_id = ? AND login_date = ?
-    `).get(profileId, yesterday);
-
-    const consecutiveDays = yesterdayBonus ? (yesterdayBonus.consecutive_days % 7) + 1 : 1;
-    const pointsToEarn = DAILY_BONUS_POINTS[consecutiveDays - 1];
-
-    // Insert login bonus
-    db.prepare(`
-      INSERT INTO login_bonuses (profile_id, login_date, consecutive_days, points_earned)
-      VALUES (?, ?, ?, ?)
-    `).run(profileId, today, consecutiveDays, pointsToEarn);
-
-    // Award points
-    const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
-
-    const currentPoints = currentProgress?.total_points || 0;
-    const currentStars = currentProgress?.total_stars || 0;
-    const newPoints = currentPoints + pointsToEarn;
-    const newLevel = Math.floor(newPoints / 100) + 1;
-
-    db.prepare(`
-      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-      VALUES (?, ?, 0, ?, ?, ?)
-    `).run(profileId, pointsToEarn, newLevel, newPoints, currentStars);
-
-    // Check achievements after awarding points
+    // Check achievements after awarding points (outside transaction is fine)
     checkAchievements(parseInt(profileId));
 
-    res.json({
-      success: true,
-      points_earned: pointsToEarn,
-      consecutive_days: consecutiveDays,
-      total_points: newPoints,
-      next_bonus: DAILY_BONUS_POINTS[consecutiveDays % 7],
-      is_week_complete: consecutiveDays === 7
-    });
+    res.json(result);
   } catch (error: any) {
+    console.error('[LoginBonus] Claim error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1761,5 +1788,93 @@ export function checkHiddenAchievementsOnTaskComplete(profileId: number, taskCom
     checkHiddenAchievement(profileId, 'speed_tasks', speedTasks.count);
   }
 }
+
+// ==================== AI USAGE LIMITS ====================
+
+// Get AI usage limits and stats for a family (by parent ID)
+router.get('/ai-limits/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+
+    const stats = getUsageStats(parseInt(parentId));
+
+    res.json({
+      limits: stats.limits,
+      today: stats.today,
+      month: stats.month
+    });
+  } catch (error: any) {
+    console.error('[AI Limits] Get error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update AI generation limits for a family
+router.put('/ai-limits/:parentId', (req, res) => {
+  try {
+    const { parentId } = req.params;
+    const updates = req.body;
+
+    // Validate the caller is the parent or admin
+    const callerProfile: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get((req as any).user?.id);
+    if (!callerProfile || (callerProfile.type !== 'admin' && callerProfile.type !== 'parent')) {
+      return res.status(403).json({ error: 'Only parents can manage AI limits' });
+    }
+
+    const updatedLimits = updateAiLimits(parseInt(parentId), {
+      daily_book_limit: updates.dailyBookLimit,
+      daily_quiz_limit: updates.dailyQuizLimit,
+      daily_task_limit: updates.dailyTaskLimit,
+      monthly_cost_limit: updates.monthlyCostLimit,
+      require_approval: updates.requireApproval,
+      enabled: updates.enabled
+    });
+
+    res.json({
+      message: 'AI limits updated',
+      limits: updatedLimits
+    });
+  } catch (error: any) {
+    console.error('[AI Limits] Update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get AI usage history for a family
+router.get('/ai-usage/:parentId/history', (req, res) => {
+  try {
+    const { parentId } = req.params;
+    const { days = 30, featureType } = req.query;
+
+    const daysAgo = new Date();
+    daysAgo.setDate(daysAgo.getDate() - parseInt(days as string));
+
+    let query = `
+      SELECT
+        date(created_at) as date,
+        feature_type,
+        COUNT(*) as count,
+        SUM(estimated_cost) as total_cost,
+        SUM(images_generated) as total_images
+      FROM ai_usage_logs
+      WHERE parent_id = ? AND created_at >= ?
+    `;
+    const params: any[] = [parentId, daysAgo.toISOString()];
+
+    if (featureType) {
+      query += ' AND feature_type = ?';
+      params.push(featureType);
+    }
+
+    query += ' GROUP BY date(created_at), feature_type ORDER BY date DESC';
+
+    const history = db.prepare(query).all(...params);
+
+    res.json(history);
+  } catch (error: any) {
+    console.error('[AI Usage] History error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default router;

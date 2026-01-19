@@ -2503,6 +2503,169 @@ export function initDatabase() {
 
   console.log('✅ Book system tables created');
 
+  // ==================== CUSTOM REWARD CATEGORIES ====================
+  // Allow parents to create custom reward categories
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS reward_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      icon TEXT DEFAULT '🎁',
+      description TEXT,
+      color TEXT DEFAULT '#9333ea',
+      created_by INTEGER,
+      is_default BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL,
+      UNIQUE(name, created_by)
+    )
+  `);
+
+  // Insert default reward categories
+  const defaultRewardCategories = [
+    { name: 'general', display_name: 'General', icon: '🎁', description: 'General rewards', color: '#6366f1' },
+    { name: 'screen_time', display_name: 'Screen Time', icon: '📱', description: 'Extra screen time rewards', color: '#3b82f6' },
+    { name: 'treats', display_name: 'Treats & Food', icon: '🍦', description: 'Food and treat rewards', color: '#f97316' },
+    { name: 'toys', display_name: 'Toys & Games', icon: '🧸', description: 'Toy and game rewards', color: '#ec4899' },
+    { name: 'activities', display_name: 'Activities', icon: '🎪', description: 'Fun activity rewards', color: '#14b8a6' },
+    { name: 'money', display_name: 'Pocket Money', icon: '💰', description: 'Cash rewards', color: '#22c55e' },
+    { name: 'family_outing', display_name: 'Family Outing', icon: '🎢', description: 'Family trip rewards', color: '#a855f7' }
+  ];
+
+  const insertRewardCategory = db.prepare(`
+    INSERT OR IGNORE INTO reward_categories (name, display_name, icon, description, color, is_default)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `);
+
+  for (const cat of defaultRewardCategories) {
+    insertRewardCategory.run(cat.name, cat.display_name, cat.icon, cat.description, cat.color);
+  }
+
+  console.log('✅ Reward categories created');
+
+  // ==================== AI USAGE TRACKING & LIMITS ====================
+  // Track AI generation usage per family for cost control
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_usage_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      parent_id INTEGER,
+      feature_type TEXT NOT NULL CHECK(feature_type IN ('book', 'quiz', 'task', 'chat')),
+      provider TEXT NOT NULL,
+      estimated_cost REAL DEFAULT 0,
+      tokens_used INTEGER DEFAULT 0,
+      images_generated INTEGER DEFAULT 0,
+      success BOOLEAN DEFAULT 1,
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Family-level AI generation limits
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_generation_limits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL UNIQUE,
+      daily_book_limit INTEGER DEFAULT 5,
+      daily_quiz_limit INTEGER DEFAULT 10,
+      daily_task_limit INTEGER DEFAULT 20,
+      monthly_cost_limit REAL DEFAULT 10.00,
+      require_approval BOOLEAN DEFAULT 0,
+      enabled BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for AI usage
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_profile ON ai_usage_logs(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_parent ON ai_usage_logs(parent_id);
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_date ON ai_usage_logs(created_at);
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_feature ON ai_usage_logs(feature_type);
+  `);
+
+  console.log('✅ AI usage tracking tables created');
+
+  // ==================== GOAL TEMPLATES ====================
+  // Pre-defined goal templates with cost estimates for family activities
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS goal_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      icon TEXT DEFAULT '🎯',
+      suggested_points INTEGER NOT NULL,
+      estimated_cost_min REAL DEFAULT 0,
+      estimated_cost_max REAL DEFAULT 0,
+      cost_currency TEXT DEFAULT 'USD',
+      family_size_multiplier REAL DEFAULT 1.0,
+      is_default BOOLEAN DEFAULT 1,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Insert default goal templates with cost estimates
+  const defaultGoalTemplates = [
+    // Family Outings
+    { name: 'Movie Night', description: 'Go to the movies as a family', category: 'family_outing', icon: '🎬', points: 500, costMin: 40, costMax: 80, multiplier: 1.2 },
+    { name: 'Restaurant Dinner', description: 'Family dinner at a restaurant', category: 'family_outing', icon: '🍽️', points: 600, costMin: 60, costMax: 150, multiplier: 1.3 },
+    { name: 'Theme Park Day', description: 'Spend a day at a theme park', category: 'family_outing', icon: '🎢', points: 1500, costMin: 150, costMax: 400, multiplier: 1.5 },
+    { name: 'Zoo or Aquarium', description: 'Visit a zoo or aquarium', category: 'family_outing', icon: '🦁', points: 800, costMin: 50, costMax: 120, multiplier: 1.3 },
+    { name: 'Bowling Night', description: 'Go bowling as a family', category: 'family_outing', icon: '🎳', points: 400, costMin: 30, costMax: 70, multiplier: 1.2 },
+    { name: 'Mini Golf', description: 'Play mini golf together', category: 'family_outing', icon: '⛳', points: 300, costMin: 25, costMax: 50, multiplier: 1.2 },
+    { name: 'Beach Day', description: 'Spend a day at the beach', category: 'family_outing', icon: '🏖️', points: 200, costMin: 20, costMax: 50, multiplier: 1.1 },
+    { name: 'Hiking Adventure', description: 'Go on a family hike', category: 'family_outing', icon: '🥾', points: 150, costMin: 0, costMax: 30, multiplier: 1.0 },
+
+    // Treats & Food
+    { name: 'Ice Cream Trip', description: 'Get ice cream at a shop', category: 'treats', icon: '🍦', points: 100, costMin: 10, costMax: 25, multiplier: 1.2 },
+    { name: 'Pizza Party', description: 'Order pizza for dinner', category: 'treats', icon: '🍕', points: 150, costMin: 20, costMax: 40, multiplier: 1.3 },
+    { name: 'Bakery Visit', description: 'Pick treats from a bakery', category: 'treats', icon: '🧁', points: 80, costMin: 8, costMax: 20, multiplier: 1.2 },
+
+    // Toys & Games
+    { name: 'New Video Game', description: 'Get a new video game', category: 'toys', icon: '🎮', points: 800, costMin: 30, costMax: 70, multiplier: 1.0 },
+    { name: 'Small Toy', description: 'Pick a small toy or figure', category: 'toys', icon: '🧸', points: 300, costMin: 10, costMax: 30, multiplier: 1.0 },
+    { name: 'LEGO Set', description: 'Get a LEGO set', category: 'toys', icon: '🧱', points: 600, costMin: 25, costMax: 100, multiplier: 1.0 },
+    { name: 'Board Game', description: 'Get a new board game', category: 'toys', icon: '🎲', points: 400, costMin: 20, costMax: 50, multiplier: 1.0 },
+
+    // Screen Time
+    { name: 'Extra Screen Time (30 min)', description: '30 minutes extra screen time', category: 'screen_time', icon: '📱', points: 100, costMin: 0, costMax: 0, multiplier: 1.0 },
+    { name: 'Extra Screen Time (1 hour)', description: '1 hour extra screen time', category: 'screen_time', icon: '📺', points: 200, costMin: 0, costMax: 0, multiplier: 1.0 },
+    { name: 'Movie Rental', description: 'Rent a movie to watch at home', category: 'screen_time', icon: '🎞️', points: 150, costMin: 5, costMax: 10, multiplier: 1.0 },
+
+    // Pocket Money
+    { name: 'Small Allowance ($5)', description: '$5 pocket money', category: 'money', icon: '💵', points: 500, costMin: 5, costMax: 5, multiplier: 1.0 },
+    { name: 'Medium Allowance ($10)', description: '$10 pocket money', category: 'money', icon: '💰', points: 1000, costMin: 10, costMax: 10, multiplier: 1.0 },
+    { name: 'Big Allowance ($20)', description: '$20 pocket money', category: 'money', icon: '🤑', points: 2000, costMin: 20, costMax: 20, multiplier: 1.0 },
+
+    // Special Activities
+    { name: 'Sleepover', description: 'Have a friend sleep over', category: 'activities', icon: '🛏️', points: 400, costMin: 20, costMax: 50, multiplier: 1.0 },
+    { name: 'Birthday Party', description: 'Have a birthday party with friends', category: 'activities', icon: '🎂', points: 2000, costMin: 100, costMax: 300, multiplier: 1.5 },
+    { name: 'Sports Event', description: 'Go to a sports game', category: 'activities', icon: '⚽', points: 1000, costMin: 50, costMax: 200, multiplier: 1.3 }
+  ];
+
+  const insertGoalTemplate = db.prepare(`
+    INSERT OR IGNORE INTO goal_templates (
+      name, description, category, icon, suggested_points,
+      estimated_cost_min, estimated_cost_max, family_size_multiplier, is_default
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+  `);
+
+  for (const t of defaultGoalTemplates) {
+    insertGoalTemplate.run(
+      t.name, t.description, t.category, t.icon, t.points,
+      t.costMin, t.costMax, t.multiplier
+    );
+  }
+
+  console.log('✅ Goal templates created');
+
   // Run production-ready migrations
   runProductionReadyMigrations();
 
