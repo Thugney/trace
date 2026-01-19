@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Check, Star, Trophy, Package, Sparkles } from 'lucide-react';
+import { ShoppingCart, Check, Star, Trophy, Package, Sparkles, Plus, X } from 'lucide-react';
 import { shoppingAPI, ShoppingTrip, ShoppingStats, ShoppingCategory } from '../services/api';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
@@ -21,6 +21,16 @@ export default function ShoppingHelper() {
   // Active trip
   const [activeTrip, setActiveTrip] = useState<ShoppingTrip | null>(null);
 
+  // List creation (for kids with permission)
+  const [canCreateLists, setCanCreateLists] = useState(false);
+  const [showListForm, setShowListForm] = useState(false);
+  const [savingList, setSavingList] = useState(false);
+  const [listForm, setListForm] = useState({
+    name: '',
+    description: '',
+    store_name: ''
+  });
+
   useEffect(() => {
     if (currentProfile?.id) {
       loadData();
@@ -31,14 +41,16 @@ export default function ShoppingHelper() {
     if (!currentProfile) return;
     try {
       setLoading(true);
-      const [tripsRes, statsRes, categoriesRes] = await Promise.all([
+      const [tripsRes, statsRes, categoriesRes, canCreateRes] = await Promise.all([
         shoppingAPI.getMyTrips(currentProfile.id),
         shoppingAPI.getStats(currentProfile.id),
-        shoppingAPI.getCategories()
+        shoppingAPI.getCategories(),
+        shoppingAPI.canCreateLists()
       ]);
       setTrips(tripsRes.data);
       setStats(statsRes.data);
       setCategories(categoriesRes.data);
+      setCanCreateLists(canCreateRes.data.canCreate);
 
       // Auto-select active trip if only one in progress
       const inProgress = tripsRes.data.filter((t: ShoppingTrip) => t.status === 'in_progress');
@@ -50,6 +62,29 @@ export default function ShoppingHelper() {
       toast.error('Failed to load shopping data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateList = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentProfile || !listForm.name.trim()) return;
+
+    setSavingList(true);
+    try {
+      await shoppingAPI.createList({
+        parent_id: currentProfile.id, // Will be resolved to actual parent on backend
+        name: listForm.name,
+        description: listForm.description || undefined,
+        store_name: listForm.store_name || undefined
+      });
+      toast.success('Shopping list created!');
+      playSounds.taskComplete();
+      setListForm({ name: '', description: '', store_name: '' });
+      setShowListForm(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to create list');
+    } finally {
+      setSavingList(false);
     }
   };
 
@@ -282,21 +317,105 @@ export default function ShoppingHelper() {
       ) : (
         /* Trip Selection */
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-800">
-            {isYoung ? 'Your Shopping Trips' : 'Available Shopping Trips'}
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-800">
+              {isYoung ? 'Your Shopping Trips' : 'Available Shopping Trips'}
+            </h2>
+            {canCreateLists && (
+              <button
+                onClick={() => setShowListForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                <Plus size={18} />
+                {isYoung ? 'Make a List!' : 'Create List'}
+              </button>
+            )}
+          </div>
 
-          {trips.length === 0 ? (
+          {/* Create List Form */}
+          {showListForm && (
+            <form onSubmit={handleCreateList} className="bg-blue-50 rounded-2xl p-4 space-y-4 border-2 border-blue-200">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-blue-800">
+                  {isYoung ? '📝 Make a Shopping List!' : 'Create Shopping List'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowListForm(false)}
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {isYoung ? 'What should we call it?' : 'List Name'} *
+                </label>
+                <input
+                  type="text"
+                  value={listForm.name}
+                  onChange={e => setListForm({ ...listForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder={isYoung ? "e.g., My Snacks" : "e.g., Weekly Groceries"}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {isYoung ? 'What store?' : 'Store Name'} (optional)
+                </label>
+                <input
+                  type="text"
+                  value={listForm.store_name}
+                  onChange={e => setListForm({ ...listForm, store_name: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder={isYoung ? "e.g., Supermarket" : "e.g., Local Store"}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {isYoung ? 'Any notes?' : 'Description'} (optional)
+                </label>
+                <input
+                  type="text"
+                  value={listForm.description}
+                  onChange={e => setListForm({ ...listForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder={isYoung ? "e.g., Things for my lunch" : "Optional description"}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingList || !listForm.name.trim()}
+                className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                {savingList ? 'Creating...' : isYoung ? '✨ Create My List!' : 'Create List'}
+              </button>
+
+              <p className="text-xs text-blue-600 text-center">
+                {isYoung ? 'Mom or Dad will add items and start the trip!' : 'A parent will review and start the shopping trip'}
+              </p>
+            </form>
+          )}
+
+          {trips.length === 0 && !showListForm ? (
             <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
               <div className="text-6xl mb-4">🛍️</div>
               <p className="text-slate-600 font-medium">
                 {isYoung ? 'No shopping trips yet!' : 'No active shopping trips'}
               </p>
               <p className="text-sm text-slate-500 mt-1">
-                {isYoung ? 'Ask mom or dad to add you to a trip!' : 'Ask a parent to assign you as a helper'}
+                {canCreateLists
+                  ? (isYoung ? 'Create a list above!' : 'Create a shopping list to get started')
+                  : (isYoung ? 'Ask mom or dad to add you to a trip!' : 'Ask a parent to assign you as a helper')
+                }
               </p>
             </div>
-          ) : (
+          ) : trips.length > 0 ? (
             <div className="space-y-3">
               {trips.map(trip => (
                 <div
@@ -378,7 +497,7 @@ export default function ShoppingHelper() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
           {/* Stats Card */}
           {stats && stats.total_trips > 0 && (

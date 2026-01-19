@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Trash2, X, Play, Flag, Star, Users, Package, ChevronDown, ChevronRight, Edit2, Trophy } from 'lucide-react';
+import { ShoppingCart, Plus, Trash2, X, Play, Flag, Star, Users, Package, ChevronDown, ChevronRight, Edit2, Trophy, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import { shoppingAPI, ShoppingList as ShoppingListType, ShoppingTrip, ShoppingCategory, ShoppingLeaderboardEntry, profilesAPI } from '../services/api';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import Avatar from '../components/Avatar';
 import playSounds from '../utils/sounds';
+
+interface ChildPermission {
+  id: number;
+  name: string;
+  avatar: string;
+  can_create_shopping_lists: boolean;
+}
 
 interface ChildInfo {
   id: number;
@@ -26,7 +33,9 @@ export default function ShoppingList() {
   // UI state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'lists' | 'trips' | 'leaderboard'>('lists');
+  const [activeTab, setActiveTab] = useState<'lists' | 'trips' | 'leaderboard' | 'settings'>('lists');
+  const [childPermissions, setChildPermissions] = useState<ChildPermission[]>([]);
+  const [togglingPermission, setTogglingPermission] = useState<number | null>(null);
   const [expandedList, setExpandedList] = useState<number | null>(null);
   const [showListForm, setShowListForm] = useState(false);
   const [showItemForm, setShowItemForm] = useState<number | null>(null);
@@ -74,23 +83,41 @@ export default function ShoppingList() {
     if (!currentProfile) return;
     try {
       setLoading(true);
-      const [listsRes, categoriesRes, childrenRes, tripsRes, leaderboardRes] = await Promise.all([
+      const [listsRes, categoriesRes, childrenRes, tripsRes, leaderboardRes, permissionsRes] = await Promise.all([
         shoppingAPI.getLists(currentProfile.id, true),
         shoppingAPI.getCategories(),
         profilesAPI.getAll().then(res => res.data.filter((p: any) => p.type === 'child' && p.parent_id === currentProfile.id).map((p: any) => ({ id: p.id, name: p.name, avatar: p.avatar }))),
         shoppingAPI.getActiveTrips(currentProfile.id),
-        shoppingAPI.getLeaderboard(currentProfile.id)
+        shoppingAPI.getLeaderboard(currentProfile.id),
+        shoppingAPI.getChildPermissions(currentProfile.id)
       ]);
       setLists(listsRes.data);
       setCategories(categoriesRes.data);
       setChildren(childrenRes as ChildInfo[]);
       setActiveTrips(tripsRes.data);
       setLeaderboard(leaderboardRes.data);
+      setChildPermissions(permissionsRes.data);
     } catch (error: any) {
       console.error('Failed to load shopping data:', error);
       toast.error('Failed to load shopping data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTogglePermission = async (childId: number, currentValue: boolean) => {
+    setTogglingPermission(childId);
+    try {
+      await shoppingAPI.setChildPermission(childId, !currentValue);
+      setChildPermissions(prev => prev.map(p =>
+        p.id === childId ? { ...p, can_create_shopping_lists: !currentValue } : p
+      ));
+      toast.success(!currentValue ? 'Shopping list creation enabled' : 'Shopping list creation disabled');
+      playSounds.notification();
+    } catch (error: any) {
+      toast.error('Failed to update permission');
+    } finally {
+      setTogglingPermission(null);
     }
   };
 
@@ -334,6 +361,15 @@ export default function ShoppingList() {
         >
           <Trophy className="w-4 h-4 inline mr-2" />
           Leaderboard
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            activeTab === 'settings' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600'
+          }`}
+        >
+          <Settings className="w-4 h-4 inline mr-2" />
+          Settings
         </button>
       </div>
 
@@ -760,6 +796,75 @@ export default function ShoppingList() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          {/* Child Permissions */}
+          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+            <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Child Permissions
+              </h3>
+              <p className="text-sm text-white/80">Allow children to create their own shopping lists</p>
+            </div>
+
+            {childPermissions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-slate-500">No children found in your family.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {childPermissions.map(child => (
+                  <div key={child.id} className="flex items-center justify-between p-4 hover:bg-slate-50">
+                    <div className="flex items-center gap-3">
+                      <Avatar avatar={child.avatar || ''} size="md" alt={child.name} />
+                      <div>
+                        <p className="font-medium text-slate-800">{child.name}</p>
+                        <p className="text-sm text-slate-500">
+                          {child.can_create_shopping_lists ? (
+                            <span className="text-emerald-600">Can create shopping lists</span>
+                          ) : (
+                            <span className="text-slate-400">Cannot create shopping lists</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleTogglePermission(child.id, child.can_create_shopping_lists)}
+                      disabled={togglingPermission === child.id}
+                      className={`p-2 rounded-lg transition-colors ${
+                        child.can_create_shopping_lists
+                          ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                          : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                      }`}
+                    >
+                      {togglingPermission === child.id ? (
+                        <div className="w-6 h-6 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      ) : child.can_create_shopping_lists ? (
+                        <ToggleRight className="w-6 h-6" />
+                      ) : (
+                        <ToggleLeft className="w-6 h-6" />
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+            <h4 className="font-medium text-blue-800 mb-2">How it works</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• When enabled, children can create their own shopping lists</li>
+              <li>• Lists created by children appear in your shopping lists</li>
+              <li>• You still control when trips start and who helps</li>
+              <li>• Points are awarded as usual during shopping trips</li>
+            </ul>
+          </div>
         </div>
       )}
 

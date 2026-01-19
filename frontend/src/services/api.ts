@@ -2058,7 +2058,17 @@ export const shoppingAPI = {
     api.get<ShoppingStats>(`/shopping/stats/${profileId}`),
 
   getLeaderboard: (parentId: number) =>
-    api.get<ShoppingLeaderboardEntry[]>(`/shopping/leaderboard/${parentId}`)
+    api.get<ShoppingLeaderboardEntry[]>(`/shopping/leaderboard/${parentId}`),
+
+  // Permissions
+  getChildPermissions: (parentId: number) =>
+    api.get<Array<{ id: number; name: string; avatar: string; can_create_shopping_lists: boolean }>>(`/shopping/permissions/${parentId}`),
+
+  setChildPermission: (childId: number, canCreate: boolean) =>
+    api.put<{ message: string; can_create_shopping_lists: boolean }>(`/shopping/permissions/${childId}`, { can_create_shopping_lists: canCreate }),
+
+  canCreateLists: () =>
+    api.get<{ canCreate: boolean; reason: string }>('/shopping/can-create-lists')
 };
 
 export default api;

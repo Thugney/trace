@@ -13,6 +13,24 @@ const router = Router();
 // Apply authentication and feature access check to all routes
 router.use(authenticate, requireFeature('shopping'));
 
+// Helper function to check if a child has shopping list creation permission
+function canChildCreateLists(profileId: number): boolean {
+  const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(profileId);
+  if (!profile) return false;
+  try {
+    const settings = JSON.parse(profile.settings || '{}');
+    return settings.can_create_shopping_lists === true;
+  } catch {
+    return false;
+  }
+}
+
+// Helper to get parent ID for a child
+function getParentIdForChild(childId: number): number | null {
+  const profile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(childId);
+  return profile?.parent_id || null;
+}
+
 // ==================== SHOPPING CATEGORIES ====================
 
 // Get all shopping categories
@@ -94,8 +112,12 @@ router.post('/lists', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const userProfile = req.profile!;
 
-    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
-      return res.status(403).json({ error: 'Only parents can create shopping lists' });
+    // Check if user can create lists (parents/admins always can, children need permission)
+    const isParentOrAdmin = userProfile.type === 'parent' || userProfile.type === 'admin';
+    const isChildWithPermission = userProfile.type === 'child' && canChildCreateLists(userProfile.id);
+
+    if (!isParentOrAdmin && !isChildWithPermission) {
+      return res.status(403).json({ error: 'You do not have permission to create shopping lists' });
     }
 
     const {
@@ -118,7 +140,17 @@ router.post('/lists', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'List name is required' });
     }
 
-    const finalParentId = parent_id || userProfile.id;
+    // For children, use their parent's ID; for parents/admins, use their own ID
+    let finalParentId: number;
+    if (isChildWithPermission) {
+      const parentId = getParentIdForChild(userProfile.id);
+      if (!parentId) {
+        return res.status(400).json({ error: 'Could not determine parent for this child' });
+      }
+      finalParentId = parentId;
+    } else {
+      finalParentId = parent_id || userProfile.id;
+    }
     const finalStoreName = store_name || storeName || null;
     const finalPointsPerItem = points_per_item ?? pointsPerItem ?? 5;
     const finalBonusForCompletion = bonus_for_completion ?? bonusForCompletion ?? 20;
@@ -894,6 +926,103 @@ router.get('/leaderboard/:parentId', authenticate, (req: AuthRequest, res: Respo
     `).all(parentId);
 
     res.json(leaderboard);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== CHILD PERMISSIONS ====================
+
+// Get shopping permissions for children (for parent view)
+router.get('/permissions/:parentId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { parentId } = req.params;
+    const userProfile = req.profile!;
+
+    // Only parents can view permissions
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents can view permissions' });
+    }
+
+    const children: any[] = db.prepare(`
+      SELECT id, name, avatar, settings FROM profiles WHERE parent_id = ? AND type = 'child'
+    `).all(parentId);
+
+    const result = children.map(child => {
+      let canCreateLists = false;
+      try {
+        const settings = JSON.parse(child.settings || '{}');
+        canCreateLists = settings.can_create_shopping_lists === true;
+      } catch {}
+      return {
+        id: child.id,
+        name: child.name,
+        avatar: child.avatar,
+        can_create_shopping_lists: canCreateLists
+      };
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle shopping list permission for a child
+router.put('/permissions/:childId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const { childId } = req.params;
+    const { can_create_shopping_lists } = req.body;
+    const userProfile = req.profile!;
+
+    // Only parents can change permissions
+    if (userProfile.type !== 'parent' && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents can change permissions' });
+    }
+
+    // Verify the child belongs to this parent
+    const child: any = db.prepare('SELECT id, parent_id, settings FROM profiles WHERE id = ? AND type = ?').get(childId, 'child');
+    if (!child) {
+      return res.status(404).json({ error: 'Child not found' });
+    }
+    if (child.parent_id !== userProfile.id && userProfile.type !== 'admin') {
+      return res.status(403).json({ error: 'You can only change permissions for your own children' });
+    }
+
+    // Update the settings
+    let settings = {};
+    try {
+      settings = JSON.parse(child.settings || '{}');
+    } catch {}
+    settings = { ...settings, can_create_shopping_lists: can_create_shopping_lists === true };
+
+    db.prepare('UPDATE profiles SET settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(JSON.stringify(settings), childId);
+
+    res.json({
+      message: can_create_shopping_lists ? 'Shopping list creation enabled' : 'Shopping list creation disabled',
+      can_create_shopping_lists: can_create_shopping_lists === true
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if current profile can create shopping lists
+router.get('/can-create-lists', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const userProfile = req.profile!;
+
+    if (userProfile.type === 'parent' || userProfile.type === 'admin') {
+      return res.json({ canCreate: true, reason: 'parent' });
+    }
+
+    if (userProfile.type === 'child') {
+      const canCreate = canChildCreateLists(userProfile.id);
+      return res.json({ canCreate, reason: canCreate ? 'permission_granted' : 'permission_not_granted' });
+    }
+
+    res.json({ canCreate: false, reason: 'not_allowed' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
