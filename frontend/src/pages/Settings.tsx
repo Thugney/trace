@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { settingsAPI, profilesAPI, aiAPI, remindersAPI, ReminderPreferences } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera } from 'lucide-react';
+import { settingsAPI, profilesAPI, aiAPI, remindersAPI, ReminderPreferences, OllamaStatus } from '../services/api';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera, Server, RefreshCw, Check, Loader2 } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import ReminderWidget from '../components/kids/ReminderWidget';
 
@@ -42,6 +42,13 @@ export default function Settings() {
   // State for reminder preferences
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
   const [savingReminders, setSavingReminders] = useState(false);
+
+  // Ollama state
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaStatus | null>(null);
+  const [ollamaLoading, setOllamaLoading] = useState(false);
+  const [ollamaTesting, setOllamaTesting] = useState(false);
+  const [ollamaTestResult, setOllamaTestResult] = useState<string | null>(null);
+  const [selectedOllamaModel, setSelectedOllamaModel] = useState<string>('');
 
   useEffect(() => {
     loadSettings();
@@ -122,6 +129,55 @@ export default function Settings() {
     }
 
     setAiSettings(settingsMap);
+  };
+
+  // Load Ollama status for admins
+  useEffect(() => {
+    if (isAdmin) {
+      loadOllamaStatus();
+    }
+  }, [isAdmin]);
+
+  const loadOllamaStatus = async () => {
+    setOllamaLoading(true);
+    try {
+      const response = await settingsAPI.getOllamaStatus();
+      setOllamaStatus(response.data);
+      if (response.data.currentModel) {
+        setSelectedOllamaModel(response.data.currentModel);
+      }
+    } catch (error) {
+      console.error('Failed to load Ollama status:', error);
+    } finally {
+      setOllamaLoading(false);
+    }
+  };
+
+  const handleTestOllama = async () => {
+    setOllamaTesting(true);
+    setOllamaTestResult(null);
+    try {
+      const response = await settingsAPI.testOllama(selectedOllamaModel);
+      if (response.data.success) {
+        setOllamaTestResult(`✅ ${response.data.model}: "${response.data.response}"`);
+      } else {
+        setOllamaTestResult(`❌ Test failed`);
+      }
+    } catch (error: any) {
+      setOllamaTestResult(`❌ ${error.response?.data?.error || error.message}`);
+    } finally {
+      setOllamaTesting(false);
+    }
+  };
+
+  const handleSaveOllamaModel = async () => {
+    try {
+      await settingsAPI.configureOllama({ model: selectedOllamaModel });
+      setSuccessMessage('Ollama model updated!');
+      loadOllamaStatus();
+    } catch (error) {
+      console.error('Failed to save Ollama model:', error);
+    }
   };
 
   const handleUpdateAISettings = async (profileId: number, updates: any) => {
@@ -1009,6 +1065,172 @@ Context: Tasks, Points, Level, Progress`}
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* Ollama Configuration - Admin only */}
+          {isAdmin && (
+          <div className="card">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Server className="mr-2 text-green-600" size={20} />
+              Ollama (Local AI)
+              <button
+                onClick={loadOllamaStatus}
+                disabled={ollamaLoading}
+                className="ml-auto p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                title="Refresh status"
+              >
+                <RefreshCw className={`w-4 h-4 ${ollamaLoading ? 'animate-spin' : ''}`} />
+              </button>
+            </h2>
+
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start">
+                <Server className="text-green-600 mr-3 mt-0.5 flex-shrink-0" size={20} />
+                <div className="text-sm text-green-800">
+                  <p className="font-semibold mb-1">Free, Local AI Text Generation</p>
+                  <p>Ollama runs on your network and generates book/quiz text for free. Images still use cloud providers.</p>
+                </div>
+              </div>
+            </div>
+
+            {ollamaLoading && !ollamaStatus ? (
+              <div className="flex items-center justify-center py-8 text-gray-500">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                Checking Ollama status...
+              </div>
+            ) : ollamaStatus ? (
+              <div className="space-y-4">
+                {/* Connection Status */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                  <div>
+                    <p className="font-medium">Connection Status</p>
+                    <p className="text-sm text-gray-600">{ollamaStatus.message}</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    ollamaStatus.connected
+                      ? 'bg-green-100 text-green-800'
+                      : ollamaStatus.configured
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {ollamaStatus.connected ? '✓ Connected' : ollamaStatus.configured ? '⚠ Configured but offline' : 'Not configured'}
+                  </div>
+                </div>
+
+                {/* Model Selection */}
+                {ollamaStatus.connected && ollamaStatus.models.length > 0 && (
+                  <div>
+                    <label className="font-medium text-gray-900 block mb-2">
+                      Active Model
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        value={selectedOllamaModel}
+                        onChange={(e) => setSelectedOllamaModel(e.target.value)}
+                        className="input flex-1"
+                      >
+                        {ollamaStatus.models.map((model) => (
+                          <option key={model.name} value={model.name}>
+                            {model.name} ({model.parameterSize || 'unknown size'})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleSaveOllamaModel}
+                        disabled={selectedOllamaModel === ollamaStatus.currentModel}
+                        className="btn btn-primary"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Larger models (12B+) give better results but are slower.
+                    </p>
+                  </div>
+                )}
+
+                {/* Available Models List */}
+                {ollamaStatus.connected && ollamaStatus.models.length > 0 && (
+                  <div>
+                    <details className="group">
+                      <summary className="font-medium text-gray-900 cursor-pointer hover:text-green-600">
+                        Available Models ({ollamaStatus.models.length})
+                      </summary>
+                      <div className="mt-2 max-h-48 overflow-y-auto border rounded-lg">
+                        {ollamaStatus.models.map((model) => (
+                          <div
+                            key={model.name}
+                            className={`px-3 py-2 border-b last:border-b-0 text-sm flex items-center justify-between ${
+                              model.name === ollamaStatus.currentModel ? 'bg-green-50' : ''
+                            }`}
+                          >
+                            <div>
+                              <span className="font-medium">{model.name}</span>
+                              <span className="text-gray-500 ml-2">
+                                {model.parameterSize} • {model.family || 'unknown'}
+                              </span>
+                            </div>
+                            {model.name === ollamaStatus.currentModel && (
+                              <Check className="w-4 h-4 text-green-600" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                )}
+
+                {/* Test Button */}
+                {ollamaStatus.connected && (
+                  <div>
+                    <button
+                      onClick={handleTestOllama}
+                      disabled={ollamaTesting}
+                      className="btn btn-secondary w-full"
+                    >
+                      {ollamaTesting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Testing...
+                        </>
+                      ) : (
+                        <>
+                          <Server className="w-4 h-4 mr-2" />
+                          Test Model
+                        </>
+                      )}
+                    </button>
+                    {ollamaTestResult && (
+                      <div className={`mt-2 p-3 rounded-lg text-sm ${
+                        ollamaTestResult.startsWith('✅') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                      }`}>
+                        {ollamaTestResult}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* No models warning */}
+                {ollamaStatus.connected && ollamaStatus.models.length === 0 && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>No models found!</strong> Pull a model on your Ollama server:
+                    </p>
+                    <code className="block mt-2 p-2 bg-yellow-100 rounded text-xs">
+                      ollama pull llama3.2
+                    </code>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>Could not load Ollama status.</p>
+                <button onClick={loadOllamaStatus} className="btn btn-secondary mt-2">
+                  Retry
+                </button>
               </div>
             )}
           </div>
