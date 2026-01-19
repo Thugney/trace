@@ -77,6 +77,46 @@ export interface SchoolFeedback {
   teacher_name?: string;
 }
 
+// Regular School (Home tracking)
+export interface RegularSchoolSubject {
+  id: number;
+  student_id: number;
+  name: string;
+  icon: string;
+  color: string;
+  created_by: number;
+  created_at: string;
+  pending_count?: number;
+  completed_count?: number;
+}
+
+export interface RegularSchoolHomework {
+  id: number;
+  subject_id: number;
+  student_id: number;
+  title: string;
+  description?: string;
+  due_date?: string;
+  points: number;
+  status: 'pending' | 'completed';
+  completed_at?: string;
+  created_by: number;
+  created_at: string;
+  subject_name?: string;
+  subject_icon?: string;
+  subject_color?: string;
+}
+
+export interface RegularSchoolStats {
+  total: number;
+  completed: number;
+  pending: number;
+  overdue: number;
+  due_today: number;
+  points_earned: number;
+  subject_count: number;
+}
+
 export interface DietGoal {
   id: number;
   profile_id: number;

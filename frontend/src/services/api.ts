@@ -7,6 +7,9 @@ import type {
   SchoolSubmission,
   SchoolAttachment,
   SchoolFeedback,
+  RegularSchoolSubject,
+  RegularSchoolHomework,
+  RegularSchoolStats,
   FoodItem,
   MealLog,
   NutritionSummary,
@@ -376,6 +379,35 @@ export const schoolAPI = {
     api.get<SchoolFeedback[]>('/school/feedback', { params }),
   createFeedback: (data: { submission_id: number; comment: string; rating?: string; status?: string }) =>
     api.post<SchoolFeedback>('/school/feedback', data)
+};
+
+// Regular School (Home tracking)
+export const regularSchoolAPI = {
+  // Subjects
+  getSubjects: (student_id: number) =>
+    api.get<RegularSchoolSubject[]>('/regular-school/subjects', { params: { student_id } }),
+  createSubject: (data: { student_id: number; name: string; icon?: string; color?: string }) =>
+    api.post<RegularSchoolSubject>('/regular-school/subjects', data),
+  updateSubject: (subjectId: number, data: { name?: string; icon?: string; color?: string }) =>
+    api.put<RegularSchoolSubject>(`/regular-school/subjects/${subjectId}`, data),
+  deleteSubject: (subjectId: number) =>
+    api.delete(`/regular-school/subjects/${subjectId}`),
+
+  // Homework
+  getHomework: (params: { student_id?: number; subject_id?: number; status?: string }) =>
+    api.get<RegularSchoolHomework[]>('/regular-school/homework', { params }),
+  createHomework: (data: { subject_id: number; student_id: number; title: string; description?: string; due_date?: string; points?: number }) =>
+    api.post<RegularSchoolHomework>('/regular-school/homework', data),
+  updateHomework: (homeworkId: number, data: { title?: string; description?: string; due_date?: string; points?: number }) =>
+    api.put<RegularSchoolHomework>(`/regular-school/homework/${homeworkId}`, data),
+  deleteHomework: (homeworkId: number) =>
+    api.delete(`/regular-school/homework/${homeworkId}`),
+  completeHomework: (homeworkId: number) =>
+    api.post<{ homework: RegularSchoolHomework; points_awarded: number }>(`/regular-school/homework/${homeworkId}/complete`),
+
+  // Stats
+  getStats: (student_id: number) =>
+    api.get<RegularSchoolStats>('/regular-school/stats', { params: { student_id } })
 };
 
 // Notes

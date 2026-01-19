@@ -602,6 +602,50 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_school_submission_attachments_submission ON school_submission_attachments(submission_id);
   `);
 
+  // ==================== REGULAR SCHOOL (Home Tracking) ====================
+  // Subjects created by parents for their children
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS regular_school_subjects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT '📚',
+      color TEXT DEFAULT 'indigo',
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Homework items added by parents
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS regular_school_homework (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      subject_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date DATE,
+      points INTEGER DEFAULT 10,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'completed')),
+      completed_at DATETIME,
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (subject_id) REFERENCES regular_school_subjects(id) ON DELETE CASCADE,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Indexes for regular school
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_regular_subjects_student ON regular_school_subjects(student_id);
+    CREATE INDEX IF NOT EXISTS idx_regular_homework_student ON regular_school_homework(student_id);
+    CREATE INDEX IF NOT EXISTS idx_regular_homework_subject ON regular_school_homework(subject_id);
+    CREATE INDEX IF NOT EXISTS idx_regular_homework_due_date ON regular_school_homework(due_date);
+  `);
+
   // Push notification subscriptions
   db.exec(`
     CREATE TABLE IF NOT EXISTS push_subscriptions (

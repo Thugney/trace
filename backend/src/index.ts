@@ -19,6 +19,7 @@ import rewardsRoutes from './routes/rewards';
 import remindersRoutes from './routes/reminders';
 import familyQuizzesRoutes from './routes/family-quizzes';
 import schoolRoutes from './routes/school';
+import regularSchoolRoutes from './routes/regular-school';
 import booksRoutes from './routes/books';
 import shoppingRoutes from './routes/shopping';
 import { initScheduler } from './services/scheduler';
@@ -76,6 +77,7 @@ app.use('/api/rewards', rewardsRoutes);
 app.use('/api/reminders', remindersRoutes);
 app.use('/api/family-quizzes', familyQuizzesRoutes);
 app.use('/api/school', schoolRoutes);
+app.use('/api/regular-school', regularSchoolRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/shopping', shoppingRoutes);
 

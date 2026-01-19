@@ -2,8 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
-import { profilesAPI, schoolAPI } from '../services/api';
-import type { Profile, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission } from '../types';
+import { profilesAPI, schoolAPI, regularSchoolAPI } from '../services/api';
+import type { Profile, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
 
 type AssignmentFormState = {
   title: string;
@@ -81,6 +81,19 @@ export default function School() {
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+
+  // School type toggle (church vs regular)
+  const [schoolMode, setSchoolMode] = useState<'church' | 'regular'>('church');
+
+  // Regular School state
+  const [regularSubjects, setRegularSubjects] = useState<RegularSchoolSubject[]>([]);
+  const [regularHomework, setRegularHomework] = useState<RegularSchoolHomework[]>([]);
+  const [regularStats, setRegularStats] = useState<RegularSchoolStats | null>(null);
+  const [showCreateSubject, setShowCreateSubject] = useState(false);
+  const [showCreateHomework, setShowCreateHomework] = useState(false);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  const [subjectForm, setSubjectForm] = useState({ name: '', icon: '📚', color: 'indigo' });
+  const [homeworkForm, setHomeworkForm] = useState({ title: '', description: '', due_date: '', points: '10' });
 
   const isAdmin = currentProfile?.type === 'admin';
   const isTeacher = currentProfile?.type === 'teacher';
@@ -190,6 +203,26 @@ export default function School() {
     return () => clearInterval(interval);
   }, [selectedStudentId, isParent, isChild, showToast]);
 
+  // Load regular school data when in regular mode
+  useEffect(() => {
+    if (schoolMode !== 'regular' || !selectedStudentId || !(isParent || isChild)) return;
+    const loadRegularSchoolData = async () => {
+      try {
+        const [subjectsRes, homeworkRes, statsRes] = await Promise.all([
+          regularSchoolAPI.getSubjects(selectedStudentId),
+          regularSchoolAPI.getHomework({ student_id: selectedStudentId }),
+          regularSchoolAPI.getStats(selectedStudentId)
+        ]);
+        setRegularSubjects(subjectsRes.data);
+        setRegularHomework(homeworkRes.data);
+        setRegularStats(statsRes.data);
+      } catch (error) {
+        console.error('Failed to load regular school data:', error);
+      }
+    };
+    loadRegularSchoolData();
+  }, [schoolMode, selectedStudentId, isParent, isChild]);
+
   const handleCreateClass = async () => {
     if (!classForm.name.trim()) {
       showToast('Class name is required', 'error');
@@ -237,6 +270,123 @@ export default function School() {
     } catch (error) {
       console.error('Failed to unenroll student:', error);
       showToast('Failed to unenroll', 'error');
+    }
+  };
+
+  // Regular School handlers
+  const handleCreateSubject = async () => {
+    if (!selectedStudentId || !subjectForm.name.trim()) {
+      showToast('Subject name is required', 'error');
+      return;
+    }
+    try {
+      await regularSchoolAPI.createSubject({
+        student_id: selectedStudentId,
+        name: subjectForm.name.trim(),
+        icon: subjectForm.icon,
+        color: subjectForm.color
+      });
+      const [subjectsRes, statsRes] = await Promise.all([
+        regularSchoolAPI.getSubjects(selectedStudentId),
+        regularSchoolAPI.getStats(selectedStudentId)
+      ]);
+      setRegularSubjects(subjectsRes.data);
+      setRegularStats(statsRes.data);
+      setSubjectForm({ name: '', icon: '📚', color: 'indigo' });
+      setShowCreateSubject(false);
+      showToast('Subject created', 'success');
+    } catch (error) {
+      console.error('Failed to create subject:', error);
+      showToast('Failed to create subject', 'error');
+    }
+  };
+
+  const handleDeleteSubject = async (subjectId: number, subjectName: string) => {
+    if (!confirm(`Delete "${subjectName}"? This will also delete all homework for this subject.`)) {
+      return;
+    }
+    try {
+      await regularSchoolAPI.deleteSubject(subjectId);
+      if (selectedStudentId) {
+        const [subjectsRes, homeworkRes, statsRes] = await Promise.all([
+          regularSchoolAPI.getSubjects(selectedStudentId),
+          regularSchoolAPI.getHomework({ student_id: selectedStudentId }),
+          regularSchoolAPI.getStats(selectedStudentId)
+        ]);
+        setRegularSubjects(subjectsRes.data);
+        setRegularHomework(homeworkRes.data);
+        setRegularStats(statsRes.data);
+      }
+      showToast('Subject deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete subject:', error);
+      showToast('Failed to delete subject', 'error');
+    }
+  };
+
+  const handleCreateHomework = async () => {
+    if (!selectedStudentId || !selectedSubjectId || !homeworkForm.title.trim()) {
+      showToast('Title and subject are required', 'error');
+      return;
+    }
+    try {
+      await regularSchoolAPI.createHomework({
+        subject_id: selectedSubjectId,
+        student_id: selectedStudentId,
+        title: homeworkForm.title.trim(),
+        description: homeworkForm.description.trim() || undefined,
+        due_date: homeworkForm.due_date || undefined,
+        points: parseInt(homeworkForm.points) || 10
+      });
+      const [homeworkRes, statsRes] = await Promise.all([
+        regularSchoolAPI.getHomework({ student_id: selectedStudentId }),
+        regularSchoolAPI.getStats(selectedStudentId)
+      ]);
+      setRegularHomework(homeworkRes.data);
+      setRegularStats(statsRes.data);
+      setHomeworkForm({ title: '', description: '', due_date: '', points: '10' });
+      setShowCreateHomework(false);
+      showToast('Homework added', 'success');
+    } catch (error) {
+      console.error('Failed to create homework:', error);
+      showToast('Failed to add homework', 'error');
+    }
+  };
+
+  const handleCompleteHomework = async (homeworkId: number) => {
+    try {
+      const result = await regularSchoolAPI.completeHomework(homeworkId);
+      if (selectedStudentId) {
+        const [homeworkRes, statsRes] = await Promise.all([
+          regularSchoolAPI.getHomework({ student_id: selectedStudentId }),
+          regularSchoolAPI.getStats(selectedStudentId)
+        ]);
+        setRegularHomework(homeworkRes.data);
+        setRegularStats(statsRes.data);
+      }
+      showToast(`Completed! +${result.data.points_awarded} points`, 'success');
+    } catch (error) {
+      console.error('Failed to complete homework:', error);
+      showToast('Failed to mark complete', 'error');
+    }
+  };
+
+  const handleDeleteHomework = async (homeworkId: number) => {
+    if (!confirm('Delete this homework?')) return;
+    try {
+      await regularSchoolAPI.deleteHomework(homeworkId);
+      if (selectedStudentId) {
+        const [homeworkRes, statsRes] = await Promise.all([
+          regularSchoolAPI.getHomework({ student_id: selectedStudentId }),
+          regularSchoolAPI.getStats(selectedStudentId)
+        ]);
+        setRegularHomework(homeworkRes.data);
+        setRegularStats(statsRes.data);
+      }
+      showToast('Homework deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete homework:', error);
+      showToast('Failed to delete', 'error');
     }
   };
 
@@ -908,7 +1058,7 @@ export default function School() {
 
           {/* Child Selector (Parent only) */}
           {isParent && children.length > 1 && (
-            <div className="mb-8 flex items-center gap-3 flex-wrap">
+            <div className="mb-6 flex items-center gap-3 flex-wrap">
               {children.map(child => (
                 <button
                   key={child.id}
@@ -928,6 +1078,33 @@ export default function School() {
             </div>
           )}
 
+          {/* School Mode Toggle */}
+          <div className="mb-8 flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit">
+            <button
+              onClick={() => setSchoolMode('church')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                schoolMode === 'church'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              ⛪ Church School
+            </button>
+            <button
+              onClick={() => setSchoolMode('regular')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                schoolMode === 'regular'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              🏫 Regular School
+            </button>
+          </div>
+
+          {/* Church School View */}
+          {schoolMode === 'church' && (
+            <>
           {/* Progress Summary */}
           <div className="mb-8 bg-white p-6 rounded-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-4">
@@ -1143,6 +1320,294 @@ export default function School() {
                 </div>
               ))}
             </div>
+          )}
+            </>
+          )}
+
+          {/* Regular School View */}
+          {schoolMode === 'regular' && (
+            <>
+              {/* Stats Summary */}
+              {regularStats && (
+                <div className="mb-8 bg-white p-6 rounded-2xl border border-slate-100">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-indigo-600">{regularStats.subject_count}</div>
+                      <div className="text-sm text-slate-500">Subjects</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-emerald-600">{regularStats.completed}</div>
+                      <div className="text-sm text-slate-500">Completed</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-amber-600">{regularStats.pending}</div>
+                      <div className="text-sm text-slate-500">Pending</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-violet-600">{regularStats.points_earned}</div>
+                      <div className="text-sm text-slate-500">Points Earned</div>
+                    </div>
+                  </div>
+                  {regularStats.overdue > 0 && (
+                    <div className="mt-4 px-4 py-2 bg-red-50 text-red-700 rounded-xl text-sm text-center">
+                      ⚠️ {regularStats.overdue} homework overdue!
+                    </div>
+                  )}
+                  {regularStats.due_today > 0 && (
+                    <div className="mt-4 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl text-sm text-center">
+                      📅 {regularStats.due_today} homework due today
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Subjects Management (Parent only) */}
+              {isParent && (
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-slate-900">Subjects</h2>
+                    <button
+                      onClick={() => setShowCreateSubject(!showCreateSubject)}
+                      className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                    >
+                      {showCreateSubject ? 'Cancel' : '+ Add Subject'}
+                    </button>
+                  </div>
+
+                  {showCreateSubject && (
+                    <div className="mb-4 p-4 bg-white rounded-xl border border-slate-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          placeholder="Subject name (e.g., Math)"
+                          value={subjectForm.name}
+                          onChange={(e) => setSubjectForm(prev => ({ ...prev, name: e.target.value }))}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        />
+                        <select
+                          value={subjectForm.icon}
+                          onChange={(e) => setSubjectForm(prev => ({ ...prev, icon: e.target.value }))}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        >
+                          <option value="📚">📚 Book</option>
+                          <option value="🔢">🔢 Math</option>
+                          <option value="📖">📖 Reading</option>
+                          <option value="🔬">🔬 Science</option>
+                          <option value="🌍">🌍 Geography</option>
+                          <option value="🎨">🎨 Art</option>
+                          <option value="🎵">🎵 Music</option>
+                          <option value="💻">💻 Computer</option>
+                          <option value="🏃">🏃 PE</option>
+                          <option value="✍️">✍️ Writing</option>
+                        </select>
+                        <button
+                          onClick={handleCreateSubject}
+                          className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
+                        >
+                          Create Subject
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {regularSubjects.length === 0 ? (
+                    <div className="text-center py-8 bg-white rounded-xl border border-slate-100">
+                      <div className="text-4xl mb-2">📚</div>
+                      <p className="text-slate-500">No subjects yet. Add subjects like Math, Reading, Science.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {regularSubjects.map(subject => (
+                        <div
+                          key={subject.id}
+                          className="px-4 py-2 bg-white border border-slate-200 rounded-xl flex items-center gap-2 group"
+                        >
+                          <span className="text-lg">{subject.icon}</span>
+                          <span className="font-medium text-slate-700">{subject.name}</span>
+                          <span className="text-xs text-slate-400">
+                            ({subject.pending_count || 0} pending)
+                          </span>
+                          <button
+                            onClick={() => handleDeleteSubject(subject.id, subject.name)}
+                            className="ml-1 w-5 h-5 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Add Homework (Parent only) */}
+              {isParent && regularSubjects.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-slate-900">Add Homework</h2>
+                    <button
+                      onClick={() => setShowCreateHomework(!showCreateHomework)}
+                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                    >
+                      {showCreateHomework ? 'Cancel' : '+ Add Homework'}
+                    </button>
+                  </div>
+
+                  {showCreateHomework && (
+                    <div className="p-4 bg-white rounded-xl border border-slate-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                        <select
+                          value={selectedSubjectId || ''}
+                          onChange={(e) => setSelectedSubjectId(Number(e.target.value) || null)}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        >
+                          <option value="">Select subject...</option>
+                          {regularSubjects.map(s => (
+                            <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Homework title"
+                          value={homeworkForm.title}
+                          onChange={(e) => setHomeworkForm(prev => ({ ...prev, title: e.target.value }))}
+                          className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <textarea
+                        placeholder="Description (optional)"
+                        value={homeworkForm.description}
+                        onChange={(e) => setHomeworkForm(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm mb-3"
+                        rows={2}
+                      />
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs text-slate-500 mb-1">Due Date</label>
+                          <input
+                            type="date"
+                            value={homeworkForm.due_date}
+                            onChange={(e) => setHomeworkForm(prev => ({ ...prev, due_date: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-500 mb-1">Points</label>
+                          <input
+                            type="number"
+                            value={homeworkForm.points}
+                            onChange={(e) => setHomeworkForm(prev => ({ ...prev, points: e.target.value }))}
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                            min="1"
+                            max="100"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            onClick={handleCreateHomework}
+                            className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700"
+                          >
+                            Add Homework
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Homework List */}
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                  {isChild ? 'My Homework' : 'Homework'}
+                </h2>
+                {regularHomework.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border border-slate-100">
+                    <div className="text-5xl mb-3">✨</div>
+                    <p className="text-slate-500">No homework yet!</p>
+                    {isParent && <p className="text-sm text-slate-400 mt-1">Add subjects first, then add homework</p>}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {regularHomework.map(hw => {
+                      const isOverdueHw = hw.status === 'pending' && hw.due_date && new Date(hw.due_date) < new Date();
+                      const isDueToday = hw.status === 'pending' && hw.due_date &&
+                        new Date(hw.due_date).toDateString() === new Date().toDateString();
+
+                      return (
+                        <div
+                          key={hw.id}
+                          className={`p-4 rounded-xl border transition-all ${
+                            hw.status === 'completed'
+                              ? 'bg-emerald-50 border-emerald-200'
+                              : isOverdueHw
+                                ? 'bg-red-50 border-red-200'
+                                : isDueToday
+                                  ? 'bg-amber-50 border-amber-200'
+                                  : 'bg-white border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl">{hw.subject_icon}</span>
+                              <div>
+                                <h3 className={`font-medium ${hw.status === 'completed' ? 'text-emerald-700 line-through' : 'text-slate-900'}`}>
+                                  {hw.title}
+                                </h3>
+                                {hw.description && (
+                                  <p className="text-sm text-slate-500 mt-0.5">{hw.description}</p>
+                                )}
+                                <div className="flex items-center gap-3 mt-2 text-sm">
+                                  <span className="text-slate-400">{hw.subject_name}</span>
+                                  {hw.due_date && (
+                                    <span className={
+                                      isOverdueHw ? 'text-red-600 font-medium' :
+                                      isDueToday ? 'text-amber-600 font-medium' :
+                                      'text-slate-400'
+                                    }>
+                                      {isOverdueHw ? 'Overdue!' : isDueToday ? 'Due Today' : `Due ${formatDate(hw.due_date)}`}
+                                    </span>
+                                  )}
+                                  <span className="text-violet-600 font-medium">+{hw.points} pts</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {hw.status === 'pending' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleCompleteHomework(hw.id)}
+                                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                                  >
+                                    ✓ Done
+                                  </button>
+                                  {isParent && (
+                                    <button
+                                      onClick={() => handleDeleteHomework(hw.id)}
+                                      className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                                  ✓ Completed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
