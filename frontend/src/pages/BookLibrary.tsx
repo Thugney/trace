@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
-import { booksAPI, Book, BookCategory, profilesAPI } from '../services/api';
+import { booksAPI, Book, BookCategory, BookReadingProgress, BookReadingNote, profilesAPI } from '../services/api';
 import type { Profile } from '../types';
 import {
   BookOpen, Trash2, Sparkles, Clock, CheckCircle,
-  BookMarked, Filter, Search, ChevronRight, Users, Star, MessageCircle, X as CloseIcon
+  BookMarked, Filter, Search, ChevronRight, Users, Star, MessageCircle, X as CloseIcon,
+  Plus, Library, BookCheck, Play, Pause, AlertCircle, Edit3, StickyNote, Lightbulb, Heart, HelpCircle, BookText, Loader2
 } from 'lucide-react';
 
 export default function BookLibrary() {
@@ -42,6 +43,29 @@ export default function BookLibrary() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [includeImages, setIncludeImages] = useState(true);
   const [assignedTo, setAssignedTo] = useState<number | null>(null);
+
+  // Reading Tracker state
+  const [activeTab, setActiveTab] = useState<'library' | 'currently-reading' | 'books-read' | 'children-history'>('library');
+  const [showPhysicalBookModal, setShowPhysicalBookModal] = useState(false);
+  const [lookingUpBook, setLookingUpBook] = useState(false);
+  const [physicalBookForm, setPhysicalBookForm] = useState({
+    title: '',
+    author: '',
+    description: '',
+    source_location: 'home' as 'home' | 'library' | 'school' | 'gift' | 'borrowed',
+    total_pages: '',
+    isbn: ''
+  });
+  const [completedBooks, setCompletedBooks] = useState<(Book & { completed_at: string; notes_count: number })[]>([]);
+  const [currentlyReading, setCurrentlyReading] = useState<BookReadingProgress[]>([]);
+  const [showNotesModal, setShowNotesModal] = useState<{ bookId: number; title: string } | null>(null);
+  const [bookNotes, setBookNotes] = useState<BookReadingNote[]>([]);
+  const [loadingNotes, setLoadingNotes] = useState(false);
+  const [newNote, setNewNote] = useState({ type: 'learning' as BookReadingNote['note_type'], content: '', page_reference: '' });
+  const [childrenHistory, setChildrenHistory] = useState<{
+    children: Array<{ id: number; name: string; avatar: string }>;
+    history: Array<BookReadingProgress & { title: string; cover_image?: string; child_name: string; child_avatar: string }>;
+  } | null>(null);
 
   // Genre options for filtering and creating books (must match what's stored in book.genre)
   const genreOptions = [
@@ -195,6 +219,190 @@ export default function BookLibrary() {
     }
   };
 
+  // Load completed books and currently reading
+  const loadReadingData = async () => {
+    if (!currentProfile?.id) return;
+    try {
+      const [completedRes, progressRes] = await Promise.all([
+        booksAPI.getCompletedBooks(currentProfile.id),
+        booksAPI.getProfileProgress(currentProfile.id)
+      ]);
+      setCompletedBooks(completedRes.data);
+      // Filter to only books actively being read
+      setCurrentlyReading(progressRes.data.filter((p: BookReadingProgress) => p.completed !== 1));
+
+      // Load children's history if parent
+      if (isParentOrTeacher) {
+        const historyRes = await booksAPI.getChildrenReadingHistory(currentProfile.id);
+        setChildrenHistory(historyRes.data);
+      }
+    } catch (error) {
+      console.error('Failed to load reading data:', error);
+    }
+  };
+
+  // Load reading data when tab changes
+  useEffect(() => {
+    if (activeTab === 'books-read' || activeTab === 'currently-reading' || activeTab === 'children-history') {
+      loadReadingData();
+    }
+  }, [activeTab, currentProfile?.id]);
+
+  // Lookup book by title using Open Library API
+  const handleLookupBook = async () => {
+    if (!physicalBookForm.title.trim()) return;
+    setLookingUpBook(true);
+    try {
+      const res = await booksAPI.lookupBook(physicalBookForm.title);
+      if (res.data.found && res.data.book) {
+        setPhysicalBookForm(prev => ({
+          ...prev,
+          author: res.data.book?.author || prev.author,
+          description: res.data.book?.description || prev.description,
+          total_pages: res.data.book?.total_pages?.toString() || prev.total_pages,
+          isbn: res.data.book?.isbn || prev.isbn
+        }));
+        showToast('Book info found!', 'success');
+      } else {
+        showToast('Book not found in database. Please fill in details manually.', 'info');
+      }
+    } catch (error) {
+      showToast('Failed to lookup book', 'error');
+    } finally {
+      setLookingUpBook(false);
+    }
+  };
+
+  // Add physical book
+  const handleAddPhysicalBook = async () => {
+    if (!physicalBookForm.title.trim()) {
+      showToast('Please enter a book title', 'error');
+      return;
+    }
+    try {
+      await booksAPI.createBook({
+        title: physicalBookForm.title,
+        description: physicalBookForm.description || undefined,
+        createdBy: currentProfile!.id,
+        assignedTo: currentProfile!.id,
+        author: physicalBookForm.author || undefined,
+        book_source: 'physical',
+        source_location: physicalBookForm.source_location,
+        isbn: physicalBookForm.isbn || undefined,
+        total_pages: physicalBookForm.total_pages ? parseInt(physicalBookForm.total_pages) : 1
+      });
+      showToast('Book added successfully!', 'success');
+      setShowPhysicalBookModal(false);
+      setPhysicalBookForm({
+        title: '',
+        author: '',
+        description: '',
+        source_location: 'home',
+        total_pages: '',
+        isbn: ''
+      });
+      loadData();
+    } catch (error) {
+      showToast('Failed to add book', 'error');
+    }
+  };
+
+  // Update reading status
+  const handleUpdateReadingStatus = async (bookId: number, status: 'reading' | 'finished' | 'struggling' | 'paused', e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await booksAPI.updateReadingStatus(bookId, {
+        profileId: currentProfile!.id,
+        reading_status: status
+      });
+      showToast(`Status updated to ${status}`, 'success');
+      loadData();
+      loadReadingData();
+    } catch (error) {
+      showToast('Failed to update status', 'error');
+    }
+  };
+
+  // Load notes for a book
+  const openNotesModal = async (bookId: number, title: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowNotesModal({ bookId, title });
+    setLoadingNotes(true);
+    try {
+      const res = await booksAPI.getBookNotes(bookId, currentProfile!.id);
+      setBookNotes(res.data);
+    } catch (error) {
+      setBookNotes([]);
+    } finally {
+      setLoadingNotes(false);
+    }
+  };
+
+  // Add a note
+  const handleAddNote = async () => {
+    if (!newNote.content.trim() || !showNotesModal) return;
+    try {
+      const res = await booksAPI.createBookNote(showNotesModal.bookId, {
+        profileId: currentProfile!.id,
+        note_type: newNote.type,
+        content: newNote.content,
+        page_reference: newNote.page_reference ? parseInt(newNote.page_reference) : undefined
+      });
+      setBookNotes([...bookNotes, res.data]);
+      setNewNote({ type: 'learning', content: '', page_reference: '' });
+      showToast('Note added!', 'success');
+    } catch (error) {
+      showToast('Failed to add note', 'error');
+    }
+  };
+
+  // Delete a note
+  const handleDeleteNote = async (noteId: number) => {
+    try {
+      await booksAPI.deleteBookNote(noteId);
+      setBookNotes(bookNotes.filter(n => n.id !== noteId));
+      showToast('Note deleted', 'success');
+    } catch (error) {
+      showToast('Failed to delete note', 'error');
+    }
+  };
+
+  // Note type helpers
+  const noteTypeIcons: Record<BookReadingNote['note_type'], React.ReactNode> = {
+    learning: <Lightbulb size={16} className="text-yellow-500" />,
+    favorite_part: <Heart size={16} className="text-pink-500" />,
+    question: <HelpCircle size={16} className="text-blue-500" />,
+    vocabulary: <BookText size={16} className="text-purple-500" />,
+    struggle: <AlertCircle size={16} className="text-red-500" />,
+    other: <StickyNote size={16} className="text-gray-500" />
+  };
+
+  const noteTypeLabels: Record<BookReadingNote['note_type'], string> = {
+    learning: 'What I Learned',
+    favorite_part: 'Favorite Part',
+    question: 'Question',
+    vocabulary: 'New Word',
+    struggle: 'Struggling With',
+    other: 'Other Note'
+  };
+
+  // Source location labels
+  const sourceLocationLabels: Record<string, string> = {
+    home: '🏠 Home',
+    library: '📚 Library',
+    school: '🏫 School',
+    gift: '🎁 Gift',
+    borrowed: '🤝 Borrowed'
+  };
+
+  // Reading status helpers
+  const readingStatusOptions = [
+    { value: 'reading', label: 'Reading', icon: <Play size={14} />, color: 'blue' },
+    { value: 'finished', label: 'Finished', icon: <CheckCircle size={14} />, color: 'green' },
+    { value: 'paused', label: 'Paused', icon: <Pause size={14} />, color: 'amber' },
+    { value: 'struggling', label: 'Need Help', icon: <AlertCircle size={14} />, color: 'red' }
+  ];
+
   const filteredBooks = books.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          book.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -213,7 +421,7 @@ export default function BookLibrary() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <BookOpen className="text-primary-600" size={32} />
@@ -222,22 +430,88 @@ export default function BookLibrary() {
           <p className="text-gray-600 mt-1">
             {isParentOrTeacher
               ? 'Create and manage AI-generated books for your children'
-              : 'Read amazing stories created just for you!'}
+              : 'Read amazing stories and track your reading journey!'}
           </p>
         </div>
 
+        <div className="flex gap-2 mt-4 md:mt-0">
+          <button
+            onClick={() => setShowPhysicalBookModal(true)}
+            className="btn btn-secondary flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Add Book
+          </button>
+          {isParentOrTeacher && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <Sparkles size={20} />
+              Create AI Book
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-2 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('library')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
+            activeTab === 'library'
+              ? 'bg-primary-100 text-primary-700 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <Library size={18} />
+          Library
+        </button>
+        <button
+          onClick={() => setActiveTab('currently-reading')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
+            activeTab === 'currently-reading'
+              ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-600'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <Play size={18} />
+          Currently Reading
+          {currentlyReading.length > 0 && (
+            <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{currentlyReading.length}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('books-read')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
+            activeTab === 'books-read'
+              ? 'bg-green-100 text-green-700 border-b-2 border-green-600'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+        >
+          <BookCheck size={18} />
+          Books I've Read
+          {completedBooks.length > 0 && (
+            <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{completedBooks.length}</span>
+          )}
+        </button>
         {isParentOrTeacher && (
           <button
-            onClick={() => setShowCreateModal(true)}
-            className="mt-4 md:mt-0 btn btn-primary flex items-center gap-2"
+            onClick={() => setActiveTab('children-history')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
+              activeTab === 'children-history'
+                ? 'bg-purple-100 text-purple-700 border-b-2 border-purple-600'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
           >
-            <Sparkles size={20} />
-            Create AI Book
+            <Users size={18} />
+            Kids' Reading
           </button>
         )}
       </div>
 
-      {/* Search and Filter */}
+      {/* Search and Filter - only show on Library tab */}
+      {activeTab === 'library' && (
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -264,8 +538,11 @@ export default function BookLibrary() {
           </select>
         </div>
       </div>
+      )}
 
-      {/* Books Grid */}
+      {/* Library Tab Content */}
+      {activeTab === 'library' && (
+      <>
       {filteredBooks.length === 0 ? (
         <div className="text-center py-16">
           <BookMarked className="mx-auto text-gray-300 mb-4" size={64} />
@@ -388,6 +665,241 @@ export default function BookLibrary() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+      </>
+      )}
+
+      {/* Currently Reading Tab */}
+      {activeTab === 'currently-reading' && (
+        <div>
+          {currentlyReading.length === 0 ? (
+            <div className="text-center py-16">
+              <Play className="mx-auto text-gray-300 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No books in progress</h3>
+              <p className="text-gray-500 mb-6">
+                Start reading a book from your library to track your progress!
+              </p>
+              <button
+                onClick={() => setActiveTab('library')}
+                className="btn btn-primary"
+              >
+                <Library size={20} className="mr-2" />
+                Go to Library
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {currentlyReading.map(progress => (
+                <div
+                  key={progress.id}
+                  onClick={() => navigate(`/books/read/${progress.book_id}`)}
+                  className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex">
+                    <div className="w-24 h-32 flex-shrink-0">
+                      {progress.cover_image ? (
+                        <img src={progress.cover_image} alt={progress.book_title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <BookOpen className="text-white/80" size={32} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 p-4">
+                      <h3 className="font-semibold text-gray-900 truncate">{progress.book_title}</h3>
+                      <p className="text-sm text-gray-500 mt-1">Page {progress.current_page} of {progress.pages_read > progress.current_page ? progress.pages_read : progress.current_page + 5}</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-blue-500 rounded-full"
+                            style={{ width: `${Math.min((progress.current_page / (progress.pages_read || 10)) * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-3 flex gap-1 flex-wrap">
+                        {readingStatusOptions.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={(e) => handleUpdateReadingStatus(progress.book_id, opt.value as any, e)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+                              progress.reading_status === opt.value
+                                ? `bg-${opt.color}-100 text-${opt.color}-700 ring-2 ring-${opt.color}-300`
+                                : `bg-gray-100 text-gray-600 hover:bg-${opt.color}-50`
+                            }`}
+                          >
+                            {opt.icon}
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={(e) => openNotesModal(progress.book_id, progress.book_title || '', e)}
+                        className="mt-2 flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800"
+                      >
+                        <Edit3 size={14} />
+                        Add Notes
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Books I've Read Tab */}
+      {activeTab === 'books-read' && (
+        <div>
+          {completedBooks.length === 0 ? (
+            <div className="text-center py-16">
+              <BookCheck className="mx-auto text-gray-300 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No completed books yet</h3>
+              <p className="text-gray-500 mb-6">
+                Finish reading a book and it will appear here!
+              </p>
+              <button
+                onClick={() => setActiveTab('library')}
+                className="btn btn-primary"
+              >
+                <Library size={20} className="mr-2" />
+                Go to Library
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedBooks.map(book => (
+                <div
+                  key={book.id}
+                  onClick={() => navigate(`/books/read/${book.id}`)}
+                  className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                >
+                  <div className="flex">
+                    <div className="w-20 h-28 flex-shrink-0">
+                      {book.cover_image ? (
+                        <img src={book.cover_image} alt={book.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                          <BookCheck className="text-white/80" size={28} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{book.title}</h3>
+                          {book.author && <p className="text-sm text-gray-500">by {book.author}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                          <CheckCircle size={12} />
+                          Finished
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                        <span>Completed: {new Date(book.completed_at).toLocaleDateString()}</span>
+                        {book.book_source === 'physical' && (
+                          <span className="flex items-center gap-1">
+                            <BookMarked size={12} />
+                            Physical Book
+                          </span>
+                        )}
+                        {book.book_source === 'ai' && (
+                          <span className="flex items-center gap-1">
+                            <Sparkles size={12} />
+                            AI Generated
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <button
+                          onClick={(e) => openNotesModal(book.id, book.title, e)}
+                          className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-800 bg-primary-50 px-2 py-1 rounded"
+                        >
+                          <Edit3 size={14} />
+                          {book.notes_count > 0 ? `${book.notes_count} Notes` : 'Add Notes'}
+                        </button>
+                        {book.source_location && (
+                          <span className="text-xs text-gray-500">
+                            {sourceLocationLabels[book.source_location] || book.source_location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Children's Reading History Tab (Parents only) */}
+      {activeTab === 'children-history' && isParentOrTeacher && (
+        <div>
+          {!childrenHistory || childrenHistory.history.length === 0 ? (
+            <div className="text-center py-16">
+              <Users className="mx-auto text-gray-300 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No reading history yet</h3>
+              <p className="text-gray-500">
+                Your children's reading progress will appear here once they start reading books.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {childrenHistory.children.map(child => {
+                const childBooks = childrenHistory.history.filter(h => h.child_name === child.name);
+                if (childBooks.length === 0) return null;
+                return (
+                  <div key={child.id} className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-xl">
+                        {child.avatar || '👤'}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{child.name}</h3>
+                        <p className="text-sm text-gray-500">{childBooks.length} books in progress</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {childBooks.map(book => (
+                        <div key={book.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                          <div className="w-12 h-16 flex-shrink-0 rounded overflow-hidden">
+                            {book.cover_image ? (
+                              <img src={book.cover_image} alt={book.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                                <BookOpen className="text-white/80" size={20} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{book.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500">Page {book.current_page}</span>
+                              {book.reading_status && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  book.reading_status === 'finished' ? 'bg-green-100 text-green-700' :
+                                  book.reading_status === 'struggling' ? 'bg-red-100 text-red-700' :
+                                  book.reading_status === 'paused' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {book.reading_status}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(book.last_read_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -700,6 +1212,276 @@ export default function BookLibrary() {
                     </button>
                   </div>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Physical Book Modal */}
+      {showPhysicalBookModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <BookMarked className="text-primary-600" />
+                  Add a Book
+                </h2>
+                <button
+                  onClick={() => setShowPhysicalBookModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <CloseIcon size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Title with lookup button */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Book Title *
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={physicalBookForm.title}
+                      onChange={(e) => setPhysicalBookForm({ ...physicalBookForm, title: e.target.value })}
+                      placeholder="Enter the book title..."
+                      className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    />
+                    <button
+                      onClick={handleLookupBook}
+                      disabled={lookingUpBook || !physicalBookForm.title.trim()}
+                      className="px-4 py-2 bg-primary-100 text-primary-700 rounded-xl hover:bg-primary-200 disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {lookingUpBook ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Search size={18} />
+                      )}
+                      Lookup
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter title and click Lookup to auto-fill book details
+                  </p>
+                </div>
+
+                {/* Author */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Author
+                  </label>
+                  <input
+                    type="text"
+                    value={physicalBookForm.author}
+                    onChange={(e) => setPhysicalBookForm({ ...physicalBookForm, author: e.target.value })}
+                    placeholder="Author name"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={physicalBookForm.description}
+                    onChange={(e) => setPhysicalBookForm({ ...physicalBookForm, description: e.target.value })}
+                    placeholder="What is this book about?"
+                    rows={2}
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Source Location */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Where is it from?
+                    </label>
+                    <select
+                      value={physicalBookForm.source_location}
+                      onChange={(e) => setPhysicalBookForm({ ...physicalBookForm, source_location: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    >
+                      <option value="home">🏠 Home</option>
+                      <option value="library">📚 Library</option>
+                      <option value="school">🏫 School</option>
+                      <option value="gift">🎁 Gift</option>
+                      <option value="borrowed">🤝 Borrowed</option>
+                    </select>
+                  </div>
+
+                  {/* Number of Pages */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pages
+                    </label>
+                    <input
+                      type="number"
+                      value={physicalBookForm.total_pages}
+                      onChange={(e) => setPhysicalBookForm({ ...physicalBookForm, total_pages: e.target.value })}
+                      placeholder="Number of pages"
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setShowPhysicalBookModal(false)}
+                    className="flex-1 btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleAddPhysicalBook}
+                    disabled={!physicalBookForm.title.trim()}
+                    className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                  >
+                    <Plus size={20} />
+                    Add Book
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <StickyNote className="text-yellow-500" size={20} />
+                  Reading Notes
+                </h3>
+                <p className="text-sm text-gray-500 truncate">{showNotesModal.title}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowNotesModal(null);
+                  setBookNotes([]);
+                  setNewNote({ type: 'learning', content: '', page_reference: '' });
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <CloseIcon size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {loadingNotes ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+              ) : (
+                <>
+                  {/* Existing Notes */}
+                  {bookNotes.length === 0 ? (
+                    <div className="text-center py-6 text-gray-500">
+                      <StickyNote className="mx-auto mb-2 text-gray-300" size={32} />
+                      <p>No notes yet. Add your first note below!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 mb-6">
+                      {bookNotes.map(note => (
+                        <div key={note.id} className="bg-gray-50 rounded-xl p-3 relative group">
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5">{noteTypeIcons[note.note_type]}</div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xs font-medium text-gray-500">
+                                  {noteTypeLabels[note.note_type]}
+                                </span>
+                                {note.page_reference && (
+                                  <span className="text-xs text-gray-400">
+                                    Page {note.page_reference}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-700">{note.content}</p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              className="p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add New Note Form */}
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <Plus size={16} />
+                      Add a Note
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(noteTypeLabels) as Array<BookReadingNote['note_type']>).map(type => (
+                          <button
+                            key={type}
+                            onClick={() => setNewNote({ ...newNote, type })}
+                            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              newNote.type === type
+                                ? 'bg-primary-100 text-primary-700 ring-2 ring-primary-300'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {noteTypeIcons[type]}
+                            {noteTypeLabels[type]}
+                          </button>
+                        ))}
+                      </div>
+
+                      <textarea
+                        value={newNote.content}
+                        onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                        placeholder={
+                          newNote.type === 'learning' ? "What did you learn from this book?" :
+                          newNote.type === 'favorite_part' ? "What was your favorite part?" :
+                          newNote.type === 'question' ? "What questions do you have?" :
+                          newNote.type === 'vocabulary' ? "Write a new word and its meaning" :
+                          newNote.type === 'struggle' ? "What are you struggling with?" :
+                          "Write your note..."
+                        }
+                        rows={3}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none resize-none"
+                      />
+
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          value={newNote.page_reference}
+                          onChange={(e) => setNewNote({ ...newNote, page_reference: e.target.value })}
+                          placeholder="Page #"
+                          className="w-24 px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm"
+                        />
+                        <button
+                          onClick={handleAddNote}
+                          disabled={!newNote.content.trim()}
+                          className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                        >
+                          <Plus size={18} />
+                          Add Note
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>

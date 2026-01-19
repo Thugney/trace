@@ -598,6 +598,13 @@ Displayed before generation so parents know approximate cost.
   - Color-coded status (Approved = green, Pending = blue, Needs Revision = amber)
   - Per-class breakdown of assignments
 
+- **Subject Organization**
+  - Organize assignments by subject (Language, Religion, custom)
+  - Default subjects: Language (🗣️) and Religion (⛪)
+  - Teachers can add custom subjects with icons
+  - Subject selector when creating assignments
+  - Filter and view assignments by subject
+
 ### Notifications
 
 | Event | Who Gets Notified |
