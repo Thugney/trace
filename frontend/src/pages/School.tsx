@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, schoolAPI, regularSchoolAPI } from '../services/api';
-import type { Profile, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
+import type { Profile, SchoolSubject, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
 
 type AssignmentFormState = {
   title: string;
@@ -11,6 +11,7 @@ type AssignmentFormState = {
   type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
   youtube_link: string;
   due_date: string;
+  subject_id: number | null;
 };
 
 type ClassFormState = {
@@ -27,7 +28,8 @@ const emptyAssignmentForm: AssignmentFormState = {
   description: '',
   type: 'homework',
   youtube_link: '',
-  due_date: ''
+  due_date: '',
+  subject_id: null
 };
 
 const emptyClassForm: ClassFormState = {
@@ -81,6 +83,11 @@ export default function School() {
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+
+  // Church School subjects
+  const [classSubjects, setClassSubjects] = useState<SchoolSubject[]>([]);
+  const [showCreateChurchSubject, setShowCreateChurchSubject] = useState(false);
+  const [churchSubjectForm, setChurchSubjectForm] = useState({ name: '', icon: '📚', color: 'indigo' });
 
   // School type toggle (church vs regular)
   const [schoolMode, setSchoolMode] = useState<'church' | 'regular'>('church');
@@ -173,14 +180,16 @@ export default function School() {
     if (!selectedClassId || !isTeacher) return;
     const loadTeacherClass = async (showError = true) => {
       try {
-        const [assignmentsRes, studentsRes, submissionsRes] = await Promise.all([
+        const [assignmentsRes, studentsRes, submissionsRes, subjectsRes] = await Promise.all([
           schoolAPI.getAssignments({ class_id: selectedClassId }),
           schoolAPI.getClassStudents(selectedClassId),
-          schoolAPI.getSubmissions()
+          schoolAPI.getSubmissions(),
+          schoolAPI.getClassSubjects(selectedClassId)
         ]);
         setAssignments(assignmentsRes.data);
         setClassStudents(studentsRes.data);
         setSubmissions(submissionsRes.data as SubmissionWithClass[]);
+        setClassSubjects(subjectsRes.data);
       } catch (error) {
         console.error('Failed to load teacher class data:', error);
         if (showError) showToast('Failed to load class data', 'error');
@@ -282,6 +291,59 @@ export default function School() {
     } catch (error) {
       console.error('Failed to unenroll student:', error);
       showToast('Failed to unenroll', 'error');
+    }
+  };
+
+  // Church School subject handlers
+  const handleCreateChurchSubject = async () => {
+    if (!selectedClassId || !churchSubjectForm.name.trim()) {
+      showToast('Subject name is required', 'error');
+      return;
+    }
+    try {
+      await schoolAPI.createSubject(selectedClassId, {
+        name: churchSubjectForm.name.trim(),
+        icon: churchSubjectForm.icon,
+        color: churchSubjectForm.color
+      });
+      const subjectsRes = await schoolAPI.getClassSubjects(selectedClassId);
+      setClassSubjects(subjectsRes.data);
+      setChurchSubjectForm({ name: '', icon: '📚', color: 'indigo' });
+      setShowCreateChurchSubject(false);
+      showToast('Subject created', 'success');
+    } catch (error) {
+      console.error('Failed to create church subject:', error);
+      showToast('Failed to create subject', 'error');
+    }
+  };
+
+  const handleSeedDefaultSubjects = async () => {
+    if (!selectedClassId) return;
+    try {
+      await schoolAPI.seedDefaultSubjects(selectedClassId);
+      const subjectsRes = await schoolAPI.getClassSubjects(selectedClassId);
+      setClassSubjects(subjectsRes.data);
+      showToast('Default subjects added', 'success');
+    } catch (error) {
+      console.error('Failed to seed subjects:', error);
+      showToast('Failed to add default subjects', 'error');
+    }
+  };
+
+  const handleDeleteChurchSubject = async (subjectId: number, subjectName: string) => {
+    if (!confirm(`Delete "${subjectName}"? Assignments will keep their data but won't be linked to this subject.`)) {
+      return;
+    }
+    try {
+      await schoolAPI.deleteSubject(subjectId);
+      if (selectedClassId) {
+        const subjectsRes = await schoolAPI.getClassSubjects(selectedClassId);
+        setClassSubjects(subjectsRes.data);
+      }
+      showToast('Subject deleted', 'success');
+    } catch (error) {
+      console.error('Failed to delete church subject:', error);
+      showToast('Failed to delete subject', 'error');
     }
   };
 
@@ -419,7 +481,8 @@ export default function School() {
         description: assignmentForm.description.trim() || undefined,
         type: assignmentForm.type,
         youtube_link: assignmentForm.youtube_link.trim() || undefined,
-        due_date: assignmentForm.due_date || undefined
+        due_date: assignmentForm.due_date || undefined,
+        subject_id: assignmentForm.subject_id || undefined
       });
 
       if (assignmentFile) {
@@ -709,6 +772,88 @@ export default function School() {
                 {/* Assignments Tab */}
                 {teacherTab === 'assignments' && (
                   <div>
+                    {/* Subjects Section */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-slate-700">Subjects</h3>
+                        <div className="flex gap-2">
+                          {classSubjects.length === 0 && (
+                            <button
+                              onClick={handleSeedDefaultSubjects}
+                              className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                            >
+                              + Add Language & Religion
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setShowCreateChurchSubject(!showCreateChurchSubject)}
+                            className="px-2 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors"
+                          >
+                            + Custom Subject
+                          </button>
+                        </div>
+                      </div>
+
+                      {showCreateChurchSubject && (
+                        <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-2">
+                          <input
+                            className="flex-1 px-2 py-1 text-sm rounded border border-slate-200"
+                            placeholder="Subject name"
+                            value={churchSubjectForm.name}
+                            onChange={(e) => setChurchSubjectForm(prev => ({ ...prev, name: e.target.value }))}
+                          />
+                          <select
+                            className="px-2 py-1 text-sm rounded border border-slate-200 bg-white"
+                            value={churchSubjectForm.icon}
+                            onChange={(e) => setChurchSubjectForm(prev => ({ ...prev, icon: e.target.value }))}
+                          >
+                            <option value="📚">📚</option>
+                            <option value="🗣️">🗣️</option>
+                            <option value="⛪">⛪</option>
+                            <option value="✝️">✝️</option>
+                            <option value="📖">📖</option>
+                            <option value="🎵">🎵</option>
+                            <option value="✏️">✏️</option>
+                          </select>
+                          <button
+                            onClick={handleCreateChurchSubject}
+                            className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                          >
+                            Add
+                          </button>
+                          <button
+                            onClick={() => setShowCreateChurchSubject(false)}
+                            className="px-2 py-1 text-sm text-slate-500 hover:text-slate-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+
+                      {classSubjects.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {classSubjects.map(subj => (
+                            <div
+                              key={subj.id}
+                              className="group flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-sm"
+                            >
+                              <span>{subj.icon}</span>
+                              <span className="font-medium text-slate-700">{subj.name}</span>
+                              <span className="text-xs text-slate-400">({subj.assignment_count || 0})</span>
+                              <button
+                                onClick={() => handleDeleteChurchSubject(subj.id, subj.name)}
+                                className="ml-1 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400">No subjects yet. Add Language & Religion to organize assignments.</p>
+                      )}
+                    </div>
+
                     <div className="flex items-center justify-between mb-5">
                       <h2 className="text-lg font-semibold text-slate-900">Assignments for {selectedClass.name}</h2>
                     <button
@@ -731,6 +876,19 @@ export default function School() {
                             value={assignmentForm.title}
                             onChange={(e) => setAssignmentForm(prev => ({ ...prev, title: e.target.value }))}
                           />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Subject</label>
+                          <select
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 outline-none bg-white text-sm"
+                            value={assignmentForm.subject_id || ''}
+                            onChange={(e) => setAssignmentForm(prev => ({ ...prev, subject_id: e.target.value ? Number(e.target.value) : null }))}
+                          >
+                            <option value="">No subject</option>
+                            {classSubjects.map(s => (
+                              <option key={s.id} value={s.id}>{s.icon} {s.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-600 mb-1">Type</label>

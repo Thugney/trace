@@ -26,10 +26,26 @@ export interface SchoolClass {
   updated_at: string;
 }
 
+export interface SchoolSubject {
+  id: number;
+  class_id: number;
+  name: string;
+  icon: string;
+  color: string;
+  description?: string;
+  sort_order: number;
+  is_active: number;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  assignment_count?: number;
+}
+
 export interface SchoolAssignment {
   id: number;
   class_id: number;
   teacher_id: number;
+  subject_id?: number | null;
   title: string;
   description?: string;
   type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
@@ -41,6 +57,9 @@ export interface SchoolAssignment {
   updated_at: string;
   class_name?: string;
   teacher_name?: string;
+  subject_name?: string;
+  subject_icon?: string;
+  subject_color?: string;
   submission_status?: string;
   submitted_at?: string;
 }

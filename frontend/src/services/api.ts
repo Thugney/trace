@@ -3,6 +3,7 @@ import type {
   Profile,
   ProfileStats,
   SchoolClass,
+  SchoolSubject,
   SchoolAssignment,
   SchoolSubmission,
   SchoolAttachment,
@@ -379,7 +380,19 @@ export const schoolAPI = {
   getFeedback: (params?: { submission_id?: number; student_id?: number }) =>
     api.get<SchoolFeedback[]>('/school/feedback', { params }),
   createFeedback: (data: { submission_id: number; comment: string; rating?: string; status?: string }) =>
-    api.post<SchoolFeedback>('/school/feedback', data)
+    api.post<SchoolFeedback>('/school/feedback', data),
+
+  // Subjects (Church School)
+  getClassSubjects: (classId: number) =>
+    api.get<SchoolSubject[]>(`/school/classes/${classId}/subjects`),
+  createSubject: (classId: number, data: { name: string; icon?: string; color?: string; description?: string }) =>
+    api.post<SchoolSubject>(`/school/classes/${classId}/subjects`, data),
+  updateSubject: (subjectId: number, data: { name?: string; icon?: string; color?: string; description?: string; sort_order?: number }) =>
+    api.put<SchoolSubject>(`/school/subjects/${subjectId}`, data),
+  deleteSubject: (subjectId: number) =>
+    api.delete(`/school/subjects/${subjectId}`),
+  seedDefaultSubjects: (classId: number) =>
+    api.post<SchoolSubject[]>(`/school/classes/${classId}/seed-subjects`)
 };
 
 // Regular School (Home tracking)
@@ -1622,6 +1635,11 @@ export interface Book {
   page_count?: number;
   current_page?: number;
   is_read?: number;
+  // Physical book fields
+  author?: string;
+  book_source?: 'ai' | 'physical';
+  source_location?: 'library' | 'home' | 'school' | 'gift' | 'borrowed' | string;
+  isbn?: string;
 }
 
 export interface BookPage {
@@ -1657,6 +1675,20 @@ export interface BookReadingProgress {
   last_read_at: string;
   book_title?: string;
   cover_image?: string;
+  reading_status?: 'reading' | 'finished' | 'struggling' | 'paused';
+}
+
+export interface BookReadingNote {
+  id: number;
+  book_id: number;
+  profile_id: number;
+  note_type: 'learning' | 'favorite_part' | 'question' | 'vocabulary' | 'struggle' | 'other';
+  content: string;
+  page_reference?: number;
+  created_at: string;
+  updated_at: string;
+  profile_name?: string;
+  profile_avatar?: string;
 }
 
 export interface BookWithPages extends Book {
@@ -1733,6 +1765,12 @@ export const booksAPI = {
     language?: string;
     genre?: string;
     categoryIds?: number[];
+    // Physical book fields
+    author?: string;
+    book_source?: 'ai' | 'physical';
+    source_location?: string;
+    isbn?: string;
+    total_pages?: number;
   }) => api.post<Book>('/books', data),
 
   deleteBook: (bookId: number) =>
@@ -1774,7 +1812,39 @@ export const booksAPI = {
     api.get<BookFeedback | null>(`/books/${bookId}/my-feedback/${profileId}`),
 
   getProfileFeedback: (profileId: number) =>
-    api.get<(BookFeedback & { book_title: string; cover_image?: string })[]>(`/books/feedback/profile/${profileId}`)
+    api.get<(BookFeedback & { book_title: string; cover_image?: string })[]>(`/books/feedback/profile/${profileId}`),
+
+  // Reading Status
+  updateReadingStatus: (bookId: number, data: { profileId: number; reading_status: 'reading' | 'finished' | 'struggling' | 'paused' }) =>
+    api.patch<BookReadingProgress>(`/books/${bookId}/reading-status`, data),
+
+  // Reading Notes
+  getBookNotes: (bookId: number, profileId?: number) =>
+    api.get<BookReadingNote[]>(`/books/${bookId}/notes`, { params: { profile_id: profileId } }),
+
+  createBookNote: (bookId: number, data: { profileId: number; note_type?: string; content: string; page_reference?: number }) =>
+    api.post<BookReadingNote>(`/books/${bookId}/notes`, data),
+
+  updateBookNote: (noteId: number, data: { note_type?: string; content?: string; page_reference?: number }) =>
+    api.put<BookReadingNote>(`/books/notes/${noteId}`, data),
+
+  deleteBookNote: (noteId: number) =>
+    api.delete(`/books/notes/${noteId}`),
+
+  // Completed Books
+  getCompletedBooks: (profileId: number) =>
+    api.get<(Book & { completed_at: string; notes_count: number })[]>(`/books/completed/${profileId}`),
+
+  // Children's Reading History (for parents)
+  getChildrenReadingHistory: (parentId: number) =>
+    api.get<{
+      children: Array<{ id: number; name: string; avatar: string }>;
+      history: Array<BookReadingProgress & { title: string; cover_image?: string; child_name: string; child_avatar: string }>;
+    }>(`/books/children-history/${parentId}`),
+
+  // Book Lookup (for physical books)
+  lookupBook: (title: string) =>
+    api.get<{ found: boolean; book?: Partial<Book> }>(`/books/lookup`, { params: { title } })
 };
 
 // ==================== SHOPPING GAMIFICATION ====================

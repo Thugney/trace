@@ -602,6 +602,33 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_school_submission_attachments_submission ON school_submission_attachments(submission_id);
   `);
 
+  // ==================== CHURCH SCHOOL SUBJECTS ====================
+  // Subjects for organizing church school assignments (Language, Religion, etc.)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_subjects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      icon TEXT DEFAULT '📚',
+      color TEXT DEFAULT 'indigo',
+      description TEXT,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_by INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_school_subjects_class ON school_subjects(class_id);
+    CREATE INDEX IF NOT EXISTS idx_school_subjects_active ON school_subjects(is_active);
+  `);
+
+  console.log('✅ Church school subjects table created');
+
   // ==================== REGULAR SCHOOL (Home Tracking) ====================
   // Subjects created by parents for their children
   db.exec(`
@@ -1133,6 +1160,19 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (school_assignments columns):', error.message);
+  }
+
+  // Migration: Add subject_id to school_assignments for subject-based organization
+  try {
+    const assignmentCols = db.prepare('PRAGMA table_info(school_assignments)').all() as { name: string }[];
+    const hasSubjectId = assignmentCols.some(col => col.name === 'subject_id');
+
+    if (!hasSubjectId) {
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN subject_id INTEGER REFERENCES school_subjects(id) ON DELETE SET NULL').run();
+      console.log('✅ Added subject_id column to school_assignments');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_assignments subject_id):', error.message);
   }
 
   // Migration: Ensure school-only mode setting exists
@@ -2561,6 +2601,71 @@ export function initDatabase() {
   }
 
   console.log('✅ Book system tables created');
+
+  // ==================== BOOK READING NOTES ====================
+  // Notes for tracking what kids learned from books
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS book_reading_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      note_type TEXT DEFAULT 'learning' CHECK(note_type IN ('learning', 'favorite_part', 'question', 'vocabulary', 'struggle', 'other')),
+      content TEXT NOT NULL,
+      page_reference INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_book_reading_notes_book ON book_reading_notes(book_id);
+    CREATE INDEX IF NOT EXISTS idx_book_reading_notes_profile ON book_reading_notes(profile_id);
+  `);
+
+  console.log('✅ Book reading notes table created');
+
+  // Migration: Add physical book support columns to books table
+  try {
+    const bookCols = db.prepare('PRAGMA table_info(books)').all() as { name: string }[];
+    const colNames = bookCols.map(col => col.name);
+
+    if (!colNames.includes('author')) {
+      db.prepare('ALTER TABLE books ADD COLUMN author TEXT').run();
+      console.log('✅ Added author column to books');
+    }
+
+    if (!colNames.includes('book_source')) {
+      db.prepare("ALTER TABLE books ADD COLUMN book_source TEXT DEFAULT 'ai' CHECK(book_source IN ('ai', 'physical'))").run();
+      console.log('✅ Added book_source column to books');
+    }
+
+    if (!colNames.includes('source_location')) {
+      db.prepare('ALTER TABLE books ADD COLUMN source_location TEXT').run();
+      console.log('✅ Added source_location column to books');
+    }
+
+    if (!colNames.includes('isbn')) {
+      db.prepare('ALTER TABLE books ADD COLUMN isbn TEXT').run();
+      console.log('✅ Added isbn column to books');
+    }
+  } catch (error: any) {
+    console.error('Migration error (books physical columns):', error.message);
+  }
+
+  // Migration: Add reading_status to book_reading_progress
+  try {
+    const progressCols = db.prepare('PRAGMA table_info(book_reading_progress)').all() as { name: string }[];
+    const hasReadingStatus = progressCols.some(col => col.name === 'reading_status');
+
+    if (!hasReadingStatus) {
+      db.prepare("ALTER TABLE book_reading_progress ADD COLUMN reading_status TEXT DEFAULT 'reading' CHECK(reading_status IN ('reading', 'finished', 'struggling', 'paused'))").run();
+      console.log('✅ Added reading_status column to book_reading_progress');
+    }
+  } catch (error: any) {
+    console.error('Migration error (book_reading_progress status):', error.message);
+  }
 
   // ==================== CUSTOM REWARD CATEGORIES ====================
   // Allow parents to create custom reward categories

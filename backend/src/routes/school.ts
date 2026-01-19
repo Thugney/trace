@@ -315,6 +315,180 @@ router.delete('/classes/:classId/teachers/:teacherId', authenticate, (req: AuthR
   }
 });
 
+// ==================== SUBJECTS ====================
+
+// Get subjects for a class
+router.get('/classes/:classId/subjects', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    const classId = Number(req.params.classId);
+
+    // Teachers can only see their assigned classes
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, classId)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    const subjects = db.prepare(`
+      SELECT ss.*,
+        (SELECT COUNT(*) FROM school_assignments WHERE subject_id = ss.id) as assignment_count
+      FROM school_subjects ss
+      WHERE ss.class_id = ? AND ss.is_active = 1
+      ORDER BY ss.sort_order, ss.name
+    `).all(classId);
+
+    res.json(subjects);
+  } catch (error: any) {
+    console.error('[School] Get subjects error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create subject for a class
+router.post('/classes/:classId/subjects', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can create subjects' });
+    }
+
+    const classId = Number(req.params.classId);
+    const { name, icon, color, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Subject name is required' });
+    }
+
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, classId)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    // Get next sort order
+    const maxOrder: any = db.prepare('SELECT MAX(sort_order) as max FROM school_subjects WHERE class_id = ?').get(classId);
+    const sortOrder = (maxOrder?.max || 0) + 1;
+
+    const result = db.prepare(`
+      INSERT INTO school_subjects (class_id, name, icon, color, description, sort_order, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(classId, name, icon || '📚', color || 'indigo', description || null, sortOrder, profile.id);
+
+    const subject = db.prepare('SELECT * FROM school_subjects WHERE id = ?').get(result.lastInsertRowid);
+    res.json(subject);
+  } catch (error: any) {
+    console.error('[School] Create subject error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update subject
+router.put('/subjects/:subjectId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can update subjects' });
+    }
+
+    const subjectId = Number(req.params.subjectId);
+    const subject: any = db.prepare('SELECT * FROM school_subjects WHERE id = ?').get(subjectId);
+
+    if (!subject) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, subject.class_id)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    const { name, icon, color, description, sort_order } = req.body;
+
+    db.prepare(`
+      UPDATE school_subjects
+      SET name = COALESCE(?, name),
+          icon = COALESCE(?, icon),
+          color = COALESCE(?, color),
+          description = COALESCE(?, description),
+          sort_order = COALESCE(?, sort_order),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(name, icon, color, description, sort_order, subjectId);
+
+    const updated = db.prepare('SELECT * FROM school_subjects WHERE id = ?').get(subjectId);
+    res.json(updated);
+  } catch (error: any) {
+    console.error('[School] Update subject error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete subject (soft delete)
+router.delete('/subjects/:subjectId', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can delete subjects' });
+    }
+
+    const subjectId = Number(req.params.subjectId);
+    const subject: any = db.prepare('SELECT * FROM school_subjects WHERE id = ?').get(subjectId);
+
+    if (!subject) {
+      return res.status(404).json({ error: 'Subject not found' });
+    }
+
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, subject.class_id)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    // Soft delete - mark inactive, keep assignments
+    db.prepare('UPDATE school_subjects SET is_active = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(subjectId);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[School] Delete subject error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Seed default subjects for a class (Language & Religion)
+router.post('/classes/:classId/seed-subjects', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can seed subjects' });
+    }
+
+    const classId = Number(req.params.classId);
+
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, classId)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    const defaultSubjects = [
+      { name: 'Language', icon: '🗣️', color: 'blue', sort_order: 1 },
+      { name: 'Religion', icon: '⛪', color: 'purple', sort_order: 2 }
+    ];
+
+    const insertSubject = db.prepare(`
+      INSERT OR IGNORE INTO school_subjects (class_id, name, icon, color, sort_order, created_by)
+      SELECT ?, ?, ?, ?, ?, ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM school_subjects WHERE class_id = ? AND name = ? AND is_active = 1
+      )
+    `);
+
+    for (const subj of defaultSubjects) {
+      insertSubject.run(classId, subj.name, subj.icon, subj.color, subj.sort_order, profile.id, classId, subj.name);
+    }
+
+    const subjects = db.prepare(`
+      SELECT * FROM school_subjects WHERE class_id = ? AND is_active = 1 ORDER BY sort_order
+    `).all(classId);
+
+    res.json(subjects);
+  } catch (error: any) {
+    console.error('[School] Seed subjects error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== ENROLLMENTS ====================
 router.post('/enrollments', authenticate, (req: AuthRequest, res: Response) => {
   try {
@@ -384,12 +558,14 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       if (studentId) {
         const assignments = db.prepare(`
           SELECT sa.*, sc.name as class_name, p.name as teacher_name,
-            ss.status as submission_status, ss.submitted_at
+            ss.status as submission_status, ss.submitted_at,
+            subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
           FROM school_assignments sa
           JOIN school_classes sc ON sc.id = sa.class_id
           JOIN profiles p ON p.id = sa.teacher_id
           JOIN school_enrollments se ON se.class_id = sa.class_id
           LEFT JOIN school_submissions ss ON ss.assignment_id = sa.id AND ss.student_id = ?
+          LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
           WHERE se.student_id = ?
           ORDER BY sa.due_date IS NULL, sa.due_date, sa.created_at DESC
         `).all(studentId, studentId);
@@ -398,10 +574,12 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
 
       if (classId) {
         const assignments = db.prepare(`
-          SELECT sa.*, sc.name as class_name, p.name as teacher_name
+          SELECT sa.*, sc.name as class_name, p.name as teacher_name,
+            subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
           FROM school_assignments sa
           JOIN school_classes sc ON sc.id = sa.class_id
           JOIN profiles p ON p.id = sa.teacher_id
+          LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
           WHERE sa.class_id = ?
           ORDER BY sa.due_date IS NULL, sa.due_date, sa.created_at DESC
         `).all(classId);
@@ -409,10 +587,12 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       }
 
       const assignments = db.prepare(`
-        SELECT sa.*, sc.name as class_name, p.name as teacher_name
+        SELECT sa.*, sc.name as class_name, p.name as teacher_name,
+          subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
         FROM school_assignments sa
         JOIN school_classes sc ON sc.id = sa.class_id
         JOIN profiles p ON p.id = sa.teacher_id
+        LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
         ORDER BY sa.due_date IS NULL, sa.due_date, sa.created_at DESC
       `).all();
       return res.json(assignments);
@@ -424,9 +604,11 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       }
 
       const assignments = db.prepare(`
-        SELECT sa.*, sc.name as class_name
+        SELECT sa.*, sc.name as class_name,
+          subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
         FROM school_assignments sa
         JOIN school_classes sc ON sc.id = sa.class_id
+        LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
         WHERE sa.class_id IN (
           SELECT class_id FROM teacher_class_assignments WHERE teacher_id = ?
           UNION
@@ -454,12 +636,14 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       const targetStudent = resolvedStudentIds[0];
       const assignments = db.prepare(`
         SELECT sa.*, sc.name as class_name, p.name as teacher_name,
-          ss.status as submission_status, ss.submitted_at
+          ss.status as submission_status, ss.submitted_at,
+          subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
         FROM school_assignments sa
         JOIN school_classes sc ON sc.id = sa.class_id
         JOIN profiles p ON p.id = sa.teacher_id
         JOIN school_enrollments se ON se.class_id = sa.class_id
         LEFT JOIN school_submissions ss ON ss.assignment_id = sa.id AND ss.student_id = ?
+        LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
         WHERE se.student_id = ?
         ORDER BY sa.due_date IS NULL, sa.due_date, sa.created_at DESC
       `).all(targetStudent, targetStudent);
@@ -468,11 +652,13 @@ router.get('/assignments', authenticate, (req: AuthRequest, res: Response) => {
 
     const placeholders = resolvedStudentIds.map(() => '?').join(',');
     const assignments = db.prepare(`
-      SELECT DISTINCT sa.*, sc.name as class_name, p.name as teacher_name
+      SELECT DISTINCT sa.*, sc.name as class_name, p.name as teacher_name,
+        subj.name as subject_name, subj.icon as subject_icon, subj.color as subject_color
       FROM school_assignments sa
       JOIN school_classes sc ON sc.id = sa.class_id
       JOIN profiles p ON p.id = sa.teacher_id
       JOIN school_enrollments se ON se.class_id = sa.class_id
+      LEFT JOIN school_subjects subj ON subj.id = sa.subject_id
       WHERE se.student_id IN (${placeholders})
       ORDER BY sa.due_date IS NULL, sa.due_date, sa.created_at DESC
     `).all(...resolvedStudentIds);
@@ -490,7 +676,7 @@ router.post('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Only admins or teachers can create assignments' });
     }
 
-    const { class_id, title, description, type, youtube_link, attachment_url, due_date, linked_quiz_id } = req.body;
+    const { class_id, title, description, type, youtube_link, attachment_url, due_date, linked_quiz_id, subject_id } = req.body;
     if (!class_id || !title) {
       return res.status(400).json({ error: 'class_id and title are required' });
     }
@@ -501,8 +687,8 @@ router.post('/assignments', authenticate, (req: AuthRequest, res: Response) => {
 
     const result = db.prepare(`
       INSERT INTO school_assignments (
-        class_id, teacher_id, title, description, type, youtube_link, attachment_url, due_date, linked_quiz_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        class_id, teacher_id, title, description, type, youtube_link, attachment_url, due_date, linked_quiz_id, subject_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       class_id,
       profile.id,
@@ -512,7 +698,8 @@ router.post('/assignments', authenticate, (req: AuthRequest, res: Response) => {
       youtube_link || null,
       attachment_url || null,
       due_date || null,
-      linked_quiz_id || null
+      linked_quiz_id || null,
+      subject_id || null
     );
 
     const assignment = db.prepare('SELECT * FROM school_assignments WHERE id = ?').get(result.lastInsertRowid);
