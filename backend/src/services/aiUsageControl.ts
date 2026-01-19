@@ -7,6 +7,7 @@ import { db } from '../database/init';
 
 // Cost estimates per provider (approximate)
 export const AI_COSTS = {
+  ollama: { text: 0, image: 0 }, // Local/free
   gemini: { text: 0.01, image: 0.02 },
   grok: { text: 0.015, image: 0.02 },
   openai: { text: 0.02, image: 0.04 }

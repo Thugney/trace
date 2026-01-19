@@ -44,6 +44,7 @@ const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
 const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
+const OLLAMA_DEFAULT_URL = 'http://localhost:11434/api/chat';
 
 // API Key getters
 const getGeminiApiKey = (): string | null => {
@@ -83,6 +84,34 @@ const getOpenAiApiKey = (): string | null => {
     }
   }
   return apiKey && apiKey.trim() !== '' ? apiKey : null;
+};
+
+// Ollama configuration (local LLM)
+const getOllamaUrl = (): string | null => {
+  let url = process.env.OLLAMA_URL;
+  if (!url || url.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_url');
+      if (setting?.value) url = setting.value;
+    } catch (error) {
+      console.error('Failed to read ollama_url from settings:', error);
+    }
+  }
+  return url && url.trim() !== '' ? url : null;
+};
+
+const getOllamaModel = (): string => {
+  let model = process.env.OLLAMA_MODEL;
+  if (!model || model.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_model');
+      if (setting?.value) model = setting.value;
+    } catch (error) {
+      console.error('Failed to read ollama_model from settings:', error);
+    }
+  }
+  // Default to llama3.2 if not specified
+  return model && model.trim() !== '' ? model : 'llama3.2';
 };
 
 // Helpers
@@ -253,17 +282,69 @@ const requestOpenAiBookContent = async (apiKey: string, promptText: string) => {
   throw new HttpError(503, 'OpenAI service is busy. Please try again.');
 };
 
-// Main AI request function with fallback chain: Gemini -> Grok -> OpenAI
+// Ollama (local LLM) request function
+const requestOllamaBookContent = async (ollamaUrl: string, model: string, promptText: string) => {
+  const maxAttempts = 3;
+  const backoffDelays = [5000, 10000, 15000];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await axios.post(
+        ollamaUrl,
+        {
+          model: model,
+          messages: [
+            { role: 'system', content: 'You are an expert children\'s book author. Create engaging, age-appropriate stories. Always respond with valid JSON only. Do not include any text before or after the JSON.' },
+            { role: 'user', content: promptText }
+          ],
+          stream: false,
+          options: {
+            temperature: 0.8,
+            num_predict: 4000
+          }
+        },
+        { headers: { 'Content-Type': 'application/json' }, timeout: 180000 } // 3 min timeout for local models
+      );
+
+      // Ollama returns { message: { content: "..." } } directly
+      const content = response.data?.message?.content;
+      return { data: { choices: [{ message: { content } }] } };
+    } catch (error: any) {
+      if (attempt < maxAttempts) {
+        const backoffMs = backoffDelays[attempt - 1];
+        console.log(`[AI Book] Ollama attempt ${attempt}/${maxAttempts} failed, retrying in ${Math.round(backoffMs / 1000)}s...`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new HttpError(503, 'Ollama service is not responding. Please check if Ollama is running.');
+};
+
+// Main AI request function with fallback chain: Ollama (local) -> Gemini -> Grok -> OpenAI
 const requestAiBookContent = async (promptText: string) => {
+  const ollamaUrl = getOllamaUrl();
+  const ollamaModel = getOllamaModel();
   const geminiApiKey = getGeminiApiKey();
   const grokApiKey = getGrokApiKey();
   const openAiApiKey = getOpenAiApiKey();
 
-  if (!geminiApiKey && !grokApiKey && !openAiApiKey) {
-    throw new HttpError(503, 'AI service not configured. Please configure a Gemini, Grok, or OpenAI API key.');
+  if (!ollamaUrl && !geminiApiKey && !grokApiKey && !openAiApiKey) {
+    throw new HttpError(503, 'AI service not configured. Please configure Ollama, Gemini, Grok, or OpenAI.');
   }
 
-  // Try Gemini first (best for book generation)
+  // Try Ollama first (local, free)
+  if (ollamaUrl) {
+    try {
+      console.log(`[AI Book] Using Ollama (${ollamaModel}) at ${ollamaUrl}...`);
+      return { response: await requestOllamaBookContent(ollamaUrl, ollamaModel, promptText), provider: 'ollama' };
+    } catch (error: any) {
+      console.log(`[AI Book] Ollama failed (${error?.response?.status || error?.code || error?.message}), trying cloud fallback...`);
+    }
+  }
+
+  // Fallback to Gemini (best cloud option for book generation)
   if (geminiApiKey) {
     try {
       console.log('[AI Book] Using Gemini API...');
@@ -667,7 +748,8 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
 
     // ===== AI USAGE CONTROL: Check if generation is allowed =====
     const imageCount = includeImages !== false ? (pageCount || 8) + 1 : 0; // +1 for cover
-    const textProvider = getGeminiApiKey() ? 'gemini' : (getGrokApiKey() ? 'grok' : 'openai');
+    // Detect which provider will be used (matches the order in requestAiBookContent)
+    const textProvider = getOllamaUrl() ? 'ollama' : (getGeminiApiKey() ? 'gemini' : (getGrokApiKey() ? 'grok' : 'openai'));
     const imageProvider = getGrokApiKey() ? 'grok' : (getOpenAiApiKey() ? 'openai' : null);
     const estimatedCostValue = estimateCost(textProvider, imageProvider, imageCount);
 
