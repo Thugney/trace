@@ -27,6 +27,7 @@ export default function BookReader() {
   // Rating state
   const [myRating, setMyRating] = useState<number>(0);
   const [liked, setLiked] = useState<boolean>(false);
+  const [comment, setComment] = useState<string>('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
 
   const bookContainerRef = useRef<HTMLDivElement>(null);
@@ -61,6 +62,7 @@ export default function BookReader() {
           if (feedbackRes.data) {
             setMyRating(feedbackRes.data.rating);
             setLiked(feedbackRes.data.liked === 1);
+            setComment(feedbackRes.data.comment || '');
             setFeedbackSubmitted(true);
           }
         } catch (e) {
@@ -82,7 +84,8 @@ export default function BookReader() {
       await booksAPI.submitFeedback(Number(bookId), {
         profileId: currentProfile.id,
         rating: myRating,
-        liked
+        liked,
+        comment: comment.trim() || undefined
       });
       setFeedbackSubmitted(true);
       showToast('Thanks for your feedback!', 'success');
@@ -481,7 +484,7 @@ export default function BookReader() {
                   <button
                     onClick={() => !feedbackSubmitted && setLiked(!liked)}
                     disabled={feedbackSubmitted}
-                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-full mb-4 transition-all ${
+                    className={`flex items-center justify-center gap-2 w-full py-2 rounded-full mb-3 transition-all ${
                       liked
                         ? 'bg-pink-500 text-white'
                         : 'bg-white/30 text-white hover:bg-white/40'
@@ -490,6 +493,26 @@ export default function BookReader() {
                     <Heart size={20} className={liked ? 'fill-white' : ''} />
                     <span className="text-sm font-medium">{liked ? 'I loved it!' : 'I loved it!'}</span>
                   </button>
+
+                  {/* Comment Field */}
+                  <div className="mb-4">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => !feedbackSubmitted && setComment(e.target.value)}
+                      disabled={feedbackSubmitted}
+                      placeholder="What did you think? (optional)"
+                      maxLength={500}
+                      rows={2}
+                      className={`w-full px-3 py-2 rounded-xl text-sm resize-none transition-all ${
+                        feedbackSubmitted
+                          ? 'bg-white/20 text-white/80 cursor-default'
+                          : 'bg-white/90 text-gray-800 placeholder-gray-500 focus:ring-2 focus:ring-white/50'
+                      }`}
+                    />
+                    {!feedbackSubmitted && comment.length > 0 && (
+                      <p className="text-xs text-white/60 mt-1 text-right">{comment.length}/500</p>
+                    )}
+                  </div>
 
                   {/* Submit Button */}
                   {!feedbackSubmitted && myRating > 0 && (

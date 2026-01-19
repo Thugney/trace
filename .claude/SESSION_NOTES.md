@@ -179,15 +179,158 @@ interface LeaderboardEntry extends QuizAttempt {
 
 ---
 
-### Remaining Items from Original Analysis (for future sessions)
+## Existing Feature Documentation
 
-These were identified but not yet implemented:
+### Book Feedback System ✅ COMPLETE
 
-1. **Book Feedback System** - Already exists in codebase, needs verification it's working
-2. **Quiz Timer Connection to Points** - Timer exists, may need review
-3. **AI Prompting System Documentation** - How prompts work, versions, enhancement options
-4. **Shopping Gamification Customization** - Parents customize shopping rewards
+**Status:** Fully implemented with comment field added
+
+**Database Table:** `book_feedback`
+```sql
+CREATE TABLE book_feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  book_id INTEGER NOT NULL,
+  profile_id INTEGER NOT NULL,
+  rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+  liked INTEGER DEFAULT 0,
+  comment TEXT,  -- Now exposed in UI
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(book_id, profile_id)
+)
+```
+
+**API Endpoints:**
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/:bookId/feedback` | POST | Kids submit rating (1-5), liked flag, optional comment |
+| `/:bookId/feedback` | GET | Get all feedback + stats (avg rating, total, likes) |
+| `/:bookId/my-feedback/:profileId` | GET | Get child's own feedback |
+| `/feedback/profile/:profileId` | GET | Parent views all feedback from a child |
+
+**Frontend Components:**
+- **Kids:** `BookReader.tsx` - End-of-book feedback form with:
+  - 5-star rating selector
+  - "I loved it!" heart button
+  - Comment textarea (500 char max) ← **Newly added**
+  - Submit button
+- **Parents:** `BookLibrary.tsx` - Feedback badge on book cards showing avg rating, modal with all reviews
 
 ---
 
-*Last Updated: 2026-01-19*
+### Quiz Timer System ✅ DOCUMENTED
+
+**How Timer Connects to Points:**
+
+1. **Time Bonus Formula** (when quiz is PASSED):
+```javascript
+remaining_time = time_limit_seconds - time_taken_seconds;
+time_bonus_points = Math.round((remaining_time / time_limit_seconds) * bonus_points);
+```
+
+2. **Example Calculation:**
+   - Quiz: 300 seconds (5 min), 20 bonus points
+   - Finish in 100s: `(200/300) * 20 = 13 points`
+   - Finish in 200s: `(100/300) * 20 = 6 points`
+   - Finish in 300s: `0 points`
+
+3. **Rules:**
+   - Time bonus only awarded if quiz is **passed**
+   - If no time limit set but quiz passed: full `bonus_points` awarded
+   - If quiz failed: no bonus regardless of time
+
+**Key Locations:**
+- Backend calculation: `family-quizzes.ts:1752-1758`
+- Timer state management: `QuizPlayer.tsx:58-61`
+- Timer display: `QuizPlayer.tsx:860-931`
+- Timer persistence: `timer_states` table
+
+**Database Fields:**
+- `family_quizzes.bonus_points` - Base bonus pool
+- `family_quizzes.time_limit_seconds` - Optional time limit
+- `family_quiz_attempts.time_bonus_points` - Calculated bonus earned
+- `family_quiz_attempts.time_taken_seconds` - Total time spent
+
+---
+
+### AI Prompting System ✅ DOCUMENTED
+
+**Supported Providers:**
+| Provider | Text | Images | Priority |
+|----------|------|--------|----------|
+| Gemini | ✅ | ❌ | Primary for books |
+| Grok | ✅ | ✅ | Fallback 1 |
+| OpenAI | ✅ | ✅ (DALL-E 3) | Fallback 2 |
+
+**Book Generation Prompt** (`books.ts:410-442`):
+```
+You are an expert children's book author. Create a complete children's book...
+Request: "${prompt}"
+Target age range: ${ageRange} years old
+Language: ${language}
+Genre: ${genre}
+Number of pages: ${normalizedPageCount}
+
+Requirements:
+- Age-appropriate story with beginning, middle, end
+- Educational value or moral lesson
+- Simple vocabulary for young, complex for older
+- Image prompts for AI image generation
+```
+
+**Quiz Generation Prompt** (`family-quizzes.ts:615-657`):
+```
+You are an expert children's quiz creator...
+Category: ${category.display_name}
+Parent prompt: "${prompt}"
+
+Requirements:
+- Exactly ${normalizedCount} questions
+- 4 options per question (a, b, c, d)
+- Kid-friendly language
+- Optional image prompts for questions
+```
+
+**Customization Options:**
+| Feature | Books | Quizzes |
+|---------|-------|---------|
+| Age Range | ✅ (default: 4-8) | Via category |
+| Language | ✅ (default: en) | ❌ |
+| Genre | ✅ (default: story) | Via category |
+| Page/Question Count | ✅ (3-20) | ✅ (1-20) |
+| Include Images | ✅ (default: true) | ✅ (default: true) |
+| Text Provider | Auto (Gemini first) | ✅ Selectable |
+| Image Provider | Auto | ✅ Selectable |
+
+**Parental AI Controls** (`ai.ts:1540-1587`):
+- `strict_mode` - Enhanced safety guidelines
+- `max_messages_per_day` - Message limit
+- `content_filter_level` - 'strict' | 'moderate' | 'relaxed'
+- `custom_instructions` - Custom behavior appended to system prompt
+
+**Error Handling:**
+- 5 max retry attempts
+- Exponential backoff: 10s, 20s, 30s, 45s, 60s + jitter
+- Automatic provider switching on rate limits (429, 502, 503, 504)
+
+---
+
+### Shopping Gamification ❌ NOT IMPLEMENTED
+
+**Current Status:** No dedicated shopping/grocery gamification feature exists.
+
+**What Exists:**
+- General **Reward Shop** where kids spend points on rewards
+- Rewards can be any type (treats, activities, screen time)
+- Parents can create custom reward categories
+- Notes can be categorized as "shopping-list" (just a tag, not a feature)
+
+**If Implementing Shopping Gamification, Consider:**
+1. Shopping list feature where parents add items
+2. Kids earn points for helping with grocery shopping
+3. Kids can "claim" items from shopping list as rewards
+4. Track shopping trips and participation
+5. Integration with existing reward system
+
+---
+
+*Last Updated: 2026-01-19 (Session 2)*
