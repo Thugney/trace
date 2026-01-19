@@ -150,4 +150,110 @@ try {
 
 ---
 
+## CRITICAL: Common Issues & Solutions (Learned 2026-01-19)
+
+### 1. Route Ordering in Express
+**Problem:** Generic routes like `/:id` will match before specific routes like `/media/:filename`.
+
+**Solution:** Always declare specific routes BEFORE generic parameter routes:
+```typescript
+// CORRECT ORDER:
+router.get('/media/:filename', ...);    // Specific route FIRST
+router.get('/categories', ...);          // Specific route
+router.get('/:id', ...);                 // Generic route LAST
+```
+
+### 2. Public Routes for Static Assets (Images, Media)
+**Problem:** `<img>` tags don't send authentication headers, so protected routes fail to load images.
+
+**Solution:** Place media/asset routes BEFORE the `router.use(authenticate)` middleware:
+```typescript
+const router = Router();
+
+// PUBLIC ROUTE - Must be before auth middleware
+router.get('/media/:filename', (req, res) => {
+  // Serve static files
+});
+
+// Auth middleware applies to all routes BELOW this line
+router.use(authenticate, requireFeature('feature_name'));
+
+// Protected routes go here
+router.get('/data', ...);
+```
+
+### 3. Feature Access Middleware
+**Problem:** `requireFeature` middleware needs `req.profile` to work, which is set by `authenticate`.
+
+**Solution:** Always use BOTH middlewares together:
+```typescript
+// WRONG:
+router.use(requireFeature('books'));  // req.profile is undefined!
+
+// CORRECT:
+router.use(authenticate, requireFeature('books'));
+```
+
+### 4. Database Tables Missing on Production
+**Problem:** New tables from `init.ts` may not exist on production if database file pre-exists.
+
+**Solution:** Run a fix script via Docker:
+```bash
+# Create a fix script (e.g., backend/fix-something.js)
+# Then run it with cat pipe (avoids terminal line-break issues):
+cat backend/fix-something.js | sudo docker-compose exec -T backend node
+```
+
+### 5. Profile Settings Storage
+Profile-specific settings are stored as JSON in `profiles.settings` column:
+```typescript
+// Reading settings
+const profile = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(id);
+const settings = JSON.parse(profile.settings || '{}');
+
+// Writing settings
+settings.can_create_shopping_lists = true;
+db.prepare('UPDATE profiles SET settings = ? WHERE id = ?').run(JSON.stringify(settings), id);
+```
+
+---
+
+## Feature Documentation
+
+### Shopping Permission System
+Parents can enable/disable shopping list creation for individual children:
+
+**Backend:** `backend/src/routes/shopping.ts`
+- `GET /shopping/permissions/:parentId` - Get child permissions
+- `PUT /shopping/permissions/:childId` - Toggle permission
+- `GET /shopping/can-create-lists` - Check if current user can create lists
+
+**Frontend:**
+- `ShoppingList.tsx` - Settings tab for parents to toggle permissions
+- `ShoppingHelper.tsx` - Create List button for permitted kids
+
+**How it works:**
+1. Permission stored in `profiles.settings.can_create_shopping_lists`
+2. Kids with permission can create lists via ShoppingHelper page
+3. Lists created by kids use their parent's ID for association
+4. Parents still control trip creation and helper assignment
+
+### Book Reading Tracker
+Located in `BookLibrary.tsx` with tabs:
+- **Library** - All books (AI-generated and physical)
+- **Currently Reading** - Books with active reading progress
+- **Books I've Read** - Completed books
+- **Kids' Reading History** - Parent view of children's reading (uses Avatar component)
+
+**Avatar Display Rules:**
+- Use `Avatar` component for proper image/emoji rendering
+- In `<option>` elements, use `getDisplayAvatar()` helper (emoji only, no URLs)
+
+### Book Media Serving
+Book cover images and page images stored in `/app/data/book-media/`
+- Route: `GET /api/books/media/:filename` (public, no auth required)
+- Files named: `book-ai-{timestamp}-{random}.png`
+
+---
+
 **Remember:** When in doubt, ASK the user. It's better to ask a clarifying question than to make assumptions that break their app.
