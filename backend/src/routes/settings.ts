@@ -1,4 +1,5 @@
 import express from 'express';
+import axios from 'axios';
 import db from '../database/init';
 
 const router = express.Router();
@@ -147,6 +148,205 @@ router.get('/features/flags', (req, res) => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== OLLAMA MANAGEMENT ENDPOINTS =====
+
+const getOllamaUrl = (): string | null => {
+  let url = process.env.OLLAMA_URL;
+  if (!url || url.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_url');
+      if (setting?.value) url = setting.value;
+    } catch (error) {
+      console.error('Failed to read ollama_url from settings:', error);
+    }
+  }
+  return url && url.trim() !== '' ? url : null;
+};
+
+// Get Ollama status and available models
+router.get('/ollama/status', async (req, res) => {
+  try {
+    const ollamaUrl = getOllamaUrl();
+
+    if (!ollamaUrl) {
+      return res.json({
+        configured: false,
+        connected: false,
+        url: null,
+        models: [],
+        currentModel: process.env.OLLAMA_MODEL || null,
+        message: 'Ollama URL not configured. Set OLLAMA_URL in environment or database settings.'
+      });
+    }
+
+    // Extract base URL (remove /api/chat if present)
+    const baseUrl = ollamaUrl.replace(/\/api\/chat\/?$/, '').replace(/\/api\/?$/, '');
+
+    try {
+      const response = await axios.get(`${baseUrl}/api/tags`, { timeout: 5000 });
+      const models = response.data?.models || [];
+
+      // Get current model setting
+      let currentModel = process.env.OLLAMA_MODEL;
+      if (!currentModel || currentModel.trim() === '') {
+        const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_model');
+        currentModel = setting?.value || 'llama3.2';
+      }
+
+      return res.json({
+        configured: true,
+        connected: true,
+        url: ollamaUrl,
+        baseUrl: baseUrl,
+        models: models.map((m: any) => ({
+          name: m.name,
+          size: m.size,
+          parameterSize: m.details?.parameter_size,
+          family: m.details?.family
+        })),
+        currentModel,
+        message: `Connected to Ollama at ${baseUrl}`
+      });
+    } catch (connError: any) {
+      return res.json({
+        configured: true,
+        connected: false,
+        url: ollamaUrl,
+        models: [],
+        currentModel: process.env.OLLAMA_MODEL || null,
+        message: `Cannot connect to Ollama at ${baseUrl}: ${connError.message}`
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test Ollama with a specific model
+router.post('/ollama/test', async (req, res) => {
+  try {
+    const { model } = req.body;
+    const ollamaUrl = getOllamaUrl();
+
+    if (!ollamaUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ollama URL not configured'
+      });
+    }
+
+    const testModel = model || process.env.OLLAMA_MODEL || 'llama3.2';
+
+    const response = await axios.post(
+      ollamaUrl,
+      {
+        model: testModel,
+        messages: [
+          { role: 'user', content: 'Say "Hello! Ollama is working!" in exactly those words.' }
+        ],
+        stream: false,
+        options: { num_predict: 20 }
+      },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
+    );
+
+    const content = response.data?.message?.content;
+
+    res.json({
+      success: true,
+      model: testModel,
+      response: content,
+      message: `Successfully tested ${testModel}`
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.response?.data?.error || error.message
+    });
+  }
+});
+
+// Update Ollama settings (URL and model)
+router.post('/ollama/configure', async (req, res) => {
+  try {
+    const { url, model } = req.body;
+
+    if (url !== undefined) {
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('ollama_url', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(url);
+    }
+
+    if (model !== undefined) {
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('ollama_model', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(model);
+    }
+
+    res.json({
+      success: true,
+      message: 'Ollama configuration updated',
+      url: url || getOllamaUrl(),
+      model: model || process.env.OLLAMA_MODEL || 'llama3.2'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Pull a new model (this can take a long time)
+router.post('/ollama/pull', async (req, res) => {
+  try {
+    const { model } = req.body;
+    const ollamaUrl = getOllamaUrl();
+
+    if (!ollamaUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ollama URL not configured'
+      });
+    }
+
+    if (!model) {
+      return res.status(400).json({
+        success: false,
+        error: 'Model name is required'
+      });
+    }
+
+    // Extract base URL
+    const baseUrl = ollamaUrl.replace(/\/api\/chat\/?$/, '').replace(/\/api\/?$/, '');
+
+    // Start the pull (this is a long-running operation)
+    // Note: This endpoint just initiates the pull - actual progress would need streaming
+    const response = await axios.post(
+      `${baseUrl}/api/pull`,
+      { name: model, stream: false },
+      { headers: { 'Content-Type': 'application/json' }, timeout: 600000 } // 10 min timeout
+    );
+
+    res.json({
+      success: true,
+      model,
+      message: `Model ${model} pulled successfully`,
+      status: response.data?.status
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.response?.data?.error || error.message
+    });
   }
 });
 

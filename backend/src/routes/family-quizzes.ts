@@ -16,6 +16,34 @@ const GROK_IMAGE_URL = 'https://api.x.ai/v1/images/generations';
 const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_IMAGE_URL = 'https://api.openai.com/v1/images/generations';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const OLLAMA_DEFAULT_URL = 'http://localhost:11434/api/chat';
+
+// Ollama configuration (local LLM)
+const getOllamaUrl = (): string | null => {
+  let url = process.env.OLLAMA_URL;
+  if (!url || url.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_url');
+      if (setting?.value) url = setting.value;
+    } catch (error) {
+      console.error('Failed to read ollama_url from settings:', error);
+    }
+  }
+  return url && url.trim() !== '' ? url : null;
+};
+
+const getOllamaModel = (): string => {
+  let model = process.env.OLLAMA_MODEL;
+  if (!model || model.trim() === '') {
+    try {
+      const setting: any = db.prepare('SELECT value FROM settings WHERE key = ?').get('ollama_model');
+      if (setting?.value) model = setting.value;
+    } catch (error) {
+      console.error('Failed to read ollama_model from settings:', error);
+    }
+  }
+  return model && model.trim() !== '' ? model : 'llama3.2';
+};
 
 // Configure multer for quiz media uploads
 const QUIZ_MEDIA_DIR = process.env.QUIZ_MEDIA_DIR || '/app/data/quiz-media';
@@ -368,6 +396,46 @@ const requestGeminiQuizContent = async (apiKey: string, promptText: string) => {
   throw new HttpError(503, 'Gemini service is busy. Please try again.');
 };
 
+// Ollama (local LLM) request function
+const requestOllamaQuizContent = async (ollamaUrl: string, model: string, promptText: string) => {
+  const maxAttempts = 3;
+  const backoffDelays = [5000, 10000, 15000];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await axios.post(
+        ollamaUrl,
+        {
+          model: model,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI assistant that creates quiz content. Always respond with valid JSON only. Do not include any text before or after the JSON.' },
+            { role: 'user', content: promptText }
+          ],
+          stream: false,
+          options: {
+            temperature: 0.7,
+            num_predict: 3000
+          }
+        },
+        { headers: { 'Content-Type': 'application/json' }, timeout: 120000 } // 2 min timeout for local models
+      );
+
+      // Ollama returns { message: { content: "..." } } directly
+      const content = response.data?.message?.content;
+      return { data: { choices: [{ message: { content } }] } };
+    } catch (error: any) {
+      if (attempt < maxAttempts) {
+        const backoffMs = backoffDelays[attempt - 1];
+        console.log(`[AI Quiz] Ollama attempt ${attempt}/${maxAttempts} failed, retrying in ${Math.round(backoffMs / 1000)}s...`);
+        await sleep(backoffMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new HttpError(503, 'Ollama service is not responding. Please check if Ollama is running.');
+};
+
 const requestAiQuizContent = async (
   grokApiKey: string | null,
   promptText: string,
@@ -379,11 +447,19 @@ const requestAiQuizContent = async (
   // Longer backoffs for rate limits: 10s, 20s, 30s, 45s, 60s
   const backoffDelays = [10000, 20000, 30000, 45000, 60000];
 
+  // Get Ollama configuration
+  const ollamaUrl = getOllamaUrl();
+  const ollamaModel = getOllamaModel();
+
   // Determine provider order based on user preference
-  const normalizedTextProvider = (textProvider || 'gemini').toLowerCase();
+  const normalizedTextProvider = (textProvider || 'ollama').toLowerCase();
 
   // Helper function to try a specific provider
   const tryProvider = async (provider: string): Promise<any | null> => {
+    if (provider === 'ollama' && ollamaUrl) {
+      console.log(`[AI Quiz] Using Ollama (${ollamaModel}) for text generation`);
+      return await requestOllamaQuizContent(ollamaUrl, ollamaModel, promptText);
+    }
     if (provider === 'gemini' && geminiApiKey) {
       console.log(`[AI Quiz] Using Gemini for text generation`);
       return await requestGeminiQuizContent(geminiApiKey, promptText);
@@ -417,10 +493,12 @@ const requestAiQuizContent = async (
     return null;
   };
 
-  // Provider order based on user preference
-  const providerOrder = normalizedTextProvider === 'grok' ? ['grok', 'openai', 'gemini'] :
-                        normalizedTextProvider === 'openai' ? ['openai', 'grok', 'gemini'] :
-                        ['gemini', 'grok', 'openai'];
+  // Provider order based on user preference (ollama first if available, then cloud providers)
+  const providerOrder = normalizedTextProvider === 'ollama' ? ['ollama', 'gemini', 'grok', 'openai'] :
+                        normalizedTextProvider === 'grok' ? ['grok', 'ollama', 'openai', 'gemini'] :
+                        normalizedTextProvider === 'openai' ? ['openai', 'ollama', 'grok', 'gemini'] :
+                        normalizedTextProvider === 'gemini' ? ['gemini', 'ollama', 'grok', 'openai'] :
+                        ['ollama', 'gemini', 'grok', 'openai'];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -430,7 +508,7 @@ const requestAiQuizContent = async (
         if (response) return response;
       }
       // No providers available
-      throw new HttpError(503, 'AI service not configured. Please configure a Grok, OpenAI, or Gemini API key.');
+      throw new HttpError(503, 'AI service not configured. Please configure Ollama, Gemini, Grok, or OpenAI.');
     } catch (error: any) {
       const status = error?.response?.status;
       if (attempt < maxAttempts && shouldRetryAiRequest(error)) {

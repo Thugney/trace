@@ -319,6 +319,24 @@ export const aiAPI = {
     }>(`/ai/insights/${parentId}`, { params: { days: days || 7 } })
 };
 
+// Ollama types
+export interface OllamaModel {
+  name: string;
+  size: number;
+  parameterSize?: string;
+  family?: string;
+}
+
+export interface OllamaStatus {
+  configured: boolean;
+  connected: boolean;
+  url: string | null;
+  baseUrl?: string;
+  models: OllamaModel[];
+  currentModel: string | null;
+  message: string;
+}
+
 // Settings
 export const settingsAPI = {
   getAll: () => api.get<Record<string, any>>('/settings'),
@@ -327,7 +345,13 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin }),
-  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean }>('/settings/features/flags')
+  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean }>('/settings/features/flags'),
+
+  // Ollama management
+  getOllamaStatus: () => api.get<OllamaStatus>('/settings/ollama/status'),
+  testOllama: (model?: string) => api.post<{ success: boolean; model: string; response: string; message: string }>('/settings/ollama/test', { model }),
+  configureOllama: (config: { url?: string; model?: string }) => api.post<{ success: boolean; message: string; url: string; model: string }>('/settings/ollama/configure', config),
+  pullOllamaModel: (model: string) => api.post<{ success: boolean; model: string; message: string; status?: string }>('/settings/ollama/pull', { model })
 };
 
 // School
