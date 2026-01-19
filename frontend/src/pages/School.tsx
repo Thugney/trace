@@ -527,11 +527,13 @@ export default function School() {
                 ))}
               </div>
 
-              {/* Assignments Tab */}
-              {teacherTab === 'assignments' && (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-slate-900">Assignments for {selectedClass.name}</h2>
+              {/* Tab Content Container */}
+              <div className="bg-white/60 backdrop-blur-sm rounded-3xl border border-slate-100 p-6 md:p-8">
+                {/* Assignments Tab */}
+                {teacherTab === 'assignments' && (
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-xl font-semibold text-slate-900">Assignments for {selectedClass.name}</h2>
                     <button
                       onClick={() => setShowCreateAssignment(!showCreateAssignment)}
                       className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
@@ -586,6 +588,35 @@ export default function School() {
                             value={assignmentForm.description}
                             onChange={(e) => setAssignmentForm(prev => ({ ...prev, description: e.target.value }))}
                           />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Attachment (optional)</label>
+                          <div className="flex items-center gap-3">
+                            <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors">
+                              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
+                              <span className="text-sm text-slate-600">
+                                {assignmentFile ? assignmentFile.name : 'Upload PDF, DOC, or image'}
+                              </span>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                onChange={(e) => setAssignmentFile(e.target.files?.[0] || null)}
+                              />
+                            </label>
+                            {assignmentFile && (
+                              <button
+                                onClick={() => setAssignmentFile(null)}
+                                className="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                              >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="flex gap-3">
                           <button
@@ -650,64 +681,90 @@ export default function School() {
               {/* Students Tab */}
               {teacherTab === 'students' && (
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 mb-6">Students in {selectedClass.name}</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-slate-900">Students in {selectedClass.name}</h2>
+                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                      {classStudents.length} enrolled
+                    </span>
+                  </div>
                   {classStudents.length === 0 ? (
                     <div className="text-center py-16">
                       <div className="text-5xl mb-4">👨‍🎓</div>
                       <p className="text-slate-500">No students enrolled yet</p>
+                      <p className="text-sm text-slate-400 mt-1">Parents can enroll their children from their dashboard</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {studentProgressData.map(({ student, submittedCount, approvedCount, totalAssignments, assignmentStatuses }) => (
-                        <div key={student.id} className="bg-white p-5 rounded-2xl border border-slate-100">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {studentProgressData.map(({ student, submittedCount, approvedCount, needsRevisionCount, pendingCount, totalAssignments, assignmentStatuses }) => {
+                        const progressPercent = Math.round((approvedCount / Math.max(totalAssignments, 1)) * 100);
+                        return (
                           <div
-                            className="flex items-center justify-between cursor-pointer"
+                            key={student.id}
+                            className={`bg-gradient-to-br ${
+                              progressPercent === 100 ? 'from-emerald-50 to-green-50 border-emerald-200' :
+                              needsRevisionCount > 0 ? 'from-amber-50 to-orange-50 border-amber-200' :
+                              'from-slate-50 to-white border-slate-200'
+                            } p-5 rounded-2xl border transition-all hover:shadow-md cursor-pointer`}
                             onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold">
-                                {student.name?.charAt(0) || '?'}
-                              </div>
-                              <div>
-                                <div className="font-medium text-slate-900">{student.name}</div>
-                                <div className="text-sm text-slate-500">{submittedCount} of {totalAssignments} submitted</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-emerald-500 transition-all"
-                                  style={{ width: `${(approvedCount / Math.max(totalAssignments, 1)) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-sm text-slate-500">{Math.round((approvedCount / Math.max(totalAssignments, 1)) * 100)}%</span>
-                              <svg className={`w-5 h-5 text-slate-400 transition-transform ${expandedStudentId === student.id ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                          </div>
-                          {expandedStudentId === student.id && (
-                            <div className="mt-4 pt-4 border-t border-slate-100 grid gap-2">
-                              {assignmentStatuses.map(({ assignment, status }) => (
-                                <div key={assignment.id} className="flex items-center justify-between py-2">
-                                  <span className="text-sm text-slate-700">{assignment.title}</span>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
-                                    status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                                    status === 'submitted' ? 'bg-blue-100 text-blue-700' :
-                                    status === 'needs_revision' ? 'bg-amber-100 text-amber-700' :
-                                    'bg-slate-100 text-slate-500'
-                                  }`}>
-                                    {status === 'approved' ? 'Approved' :
-                                     status === 'submitted' ? 'Pending Review' :
-                                     status === 'needs_revision' ? 'Needs Revision' :
-                                     'Not Submitted'}
-                                  </span>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-200">
+                                  {student.name?.charAt(0) || '?'}
                                 </div>
-                              ))}
+                                <div>
+                                  <div className="font-semibold text-slate-900">{student.name}</div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {approvedCount > 0 && (
+                                      <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">{approvedCount} done</span>
+                                    )}
+                                    {pendingCount > 0 && (
+                                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">{pendingCount} pending</span>
+                                    )}
+                                    {needsRevisionCount > 0 && (
+                                      <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">{needsRevisionCount} revise</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-slate-900">{progressPercent}%</div>
+                                <div className="text-xs text-slate-400">complete</div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {/* Progress Bar */}
+                            <div className="mt-4 h-2 bg-slate-200 rounded-full overflow-hidden flex">
+                              <div className="bg-emerald-500 transition-all" style={{ width: `${(approvedCount / Math.max(totalAssignments, 1)) * 100}%` }}></div>
+                              <div className="bg-blue-400 transition-all" style={{ width: `${(pendingCount / Math.max(totalAssignments, 1)) * 100}%` }}></div>
+                              <div className="bg-amber-400 transition-all" style={{ width: `${(needsRevisionCount / Math.max(totalAssignments, 1)) * 100}%` }}></div>
+                            </div>
+                            <div className="mt-1 text-xs text-slate-400 text-right">{submittedCount} of {totalAssignments} submitted</div>
+
+                            {/* Expanded Details */}
+                            {expandedStudentId === student.id && (
+                              <div className="mt-4 pt-4 border-t border-slate-200/50 space-y-2">
+                                {assignmentStatuses.map(({ assignment, status }) => (
+                                  <div key={assignment.id} className="flex items-center justify-between py-2 px-3 bg-white/60 rounded-lg">
+                                    <span className="text-sm text-slate-700">{assignment.title}</span>
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                                      status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                                      status === 'submitted' ? 'bg-blue-100 text-blue-700' :
+                                      status === 'needs_revision' ? 'bg-amber-100 text-amber-700' :
+                                      'bg-slate-100 text-slate-500'
+                                    }`}>
+                                      {status === 'approved' ? 'Approved' :
+                                       status === 'submitted' ? 'Pending' :
+                                       status === 'needs_revision' ? 'Revise' :
+                                       'Not Done'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -798,6 +855,7 @@ export default function School() {
                   )}
                 </div>
               )}
+              </div>
             </>
           )}
 
