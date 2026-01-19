@@ -2103,4 +2103,147 @@ export const shoppingAPI = {
     api.get<{ canCreate: boolean; reason: string }>('/shopping/can-create-lists')
 };
 
+// ==================== LEARNING ACTIVITIES API ====================
+
+import type {
+  ActivityType,
+  LearningSession,
+  LearningActivity,
+  SessionAttempt,
+  ParentActivityStats,
+  ChildActivityStats,
+  AiGenerationRequest,
+  AiGenerationJob,
+  ActivitySubmissionResult,
+  SessionCompletionResult,
+  ActivityLeaderboardEntry
+} from '../types/activities';
+
+export const activitiesAPI = {
+  // Activity Types
+  getTypes: () =>
+    api.get<ActivityType[]>('/activities/types'),
+
+  getType: (idOrName: string | number) =>
+    api.get<ActivityType>(`/activities/types/${idOrName}`),
+
+  // Sessions
+  getParentSessions: (parentId: number) =>
+    api.get<LearningSession[]>(`/activities/sessions/parent/${parentId}`),
+
+  getChildSessions: (childId: number) =>
+    api.get<LearningSession[]>(`/activities/sessions/child/${childId}`),
+
+  getSession: (sessionId: number) =>
+    api.get<LearningSession>(`/activities/sessions/${sessionId}`),
+
+  createSession: (data: {
+    title: string;
+    description?: string;
+    topic: string;
+    ageRange?: string;
+    createdBy: number;
+    assignedTo: number;
+    pointsPerActivity?: number;
+    starsPerSession?: number;
+    bonusPoints?: number;
+    timeLimitSeconds?: number;
+    passThreshold?: number;
+    isCompetition?: boolean;
+    competitionEndsAt?: string;
+    firstPlaceBonus?: number;
+    secondPlaceBonus?: number;
+    thirdPlaceBonus?: number;
+  }) => api.post<{ id: number; message: string }>('/activities/sessions', data),
+
+  updateSession: (sessionId: number, data: Partial<LearningSession>) =>
+    api.put<{ message: string }>(`/activities/sessions/${sessionId}`, data),
+
+  deleteSession: (sessionId: number) =>
+    api.delete<{ message: string }>(`/activities/sessions/${sessionId}`),
+
+  // Activities within sessions
+  addActivity: (sessionId: number, data: {
+    activityTypeId: number;
+    title: string;
+    instructions?: string;
+    contentData: any;
+    correctData: any;
+    hints?: string[];
+    explanation?: string;
+    points?: number;
+    timeLimitSeconds?: number;
+    difficulty?: 'easy' | 'medium' | 'hard';
+  }) => api.post<{ id: number; message: string }>(`/activities/sessions/${sessionId}/activities`, data),
+
+  updateActivity: (activityId: number, data: Partial<LearningActivity>) =>
+    api.put<{ message: string }>(`/activities/activities/${activityId}`, data),
+
+  deleteActivity: (activityId: number) =>
+    api.delete<{ message: string }>(`/activities/activities/${activityId}`),
+
+  reorderActivities: (sessionId: number, activityIds: number[]) =>
+    api.put<{ message: string }>(`/activities/sessions/${sessionId}/activities/reorder`, { activityIds }),
+
+  // Session Attempts (Playing)
+  startSession: (sessionId: number, profileId: number) =>
+    api.post<{ attemptId: number; totalActivities: number; maxPossibleScore: number; resumed?: boolean; message: string }>(
+      `/activities/sessions/${sessionId}/start`, { profileId }
+    ),
+
+  submitActivity: (attemptId: number, data: {
+    activityId: number;
+    userResponse: any;
+    timeTakenSeconds?: number;
+    hintsUsed?: number;
+  }) => api.post<ActivitySubmissionResult>(`/activities/attempts/${attemptId}/submit`, data),
+
+  completeSession: (attemptId: number) =>
+    api.post<SessionCompletionResult>(`/activities/attempts/${attemptId}/complete`),
+
+  getAttemptHistory: (profileId: number, limit?: number) =>
+    api.get<SessionAttempt[]>(`/activities/attempts/profile/${profileId}`, { params: { limit } }),
+
+  getLeaderboard: (sessionId: number) =>
+    api.get<ActivityLeaderboardEntry[]>(`/activities/sessions/${sessionId}/leaderboard`),
+
+  // Statistics
+  getParentStats: (parentId: number) =>
+    api.get<ParentActivityStats>(`/activities/stats/parent/${parentId}`),
+
+  getChildStats: (childId: number) =>
+    api.get<ChildActivityStats>(`/activities/stats/child/${childId}`),
+
+  // AI Generation
+  startAiGeneration: (data: AiGenerationRequest) =>
+    api.post<{ jobId: string; status: string; remaining: number }>('/activities/ai-generate', data),
+
+  getAiGenerationStatus: (jobId: string) =>
+    api.get<AiGenerationJob>(`/activities/ai-generate/status/${jobId}`),
+
+  pollAiGeneration: (jobId: string) =>
+    api.get<AiGenerationJob>(`/activities/ai-generate/status/${jobId}`),
+
+  // Aliases for ActivityBuilder compatibility
+  getCreatedSessions: (parentId: number) =>
+    api.get<LearningSession[]>(`/activities/sessions/parent/${parentId}`),
+
+  getActivityTypes: () =>
+    api.get<ActivityType[]>('/activities/types'),
+
+  duplicateSession: (sessionId: number, assignedTo: number) =>
+    api.post<{ id: number; message: string }>(`/activities/sessions/${sessionId}/duplicate`, { assignedTo }),
+
+  // Media
+  uploadMedia: (sessionId: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ url: string; filename: string }>(
+      `/activities/sessions/${sessionId}/media`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+  }
+};
+
 export default api;

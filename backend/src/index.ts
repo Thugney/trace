@@ -22,6 +22,7 @@ import schoolRoutes from './routes/school';
 import regularSchoolRoutes from './routes/regular-school';
 import booksRoutes from './routes/books';
 import shoppingRoutes from './routes/shopping';
+import activitiesRoutes from './routes/activities';
 import { initScheduler } from './services/scheduler';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/api/school', schoolRoutes);
 app.use('/api/regular-school', regularSchoolRoutes);
 app.use('/api/books', booksRoutes);
 app.use('/api/shopping', shoppingRoutes);
+app.use('/api/activities', activitiesRoutes);
 
 // Initialize scheduler after database
 initScheduler();

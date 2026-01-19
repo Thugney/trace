@@ -2725,6 +2725,22 @@ export function initDatabase() {
     )
   `);
 
+  // Migration: Add daily_activity_limit to ai_generation_limits
+  try {
+    const columns = db.prepare('PRAGMA table_info(ai_generation_limits)').all() as any[];
+    const hasActivityLimit = columns.some((col: any) => col.name === 'daily_activity_limit');
+
+    if (!hasActivityLimit) {
+      console.log('🔄 Migrating ai_generation_limits: adding daily_activity_limit...');
+      db.prepare('ALTER TABLE ai_generation_limits ADD COLUMN daily_activity_limit INTEGER DEFAULT 10').run();
+      console.log('✅ Added daily_activity_limit column to ai_generation_limits');
+    }
+  } catch (error: any) {
+    if (!error.message.includes('duplicate column')) {
+      console.error('Migration error (ai_generation_limits daily_activity_limit):', error.message);
+    }
+  }
+
   // Create indexes for AI usage
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_ai_usage_profile ON ai_usage_logs(profile_id);
@@ -2956,6 +2972,163 @@ export function initDatabase() {
   }
 
   console.log('✅ Shopping gamification tables created');
+
+  // ==================== LEARNING ACTIVITY ENGINE ====================
+  // Activity type definitions (seeded data)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity_types (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      description TEXT,
+      icon TEXT NOT NULL,
+      difficulty_base INTEGER DEFAULT 1,
+      supports_images INTEGER DEFAULT 1,
+      supports_audio INTEGER DEFAULT 0,
+      min_items INTEGER DEFAULT 2,
+      max_items INTEGER DEFAULT 20,
+      config_schema TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Learning sessions (replaces family_quizzes for multi-activity learning)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS learning_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      topic TEXT NOT NULL,
+      age_range TEXT,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER NOT NULL,
+      points_per_activity INTEGER DEFAULT 20,
+      stars_per_session INTEGER DEFAULT 1,
+      bonus_points INTEGER DEFAULT 50,
+      time_limit_seconds INTEGER,
+      pass_threshold INTEGER DEFAULT 70,
+      is_ai_generated INTEGER DEFAULT 0,
+      ai_prompt TEXT,
+      ai_provider TEXT,
+      schedule_type TEXT DEFAULT 'anytime',
+      schedule_days TEXT,
+      is_active INTEGER DEFAULT 1,
+      is_competition INTEGER DEFAULT 0,
+      competition_ends_at DATETIME,
+      first_place_bonus INTEGER DEFAULT 50,
+      second_place_bonus INTEGER DEFAULT 25,
+      third_place_bonus INTEGER DEFAULT 10,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Individual activities within a session
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS learning_activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL,
+      activity_type_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      instructions TEXT,
+      content_data TEXT NOT NULL,
+      correct_data TEXT NOT NULL,
+      hints TEXT,
+      explanation TEXT,
+      points INTEGER DEFAULT 20,
+      time_limit_seconds INTEGER,
+      order_index INTEGER DEFAULT 0,
+      difficulty TEXT DEFAULT 'medium',
+      image_url TEXT,
+      audio_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES learning_sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (activity_type_id) REFERENCES activity_types(id)
+    )
+  `);
+
+  // Session attempt tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS session_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      total_activities INTEGER NOT NULL,
+      completed_activities INTEGER DEFAULT 0,
+      total_score INTEGER DEFAULT 0,
+      max_possible_score INTEGER NOT NULL,
+      score_percentage INTEGER DEFAULT 0,
+      points_earned INTEGER DEFAULT 0,
+      stars_earned INTEGER DEFAULT 0,
+      time_bonus_points INTEGER DEFAULT 0,
+      time_taken_seconds INTEGER,
+      passed INTEGER DEFAULT 0,
+      competition_rank INTEGER,
+      bonus_awarded INTEGER DEFAULT 0,
+      FOREIGN KEY (session_id) REFERENCES learning_sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Individual activity results
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attempt_id INTEGER NOT NULL,
+      activity_id INTEGER NOT NULL,
+      user_response TEXT NOT NULL,
+      score INTEGER DEFAULT 0,
+      max_score INTEGER NOT NULL,
+      is_correct INTEGER DEFAULT 0,
+      partial_score REAL DEFAULT 0,
+      hints_used INTEGER DEFAULT 0,
+      time_taken_seconds INTEGER,
+      answered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (attempt_id) REFERENCES session_attempts(id) ON DELETE CASCADE,
+      FOREIGN KEY (activity_id) REFERENCES learning_activities(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for learning activity tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_learning_sessions_assigned ON learning_sessions(assigned_to);
+    CREATE INDEX IF NOT EXISTS idx_learning_sessions_created ON learning_sessions(created_by);
+    CREATE INDEX IF NOT EXISTS idx_learning_activities_session ON learning_activities(session_id);
+    CREATE INDEX IF NOT EXISTS idx_session_attempts_session ON session_attempts(session_id);
+    CREATE INDEX IF NOT EXISTS idx_session_attempts_profile ON session_attempts(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_activity_results_attempt ON activity_results(attempt_id);
+  `);
+
+  // Seed default activity types
+  const defaultActivityTypes = [
+    { name: 'multiple_choice', display_name: 'Multiple Choice', icon: 'CheckSquare', description: 'Pick the correct answer from options', difficulty_base: 1, supports_images: 1, supports_audio: 1 },
+    { name: 'fill_blanks', display_name: 'Fill in the Blanks', icon: 'Edit3', description: 'Type the missing words in sentences', difficulty_base: 2, supports_images: 1, supports_audio: 0 },
+    { name: 'drag_drop', display_name: 'Drag & Drop', icon: 'Move', description: 'Drag items to their correct zones', difficulty_base: 2, supports_images: 1, supports_audio: 0 },
+    { name: 'memory_game', display_name: 'Memory Game', icon: 'Grid', description: 'Flip cards to find matching pairs', difficulty_base: 2, supports_images: 1, supports_audio: 0 },
+    { name: 'flashcards', display_name: 'Flashcards', icon: 'Layers', description: 'Flip cards to learn and memorize', difficulty_base: 1, supports_images: 1, supports_audio: 1 },
+    { name: 'sorting', display_name: 'Sorting', icon: 'ArrowUpDown', description: 'Put items in the correct order', difficulty_base: 2, supports_images: 1, supports_audio: 0 },
+    { name: 'matching', display_name: 'Matching', icon: 'Link', description: 'Draw lines to connect related items', difficulty_base: 2, supports_images: 1, supports_audio: 0 },
+    { name: 'true_false', display_name: 'True or False', icon: 'ToggleLeft', description: 'Decide if statements are true or false', difficulty_base: 1, supports_images: 1, supports_audio: 0 },
+    { name: 'arithmetic', display_name: 'Math Quiz', icon: 'Calculator', description: 'Solve math problems', difficulty_base: 2, supports_images: 0, supports_audio: 0 },
+    { name: 'word_search', display_name: 'Word Search', icon: 'Search', description: 'Find hidden words in a grid', difficulty_base: 3, supports_images: 0, supports_audio: 0 },
+    { name: 'crossword', display_name: 'Crossword', icon: 'Hash', description: 'Fill in the crossword puzzle', difficulty_base: 3, supports_images: 0, supports_audio: 0 },
+    { name: 'image_hotspots', display_name: 'Image Explorer', icon: 'Target', description: 'Click parts of an image to learn', difficulty_base: 2, supports_images: 1, supports_audio: 1 }
+  ];
+
+  const insertActivityType = db.prepare(`
+    INSERT OR IGNORE INTO activity_types (name, display_name, icon, description, difficulty_base, supports_images, supports_audio)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const at of defaultActivityTypes) {
+    insertActivityType.run(at.name, at.display_name, at.icon, at.description, at.difficulty_base, at.supports_images, at.supports_audio);
+  }
+
+  console.log('✅ Learning Activity Engine tables created');
 
   // Migration: Add category_id to shopping_items if it doesn't exist
   try {

@@ -17,7 +17,7 @@ export interface AiUsageLog {
   id: number;
   profile_id: number;
   parent_id: number | null;
-  feature_type: 'book' | 'quiz' | 'task' | 'chat';
+  feature_type: 'book' | 'quiz' | 'task' | 'chat' | 'activity';
   provider: string;
   estimated_cost: number;
   tokens_used: number;
@@ -33,6 +33,7 @@ export interface AiGenerationLimits {
   daily_book_limit: number;
   daily_quiz_limit: number;
   daily_task_limit: number;
+  daily_activity_limit: number;
   monthly_cost_limit: number;
   require_approval: boolean;
   enabled: boolean;
@@ -80,6 +81,7 @@ export function getAiLimits(parentId: number): AiGenerationLimits {
     daily_book_limit: 5,
     daily_quiz_limit: 10,
     daily_task_limit: 20,
+    daily_activity_limit: 10,
     monthly_cost_limit: 10.00,
     require_approval: false,
     enabled: true
@@ -89,7 +91,7 @@ export function getAiLimits(parentId: number): AiGenerationLimits {
 /**
  * Get today's usage count for a specific feature type
  */
-export function getTodayUsageCount(parentId: number, featureType: 'book' | 'quiz' | 'task' | 'chat'): number {
+export function getTodayUsageCount(parentId: number, featureType: 'book' | 'quiz' | 'task' | 'chat' | 'activity'): number {
   const today = new Date().toISOString().split('T')[0];
 
   const result: any = db.prepare(`
@@ -127,7 +129,7 @@ export function getMonthlyUsageCost(parentId: number): number {
  */
 export function canGenerateAi(
   profileId: number,
-  featureType: 'book' | 'quiz' | 'task' | 'chat',
+  featureType: 'book' | 'quiz' | 'task' | 'chat' | 'activity',
   estimatedCost: number = 0
 ): { allowed: boolean; reason?: string; remaining?: number; dailyLimit?: number } {
   const parentId = getParentIdForProfile(profileId);
@@ -157,6 +159,9 @@ export function canGenerateAi(
       break;
     case 'chat':
       dailyLimit = 100; // High limit for chat
+      break;
+    case 'activity':
+      dailyLimit = limits.daily_activity_limit;
       break;
   }
 
@@ -191,7 +196,7 @@ export function canGenerateAi(
  */
 export function logAiUsage(
   profileId: number,
-  featureType: 'book' | 'quiz' | 'task' | 'chat',
+  featureType: 'book' | 'quiz' | 'task' | 'chat' | 'activity',
   provider: string,
   options: {
     estimatedCost?: number;
@@ -241,7 +246,7 @@ export function estimateCost(
  * Get usage statistics for a family
  */
 export function getUsageStats(parentId: number): {
-  today: { books: number; quizzes: number; tasks: number };
+  today: { books: number; quizzes: number; tasks: number; activities: number };
   month: { totalCost: number; totalGenerations: number };
   limits: AiGenerationLimits;
 } {
@@ -260,11 +265,12 @@ export function getUsageStats(parentId: number): {
     GROUP BY feature_type
   `).all(parentId, today);
 
-  const todayByType: any = { books: 0, quizzes: 0, tasks: 0 };
+  const todayByType: any = { books: 0, quizzes: 0, tasks: 0, activities: 0 };
   for (const stat of todayStats) {
     if (stat.feature_type === 'book') todayByType.books = stat.count;
     if (stat.feature_type === 'quiz') todayByType.quizzes = stat.count;
     if (stat.feature_type === 'task') todayByType.tasks = stat.count;
+    if (stat.feature_type === 'activity') todayByType.activities = stat.count;
   }
 
   // Month's usage
@@ -312,6 +318,10 @@ export function updateAiLimits(
       updateFields.push('daily_task_limit = ?');
       values.push(updates.daily_task_limit);
     }
+    if (updates.daily_activity_limit !== undefined) {
+      updateFields.push('daily_activity_limit = ?');
+      values.push(updates.daily_activity_limit);
+    }
     if (updates.monthly_cost_limit !== undefined) {
       updateFields.push('monthly_cost_limit = ?');
       values.push(updates.monthly_cost_limit);
@@ -335,14 +345,15 @@ export function updateAiLimits(
     // Create new limits
     db.prepare(`
       INSERT INTO ai_generation_limits (
-        parent_id, daily_book_limit, daily_quiz_limit, daily_task_limit,
+        parent_id, daily_book_limit, daily_quiz_limit, daily_task_limit, daily_activity_limit,
         monthly_cost_limit, require_approval, enabled
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       parentId,
       updates.daily_book_limit ?? 5,
       updates.daily_quiz_limit ?? 10,
       updates.daily_task_limit ?? 20,
+      updates.daily_activity_limit ?? 10,
       updates.monthly_cost_limit ?? 10.00,
       updates.require_approval ? 1 : 0,
       updates.enabled !== false ? 1 : 0

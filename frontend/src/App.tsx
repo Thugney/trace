@@ -27,6 +27,8 @@ import BookLibrary from './pages/BookLibrary';
 import BookReader from './pages/BookReader';
 import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
+import ActivityPlayer from './pages/ActivityPlayer';
+import ActivityBuilder from './pages/ActivityBuilder';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -377,6 +379,30 @@ function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={['child']}>
                 <ShoppingHelper />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Activity Builder - Parents and Admin */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/activities/builder"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+                <ActivityBuilder />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Activity Player - Children */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/activities"
+            element={
+              <ProtectedRoute allowedRoles={['child']}>
+                <ActivityPlayer />
               </ProtectedRoute>
             }
           />
