@@ -256,7 +256,7 @@ export default function TasksManager() {
         priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
         is_recurring: isRecurring,
         recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
-        due_date: formData.get('due_date') as string || undefined,
+        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0],
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
         scheduled_time: scheduledTime || undefined,
         // Timer is automatically set by backend based on category
@@ -418,7 +418,7 @@ export default function TasksManager() {
         category: category as any,
         difficulty: formData.get('difficulty') as any,
         earns_points: true,
-        due_date: (formData.get('due_date') as string) || undefined
+        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0]
       });
 
       await loadTasks();
@@ -1187,11 +1187,18 @@ export default function TasksManager() {
 
               {/* Due Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-1">
                   <Calendar size={16} className="inline mr-1" />
-                  Due Date (optional)
+                  Due Date *
                 </label>
-                <input type="date" name="due_date" className="input" />
+                <input
+                  type="date"
+                  id="due_date"
+                  name="due_date"
+                  className="input"
+                  required
+                  defaultValue={new Date().toISOString().split('T')[0]}
+                />
               </div>
 
               {/* Estimated Time */}
@@ -1473,14 +1480,16 @@ export default function TasksManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Due Date (optional)
+                <label htmlFor="edit_due_date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Due Date *
                 </label>
                 <input
                   type="date"
+                  id="edit_due_date"
                   name="due_date"
                   className="input"
-                  defaultValue={editingTask.due_date?.split('T')[0] || ''}
+                  required
+                  defaultValue={editingTask.due_date?.split('T')[0] || new Date().toISOString().split('T')[0]}
                 />
               </div>
 

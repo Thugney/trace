@@ -20,7 +20,7 @@ interface ChildInfo {
 }
 
 export default function ShoppingList() {
-  const { currentProfile } = useProfile();
+  const { currentProfile, isParent, isAdmin } = useProfile();
   const toast = useToast();
 
   // Data state
@@ -362,15 +362,17 @@ export default function ShoppingList() {
           <Trophy className="w-4 h-4 inline mr-2" />
           Leaderboard
         </button>
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-            activeTab === 'settings' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600'
-          }`}
-        >
-          <Settings className="w-4 h-4 inline mr-2" />
-          Settings
-        </button>
+        {(isParent || isAdmin) && (
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'settings' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600'
+            }`}
+          >
+            <Settings className="w-4 h-4 inline mr-2" />
+            Settings
+          </button>
+        )}
       </div>
 
       {/* List Form */}
@@ -799,8 +801,8 @@ export default function ShoppingList() {
         </div>
       )}
 
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
+      {/* Settings Tab - Parents only */}
+      {activeTab === 'settings' && (isParent || isAdmin) && (
         <div className="space-y-6">
           {/* Child Permissions */}
           <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
