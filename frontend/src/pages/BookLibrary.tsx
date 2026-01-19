@@ -454,60 +454,20 @@ export default function BookLibrary() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 overflow-x-auto pb-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('library')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'library'
-              ? 'bg-primary-100 text-primary-700 border-b-2 border-primary-600'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-          }`}
+      {/* View Selector Dropdown */}
+      <div className="mb-6">
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as typeof activeTab)}
+          className="w-full md:w-64 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white text-gray-900 font-medium"
         >
-          <Library size={18} />
-          Library
-        </button>
-        <button
-          onClick={() => setActiveTab('currently-reading')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'currently-reading'
-              ? 'bg-blue-100 text-blue-700 border-b-2 border-blue-600'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <Play size={18} />
-          Currently Reading
-          {currentlyReading.length > 0 && (
-            <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded-full">{currentlyReading.length}</span>
+          <option value="library">📚 Library ({filteredBooks.length} books)</option>
+          <option value="currently-reading">📖 Currently Reading {currentlyReading.length > 0 ? `(${currentlyReading.length})` : ''}</option>
+          <option value="books-read">✅ Books I've Read {completedBooks.length > 0 ? `(${completedBooks.length})` : ''}</option>
+          {isParentOrTeacher && (
+            <option value="children-history">👨‍👩‍👧‍👦 Kids' Reading History</option>
           )}
-        </button>
-        <button
-          onClick={() => setActiveTab('books-read')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
-            activeTab === 'books-read'
-              ? 'bg-green-100 text-green-700 border-b-2 border-green-600'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-          }`}
-        >
-          <BookCheck size={18} />
-          Books I've Read
-          {completedBooks.length > 0 && (
-            <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">{completedBooks.length}</span>
-          )}
-        </button>
-        {isParentOrTeacher && (
-          <button
-            onClick={() => setActiveTab('children-history')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap ${
-              activeTab === 'children-history'
-                ? 'bg-purple-100 text-purple-700 border-b-2 border-purple-600'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-            }`}
-          >
-            <Users size={18} />
-            Kids' Reading
-          </button>
-        )}
+        </select>
       </div>
 
       {/* Search and Filter - only show on Library tab */}
