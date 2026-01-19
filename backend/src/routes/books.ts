@@ -676,6 +676,136 @@ router.get('/profile/:profileId', authenticate, (req: Request, res: Response) =>
   }
 });
 
+// ==================== ROUTES THAT MUST BE BEFORE /:bookId ====================
+
+// Get reading progress for a profile
+router.get('/progress/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const progress = db.prepare(`
+      SELECT brp.*, b.title as book_title, b.cover_image
+      FROM book_reading_progress brp
+      JOIN books b ON brp.book_id = b.id
+      WHERE brp.profile_id = ?
+      ORDER BY brp.last_read_at DESC
+    `).all(profileId);
+
+    res.json(progress);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get completed books for a profile ("Books I've Read")
+router.get('/completed/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const books = db.prepare(`
+      SELECT b.*, brp.completed_at, brp.reading_status, brp.pages_read,
+             (SELECT COUNT(*) FROM book_reading_notes WHERE book_id = b.id AND profile_id = ?) as notes_count
+      FROM books b
+      JOIN book_reading_progress brp ON b.id = brp.book_id
+      WHERE brp.profile_id = ? AND brp.completed = 1
+      ORDER BY brp.completed_at DESC
+    `).all(profileId, profileId);
+
+    res.json(books);
+  } catch (error: any) {
+    console.error('[Books] Get completed books error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get children's reading history (for parents)
+router.get('/children-history/:parentId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { parentId } = req.params;
+
+    // Get children linked to this parent
+    const children = db.prepare(`
+      SELECT id, name, avatar FROM profiles
+      WHERE parent_id = ? OR id IN (
+        SELECT student_id FROM guardian_students WHERE guardian_id = ?
+      )
+    `).all(parentId, parentId) as { id: number; name: string; avatar: string }[];
+
+    const childIds = children.map(c => c.id);
+    if (childIds.length === 0) {
+      return res.json({ children: [], history: [] });
+    }
+
+    const placeholders = childIds.map(() => '?').join(',');
+    const history = db.prepare(`
+      SELECT brp.*, b.title, b.cover_image, b.author, b.book_source,
+             p.name as child_name, p.avatar as child_avatar
+      FROM book_reading_progress brp
+      JOIN books b ON brp.book_id = b.id
+      JOIN profiles p ON brp.profile_id = p.id
+      WHERE brp.profile_id IN (${placeholders})
+      ORDER BY brp.last_read_at DESC
+      LIMIT 50
+    `).all(...childIds);
+
+    res.json({ children, history });
+  } catch (error: any) {
+    console.error('[Books] Get children history error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Lookup book info by title (using Open Library API)
+router.get('/lookup', authenticate, async (req: Request, res: Response) => {
+  try {
+    const title = req.query.title as string;
+    if (!title) {
+      return res.status(400).json({ error: 'title is required' });
+    }
+
+    // Try Open Library API first
+    const searchUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=1`;
+    const response = await axios.get(searchUrl, { timeout: 5000 });
+
+    if (response.data.docs && response.data.docs.length > 0) {
+      const book = response.data.docs[0];
+      return res.json({
+        found: true,
+        book: {
+          title: book.title,
+          author: book.author_name?.[0] || '',
+          description: book.first_sentence?.[0] || '',
+          total_pages: book.number_of_pages_median || null,
+          isbn: book.isbn?.[0] || ''
+        }
+      });
+    }
+
+    res.json({ found: false });
+  } catch (error: any) {
+    console.error('[Books] Lookup error:', error);
+    res.json({ found: false });
+  }
+});
+
+// Get all feedback from a child (for parents to see)
+router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { profileId } = req.params;
+    const feedback = db.prepare(`
+      SELECT bf.*, b.title as book_title, b.cover_image
+      FROM book_feedback bf
+      JOIN books b ON bf.book_id = b.id
+      WHERE bf.profile_id = ?
+      ORDER BY bf.created_at DESC
+    `).all(profileId);
+
+    res.json(feedback);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== ROUTES WITH :bookId PARAM ====================
+
 // Get single book with pages
 router.get('/:bookId', authenticate, (req: Request, res: Response) => {
   try {
@@ -752,24 +882,6 @@ router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => 
     }
 
     const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
-    res.json(progress);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get reading progress for a profile
-router.get('/progress/:profileId', authenticate, (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.params;
-    const progress = db.prepare(`
-      SELECT brp.*, b.title as book_title, b.cover_image
-      FROM book_reading_progress brp
-      JOIN books b ON brp.book_id = b.id
-      WHERE brp.profile_id = ?
-      ORDER BY brp.last_read_at DESC
-    `).all(profileId);
-
     res.json(progress);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -944,24 +1056,6 @@ router.get('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
   }
 });
 
-// Get all feedback from a child (for parents to see)
-router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.params;
-    const feedback = db.prepare(`
-      SELECT bf.*, b.title as book_title, b.cover_image
-      FROM book_feedback bf
-      JOIN books b ON bf.book_id = b.id
-      WHERE bf.profile_id = ?
-      ORDER BY bf.created_at DESC
-    `).all(profileId);
-
-    res.json(feedback);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Get my feedback for a specific book
 router.get('/:bookId/my-feedback/:profileId', authenticate, (req: Request, res: Response) => {
   try {
@@ -1109,112 +1203,6 @@ router.delete('/notes/:noteId', authenticate, (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Books] Delete note error:', error);
     res.status(500).json({ error: error.message });
-  }
-});
-
-// ==================== COMPLETED BOOKS ====================
-
-// Get completed books for a profile ("Books I've Read")
-router.get('/completed/:profileId', authenticate, (req: Request, res: Response) => {
-  try {
-    const { profileId } = req.params;
-    const books = db.prepare(`
-      SELECT b.*, brp.completed_at, brp.reading_status, brp.pages_read,
-             (SELECT COUNT(*) FROM book_reading_notes WHERE book_id = b.id AND profile_id = ?) as notes_count
-      FROM books b
-      JOIN book_reading_progress brp ON b.id = brp.book_id
-      WHERE brp.profile_id = ? AND brp.completed = 1
-      ORDER BY brp.completed_at DESC
-    `).all(profileId, profileId);
-
-    res.json(books);
-  } catch (error: any) {
-    console.error('[Books] Get completed books error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get children's reading history (for parents)
-router.get('/children-history/:parentId', authenticate, (req: Request, res: Response) => {
-  try {
-    const { parentId } = req.params;
-
-    // Get children linked to this parent
-    const children = db.prepare(`
-      SELECT id, name, avatar FROM profiles
-      WHERE parent_id = ? OR id IN (
-        SELECT student_id FROM guardian_students WHERE guardian_id = ?
-      )
-    `).all(parentId, parentId) as { id: number; name: string; avatar: string }[];
-
-    const childIds = children.map(c => c.id);
-    if (childIds.length === 0) {
-      return res.json({ children: [], history: [] });
-    }
-
-    const placeholders = childIds.map(() => '?').join(',');
-    const history = db.prepare(`
-      SELECT b.id, b.title, b.cover_image, b.author, b.book_source,
-             brp.profile_id, brp.completed, brp.completed_at, brp.reading_status, brp.pages_read,
-             p.name as child_name, p.avatar as child_avatar
-      FROM book_reading_progress brp
-      JOIN books b ON brp.book_id = b.id
-      JOIN profiles p ON brp.profile_id = p.id
-      WHERE brp.profile_id IN (${placeholders})
-      ORDER BY brp.last_read_at DESC
-      LIMIT 50
-    `).all(...childIds);
-
-    res.json({ children, history });
-  } catch (error: any) {
-    console.error('[Books] Get children history error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// ==================== BOOK LOOKUP ====================
-
-// Lookup book info by title (using Open Library API)
-router.get('/lookup', authenticate, async (req: Request, res: Response) => {
-  try {
-    const title = req.query.title as string;
-    if (!title) {
-      return res.status(400).json({ error: 'title is required' });
-    }
-
-    // Try Open Library API first
-    const searchUrl = `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=1`;
-    const response = await axios.get(searchUrl, { timeout: 5000 });
-
-    if (response.data.docs && response.data.docs.length > 0) {
-      const doc = response.data.docs[0];
-      const book: Partial<{
-        title: string;
-        author: string;
-        description: string;
-        isbn: string;
-        total_pages: number;
-        cover_image: string;
-      }> = {
-        title: doc.title,
-        author: doc.author_name ? doc.author_name[0] : undefined,
-        isbn: doc.isbn ? doc.isbn[0] : undefined,
-        total_pages: doc.number_of_pages_median || undefined
-      };
-
-      // Get cover image if available
-      if (doc.cover_i) {
-        book.cover_image = `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
-      }
-
-      return res.json({ found: true, book });
-    }
-
-    res.json({ found: false });
-  } catch (error: any) {
-    console.error('[Books] Lookup error:', error.message);
-    // Return not found on error (don't fail the request)
-    res.json({ found: false });
   }
 });
 
