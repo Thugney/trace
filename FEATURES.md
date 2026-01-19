@@ -630,11 +630,41 @@ Displayed before generation so parents know approximate cost.
 - `school_feedback` - Teacher feedback on submissions
 - `teacher_class_assignments` - Teacher-class relationships
 
-### UI Layout
+### UI Design (Redesigned)
 
-- **Teachers**: Left sidebar with class list + class creation form, main area with tabs (Assignments, Students, Submissions)
-- **Parents/Children**: Left sidebar with child selector + progress stats, main area showing assignments grouped by class
-- **Admin**: Overview statistics, list of all classes and teachers
+**Teacher View:**
+- Class selector as horizontal pills at the top
+- Inline "New Class" form (expands on click)
+- Stats row showing: Students, Assignments, Submissions, Need Review
+- Tab navigation: Assignments | Students | Submissions
+- Compact create assignment form with grid layout
+- File upload support (PDF, DOC, images)
+- Students tab: 2-column grid with progress cards
+  - Color-coded: green (complete), amber (needs revision)
+  - Progress bars with approved/pending/revision breakdown
+  - Expandable to see each assignment status
+
+**Parent View:**
+- Child selector (if multiple children)
+- Progress summary with color-coded bar
+- **Class Enrollment section:**
+  - Shows currently enrolled classes (green checkmark badges)
+  - Shows available classes to enroll (+ buttons)
+  - Prevents accidental duplicate enrollment
+- Assignments grouped by class
+- Status badges: Approved, Pending, Revise, Todo
+- Teacher feedback displayed with green highlight
+- Submit/Resubmit buttons for each assignment
+
+**Child View:**
+- Same as parent but simplified
+- "My Schoolwork" header
+- Can submit assignments directly
+
+**Admin View:**
+- Statistics cards: Classes, Teachers, Students
+- List of all classes with age ranges
+- Grid of all teachers
 
 ---
 
@@ -665,4 +695,4 @@ Displayed before generation so parents know approximate cost.
 
 ---
 
-*Last Updated: 2026-01-19 (School system documentation added)*
+*Last Updated: 2026-01-19 (School UI redesign documented)*
