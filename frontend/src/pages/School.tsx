@@ -225,6 +225,21 @@ export default function School() {
     }
   };
 
+  const handleUnenrollStudent = async (studentId: number, classId: number, className: string) => {
+    if (!confirm(`Remove from "${className}"? This will keep their progress but they won't see new assignments.`)) {
+      return;
+    }
+    try {
+      await schoolAPI.unenrollStudent(studentId, classId);
+      const enrollmentsRes = await schoolAPI.getClasses({ student_id: studentId });
+      setEnrolledClasses(enrollmentsRes.data);
+      showToast('Unenrolled from class', 'success');
+    } catch (error) {
+      console.error('Failed to unenroll student:', error);
+      showToast('Failed to unenroll', 'error');
+    }
+  };
+
   const handleCreateAssignment = async () => {
     if (!selectedClassId) {
       showToast('Select a class first', 'error');
@@ -949,12 +964,21 @@ export default function School() {
                     {enrolledClasses.map(cls => (
                       <span
                         key={cls.id}
-                        className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-sm font-medium text-emerald-700 flex items-center gap-1.5"
+                        className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 rounded-full text-sm font-medium text-emerald-700 flex items-center gap-1.5 group"
                       >
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                         {cls.name}
+                        <button
+                          onClick={() => selectedStudentId && handleUnenrollStudent(selectedStudentId, cls.id, cls.name)}
+                          className="ml-1 w-4 h-4 rounded-full bg-emerald-200 hover:bg-red-400 hover:text-white text-emerald-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                          title="Leave class"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
                       </span>
                     ))}
                   </div>
