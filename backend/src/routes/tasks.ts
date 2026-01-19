@@ -135,6 +135,11 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'profile_id and title are required' });
     }
 
+    // Due date is mandatory for all tasks
+    if (!due_date) {
+      return res.status(400).json({ error: 'due_date is required. All tasks must have a due date.' });
+    }
+
     // Calculate points based on difficulty if not provided
     let taskPoints = points;
     if (!taskPoints && difficulty) {
@@ -323,6 +328,20 @@ router.post('/:id/complete', (req, res) => {
         requires_timer: true,
         timer_duration_minutes: task.timer_duration_minutes
       });
+    }
+
+    // ===== ANTI-ABUSE CHECK 0.6: Task is overdue (past due date) =====
+    if (task.due_date) {
+      const dueDate = new Date(task.due_date);
+      dueDate.setHours(23, 59, 59, 999); // End of due date
+      const now = new Date();
+      if (now > dueDate) {
+        return res.status(400).json({
+          error: 'This task is overdue and can no longer be completed. The due date has passed.',
+          code: 'TASK_OVERDUE',
+          due_date: task.due_date
+        });
+      }
     }
 
     // ===== ANTI-ABUSE CHECK 1: Already completed =====

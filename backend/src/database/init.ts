@@ -1651,6 +1651,21 @@ export function initDatabase() {
     )
   `);
 
+  // Points adjustments - audit log for parent point adjustments (add/deduct)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS points_adjustments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      adjusted_by INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (adjusted_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+  console.log('✅ Points adjustments table created');
+
   // Create indexes for economy tables
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_economy_settings_profile ON economy_settings(profile_id);

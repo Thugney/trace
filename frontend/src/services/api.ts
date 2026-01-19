@@ -698,7 +698,19 @@ export const gamificationAPI = {
     }>(`/gamification/economy/${profileId}/history`, { params: { days } }),
 
   getPricingGuide: (profileId: number) =>
-    api.get<PricingGuide>(`/gamification/economy/${profileId}/pricing-guide`)
+    api.get<PricingGuide>(`/gamification/economy/${profileId}/pricing-guide`),
+
+  // Points Adjustment (Parent Control)
+  adjustPoints: (profileId: number, amount: number, reason: string, parentId?: number) =>
+    api.post<PointsAdjustmentResult>(`/gamification/points/adjust/${profileId}`, {
+      amount,
+      reason,
+      parent_id: parentId
+    }),
+  getPointsHistory: (profileId: number, limit?: number) =>
+    api.get<{ history: PointsAdjustmentEntry[] }>(`/gamification/points/history/${profileId}`, {
+      params: { limit }
+    })
 };
 
 // Economy control types
@@ -756,6 +768,27 @@ export interface PricingGuide {
     majorReward: { description: string; suggestedPoints: number; daysToEarn: number };
   };
   tips: string[];
+}
+
+// Points Adjustment types
+export interface PointsAdjustmentResult {
+  success: boolean;
+  adjustment: number;
+  reason: string;
+  previous_points: number;
+  new_points: number;
+  new_level: number;
+  adjusted_by: string;
+}
+
+export interface PointsAdjustmentEntry {
+  id: number;
+  profile_id: number;
+  adjusted_by: number;
+  adjusted_by_name: string;
+  amount: number;
+  reason: string;
+  created_at: string;
 }
 
 // Types for new gamification features

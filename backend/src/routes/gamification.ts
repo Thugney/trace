@@ -1,6 +1,6 @@
 import express from 'express';
 import db from '../database/init';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import {
   getEconomySettings,
@@ -1288,6 +1288,120 @@ router.get('/economy/:profileId/pricing-guide', (req, res) => {
     };
 
     res.json(pricingGuide);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== POINTS ADJUSTMENT (Parent Control) ====================
+
+// Adjust (add or deduct) points for a child - Parents only
+router.post('/points/adjust/:profileId', authenticate, (req: AuthRequest, res) => {
+  try {
+    const { profileId } = req.params;
+    const { amount, reason, parent_id } = req.body;
+
+    // Validate input
+    if (amount === undefined || amount === 0) {
+      return res.status(400).json({ error: 'Amount is required and cannot be zero' });
+    }
+
+    if (!reason || reason.trim().length < 3) {
+      return res.status(400).json({ error: 'A reason is required (minimum 3 characters)' });
+    }
+
+    // Verify parent has permission over this child
+    const child: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileId);
+    if (!child) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    if (child.type !== 'child') {
+      return res.status(400).json({ error: 'Can only adjust points for child profiles' });
+    }
+
+    // Verify the requester is a parent/admin of this child
+    const parentId = parent_id || req.profile?.id;
+    const parent: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(parentId);
+    if (!parent || (parent.type !== 'parent' && parent.type !== 'admin')) {
+      return res.status(403).json({ error: 'Only parents can adjust points' });
+    }
+
+    // Get current progress
+    const progress: any = db.prepare(`
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+
+    const currentPoints = progress?.total_points || 0;
+    const currentStars = progress?.total_stars || 0;
+
+    // For deductions, ensure child has enough points
+    if (amount < 0 && currentPoints + amount < 0) {
+      return res.status(400).json({
+        error: 'Cannot deduct more points than the child has',
+        current_points: currentPoints,
+        requested_deduction: Math.abs(amount)
+      });
+    }
+
+    // Calculate new totals
+    const newPoints = currentPoints + amount;
+    const newLevel = Math.floor(newPoints / 100) + 1;
+
+    // Insert adjustment record
+    db.prepare(`
+      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
+      VALUES (?, ?, 0, ?, ?, ?)
+    `).run(profileId, amount, newLevel, newPoints, currentStars);
+
+    // Log the adjustment for audit
+    db.prepare(`
+      INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(profileId, parentId, amount, reason.trim());
+
+    res.json({
+      success: true,
+      adjustment: amount,
+      reason: reason.trim(),
+      previous_points: currentPoints,
+      new_points: newPoints,
+      new_level: newLevel,
+      adjusted_by: parent.name
+    });
+  } catch (error: any) {
+    // Handle missing table gracefully
+    if (error.message.includes('no such table: points_adjustments')) {
+      // Table doesn't exist yet, continue without audit log
+      console.warn('points_adjustments table not found, skipping audit log');
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get points adjustment history for a child
+router.get('/points/history/:profileId', authenticate, (req: AuthRequest, res) => {
+  try {
+    const { profileId } = req.params;
+    const { limit = 20 } = req.query;
+
+    // Try to get adjustment history (table may not exist in older databases)
+    let history: any[] = [];
+    try {
+      history = db.prepare(`
+        SELECT pa.*, p.name as adjusted_by_name
+        FROM points_adjustments pa
+        LEFT JOIN profiles p ON pa.adjusted_by = p.id
+        WHERE pa.profile_id = ?
+        ORDER BY pa.created_at DESC
+        LIMIT ?
+      `).all(profileId, parseInt(limit as string));
+    } catch {
+      // Table doesn't exist yet
+      history = [];
+    }
+
+    res.json({ history });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
