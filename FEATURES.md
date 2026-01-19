@@ -649,11 +649,17 @@ Displayed before generation so parents know approximate cost.
 - Progress summary with color-coded bar
 - **Class Enrollment section:**
   - Shows currently enrolled classes (green checkmark badges)
+  - Hover to reveal "x" button for unenrolling (useful when kids move grades)
+  - Confirmation dialog before unenrolling
   - Shows available classes to enroll (+ buttons)
   - Prevents accidental duplicate enrollment
 - Assignments grouped by class
 - Status badges: Approved, Pending, Revise, Todo
-- Teacher feedback displayed with green highlight
+- **Context-aware teacher feedback display:**
+  - Green (checkmark icon): "Approved by Teacher"
+  - Amber (warning icon): "Revision Requested"
+  - Blue (info icon): General feedback
+  - Shows rating if provided
 - Submit/Resubmit buttons for each assignment
 
 **Child View:**
