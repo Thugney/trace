@@ -152,7 +152,7 @@ export default function School() {
 
   useEffect(() => {
     if (!selectedClassId || !isTeacher) return;
-    const loadTeacherClass = async () => {
+    const loadTeacherClass = async (showError = true) => {
       try {
         const [assignmentsRes, studentsRes, submissionsRes] = await Promise.all([
           schoolAPI.getAssignments({ class_id: selectedClassId }),
@@ -162,18 +162,20 @@ export default function School() {
         setAssignments(assignmentsRes.data);
         setClassStudents(studentsRes.data);
         setSubmissions(submissionsRes.data as SubmissionWithClass[]);
-        setSelectedSubmissionId(null);
       } catch (error) {
         console.error('Failed to load teacher class data:', error);
-        showToast('Failed to load class data', 'error');
+        if (showError) showToast('Failed to load class data', 'error');
       }
     };
     loadTeacherClass();
+    // Auto-refresh every 15 seconds for real-time updates
+    const interval = setInterval(() => loadTeacherClass(false), 15000);
+    return () => clearInterval(interval);
   }, [selectedClassId, isTeacher, showToast]);
 
   useEffect(() => {
     if (!selectedStudentId || !(isParent || isChild)) return;
-    const loadStudentData = async () => {
+    const loadStudentData = async (showError = true) => {
       try {
         const [assignmentsRes, submissionsRes, feedbackRes, enrollmentsRes] = await Promise.all([
           schoolAPI.getAssignments({ student_id: selectedStudentId }),
@@ -187,10 +189,13 @@ export default function School() {
         setEnrolledClasses(enrollmentsRes.data);
       } catch (error) {
         console.error('Failed to load student data:', error);
-        showToast('Failed to load assignments', 'error');
+        if (showError) showToast('Failed to load assignments', 'error');
       }
     };
     loadStudentData();
+    // Auto-refresh every 15 seconds for real-time updates (new assignments, feedback)
+    const interval = setInterval(() => loadStudentData(false), 15000);
+    return () => clearInterval(interval);
   }, [selectedStudentId, isParent, isChild, showToast]);
 
   const handleCreateClass = async () => {
@@ -427,10 +432,22 @@ export default function School() {
 
         .school-bg {
           min-height: calc(100vh - 120px);
-          padding: 32px;
+          padding: 24px;
           position: relative;
           overflow: hidden;
           background: linear-gradient(135deg, #fafbff 0%, #f0f4ff 50%, #fef7f0 100%);
+        }
+
+        @media (min-width: 768px) {
+          .school-bg {
+            padding: 40px;
+          }
+        }
+
+        @media (min-width: 1280px) {
+          .school-bg {
+            padding: 48px 56px;
+          }
         }
 
         .school-bg::before {
@@ -744,6 +761,12 @@ export default function School() {
           cursor: pointer;
         }
 
+        @media (min-width: 768px) {
+          .school-item-card {
+            padding: 24px;
+          }
+        }
+
         .school-item-card:hover {
           background: rgba(255, 255, 255, 0.9);
           border-color: var(--border-hover);
@@ -817,7 +840,7 @@ export default function School() {
       `}</style>
 
       <div className="school-bg">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-[1600px] mx-auto space-y-10">
           <section className="school-card school-hero p-8 md:p-10 relative z-10">
             <div className="flex flex-wrap items-start justify-between gap-8">
               <div className="space-y-4">
@@ -879,9 +902,9 @@ export default function School() {
             </div>
           </section>
           {isTeacher && (
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+            <section className="grid grid-cols-1 xl:grid-cols-12 gap-8 relative z-10">
               {/* Left Sidebar - Classes */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="xl:col-span-3 space-y-6">
                 <div className="school-card p-6 space-y-5 animate-in animate-in-1">
                   <div>
                     <h2 className="school-section-title text-lg text-slate-900">My Classes</h2>
@@ -972,7 +995,7 @@ export default function School() {
               </div>
 
               {/* Main Content Area - Tabbed */}
-              <div className="lg:col-span-9 space-y-6">
+              <div className="xl:col-span-9 space-y-6">
                 {/* Tab Navigation */}
                 <div className="school-card p-2 animate-in animate-in-1">
                   <div className="flex gap-1">
@@ -1393,9 +1416,9 @@ export default function School() {
             </section>
           )}
           {(isParent || isChild) && (
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+            <section className="grid grid-cols-1 xl:grid-cols-12 gap-8 relative z-10">
               {/* Left Sidebar - Child Selector & Stats */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="xl:col-span-3 space-y-6">
                 <div className="school-card p-6 animate-in animate-in-1">
                   {isParent && (
                     <div className="mb-6">
@@ -1470,7 +1493,7 @@ export default function School() {
               </div>
 
               {/* Main Content - Assignments */}
-              <div className="lg:col-span-9 space-y-8 animate-in animate-in-2">
+              <div className="xl:col-span-9 space-y-8 animate-in animate-in-2">
                 {assignmentsByClass.length === 0 ? (
                   <div className="school-card p-12 text-center">
                     <div className="w-16 h-16 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-4">
@@ -1499,7 +1522,7 @@ export default function School() {
                         </div>
 
                         {/* Assignments - Single card per assignment, clean layout */}
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                           {classAssignments.map(assignment => {
                             const submission = submissionsByAssignment.get(assignment.id);
                             const assignmentFeedback = getFeedbackForAssignment(assignment.id);
@@ -1510,7 +1533,7 @@ export default function School() {
                             return (
                               <div
                                 key={assignment.id}
-                                className={`school-card p-6 ${needsRevision ? 'ring-2 ring-amber-300 bg-amber-50/30' : ''} ${overdueStatus ? 'ring-2 ring-red-300 bg-red-50/30' : ''} ${isApproved ? 'bg-emerald-50/30' : ''}`}
+                                className={`school-card p-6 md:p-8 ${needsRevision ? 'ring-2 ring-amber-300 bg-amber-50/30' : ''} ${overdueStatus ? 'ring-2 ring-red-300 bg-red-50/30' : ''} ${isApproved ? 'bg-emerald-50/30' : ''}`}
                               >
                                 {/* Assignment Title Row */}
                                 <div className="flex items-start justify-between gap-4 mb-4">
@@ -1590,9 +1613,9 @@ export default function School() {
           )}
 
           {isAdmin && (
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+            <section className="grid grid-cols-1 xl:grid-cols-12 gap-8 relative z-10">
               {/* Admin Sidebar - Stats */}
-              <div className="lg:col-span-3 space-y-6">
+              <div className="xl:col-span-3 space-y-6">
                 <div className="school-card p-6 space-y-5 animate-in animate-in-1">
                   <div>
                     <h3 className="school-section-title text-lg text-slate-900">School Overview</h3>
@@ -1654,7 +1677,7 @@ export default function School() {
               </div>
 
               {/* Main Content - Classes with Details */}
-              <div className="lg:col-span-9 school-card p-6 space-y-5 animate-in animate-in-2">
+              <div className="xl:col-span-9 school-card p-6 md:p-8 space-y-6 animate-in animate-in-2">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="school-section-title text-xl text-slate-900">All Classes</h3>

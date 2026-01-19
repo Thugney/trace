@@ -18,6 +18,7 @@ This document describes all implemented features, how they work, and their purpo
 10. [AI Usage Controls](#-ai-usage-controls)
 11. [Push Notifications](#-push-notifications)
 12. [Economy Controls](#-economy-controls)
+13. [Church School System](#church-school-system)
 
 ---
 
@@ -540,6 +541,103 @@ Displayed before generation so parents know approximate cost.
 
 ---
 
+## Church School System
+
+**Purpose:** Digital classroom management for church weekend education (Saturday/Sunday school).
+
+**The Problem:** Managing church school classes, assignments, and tracking student progress manually is time-consuming and difficult to coordinate between teachers, parents, and students.
+
+**The Solution:** A complete digital classroom system where teachers create classes and assignments, students submit their work, and parents can monitor their children's progress.
+
+### User Roles
+
+| Role | Capabilities |
+|------|-------------|
+| **Teacher** | Create classes, publish assignments, review submissions, give feedback |
+| **Parent** | Enroll children in classes, view assignments, submit work on behalf of children, track progress |
+| **Child** | View assignments, submit work, see teacher feedback |
+| **Admin** | View all classes, teachers, and students |
+
+### Assignment Types
+
+| Type | Description |
+|------|-------------|
+| Homework | General assignments |
+| Psalm | Scripture memorization |
+| Alphabet | For younger children learning letters |
+| Video | Watch and respond to videos |
+| Quiz | Knowledge assessments |
+| Other | Custom assignments |
+
+### Features
+
+- **Class Management**
+  - Teachers create classes with age ranges
+  - Students enroll in multiple classes
+  - Teacher-class assignments for multi-teacher scenarios
+
+- **Assignment Publishing**
+  - Title, description, type, due date
+  - Optional YouTube video links
+  - File attachments
+
+- **Submission System**
+  - Students submit work with notes
+  - Teachers review and provide feedback
+  - Status tracking: Not submitted → Submitted → Approved/Needs Revision
+
+- **Real-time Updates**
+  - Auto-refresh every 15 seconds for teachers (new submissions)
+  - Auto-refresh every 15 seconds for students (new assignments, feedback)
+  - Push notifications when students submit work
+
+- **Progress Tracking**
+  - Visual progress bars showing completion status
+  - Color-coded status (Approved = green, Pending = blue, Needs Revision = amber)
+  - Per-class breakdown of assignments
+
+### Notifications
+
+| Event | Who Gets Notified |
+|-------|-------------------|
+| Student submits work | All teachers assigned to the class |
+| Teacher gives feedback | Student and parent |
+| New assignment published | Enrolled students |
+| Assignment due soon | Students with pending work |
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/school/classes` | GET | List classes (filtered by role) |
+| `/school/classes` | POST | Create a new class |
+| `/school/classes/:id/students` | GET | Get students in a class |
+| `/school/enroll` | POST | Enroll a student in a class |
+| `/school/assignments` | GET | Get assignments |
+| `/school/assignments` | POST | Create an assignment |
+| `/school/assignments/:id/attachment` | POST | Upload attachment |
+| `/school/submissions` | GET | Get submissions |
+| `/school/submissions` | POST | Submit work |
+| `/school/feedback` | GET | Get feedback |
+| `/school/feedback` | POST | Give feedback |
+
+### Database Tables
+
+- `school_classes` - Class definitions with age ranges
+- `school_enrollments` - Student-class relationships
+- `school_assignments` - Published assignments
+- `school_submissions` - Student submissions
+- `school_feedback` - Teacher feedback on submissions
+- `teacher_class_assignments` - Teacher-class relationships
+
+### UI Layout
+
+- **Teachers**: Left sidebar with class list + class creation form, main area with tabs (Assignments, Students, Submissions)
+- **Parents/Children**: Left sidebar with child selector + progress stats, main area showing assignments grouped by class
+- **Admin**: Overview statistics, list of all classes and teachers
+
+---
+
 ## Technical Notes
 
 ### Database
@@ -567,4 +665,4 @@ Displayed before generation so parents know approximate cost.
 
 ---
 
-*Last Updated: 2026-01-19*
+*Last Updated: 2026-01-19 (School system documentation added)*

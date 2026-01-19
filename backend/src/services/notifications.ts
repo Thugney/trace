@@ -21,7 +21,7 @@ export interface NotificationPayload {
   type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
         'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
-        'school_assignment' | 'school_feedback' | 'school_due_soon' |
+        'school_assignment' | 'school_feedback' | 'school_due_soon' | 'school_submission' |
         'new_book' | 'book_completed' | 'new_quiz' | 'quiz_assigned' | 'quiz_completed' |
         'new_task' | 'task_assigned' | 'child_completed' | 'level_up' | 'reward';
   data?: any;

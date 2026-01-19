@@ -845,6 +845,42 @@ router.post('/submissions', authenticate, (req: AuthRequest, res: Response) => {
     `).run(assignment_id, targetStudentId, notes || null);
 
     const submission = db.prepare('SELECT * FROM school_submissions WHERE assignment_id = ? AND student_id = ?').get(assignment_id, targetStudentId);
+
+    // Notify teachers about the new submission
+    try {
+      const studentInfo: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(targetStudentId);
+      const classInfo: any = db.prepare('SELECT name FROM school_classes WHERE id = ?').get(assignment.class_id);
+      const studentName = studentInfo?.name || 'A student';
+      const className = classInfo?.name || 'class';
+
+      // Get all teachers assigned to this class
+      const assignedTeachers = db.prepare(`
+        SELECT teacher_id FROM teacher_class_assignments WHERE class_id = ?
+      `).all(assignment.class_id) as { teacher_id: number }[];
+
+      // Also check legacy assigned_class_id
+      const legacyTeachers = db.prepare(`
+        SELECT id as teacher_id FROM profiles WHERE assigned_class_id = ? AND type = 'teacher'
+      `).all(assignment.class_id) as { teacher_id: number }[];
+
+      const allTeacherIds = [...new Set([
+        ...assignedTeachers.map(t => t.teacher_id),
+        ...legacyTeachers.map(t => t.teacher_id)
+      ])];
+
+      if (allTeacherIds.length > 0) {
+        sendPushToProfiles(allTeacherIds, {
+          type: 'school_submission',
+          title: 'New Submission',
+          message: `${studentName} submitted work for "${assignment.title}" in ${className}`,
+          url: '/school',
+          data: { assignmentId: assignment_id, classId: assignment.class_id, studentId: targetStudentId }
+        }).catch(err => console.error('[School] Failed to notify teachers:', err));
+      }
+    } catch (notifyError) {
+      console.error('[School] Error sending submission notification:', notifyError);
+    }
+
     res.json(submission);
   } catch (error: any) {
     console.error('[School] Create submission error:', error);
