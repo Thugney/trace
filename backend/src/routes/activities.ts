@@ -982,18 +982,28 @@ router.get('/stats/child/:childId', (req: Request, res: Response) => {
 router.post('/ai-generate', async (req: Request, res: Response) => {
   try {
     const {
+      // Support both old and new field names
       prompt,
+      topic,
       ageRange,
+      targetAge,
       activityTypes,
+      preferredTypes,
       activityCount = 5,
       createdBy,
       assignedTo,
       textProvider = 'ollama',
-      difficulty = 'medium'
+      difficulty = 'medium',
+      customInstructions
     } = req.body;
 
-    if (!prompt || !createdBy || !assignedTo) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    // Use topic or prompt (frontend sends topic)
+    const actualPrompt = topic || prompt;
+    const actualAgeRange = targetAge ? `${targetAge} years old` : ageRange;
+    const actualActivityTypes = preferredTypes || activityTypes;
+
+    if (!actualPrompt || !createdBy || !assignedTo) {
+      return res.status(400).json({ error: 'Missing required fields: topic, createdBy, assignedTo' });
     }
 
     // Check AI usage limits
@@ -1020,8 +1030,15 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
 
     // Start async processing
     processAiJob(job.id, {
-      prompt, ageRange, activityTypes, activityCount,
-      createdBy, assignedTo, textProvider, difficulty
+      prompt: actualPrompt,
+      ageRange: actualAgeRange,
+      activityTypes: actualActivityTypes,
+      activityCount,
+      createdBy,
+      assignedTo,
+      textProvider,
+      difficulty,
+      customInstructions
     });
 
     // Log usage

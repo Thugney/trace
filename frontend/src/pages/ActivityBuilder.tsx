@@ -54,7 +54,8 @@ const ActivityBuilder: React.FC = () => {
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
     selectedTypes: [] as string[],
     customInstructions: '',
-    assignedTo: [] as number[]
+    assignedTo: [] as number[],
+    textProvider: 'ollama' as 'ollama' | 'gemini' | 'grok' | 'openai'
   });
   const [aiJob, setAiJob] = useState<AiGenerationJob | null>(null);
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -150,7 +151,8 @@ const ActivityBuilder: React.FC = () => {
         preferredTypes: aiForm.selectedTypes.length > 0 ? aiForm.selectedTypes : undefined,
         customInstructions: aiForm.customInstructions || undefined,
         createdBy: currentProfile.id,
-        assignedTo: aiForm.assignedTo[0]
+        assignedTo: aiForm.assignedTo[0],
+        textProvider: aiForm.textProvider
       };
 
       const response = await activitiesAPI.startAiGeneration(request);
@@ -238,7 +240,8 @@ const ActivityBuilder: React.FC = () => {
       difficulty: 'medium',
       selectedTypes: [],
       customInstructions: '',
-      assignedTo: []
+      assignedTo: [],
+      textProvider: 'ollama'
     });
     setAiJob(null);
   };
@@ -496,6 +499,39 @@ const ActivityBuilder: React.FC = () => {
                     }`}
                   >
                     <span className="capitalize font-medium">{level}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Provider */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                AI Provider
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { id: 'ollama', name: 'Ollama', desc: 'Local (Free)', icon: '🏠' },
+                  { id: 'gemini', name: 'Gemini', desc: 'Google AI', icon: '✨' },
+                  { id: 'grok', name: 'Grok', desc: 'xAI', icon: '🚀' },
+                  { id: 'openai', name: 'OpenAI', desc: 'GPT-4', icon: '🤖' }
+                ] as const).map(provider => (
+                  <button
+                    key={provider.id}
+                    onClick={() => setAiForm({ ...aiForm, textProvider: provider.id })}
+                    className={`p-3 rounded-xl border-2 transition-all text-left ${
+                      aiForm.textProvider === provider.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{provider.icon}</span>
+                      <div>
+                        <div className="font-medium text-gray-800">{provider.name}</div>
+                        <div className="text-xs text-gray-500">{provider.desc}</div>
+                      </div>
+                    </div>
                   </button>
                 ))}
               </div>
