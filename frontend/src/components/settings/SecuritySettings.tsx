@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Lock, Eye, EyeOff, Save, Loader2, Key } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, Save, Loader2, Key, CheckCircle, AlertCircle } from 'lucide-react';
 import { Profile } from '../../types';
 import { profilesAPI, settingsAPI } from '../../services/api';
 
@@ -104,72 +104,66 @@ export default function SecuritySettings({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Section Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">Security Settings</h2>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your account security and access credentials
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Password Management */}
       {(isParent || isAdmin) && (
-        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-orange-100 rounded-xl">
-              <Lock className="text-orange-600" size={22} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Account Password</h3>
-              <p className="text-sm text-slate-500">Secure password for your account</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="relative">
-              <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-2">
-                New Password
-              </label>
-              <div className="relative">
-                <input
-                  id="new-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow bg-white"
-                  placeholder="Min 6 characters"
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 p-[2px]">
+          <div className="bg-white rounded-[14px] p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl shadow-lg shadow-orange-500/25">
+                <Lock className="text-white" size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Account Password</h3>
+                <p className="text-sm text-slate-500">Secure login for your account</p>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-slate-700 mb-2">
-                Confirm Password
-              </label>
-              <input
-                id="confirm-password"
-                type={showPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow bg-white"
-                placeholder="Re-enter password"
-                autoComplete="new-password"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-semibold text-slate-700 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="new-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-slate-50"
+                    placeholder="Min 6 characters"
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-semibold text-slate-700 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirm-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-slate-50"
+                  placeholder="Re-enter password"
+                  autoComplete="new-password"
+                />
+              </div>
             </div>
 
             <button
               onClick={handleSetPassword}
               disabled={saving || !newPassword || !confirmPassword}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-600 focus:ring-4 focus:ring-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25"
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Update Password
@@ -180,64 +174,72 @@ export default function SecuritySettings({
 
       {/* Parent PIN Protection */}
       {(isParent || isAdmin) && (
-        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-violet-100 rounded-xl">
-              <Shield className="text-violet-600" size={22} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-slate-900">Parent PIN Protection</h3>
-              <p className="text-sm text-slate-500">Protect settings and parent-only features</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {settings.parent_pin && (
-              <div className="relative">
-                <label htmlFor="current-pin" className="block text-sm font-medium text-slate-700 mb-2">
-                  Current PIN
-                </label>
-                <div className="relative">
-                  <input
-                    id="current-pin"
-                    type={showPin ? 'text' : 'password'}
-                    value={currentPin}
-                    onChange={(e) => setCurrentPin(e.target.value)}
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow bg-white"
-                    placeholder="Enter current PIN"
-                    autoComplete="current-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 p-[2px]">
+          <div className="bg-white rounded-[14px] p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-lg shadow-violet-500/25">
+                <Shield className="text-white" size={24} />
               </div>
-            )}
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900">Parent PIN Protection</h3>
+                <p className="text-sm text-slate-500">Protect settings and parent-only features</p>
+              </div>
+              {settings.parent_pin && (
+                <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                  <CheckCircle size={14} />
+                  Active
+                </span>
+              )}
+            </div>
 
-            <div>
-              <label htmlFor="new-pin" className="block text-sm font-medium text-slate-700 mb-2">
-                {settings.parent_pin ? 'New PIN' : 'Set PIN'}
-              </label>
-              <input
-                id="new-pin"
-                type={showPin ? 'text' : 'password'}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow bg-white"
-                placeholder="Min 4 characters"
-                minLength={4}
-                autoComplete="new-password"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {settings.parent_pin && (
+                <div>
+                  <label htmlFor="current-pin" className="block text-sm font-semibold text-slate-700 mb-2">
+                    Current PIN
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="current-pin"
+                      type={showPin ? 'text' : 'password'}
+                      value={currentPin}
+                      onChange={(e) => setCurrentPin(e.target.value)}
+                      className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all bg-slate-50"
+                      placeholder="Enter current PIN"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className={settings.parent_pin ? '' : 'sm:col-span-2 sm:max-w-md'}>
+                <label htmlFor="new-pin" className="block text-sm font-semibold text-slate-700 mb-2">
+                  {settings.parent_pin ? 'New PIN' : 'Set PIN'}
+                </label>
+                <input
+                  id="new-pin"
+                  type={showPin ? 'text' : 'password'}
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all bg-slate-50"
+                  placeholder="Min 4 characters"
+                  minLength={4}
+                  autoComplete="new-password"
+                />
+              </div>
             </div>
 
             <button
               onClick={handleSetPin}
               disabled={saving || !newPin}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 text-white font-medium rounded-xl hover:bg-violet-700 focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-xl hover:from-violet-600 hover:to-purple-700 focus:ring-4 focus:ring-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               {settings.parent_pin ? 'Update PIN' : 'Set PIN'}
@@ -248,27 +250,37 @@ export default function SecuritySettings({
 
       {/* Grok AI API Key - Admin Only */}
       {isAdmin && (
-        <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-blue-100 rounded-xl">
-              <Key className="text-blue-600" size={22} />
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-[2px]">
+          <div className="bg-white rounded-[14px] p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25">
+                <Key className="text-white" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900">Grok AI Configuration</h3>
+                <p className="text-sm text-slate-500">API key for AI-powered features</p>
+              </div>
+              <span className={`px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1 ${
+                settings.grok_api_enabled === 'true'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {settings.grok_api_enabled === 'true' ? (
+                  <>
+                    <CheckCircle size={14} />
+                    Enabled
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={14} />
+                    Not Configured
+                  </>
+                )}
+              </span>
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-slate-900">Grok AI Configuration</h3>
-              <p className="text-sm text-slate-500">API key for AI features</p>
-            </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              settings.grok_api_enabled === 'true'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-amber-100 text-amber-700'
-            }`}>
-              {settings.grok_api_enabled === 'true' ? 'Enabled' : 'Not Configured'}
-            </span>
-          </div>
 
-          <div className="space-y-4">
-            <div className="relative">
-              <label htmlFor="grok-api-key" className="block text-sm font-medium text-slate-700 mb-2">
+            <div>
+              <label htmlFor="grok-api-key" className="block text-sm font-semibold text-slate-700 mb-2">
                 Grok API Key
               </label>
               <div className="relative">
@@ -277,25 +289,25 @@ export default function SecuritySettings({
                   type={showGrokKey ? 'text' : 'password'}
                   value={grokApiKey}
                   onChange={(e) => setGrokApiKey(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow bg-white"
+                  className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50"
                   placeholder="Enter your Grok API key"
                   autoComplete="off"
                 />
                 <button
                   type="button"
                   onClick={() => setShowGrokKey(!showGrokKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showGrokKey ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-sm text-slate-500 mt-2">
                 Get your API key from{' '}
                 <a
                   href="https://x.ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
                 >
                   x.ai
                 </a>
@@ -305,7 +317,7 @@ export default function SecuritySettings({
             <button
               onClick={handleSaveGrokKey}
               disabled={saving || !grokApiKey.trim()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 focus:ring-4 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25"
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Save API Key

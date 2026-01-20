@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Lock, Trash2, Edit2, UserCog, Shield, Baby, Users } from 'lucide-react';
+import { Plus, Lock, Trash2, Edit2, UserCog, Shield, Baby, Users, Star, Crown } from 'lucide-react';
 import Avatar from '../Avatar';
 import { Profile } from '../../types';
 import { profilesAPI } from '../../services/api';
@@ -15,6 +15,37 @@ interface FamilyProfilesProps {
   onSuccess: (message: string) => void;
   onRefresh: () => Promise<void>;
 }
+
+const profileTypeConfig = {
+  admin: {
+    icon: Crown,
+    gradient: 'from-violet-500 to-purple-600',
+    lightBg: 'bg-violet-50',
+    badge: 'bg-violet-100 text-violet-700',
+    ring: 'ring-violet-200'
+  },
+  parent: {
+    icon: Users,
+    gradient: 'from-blue-500 to-indigo-600',
+    lightBg: 'bg-blue-50',
+    badge: 'bg-blue-100 text-blue-700',
+    ring: 'ring-blue-200'
+  },
+  child: {
+    icon: Baby,
+    gradient: 'from-emerald-500 to-teal-500',
+    lightBg: 'bg-emerald-50',
+    badge: 'bg-emerald-100 text-emerald-700',
+    ring: 'ring-emerald-200'
+  },
+  teacher: {
+    icon: Shield,
+    gradient: 'from-amber-500 to-orange-500',
+    lightBg: 'bg-amber-50',
+    badge: 'bg-amber-100 text-amber-700',
+    ring: 'ring-amber-200'
+  }
+};
 
 export default function FamilyProfiles({
   profiles,
@@ -43,50 +74,18 @@ export default function FamilyProfiles({
     }
   };
 
-  const getProfileIcon = (type: string) => {
-    switch (type) {
-      case 'admin':
-        return <Shield className="text-violet-600" size={14} />;
-      case 'parent':
-        return <Users className="text-blue-600" size={14} />;
-      case 'child':
-        return <Baby className="text-green-600" size={14} />;
-      default:
-        return null;
-    }
-  };
-
-  const getProfileBadgeColor = (type: string) => {
-    switch (type) {
-      case 'admin':
-        return 'bg-violet-100 text-violet-700';
-      case 'parent':
-        return 'bg-blue-100 text-blue-700';
-      case 'child':
-        return 'bg-green-100 text-green-700';
-      default:
-        return 'bg-slate-100 text-slate-700';
-    }
-  };
-
   return (
-    <div className="space-y-8">
-      {/* Section Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900">Family Profiles</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage family members and their access
-          </p>
+    <div className="space-y-6">
+      {/* Add Member Button */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="w-full p-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-500 hover:border-pink-400 hover:text-pink-600 hover:bg-pink-50 transition-all flex items-center justify-center gap-2 group"
+      >
+        <div className="p-2 bg-slate-100 group-hover:bg-pink-100 rounded-xl transition-colors">
+          <Plus size={20} />
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all"
-        >
-          <Plus size={18} />
-          Add Member
-        </button>
-      </div>
+        <span className="font-semibold">Add Family Member</span>
+      </button>
 
       {/* Profiles Grid */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -94,89 +93,99 @@ export default function FamilyProfiles({
           const isCurrentUser = profile.id === currentProfile?.id;
           const canEdit = isAdmin && !isCurrentUser;
           const canResetPin = isParent && profile.type === 'child' && profile.parent_id === currentProfile?.id;
+          const config = profileTypeConfig[profile.type as keyof typeof profileTypeConfig] || profileTypeConfig.child;
+          const Icon = config.icon;
 
           return (
             <div
               key={profile.id}
-              className={`p-4 rounded-2xl border-2 transition-all ${
+              className={`relative overflow-hidden rounded-2xl transition-all hover:shadow-lg ${
                 isCurrentUser
-                  ? 'bg-primary-50 border-primary-200'
-                  : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  ? `bg-gradient-to-br ${config.gradient} p-[2px]`
+                  : 'bg-white border border-slate-200 hover:border-slate-300'
               }`}
             >
-              <div className="flex items-start gap-4">
-                <div className="relative">
-                  <Avatar avatar={profile.avatar} size="lg" alt={profile.name} />
-                  {profile.pin && (
-                    <div className="absolute -bottom-1 -right-1 p-1 bg-amber-100 rounded-full">
-                      <Lock className="text-amber-600" size={12} />
-                    </div>
-                  )}
-                </div>
+              <div className={`h-full ${isCurrentUser ? 'bg-white rounded-[14px]' : ''} p-5`}>
+                {/* Current User Indicator */}
+                {isCurrentUser && (
+                  <div className="absolute top-3 right-3">
+                    <span className={`flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r ${config.gradient} text-white text-xs font-bold rounded-full shadow-lg`}>
+                      <Star size={12} fill="currentColor" />
+                      You
+                    </span>
+                  </div>
+                )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-900 truncate">
+                <div className="flex items-start gap-4">
+                  {/* Avatar */}
+                  <div className="relative">
+                    <div className={`w-16 h-16 rounded-2xl overflow-hidden ring-2 ${config.ring} shadow-lg flex items-center justify-center bg-gradient-to-br ${config.gradient}`}>
+                      <Avatar avatar={profile.avatar} size="lg" alt={profile.name} />
+                    </div>
+                    {profile.pin && (
+                      <div className="absolute -bottom-1 -right-1 p-1.5 bg-amber-400 rounded-lg shadow-md">
+                        <Lock className="text-white" size={10} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 pt-1">
+                    <h3 className="font-bold text-slate-900 truncate text-lg">
                       {profile.name}
                     </h3>
-                    {isCurrentUser && (
-                      <span className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
-                        You
-                      </span>
-                    )}
-                  </div>
 
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${getProfileBadgeColor(profile.type)}`}>
-                      {getProfileIcon(profile.type)}
-                      {profile.type.charAt(0).toUpperCase() + profile.type.slice(1)}
-                    </span>
-                    {profile.age && (
-                      <span className="text-xs text-slate-500">
-                        {profile.age} years
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg ${config.badge}`}>
+                        <Icon size={12} />
+                        {profile.type.charAt(0).toUpperCase() + profile.type.slice(1)}
                       </span>
-                    )}
+                      {profile.age && (
+                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                          {profile.age} years
+                        </span>
+                      )}
+                    </div>
                   </div>
+                </div>
 
-                  {/* Action Buttons */}
-                  {(canEdit || canResetPin) && (
-                    <div className="flex items-center gap-2 mt-3">
-                      {canResetPin && (
+                {/* Action Buttons */}
+                {(canEdit || canResetPin) && (
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
+                    {canResetPin && (
+                      <button
+                        onClick={() => {
+                          setSelectedProfile(profile);
+                          setShowResetPinModal(true);
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-amber-700 bg-amber-50 rounded-xl hover:bg-amber-100 transition-colors"
+                      >
+                        <Lock size={14} />
+                        Reset PIN
+                      </button>
+                    )}
+                    {canEdit && (
+                      <>
                         <button
                           onClick={() => {
                             setSelectedProfile(profile);
-                            setShowResetPinModal(true);
+                            setShowEditModal(true);
                           }}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-100 rounded-lg hover:bg-amber-200 transition-colors"
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-blue-700 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
                         >
-                          <Lock size={12} />
-                          Reset PIN
+                          <Edit2 size={14} />
+                          Edit
                         </button>
-                      )}
-                      {canEdit && (
-                        <>
-                          <button
-                            onClick={() => {
-                              setSelectedProfile(profile);
-                              setShowEditModal(true);
-                            }}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
-                          >
-                            <Edit2 size={12} />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProfile(profile)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                          >
-                            <Trash2 size={12} />
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        <button
+                          onClick={() => handleDeleteProfile(profile)}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold text-red-700 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -185,9 +194,11 @@ export default function FamilyProfiles({
 
       {/* Empty State */}
       {profiles.length === 0 && (
-        <div className="text-center py-12">
-          <UserCog size={48} className="mx-auto mb-4 text-slate-300" />
-          <p className="font-medium text-slate-600">No profiles yet</p>
+        <div className="text-center py-16 bg-slate-50 rounded-2xl">
+          <div className="w-20 h-20 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">
+            <UserCog size={32} className="text-slate-400" />
+          </div>
+          <p className="font-bold text-slate-700 text-lg">No profiles yet</p>
           <p className="text-sm text-slate-500 mt-1">Add family members to get started</p>
         </div>
       )}
