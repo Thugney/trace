@@ -286,14 +286,20 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Only admins can create admin profiles' });
     }
 
-    // If parent is creating a child, link to themselves
+    // If parent is creating a child, link to themselves and their family
     let finalParentId = parent_id;
+    let finalFamilyId = null;
     if (type === 'child') {
       if (userProfile.type === 'parent') {
         finalParentId = userProfile.id; // Link child to the parent creating it
+        finalFamilyId = userProfile.family_id; // Assign child to parent's family
       } else if (userProfile.type === 'admin' && !parent_id) {
         console.warn('Admin creating child profile without parent_id - child will not be linked to a parent');
       }
+    }
+    // If parent is creating another parent (co-parent), assign to same family
+    if (type === 'parent' && userProfile.type === 'parent') {
+      finalFamilyId = userProfile.family_id;
     }
 
     // Auto-generate username if not provided (lowercase name without spaces)
@@ -312,9 +318,9 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const result = db.prepare(`
-      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id, assigned_class_id, ai_enabled)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null, finalAssignedClassId);
+      INSERT INTO profiles (name, type, age, gender, avatar, username, pin, password, settings, parent_id, family_id, assigned_class_id, ai_enabled)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+    `).run(name, type, age, gender, avatar || null, finalUsername, hashedPin, hashedPassword, JSON.stringify(settings || {}), finalParentId || null, finalFamilyId, finalAssignedClassId);
 
     const newProfile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid);
 
@@ -332,18 +338,33 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       console.error('[Profile] Feature initialization failed:', featureError.message);
     }
 
-    if (type === 'child' && finalParentId) {
+    // Link child to ALL parents in the same family (not just the creating parent)
+    if (type === 'child' && finalFamilyId) {
+      const familyParents: any[] = db.prepare(`
+        SELECT id FROM profiles WHERE family_id = ? AND type = 'parent'
+      `).all(finalFamilyId);
+
+      familyParents.forEach((parent: any) => {
+        db.prepare(`
+          INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
+          VALUES (?, ?, 'parent')
+        `).run(parent.id, newProfile.id);
+      });
+
+      console.log(`[Profile] Linked child ${newProfile.name} to ${familyParents.length} parents in family ${finalFamilyId}`);
+    } else if (type === 'child' && finalParentId) {
+      // Fallback for legacy case (no family_id)
       db.prepare(`
         INSERT OR IGNORE INTO guardian_students (guardian_id, student_id, relationship)
         VALUES (?, ?, 'parent')
       `).run(finalParentId, newProfile.id);
     }
 
-    // If a parent created another parent (spouse/co-parent), link the new parent to all existing children
-    if (type === 'parent' && userProfile.type === 'parent') {
+    // If a parent created another parent (spouse/co-parent), link the new parent to all existing children in the family
+    if (type === 'parent' && userProfile.type === 'parent' && finalFamilyId) {
       const existingChildren: any[] = db.prepare(`
-        SELECT id FROM profiles WHERE parent_id = ? AND type = 'child'
-      `).all(userProfile.id);
+        SELECT id FROM profiles WHERE family_id = ? AND type = 'child'
+      `).all(finalFamilyId);
 
       existingChildren.forEach((child: any) => {
         db.prepare(`
@@ -352,7 +373,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         `).run(newProfile.id, child.id);
       });
 
-      console.log(`[Profile] Linked new parent ${newProfile.name} to ${existingChildren.length} existing children`);
+      console.log(`[Profile] Linked new parent ${newProfile.name} to ${existingChildren.length} existing children in family ${finalFamilyId}`);
     }
 
     if (type === 'teacher' && finalAssignedClassId) {

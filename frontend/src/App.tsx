@@ -29,6 +29,7 @@ import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
 import ActivityPlayer from './pages/ActivityPlayer';
 import ActivityBuilder from './pages/ActivityBuilder';
+import H5PManager from './pages/H5PManager';
 import { useProfile } from './context/ProfileContext';
 
 // Protected Route Component
@@ -403,6 +404,30 @@ function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={['child']}>
                 <ActivityPlayer />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* H5P Manager - Parents and Admin */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/h5p"
+            element={
+              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+                <H5PManager />
+              </ProtectedRoute>
+            }
+          />
+        )}
+
+        {/* H5P Player - Children */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/h5p/play"
+            element={
+              <ProtectedRoute allowedRoles={['child']}>
+                <H5PManager />
               </ProtectedRoute>
             }
           />

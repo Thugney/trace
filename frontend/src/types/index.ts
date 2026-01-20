@@ -12,8 +12,24 @@ export interface Profile {
   created_at: string;
   updated_at: string;
   parent_id?: number;
+  family_id?: number; // Family this profile belongs to
   ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
   diet_enabled?: number; // 0 = disabled, 1 = enabled (hidden feature)
+}
+
+export interface Family {
+  id: number;
+  name: string;
+  description?: string;
+  status: 'active' | 'inactive' | 'suspended';
+  created_by?: number;
+  created_at: string;
+  updated_at: string;
+  // Computed fields from API
+  parent_count?: number;
+  child_count?: number;
+  parent_names?: string;
+  members?: Profile[];
 }
 
 export interface SchoolClass {
@@ -399,4 +415,117 @@ export interface Notification {
   data?: any;
   is_read: boolean;
   created_at: string;
+}
+
+// ==================== H5P Types ====================
+
+export interface H5PContent {
+  id: number;
+  h5p_content_id: string;
+  title: string;
+  content_type: string;
+  library_name: string;
+  created_by: number;
+  metadata?: string;
+  is_ai_generated: boolean | number;
+  ai_prompt?: string;
+  ai_provider?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined fields for lists
+  assignment_count?: number;
+  attempt_count?: number;
+  assignment_id?: number;
+  points?: number;
+  due_date?: string;
+  is_required?: boolean | number;
+  max_attempts?: number;
+  pass_percentage?: number;
+  my_attempts?: number;
+  best_score?: number;
+  passed?: boolean | number;
+}
+
+export interface H5PAssignment {
+  id: number;
+  h5p_content_id: number;
+  assigned_to: number;
+  assigned_by: number;
+  points: number;
+  due_date?: string;
+  is_required: boolean | number;
+  max_attempts: number;
+  pass_percentage: number;
+  created_at: string;
+  // Joined fields
+  child_name?: string;
+  child_avatar?: string;
+  attempt_count?: number;
+  best_score?: number;
+  passed?: boolean | number;
+}
+
+export interface H5PAttempt {
+  id: number;
+  assignment_id: number;
+  profile_id: number;
+  h5p_content_id: number;
+  score: number;
+  max_score: number;
+  score_percentage: number;
+  passed: boolean | number;
+  time_spent_seconds: number;
+  started_at: string;
+  completed_at?: string;
+  xapi_data?: string;
+  // Joined fields
+  profile_name?: string;
+  profile_avatar?: string;
+}
+
+export interface H5PPlayerData {
+  content: {
+    id: number;
+    title: string;
+    contentType: string;
+  };
+  player: {
+    integration: any;
+    scripts: string[];
+    styles: string[];
+    contentId: string;
+  };
+  attemptId: number | null;
+  assignment: {
+    points: number;
+    passPercentage: number;
+  } | null;
+}
+
+export interface H5PStatus {
+  initialized: boolean;
+  installedContentTypes: string[];
+  contentTypesCount: number;
+  paths: {
+    data: string;
+    libraries: string;
+    content: string;
+  };
+}
+
+export interface H5PQuizSpec {
+  title: string;
+  age: number;
+  theme: string;
+  questions: H5PQuizQuestion[];
+}
+
+export interface H5PQuizQuestion {
+  type: 'mcq' | 'true_false' | 'fill_blank' | 'matching';
+  prompt: string;
+  choices?: string[];
+  answerIndex?: number;
+  correctAnswer?: boolean | string;
+  explanation?: string;
+  pairs?: { left: string; right: string }[];
 }

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { profilesAPI, aiAPI, settingsAPI } from '../services/api';
+import { profilesAPI, aiAPI, settingsAPI, familiesAPI } from '../services/api';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
-import { Profile } from '../types';
-import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal, GraduationCap, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Profile, Family } from '../types';
+import { Plus, Edit2, Trash2, Shield, User, Baby, Bot, MessageSquare, RefreshCcw, SlidersHorizontal, GraduationCap, Users, ChevronDown, ChevronUp, Home, UserPlus, UserMinus } from 'lucide-react';
 import clsx from 'clsx';
 import Avatar from '../components/Avatar';
 
@@ -26,12 +26,23 @@ export default function AdminPanel() {
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [savingFeatures, setSavingFeatures] = useState(false);
 
-  // Family feature controls (admin-level)
+  // Family feature controls (admin-level) - OLD system (legacy)
   const [families, setFamilies] = useState<FamilyData[]>([]);
   const [familiesLoading, setFamiliesLoading] = useState(false);
   const [expandedFamilyId, setExpandedFamilyId] = useState<number | null>(null);
   const [familyFeatures, setFamilyFeatures] = useState<Record<string, boolean>>({});
   const [savingFamilyFeatures, setSavingFamilyFeatures] = useState(false);
+
+  // NEW Family Management System
+  const [newFamilies, setNewFamilies] = useState<Family[]>([]);
+  const [newFamiliesLoading, setNewFamiliesLoading] = useState(false);
+  const [unassignedProfiles, setUnassignedProfiles] = useState<Profile[]>([]);
+  const [showCreateFamilyForm, setShowCreateFamilyForm] = useState(false);
+  const [editingFamily, setEditingFamily] = useState<Family | null>(null);
+  const [selectedFamilyId, setSelectedFamilyId] = useState<number | null>(null);
+  const [newFamilyName, setNewFamilyName] = useState('');
+  const [newFamilyDescription, setNewFamilyDescription] = useState('');
+  const [_assigningProfileToFamily, setAssigningProfileToFamily] = useState<{ familyId: number; profileId: number } | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -64,6 +75,7 @@ export default function AdminPanel() {
   useEffect(() => {
     loadAllProfiles();
     loadFamilies();
+    loadNewFamilies();
   }, []);
 
   const loadAllProfiles = async () => {
@@ -87,6 +99,139 @@ export default function AdminPanel() {
       console.error('Failed to load families:', error);
     } finally {
       setFamiliesLoading(false);
+    }
+  };
+
+  // NEW Family Management Functions
+  const loadNewFamilies = async () => {
+    try {
+      setNewFamiliesLoading(true);
+      const [familiesRes, unassignedRes] = await Promise.all([
+        familiesAPI.getAll(),
+        familiesAPI.getUnassigned()
+      ]);
+
+      // If a family is selected, fetch its members
+      if (selectedFamilyId) {
+        try {
+          const familyDetail = await familiesAPI.getOne(selectedFamilyId);
+          const familiesWithMembers = familiesRes.data.map(f =>
+            f.id === selectedFamilyId ? { ...f, members: familyDetail.data.members } : f
+          );
+          setNewFamilies(familiesWithMembers);
+        } catch {
+          setNewFamilies(familiesRes.data);
+        }
+      } else {
+        setNewFamilies(familiesRes.data);
+      }
+      setUnassignedProfiles(unassignedRes.data);
+    } catch (error) {
+      console.error('Failed to load families:', error);
+    } finally {
+      setNewFamiliesLoading(false);
+    }
+  };
+
+  // Load family members when a family is selected
+  const loadFamilyMembers = async (familyId: number) => {
+    try {
+      const familyDetail = await familiesAPI.getOne(familyId);
+      setNewFamilies(prev =>
+        prev.map(f => f.id === familyId ? { ...f, members: familyDetail.data.members } : f)
+      );
+    } catch (error) {
+      console.error('Failed to load family members:', error);
+    }
+  };
+
+  const handleCreateFamily = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFamilyName.trim()) return;
+
+    try {
+      await familiesAPI.create({
+        name: newFamilyName.trim(),
+        description: newFamilyDescription.trim() || undefined
+      });
+      setNewFamilyName('');
+      setNewFamilyDescription('');
+      setShowCreateFamilyForm(false);
+      await loadNewFamilies();
+    } catch (error) {
+      console.error('Failed to create family:', error);
+      alert('Failed to create family. Please try again.');
+    }
+  };
+
+  const handleUpdateFamily = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFamily || !newFamilyName.trim()) return;
+
+    try {
+      await familiesAPI.update(editingFamily.id, {
+        name: newFamilyName.trim(),
+        description: newFamilyDescription.trim() || undefined
+      });
+      setEditingFamily(null);
+      setNewFamilyName('');
+      setNewFamilyDescription('');
+      await loadNewFamilies();
+    } catch (error) {
+      console.error('Failed to update family:', error);
+      alert('Failed to update family. Please try again.');
+    }
+  };
+
+  const handleDeleteFamily = async (family: Family) => {
+    if (!confirm(`Are you sure you want to delete "${family.name}"? Members will be unassigned but NOT deleted.`)) {
+      return;
+    }
+
+    try {
+      await familiesAPI.delete(family.id);
+      await loadNewFamilies();
+    } catch (error) {
+      console.error('Failed to delete family:', error);
+      alert('Failed to delete family. Please try again.');
+    }
+  };
+
+  const handleAssignToFamily = async (familyId: number, profileId: number) => {
+    try {
+      setAssigningProfileToFamily({ familyId, profileId });
+      await familiesAPI.addMember(familyId, profileId);
+      await loadNewFamilies();
+      await loadAllProfiles();
+    } catch (error) {
+      console.error('Failed to assign profile to family:', error);
+      alert('Failed to assign profile. Please try again.');
+    } finally {
+      setAssigningProfileToFamily(null);
+    }
+  };
+
+  const handleRemoveFromFamily = async (familyId: number, profileId: number, profileName: string) => {
+    if (!confirm(`Remove ${profileName} from this family?`)) return;
+
+    try {
+      await familiesAPI.removeMember(familyId, profileId);
+      await loadNewFamilies();
+      await loadAllProfiles();
+    } catch (error) {
+      console.error('Failed to remove profile from family:', error);
+      alert('Failed to remove profile. Please try again.');
+    }
+  };
+
+  const handleToggleFamilyStatus = async (family: Family) => {
+    const newStatus = family.status === 'active' ? 'suspended' : 'active';
+    try {
+      await familiesAPI.update(family.id, { status: newStatus });
+      await loadNewFamilies();
+    } catch (error) {
+      console.error('Failed to update family status:', error);
+      alert('Failed to update family status. Please try again.');
     }
   };
 
@@ -434,6 +579,268 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* NEW: Family Management Section */}
+      <section className="card border border-slate-200/80 bg-white p-6 shadow-lg">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-indigo-100 p-2">
+              <Home className="text-indigo-600" size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Family Management</h2>
+              <p className="text-sm text-slate-500">Create and manage families. Assign parents and children to each family.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={loadNewFamilies}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              <RefreshCcw size={16} /> Refresh
+            </button>
+            <button
+              onClick={() => {
+                setShowCreateFamilyForm(true);
+                setNewFamilyName('');
+                setNewFamilyDescription('');
+              }}
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+              <Plus size={16} /> New Family
+            </button>
+          </div>
+        </div>
+
+        {/* Create/Edit Family Form */}
+        {(showCreateFamilyForm || editingFamily) && (
+          <form onSubmit={editingFamily ? handleUpdateFamily : handleCreateFamily} className="mb-6 p-4 rounded-xl border border-indigo-200 bg-indigo-50/50">
+            <h3 className="font-semibold text-slate-900 mb-3">
+              {editingFamily ? 'Edit Family' : 'Create New Family'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Family Name *</label>
+                <input
+                  type="text"
+                  value={newFamilyName}
+                  onChange={(e) => setNewFamilyName(e.target.value)}
+                  placeholder="e.g., Smith Family"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={newFamilyDescription}
+                  onChange={(e) => setNewFamilyDescription(e.target.value)}
+                  placeholder="Optional description"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button type="submit" className="btn btn-primary">
+                {editingFamily ? 'Update Family' : 'Create Family'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateFamilyForm(false);
+                  setEditingFamily(null);
+                  setNewFamilyName('');
+                  setNewFamilyDescription('');
+                }}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Families List */}
+        {newFamiliesLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="spinner"></div>
+          </div>
+        ) : newFamilies.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            <Home className="mx-auto mb-2 text-slate-400" size={32} />
+            <p>No families created yet. Click "New Family" to create one.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {newFamilies.map(family => (
+              <div
+                key={family.id}
+                className={clsx(
+                  'rounded-2xl border overflow-hidden',
+                  family.status === 'active' ? 'border-slate-200 bg-slate-50/50' : 'border-rose-200 bg-rose-50/30'
+                )}
+              >
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-4">
+                    <div className={clsx(
+                      'w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold',
+                      family.status === 'active' ? 'bg-indigo-100 text-indigo-600' : 'bg-rose-100 text-rose-600'
+                    )}>
+                      {family.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                        {family.name}
+                        {family.status !== 'active' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
+                            {family.status}
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        {family.parent_count || 0} parent{(family.parent_count || 0) !== 1 ? 's' : ''} · {family.child_count || 0} child{(family.child_count || 0) !== 1 ? 'ren' : ''}
+                        {family.parent_names && ` (${family.parent_names})`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (selectedFamilyId === family.id) {
+                          setSelectedFamilyId(null);
+                        } else {
+                          setSelectedFamilyId(family.id);
+                          loadFamilyMembers(family.id);
+                        }
+                      }}
+                      className={clsx(
+                        'p-2 rounded-lg transition',
+                        selectedFamilyId === family.id ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-slate-100 text-slate-600'
+                      )}
+                      title="Manage members"
+                    >
+                      <Users size={18} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingFamily(family);
+                        setNewFamilyName(family.name);
+                        setNewFamilyDescription(family.description || '');
+                        setShowCreateFamilyForm(false);
+                      }}
+                      className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 transition"
+                      title="Edit family"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleToggleFamilyStatus(family)}
+                      className={clsx(
+                        'p-2 rounded-lg transition',
+                        family.status === 'active' ? 'hover:bg-rose-100 text-rose-600' : 'hover:bg-emerald-100 text-emerald-600'
+                      )}
+                      title={family.status === 'active' ? 'Suspend family' : 'Activate family'}
+                    >
+                      <Shield size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFamily(family)}
+                      className="p-2 rounded-lg hover:bg-rose-100 text-rose-600 transition"
+                      title="Delete family"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Expanded: Member Management */}
+                {selectedFamilyId === family.id && (
+                  <div className="border-t border-slate-200 bg-white p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-slate-800">Family Members</h4>
+                      {unassignedProfiles.length > 0 && (
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              handleAssignToFamily(family.id, parseInt(e.target.value));
+                              e.target.value = '';
+                            }
+                          }}
+                          className="text-sm rounded-lg border border-slate-300 px-3 py-1.5"
+                          defaultValue=""
+                        >
+                          <option value="">+ Add member...</option>
+                          {unassignedProfiles.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.type})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+
+                    {family.members && family.members.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {family.members.map(member => (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Avatar avatar={member.avatar} size="sm" alt={member.name} />
+                              <div>
+                                <p className="text-sm font-medium text-slate-800">{member.name}</p>
+                                <p className="text-xs text-slate-500 capitalize">{member.type}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveFromFamily(family.id, member.id, member.name)}
+                              className="p-1 rounded hover:bg-rose-100 text-rose-500 transition"
+                              title="Remove from family"
+                            >
+                              <UserMinus size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">
+                        No members in this family yet. Use the dropdown to add members.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Unassigned Profiles */}
+        {unassignedProfiles.length > 0 && (
+          <div className="mt-6 p-4 rounded-xl border border-amber-200 bg-amber-50/50">
+            <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <UserPlus size={18} />
+              Unassigned Profiles ({unassignedProfiles.length})
+            </h3>
+            <p className="text-sm text-amber-700 mb-3">
+              These profiles are not assigned to any family. Click on a family above and use "Add member" to assign them.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {unassignedProfiles.map(profile => (
+                <span
+                  key={profile.id}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white border border-amber-200 text-sm"
+                >
+                  <Avatar avatar={profile.avatar} size="xs" alt={profile.name} />
+                  {profile.name}
+                  <span className="text-amber-600 text-xs">({profile.type})</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Family Feature Controls - Admin Level */}

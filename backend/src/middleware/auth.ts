@@ -9,6 +9,7 @@ export interface AuthRequest extends Request {
     id: number;
     type: 'admin' | 'parent' | 'child' | 'teacher';
     parent_id?: number;
+    family_id?: number;
   };
 }
 
@@ -27,7 +28,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     }
 
     // Verify profile exists in database
-    const profile: any = db.prepare('SELECT id, type, parent_id FROM profiles WHERE id = ?').get(profileId);
+    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
 
     if (!profile) {
       return res.status(401).json({ error: 'Authentication failed: Invalid profile ID' });
@@ -37,7 +38,8 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     req.profile = {
       id: profile.id,
       type: profile.type,
-      parent_id: profile.parent_id
+      parent_id: profile.parent_id,
+      family_id: profile.family_id
     };
 
     next();
@@ -173,12 +175,13 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
   const profileId = req.headers['x-profile-id'] as string;
 
   if (profileId) {
-    const profile: any = db.prepare('SELECT id, type, parent_id FROM profiles WHERE id = ?').get(profileId);
+    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
     if (profile) {
       req.profile = {
         id: profile.id,
         type: profile.type,
-        parent_id: profile.parent_id
+        parent_id: profile.parent_id,
+        family_id: profile.family_id
       };
     }
   }
@@ -206,7 +209,7 @@ export const authenticateEventSource = (req: AuthRequest, res: Response, next: N
     }
 
     // Verify profile exists in database
-    const profile: any = db.prepare('SELECT id, type, parent_id FROM profiles WHERE id = ?').get(profileId);
+    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
 
     if (!profile) {
       return res.status(401).json({ error: 'Authentication failed: Invalid profile ID' });
@@ -216,7 +219,8 @@ export const authenticateEventSource = (req: AuthRequest, res: Response, next: N
     req.profile = {
       id: profile.id,
       type: profile.type,
-      parent_id: profile.parent_id
+      parent_id: profile.parent_id,
+      family_id: profile.family_id
     };
 
     next();

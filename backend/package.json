@@ -20,6 +20,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@lumieducation/h5p-express": "^10.0.4",
+    "@lumieducation/h5p-server": "^10.0.4",
     "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.8.1",
@@ -35,13 +37,13 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/node-cron": "^3.0.11",
     "@types/better-sqlite3": "^7.6.12",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.5",
+    "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.2",
     "@types/web-push": "^3.6.4",
     "supertest": "^6.3.4",

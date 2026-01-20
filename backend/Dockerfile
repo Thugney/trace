@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache python3 make g++ gcc
+# Install build dependencies for native modules (better-sqlite3) and unzip for H5P
+RUN apk add --no-cache python3 make g++ gcc unzip
 
 WORKDIR /app
 

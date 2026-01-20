@@ -17,6 +17,7 @@ services:
       - NODE_ENV=production
       - DATABASE_PATH=/app/data/family.db
       - AVATAR_DIR=/app/data/avatars
+      - H5P_DATA_DIR=/app/data/h5p
       - GROK_API_KEY=${GROK_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}

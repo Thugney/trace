@@ -3,6 +3,7 @@ import { aiAPI } from '../services/api';
 import { Brain, Heart, MessageCircle, Lightbulb, Frown, Smile, Meh, HelpCircle, Moon } from 'lucide-react';
 import Avatar from './Avatar';
 import clsx from 'clsx';
+import { formatTimeAgo } from '../utils/dates';
 
 interface ChildInsightsProps {
   parentId: number;
@@ -72,19 +73,6 @@ export default function ChildInsights({ parentId }: ChildInsightsProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
   };
 
   if (loading) {
@@ -209,7 +197,7 @@ export default function ChildInsights({ parentId }: ChildInsightsProps) {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900">{enc.topic}</p>
                         <p className="text-sm text-gray-600 mt-1">{enc.encouragement}</p>
-                        <p className="text-xs text-gray-400 mt-1">{formatTime(enc.timestamp)}</p>
+                        <p className="text-xs text-gray-400 mt-1">{formatTimeAgo(enc.timestamp)}</p>
                       </div>
                     </div>
                   );
@@ -230,7 +218,7 @@ export default function ChildInsights({ parentId }: ChildInsightsProps) {
                   <div key={idx} className="p-3 bg-yellow-50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-gray-900 capitalize">{sug.category}</span>
-                      <span className="text-xs text-gray-400">{formatTime(sug.timestamp)}</span>
+                      <span className="text-xs text-gray-400">{formatTimeAgo(sug.timestamp)}</span>
                     </div>
                     <p className="text-sm text-gray-600 mt-1">{sug.reason}</p>
                   </div>
