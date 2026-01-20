@@ -2,8 +2,6 @@ import { ReactNode, useState } from 'react';
 import {
   User,
   Shield,
-  Brain,
-  Server,
   Users,
   Info,
   Settings,
@@ -14,8 +12,6 @@ import {
 export type SettingsSection =
   | 'profile'
   | 'security'
-  | 'ai-controls'
-  | 'ollama'
   | 'family'
   | 'about';
 
@@ -49,22 +45,6 @@ const navItems: NavItem[] = [
     icon: Shield,
     gradient: 'from-orange-500 to-red-500',
     lightBg: 'bg-orange-50'
-  },
-  {
-    id: 'ai-controls',
-    label: 'AI Controls',
-    icon: Brain,
-    gradient: 'from-purple-500 to-pink-500',
-    lightBg: 'bg-purple-50',
-    adminOnly: true
-  },
-  {
-    id: 'ollama',
-    label: 'Local AI',
-    icon: Server,
-    gradient: 'from-emerald-500 to-teal-500',
-    lightBg: 'bg-emerald-50',
-    adminOnly: true
   },
   {
     id: 'family',
@@ -243,8 +223,6 @@ export default function SettingsLayout({
                     <p className="text-sm text-white/80 mt-0.5">
                       {activeItem.id === 'profile' && 'Manage your personal information and avatar'}
                       {activeItem.id === 'security' && 'Password, PIN, and API key settings'}
-                      {activeItem.id === 'ai-controls' && 'Configure AI behavior for each child'}
-                      {activeItem.id === 'ollama' && 'Local AI configuration and model management'}
                       {activeItem.id === 'family' && 'Manage family members and profiles'}
                       {activeItem.id === 'about' && 'App information and features'}
                     </p>

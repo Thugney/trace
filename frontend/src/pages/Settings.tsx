@@ -6,8 +6,6 @@ import {
   SettingsLayout,
   ProfileSettings,
   SecuritySettings,
-  AISettings,
-  OllamaSettings,
   FamilyProfiles,
   AboutSection,
   ChildSettings,
@@ -158,17 +156,6 @@ export default function Settings() {
             onSettingsRefresh={loadSettings}
           />
         );
-      case 'ai-controls':
-        return isAdmin ? (
-          <AISettings
-            profiles={profiles}
-            onSuccess={showSuccess}
-          />
-        ) : null;
-      case 'ollama':
-        return isAdmin ? (
-          <OllamaSettings onSuccess={showSuccess} />
-        ) : null;
       case 'family':
         return (
           <FamilyProfiles
