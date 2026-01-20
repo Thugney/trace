@@ -23,7 +23,8 @@ export interface NotificationPayload {
         'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
         'school_assignment' | 'school_feedback' | 'school_due_soon' | 'school_submission' |
         'new_book' | 'book_completed' | 'new_quiz' | 'quiz_assigned' | 'quiz_completed' |
-        'new_task' | 'task_assigned' | 'child_completed' | 'level_up' | 'reward';
+        'new_task' | 'task_assigned' | 'child_completed' | 'level_up' | 'reward' |
+        'points_deducted' | 'points_added';
   data?: any;
   icon?: string;
   url?: string;
@@ -399,6 +400,40 @@ export const NotificationHelpers = {
       message: reminderText,
       icon: '⏰',
       url: '/'
+    });
+  },
+
+  // Points deducted by parent - notify child with reason
+  async pointsDeducted(childId: number, amount: number, reason: string, parentName: string, relatedTaskTitle?: string) {
+    const taskInfo = relatedTaskTitle ? ` (Task: "${relatedTaskTitle}")` : '';
+    await sendPushNotification(childId, {
+      type: 'points_deducted',
+      title: 'Points Deducted',
+      message: `${parentName} deducted ${amount} points. Reason: ${reason}${taskInfo}`,
+      icon: '📉',
+      url: '/journey',
+      data: {
+        amount,
+        reason,
+        parentName,
+        relatedTaskTitle
+      }
+    });
+  },
+
+  // Points added by parent - notify child with reason
+  async pointsAdded(childId: number, amount: number, reason: string, parentName: string) {
+    await sendPushNotification(childId, {
+      type: 'points_added',
+      title: 'Bonus Points!',
+      message: `${parentName} added ${amount} points! Reason: ${reason}`,
+      icon: '📈',
+      url: '/journey',
+      data: {
+        amount,
+        reason,
+        parentName
+      }
     });
   }
 };

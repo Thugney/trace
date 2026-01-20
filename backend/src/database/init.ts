@@ -944,10 +944,19 @@ export function initDatabase() {
 
   // Migration: Enable AI for all existing profiles that have it disabled
   // This fixes profiles created before AI was enabled by default
+  // IMPORTANT: This is a ONE-TIME migration - we track it in settings to avoid overwriting admin decisions
   try {
-    const result = db.prepare('UPDATE profiles SET ai_enabled = 1 WHERE ai_enabled = 0 OR ai_enabled IS NULL').run();
-    if (result.changes > 0) {
-      console.log(`✅ Enabled AI for ${result.changes} profiles`);
+    const migrationKey = 'migration_ai_enabled_initial';
+    const migrationRun: any = db.prepare('SELECT value FROM settings WHERE key = ?').get(migrationKey);
+
+    if (!migrationRun) {
+      // Only enable AI for profiles that have NULL (never set) - respect explicit admin decisions (0)
+      const result = db.prepare('UPDATE profiles SET ai_enabled = 1 WHERE ai_enabled IS NULL').run();
+      if (result.changes > 0) {
+        console.log(`✅ Enabled AI for ${result.changes} profiles (one-time migration)`);
+      }
+      // Mark migration as complete so it never runs again
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(migrationKey, 'completed');
     }
   } catch (error: any) {
     console.error('Migration error (enable AI for existing profiles):', error.message);
@@ -1730,6 +1739,20 @@ export function initDatabase() {
     )
   `);
   console.log('✅ Points adjustments table created');
+
+  // Migration: Add related_task_id column to points_adjustments
+  try {
+    const adjustmentColumns = db.prepare('PRAGMA table_info(points_adjustments)').all() as any[];
+    const hasRelatedTaskId = adjustmentColumns.some((col: any) => col.name === 'related_task_id');
+
+    if (!hasRelatedTaskId) {
+      console.log('🔄 Migrating points_adjustments table: adding related_task_id...');
+      db.prepare('ALTER TABLE points_adjustments ADD COLUMN related_task_id INTEGER DEFAULT NULL').run();
+      console.log('✅ Added related_task_id column to points_adjustments');
+    }
+  } catch (error: any) {
+    console.error('Migration error (points_adjustments):', error.message);
+  }
 
   // Create indexes for economy tables
   db.exec(`
@@ -3146,6 +3169,195 @@ export function initDatabase() {
       console.error('Migration error (shopping_items category_id):', error.message);
     }
   }
+
+  // ==================== H5P Content Tables ====================
+
+  // H5P Content - Stores metadata about H5P content packages
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS h5p_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      h5p_content_id TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      library_name TEXT NOT NULL,
+      created_by INTEGER NOT NULL,
+      metadata TEXT DEFAULT '{}',
+      is_ai_generated BOOLEAN DEFAULT 0,
+      ai_prompt TEXT,
+      ai_provider TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // H5P Assignments - Links H5P content to children
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS h5p_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      h5p_content_id INTEGER NOT NULL,
+      assigned_to INTEGER NOT NULL,
+      assigned_by INTEGER NOT NULL,
+      points INTEGER DEFAULT 10,
+      due_date DATETIME,
+      is_required BOOLEAN DEFAULT 0,
+      max_attempts INTEGER DEFAULT 0,
+      pass_percentage INTEGER DEFAULT 70,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (h5p_content_id) REFERENCES h5p_content(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_by) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // H5P Attempts - Tracks each attempt at completing H5P content
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS h5p_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      h5p_content_id INTEGER NOT NULL,
+      score INTEGER DEFAULT 0,
+      max_score INTEGER DEFAULT 100,
+      score_percentage REAL DEFAULT 0,
+      passed BOOLEAN DEFAULT 0,
+      time_spent_seconds INTEGER DEFAULT 0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      xapi_data TEXT,
+      FOREIGN KEY (assignment_id) REFERENCES h5p_assignments(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (h5p_content_id) REFERENCES h5p_content(id) ON DELETE CASCADE
+    )
+  `);
+
+  // H5P xAPI Logs - Stores granular xAPI events for analytics
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS h5p_xapi_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attempt_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      h5p_content_id INTEGER NOT NULL,
+      verb TEXT NOT NULL,
+      object_id TEXT,
+      object_type TEXT,
+      result_score REAL,
+      result_max_score REAL,
+      result_success BOOLEAN,
+      result_completion BOOLEAN,
+      result_duration TEXT,
+      context_data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (attempt_id) REFERENCES h5p_attempts(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (h5p_content_id) REFERENCES h5p_content(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create indexes for H5P tables
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_h5p_content_created_by ON h5p_content(created_by);
+    CREATE INDEX IF NOT EXISTS idx_h5p_content_type ON h5p_content(content_type);
+    CREATE INDEX IF NOT EXISTS idx_h5p_assignments_assigned_to ON h5p_assignments(assigned_to);
+    CREATE INDEX IF NOT EXISTS idx_h5p_assignments_content ON h5p_assignments(h5p_content_id);
+    CREATE INDEX IF NOT EXISTS idx_h5p_attempts_assignment ON h5p_attempts(assignment_id);
+    CREATE INDEX IF NOT EXISTS idx_h5p_attempts_profile ON h5p_attempts(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_h5p_xapi_logs_attempt ON h5p_xapi_logs(attempt_id);
+    CREATE INDEX IF NOT EXISTS idx_h5p_xapi_logs_verb ON h5p_xapi_logs(verb);
+  `);
+
+  console.log('✅ H5P content tables created');
+
+  // ==================== FAMILIES TABLE ====================
+  // Families table - each family is a separate unit with its own members
+  // Admin creates and controls families, parents manage their family members
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS families (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'suspended')),
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Migration: Add family_id column to profiles table
+  try {
+    const profileColumns = db.prepare('PRAGMA table_info(profiles)').all() as any[];
+    const hasFamilyId = profileColumns.some((col: any) => col.name === 'family_id');
+
+    if (!hasFamilyId) {
+      console.log('🔄 Migrating profiles table: adding family_id column...');
+      db.prepare('ALTER TABLE profiles ADD COLUMN family_id INTEGER REFERENCES families(id) ON DELETE SET NULL').run();
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_profiles_family_id ON profiles(family_id)').run();
+      console.log('✅ Migration completed: family_id column added to profiles');
+
+      // Auto-create families for existing parent profiles and assign members
+      console.log('🔄 Creating families for existing parent profiles...');
+      const existingParents: any[] = db.prepare(`
+        SELECT id, name FROM profiles WHERE type = 'parent'
+      `).all();
+
+      const insertFamily = db.prepare(`
+        INSERT INTO families (name, description, created_by)
+        VALUES (?, ?, ?)
+      `);
+
+      const updateProfileFamily = db.prepare(`
+        UPDATE profiles SET family_id = ? WHERE id = ?
+      `);
+
+      const updateChildrenFamily = db.prepare(`
+        UPDATE profiles SET family_id = ? WHERE parent_id = ?
+      `);
+
+      for (const parent of existingParents) {
+        // Create family for this parent
+        const familyName = `${parent.name}'s Family`;
+        const result = insertFamily.run(familyName, 'Auto-created from existing data', parent.id);
+        const familyId = result.lastInsertRowid;
+
+        // Assign parent to family
+        updateProfileFamily.run(familyId, parent.id);
+
+        // Assign all children of this parent to the family
+        updateChildrenFamily.run(familyId, parent.id);
+
+        console.log(`  ✅ Created family "${familyName}" (ID: ${familyId}) for parent ${parent.name}`);
+      }
+
+      // Handle co-parents via guardian_students - they should be in the same family as the first parent
+      const guardianLinks: any[] = db.prepare(`
+        SELECT DISTINCT gs.guardian_id, p.family_id
+        FROM guardian_students gs
+        JOIN profiles p ON p.id IN (
+          SELECT student_id FROM guardian_students WHERE guardian_id = gs.guardian_id
+        )
+        WHERE p.family_id IS NOT NULL
+        AND (SELECT family_id FROM profiles WHERE id = gs.guardian_id) IS NULL
+      `).all();
+
+      for (const link of guardianLinks) {
+        updateProfileFamily.run(link.family_id, link.guardian_id);
+        console.log(`  ✅ Linked guardian ${link.guardian_id} to family ${link.family_id}`);
+      }
+
+      console.log('✅ Family migration completed');
+    }
+  } catch (error: any) {
+    console.error('Migration error (families):', error.message);
+  }
+
+  // Create indexes for families
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_families_status ON families(status);
+    CREATE INDEX IF NOT EXISTS idx_families_created_by ON families(created_by);
+  `);
+
+  console.log('✅ Families table created');
 
   // Run production-ready migrations
   runProductionReadyMigrations();

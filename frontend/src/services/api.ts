@@ -2,6 +2,7 @@ import axios from 'axios';
 import type {
   Profile,
   ProfileStats,
+  Family,
   SchoolClass,
   SchoolSubject,
   SchoolAssignment,
@@ -99,6 +100,53 @@ export const profilesAPI = {
   }>(`/profiles/admin/families/${parentId}/features`),
   updateFamilyFeatures: (parentId: number, features: Record<string, boolean>) =>
     api.put<{ success: boolean; message: string }>(`/profiles/admin/families/${parentId}/features`, { features })
+};
+
+// Families (Admin management)
+export const familiesAPI = {
+  // Admin: Get all families
+  getAll: () => api.get<Family[]>('/families'),
+
+  // Admin: Get single family with members
+  getOne: (id: number) => api.get<Family>(`/families/${id}`),
+
+  // Admin: Create new family
+  create: (data: { name: string; description?: string }) =>
+    api.post<Family>('/families', data),
+
+  // Admin: Update family
+  update: (id: number, data: { name?: string; description?: string; status?: 'active' | 'inactive' | 'suspended' }) =>
+    api.put<Family>(`/families/${id}`, data),
+
+  // Admin: Delete family (unassigns members, doesn't delete them)
+  delete: (id: number) => api.delete(`/families/${id}`),
+
+  // Admin: Assign profile to family
+  addMember: (familyId: number, profileId: number) =>
+    api.post(`/families/${familyId}/members`, { profileId }),
+
+  // Admin: Remove profile from family
+  removeMember: (familyId: number, profileId: number) =>
+    api.delete(`/families/${familyId}/members/${profileId}`),
+
+  // Admin: Get unassigned profiles
+  getUnassigned: () => api.get<Profile[]>('/families/unassigned/profiles'),
+
+  // Admin: Get family features
+  getFeatures: (familyId: number) =>
+    api.get<{ features: Record<string, boolean>; parentId: number }>(`/families/${familyId}/features`),
+
+  // Admin: Update family features
+  updateFeatures: (familyId: number, features: Record<string, boolean>) =>
+    api.put(`/families/${familyId}/features`, { features }),
+
+  // Parent: Get my family info
+  getMyFamily: () =>
+    api.get<{ family: Family | null; members: Profile[]; message?: string }>('/families/my-family'),
+
+  // Parent: Add co-parent to my family
+  addAdult: (data: { name: string; username?: string; password: string; gender?: string }) =>
+    api.post<Profile>('/families/my-family/add-adult', data)
 };
 
 // Diet
@@ -771,11 +819,12 @@ export const gamificationAPI = {
     api.get<PricingGuide>(`/gamification/economy/${profileId}/pricing-guide`),
 
   // Points Adjustment (Parent Control)
-  adjustPoints: (profileId: number, amount: number, reason: string, parentId?: number) =>
+  adjustPoints: (profileId: number, amount: number, reason: string, parentId?: number, relatedTaskId?: number) =>
     api.post<PointsAdjustmentResult>(`/gamification/points/adjust/${profileId}`, {
       amount,
       reason,
-      parent_id: parentId
+      parent_id: parentId,
+      related_task_id: relatedTaskId
     }),
   getPointsHistory: (profileId: number, limit?: number) =>
     api.get<{ history: PointsAdjustmentEntry[] }>(`/gamification/points/history/${profileId}`, {
@@ -849,6 +898,7 @@ export interface PointsAdjustmentResult {
   new_points: number;
   new_level: number;
   adjusted_by: string;
+  related_task?: string | null;
 }
 
 export interface PointsAdjustmentEntry {
@@ -858,6 +908,8 @@ export interface PointsAdjustmentEntry {
   adjusted_by_name: string;
   amount: number;
   reason: string;
+  related_task_id?: number;
+  related_task_title?: string;
   created_at: string;
 }
 
@@ -2244,6 +2296,344 @@ export const activitiesAPI = {
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
   }
+};
+
+// ==================== H5P API ====================
+
+interface H5PContent {
+  id: number;
+  h5p_content_id: string;
+  title: string;
+  content_type: string;
+  library_name: string;
+  created_by: number;
+  is_ai_generated: boolean | number;
+  created_at: string;
+  assignment_count?: number;
+  attempt_count?: number;
+  // For child view
+  assignment_id?: number;
+  points?: number;
+  my_attempts?: number;
+  best_score?: number;
+  passed?: boolean | number;
+}
+
+interface H5PAssignment {
+  id: number;
+  h5p_content_id: number;
+  assigned_to: number;
+  assigned_by: number;
+  points: number;
+  pass_percentage: number;
+  child_name?: string;
+  child_avatar?: string;
+  attempt_count?: number;
+  best_score?: number;
+  passed?: boolean | number;
+}
+
+interface H5PAttempt {
+  id: number;
+  assignment_id: number;
+  profile_id: number;
+  score: number;
+  max_score: number;
+  score_percentage: number;
+  passed: boolean | number;
+  started_at: string;
+  completed_at?: string;
+  profile_name?: string;
+  profile_avatar?: string;
+}
+
+interface H5PPlayerData {
+  content: {
+    id: number;
+    title: string;
+    contentType: string;
+  };
+  player: any;
+  attemptId: number | null;
+  assignment: {
+    points: number;
+    passPercentage: number;
+  } | null;
+}
+
+interface H5PStatus {
+  initialized: boolean;
+  installedContentTypes: string[];
+  contentTypesCount: number;
+}
+
+interface H5PQuizSpec {
+  title: string;
+  age: number;
+  theme: string;
+  questions: Array<{
+    type: 'mcq' | 'true_false' | 'fill_blank' | 'matching';
+    prompt: string;
+    choices?: string[];
+    answerIndex?: number;
+    correctAnswer?: boolean | string;
+    explanation?: string;
+  }>;
+}
+
+interface H5PXAPIResult {
+  recorded: boolean;
+  completed?: boolean;
+  passed?: boolean;
+  score?: number;
+  maxScore?: number;
+  scorePercentage?: number;
+  pointsAwarded?: number;
+}
+
+export const h5pAPI = {
+  // Get H5P service status
+  getStatus: () => api.get<H5PStatus>('/h5p/status'),
+
+  // Get all H5P content (parents see created, kids see assigned)
+  getContent: () => api.get<H5PContent[]>('/h5p/content'),
+
+  // Get single content details
+  getContentById: (id: number) => api.get<H5PContent>(`/h5p/content/${id}`),
+
+  // Get quiz questions for preview (parents only)
+  getQuizQuestions: (id: number) => api.get<{
+    id: number;
+    title: string;
+    isAiGenerated: boolean;
+    provider: string;
+    theme: string;
+    age: number;
+    questionCount: number;
+    questions: Array<{
+      index: number;
+      type: 'mcq' | 'true_false' | 'fill_blank';
+      prompt: string;
+      choices: string[] | null;
+      correctAnswer: number | boolean;
+      explanation: string;
+    }>;
+  }>(`/h5p/content/${id}/questions`),
+
+  // Create H5P content from quiz spec
+  createFromQuiz: (quizSpec: H5PQuizSpec, assignTo?: number[], points?: number) =>
+    api.post<{ id: number; h5pContentId: string; title: string; assignedCount: number }>(
+      '/h5p/content/from-quiz',
+      { quizSpec, assignTo, points }
+    ),
+
+  // Generate H5P quiz using AI
+  generateWithAI: (data: {
+    title?: string;
+    theme: string;
+    age?: number;
+    questionCount?: number;
+    quizType?: 'mixed' | 'mcq_only' | 'true_false_only' | 'fill_blank';
+    assignTo?: number[];
+    points?: number;
+    provider?: 'auto' | 'ollama' | 'gemini' | 'grok' | 'openai';
+    includeImages?: boolean;
+    customInstructions?: string;
+    answerStyle?: 'default' | 'abcd' | 'numbered';
+  }) => api.post<{
+    id: number;
+    h5pContentId: string;
+    title: string;
+    questionCount: number;
+    provider: string;
+    assignedCount: number;
+    imagesGenerated?: number;
+  }>('/h5p/content/generate-ai', data),
+
+  // Get player data for rendering H5P content
+  getPlayerData: (id: number) => api.get<H5PPlayerData>(`/h5p/play/${id}`),
+
+  // Submit xAPI event
+  submitXAPI: (data: {
+    attemptId: number;
+    verb: string;
+    objectId?: string;
+    objectType?: string;
+    result?: {
+      score?: { raw: number; max: number };
+      success?: boolean;
+      completion?: boolean;
+      duration?: string;
+    };
+    context?: any;
+  }) => api.post<H5PXAPIResult>('/h5p/xapi', data),
+
+  // Get attempts for a content
+  getAttempts: (contentId: number) => api.get<H5PAttempt[]>(`/h5p/attempts/${contentId}`),
+
+  // Delete H5P content
+  deleteContent: (id: number) => api.delete(`/h5p/content/${id}`),
+
+  // Assign content to children
+  assignContent: (contentId: number, data: {
+    childIds: number[];
+    points?: number;
+    dueDate?: string;
+    isRequired?: boolean;
+    maxAttempts?: number;
+    passPercentage?: number;
+  }) => api.post<{ assigned: number }>(`/h5p/content/${contentId}/assign`, data),
+
+  // Get assignments for a content
+  getAssignments: (contentId: number) => api.get<H5PAssignment[]>(`/h5p/content/${contentId}/assignments`),
+
+  // Remove an assignment
+  removeAssignment: (assignmentId: number) => api.delete(`/h5p/assignments/${assignmentId}`),
+
+  // ==================== Library Management ====================
+
+  // Get list of .h5p files in downloads folder
+  getDownloads: () => api.get<{
+    files: Array<{ filename: string; size: number; downloadedAt: string }>
+  }>('/h5p/libraries/downloads'),
+
+  // Install a specific .h5p file from downloads folder
+  installFromDownloads: (filename: string) =>
+    api.post<{
+      success: boolean;
+      message: string;
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/libraries/install-from-downloads', { filename }),
+
+  // Install all .h5p files from downloads folder
+  installAllDownloads: () =>
+    api.post<{
+      installed: string[];
+      errors: Array<{ file: string; error: string }>;
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/libraries/install-all-downloads'),
+
+  // Upload and install .h5p file
+  uploadLibrary: (file: File) => {
+    const formData = new FormData();
+    formData.append('h5pFile', file);
+    return api.post<{
+      success: boolean;
+      message: string;
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/libraries/upload', formData, {
+      headers: { 'Content-Type': undefined }
+    });
+  },
+
+  // ==================== H5P Hub (Online Installation) ====================
+
+  // Get available content types from H5P Hub
+  getHubContentTypes: () =>
+    api.get<{
+      contentTypes: Array<{
+        id: string;
+        machineName: string;
+        title: string;
+        summary: string;
+        description: string;
+        icon: string;
+        categories: string[];
+        isRecommended: boolean;
+        installed: boolean;
+        restricted: boolean;
+      }>
+    }>('/h5p/hub/content-types'),
+
+  // Install a single library from H5P Hub
+  installFromHub: (machineName: string) =>
+    api.post<{
+      success: boolean;
+      message: string;
+      installed: string[];
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/hub/install', { machineName }),
+
+  // Install all essential libraries from H5P Hub
+  installEssentialsFromHub: () =>
+    api.post<{
+      success: boolean;
+      message: string;
+      results: Array<{
+        library: string;
+        success: boolean;
+        installed: string[];
+        error?: string;
+      }>;
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/hub/install-essentials'),
+
+  // ==================== Content Import ====================
+
+  // Import H5P content from .h5p file (both libraries AND content)
+  importContent: (file: File) => {
+    const formData = new FormData();
+    formData.append('h5pFile', file);
+    return api.post<{
+      success: boolean;
+      message: string;
+      contentId: number | null;
+      h5pContentId: string | null;
+      title: string | null;
+      installedLibraries: string[];
+      installedContentTypes: string[];
+      contentTypesCount: number;
+    }>('/h5p/content/import', formData, {
+      headers: { 'Content-Type': undefined }
+    });
+  },
+
+  // ==================== Diagnostics ====================
+
+  // Run H5P diagnostic check
+  runDiagnostic: () =>
+    api.get<{
+      healthy: boolean;
+      issues: string[];
+      warnings: string[];
+      libraries: {
+        total: number;
+        runnable: number;
+        quizReady: boolean;
+        missingForQuiz: string[];
+        details: Array<{
+          name: string;
+          version: string;
+          isRunnable: boolean;
+          isRequiredForQuiz: boolean;
+        }>;
+      };
+      directories: {
+        exists: Record<string, boolean>;
+        fileCounts: Record<string, number>;
+      };
+      database: {
+        content: { total_content: number; ai_generated: number; imported: number };
+        assignments: { total: number };
+        attempts: { total_attempts: number; passed_attempts: number; completed_attempts: number };
+      };
+      paths: Record<string, string>;
+    }>('/h5p/diagnostic'),
+
+  // ==================== AI Providers ====================
+
+  // Get available AI providers for quiz generation
+  getAIProviders: () =>
+    api.get<{
+      providers: Array<{ id: string; name: string; available: boolean; model?: string }>;
+      defaultProvider: string;
+      hasAnyProvider: boolean;
+    }>('/h5p/ai-providers')
 };
 
 export default api;

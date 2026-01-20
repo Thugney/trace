@@ -18,6 +18,7 @@ import {
   getUsageStats,
   getParentIdForProfile
 } from '../services/aiUsageControl';
+import { NotificationHelpers } from '../services/notifications';
 
 const router = express.Router();
 router.use(authenticate, requireFeature('gamification'));
@@ -1296,10 +1297,10 @@ router.get('/economy/:profileId/pricing-guide', (req, res) => {
 // ==================== POINTS ADJUSTMENT (Parent Control) ====================
 
 // Adjust (add or deduct) points for a child - Parents only
-router.post('/points/adjust/:profileId', authenticate, (req: AuthRequest, res) => {
+router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
-    const { amount, reason, parent_id } = req.body;
+    const { amount, reason, parent_id, related_task_id } = req.body;
 
     // Validate input
     if (amount === undefined || amount === 0) {
@@ -1348,6 +1349,13 @@ router.post('/points/adjust/:profileId', authenticate, (req: AuthRequest, res) =
     const newPoints = currentPoints + amount;
     const newLevel = Math.floor(newPoints / 100) + 1;
 
+    // Get related task title if provided
+    let relatedTaskTitle: string | undefined;
+    if (related_task_id) {
+      const task: any = db.prepare('SELECT title FROM tasks WHERE id = ?').get(related_task_id);
+      relatedTaskTitle = task?.title;
+    }
+
     // Insert adjustment record
     db.prepare(`
       INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
@@ -1355,10 +1363,45 @@ router.post('/points/adjust/:profileId', authenticate, (req: AuthRequest, res) =
     `).run(profileId, amount, newLevel, newPoints, currentStars);
 
     // Log the adjustment for audit
-    db.prepare(`
-      INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(profileId, parentId, amount, reason.trim());
+    try {
+      db.prepare(`
+        INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, related_task_id, created_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(profileId, parentId, amount, reason.trim(), related_task_id || null);
+    } catch (insertError: any) {
+      // If related_task_id column doesn't exist, try without it
+      if (insertError.message.includes('related_task_id')) {
+        db.prepare(`
+          INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
+          VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).run(profileId, parentId, amount, reason.trim());
+      } else if (!insertError.message.includes('no such table')) {
+        throw insertError;
+      }
+    }
+
+    // Send notification to the child
+    try {
+      if (amount < 0) {
+        await NotificationHelpers.pointsDeducted(
+          parseInt(profileId),
+          Math.abs(amount),
+          reason.trim(),
+          parent.name,
+          relatedTaskTitle
+        );
+      } else {
+        await NotificationHelpers.pointsAdded(
+          parseInt(profileId),
+          amount,
+          reason.trim(),
+          parent.name
+        );
+      }
+    } catch (notifError) {
+      console.warn('[Points Adjust] Failed to send notification:', notifError);
+      // Don't fail the request if notification fails
+    }
 
     res.json({
       success: true,
@@ -1367,7 +1410,8 @@ router.post('/points/adjust/:profileId', authenticate, (req: AuthRequest, res) =
       previous_points: currentPoints,
       new_points: newPoints,
       new_level: newLevel,
-      adjusted_by: parent.name
+      adjusted_by: parent.name,
+      related_task: relatedTaskTitle || null
     });
   } catch (error: any) {
     // Handle missing table gracefully

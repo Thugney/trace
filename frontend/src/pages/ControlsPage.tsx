@@ -3,6 +3,7 @@ import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
 import EconomySettings from '../components/EconomySettings';
+import PointsManagement from '../components/PointsManagement';
 import { Shield } from 'lucide-react';
 
 export default function ControlsPage() {
@@ -52,10 +53,18 @@ export default function ControlsPage() {
         </p>
       </div>
 
-      {/* Economy Settings */}
+      {/* Points Management & Economy Settings */}
       {children.length > 0 ? (
-        <div className="card">
-          <EconomySettings children={children} />
+        <div className="space-y-6">
+          {/* Points Management - Add/Deduct Points */}
+          <div className="card">
+            <PointsManagement children={children} parentId={currentProfile?.id || 0} />
+          </div>
+
+          {/* Economy Settings */}
+          <div className="card">
+            <EconomySettings children={children} />
+          </div>
         </div>
       ) : (
         <div className="card p-8 text-center">
