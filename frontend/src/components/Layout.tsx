@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart, Brain } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
@@ -30,6 +30,7 @@ const KID_NAV_ITEMS: KidNavItem[] = [
   { path: '/child/dashboard', emoji: '🦸', label: 'Home', labels: { young: 'Play', middle: 'Home', older: 'Dashboard' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
   { path: '/tasks', emoji: '🦹', label: 'Missions', labels: { young: 'My Jobs', middle: 'Missions', older: 'Tasks' }, color: 'from-violet-500 to-purple-600', hoverAnim: 'hover:animate-pulse' },
   { path: '/quizzes', emoji: '🦁', label: 'Brain Games', labels: { young: 'Brain Games', middle: 'Quizzes', older: 'Quizzes' }, color: 'from-pink-500 to-rose-500', hoverAnim: 'hover:animate-wiggle-more' },
+  { path: '/activities', emoji: '🧩', label: 'Activities', labels: { young: 'Fun Games', middle: 'Activities', older: 'Activities' }, color: 'from-violet-500 to-fuchsia-500', hoverAnim: 'hover:animate-pulse' },
   { path: '/books', emoji: '📚', label: 'Story Books', labels: { young: 'Stories', middle: 'Books', older: 'Library' }, color: 'from-teal-400 to-cyan-500', hoverAnim: 'hover:animate-float' },
   { path: '/calendar', emoji: '🦉', label: 'My Days', labels: { young: 'My Days', middle: 'Calendar', older: 'Calendar' }, color: 'from-cyan-400 to-blue-500', hoverAnim: 'hover:animate-float' },
   { path: '/shop', emoji: '🐯', label: 'Treasure Shop', labels: { young: 'Prize Shop', middle: 'Shop', older: 'Rewards' }, color: 'from-emerald-400 to-green-500', hoverAnim: 'hover:animate-jiggle' },
@@ -91,6 +92,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/school', icon: BookOpen, label: 'School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/quizzes/builder', icon: BookOpen, label: 'Quizzes' },
+        { path: '/activities/builder', icon: Brain, label: 'Activities' },
         { path: '/books', icon: BookOpen, label: 'Books' },
         { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -116,6 +118,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/school', icon: BookOpen, label: 'School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/quizzes', icon: BookOpen, label: 'Quizzes' },
+        { path: '/activities', icon: Brain, label: 'Activities' },
         { path: '/shopping/help', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
