@@ -376,6 +376,7 @@ export interface AiGenerationRequest {
   createdBy: number;
   assignedTo: number;
   textProvider?: 'ollama' | 'gemini' | 'grok' | 'openai';
+  pointsPerActivity?: number;
 }
 
 export interface AiGenerationJob {

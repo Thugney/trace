@@ -55,7 +55,8 @@ const ActivityBuilder: React.FC = () => {
     selectedTypes: [] as string[],
     customInstructions: '',
     assignedTo: [] as number[],
-    textProvider: 'ollama' as 'ollama' | 'gemini' | 'grok' | 'openai'
+    textProvider: 'ollama' as 'ollama' | 'gemini' | 'grok' | 'openai',
+    pointsPerActivity: 20
   });
   const [aiJob, setAiJob] = useState<AiGenerationJob | null>(null);
   const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
@@ -152,7 +153,8 @@ const ActivityBuilder: React.FC = () => {
         customInstructions: aiForm.customInstructions || undefined,
         createdBy: currentProfile.id,
         assignedTo: aiForm.assignedTo[0],
-        textProvider: aiForm.textProvider
+        textProvider: aiForm.textProvider,
+        pointsPerActivity: aiForm.pointsPerActivity
       };
 
       const response = await activitiesAPI.startAiGeneration(request);
@@ -241,7 +243,8 @@ const ActivityBuilder: React.FC = () => {
       selectedTypes: [],
       customInstructions: '',
       assignedTo: [],
-      textProvider: 'ollama'
+      textProvider: 'ollama',
+      pointsPerActivity: 20
     });
     setAiJob(null);
   };
@@ -501,6 +504,27 @@ const ActivityBuilder: React.FC = () => {
                     <span className="capitalize font-medium">{level}</span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Points Per Activity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Points Per Correct Answer: {aiForm.pointsPerActivity}
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="100"
+                step="5"
+                value={aiForm.pointsPerActivity}
+                onChange={(e) => setAiForm({ ...aiForm, pointsPerActivity: parseInt(e.target.value) })}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>5</span>
+                <span>50</span>
+                <span>100</span>
               </div>
             </div>
 

@@ -994,7 +994,8 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       assignedTo,
       textProvider = 'ollama',
       difficulty = 'medium',
-      customInstructions
+      customInstructions,
+      pointsPerActivity = 20
     } = req.body;
 
     // Use topic or prompt (frontend sends topic)
@@ -1038,7 +1039,8 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       assignedTo,
       textProvider,
       difficulty,
-      customInstructions
+      customInstructions,
+      pointsPerActivity
     });
 
     // Log usage
@@ -1066,9 +1068,12 @@ router.get('/ai-generate/status/:jobId', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'Job not found or expired' });
   }
 
+  // Flatten result to match frontend's expected AiGenerationJob type
   res.json({
+    jobId: job.id,
     status: job.status,
-    result: job.result,
+    sessionId: job.result?.sessionId,
+    activityCount: job.result?.activityCount,
     error: job.error
   });
 });
@@ -1413,7 +1418,8 @@ async function processAiJob(jobId: string, payload: any) {
 async function generateActivitiesInternal(payload: any) {
   const {
     prompt, ageRange, activityTypes, activityCount,
-    createdBy, assignedTo, textProvider, difficulty
+    createdBy, assignedTo, textProvider, difficulty,
+    pointsPerActivity = 20
   } = payload;
 
   // Get activity types to use
@@ -1422,9 +1428,13 @@ async function generateActivitiesInternal(payload: any) {
     selectedTypes = await selectActivityTypes(prompt, ageRange, activityCount, textProvider);
   }
 
-  // Generate activities
+  // Generate activities - cycle through preferred types to meet activityCount
   const activities = [];
-  for (const typeName of selectedTypes) {
+  const targetCount = activityCount || selectedTypes.length;
+
+  for (let i = 0; i < targetCount; i++) {
+    // Cycle through selected types if we need more activities than types
+    const typeName = selectedTypes[i % selectedTypes.length];
     const activityType: any = db.prepare('SELECT * FROM activity_types WHERE name = ?').get(typeName);
     if (!activityType) continue;
 
@@ -1435,6 +1445,7 @@ async function generateActivitiesInternal(payload: any) {
     if (activityContent) {
       activities.push({
         activityTypeId: activityType.id,
+        points: pointsPerActivity,
         ...activityContent
       });
     }
@@ -1459,7 +1470,7 @@ async function generateActivitiesInternal(payload: any) {
     INSERT INTO learning_activities (
       session_id, activity_type_id, title, instructions,
       content_data, correct_data, hints, points, order_index, difficulty
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, 20, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   activities.forEach((activity, index) => {
@@ -1471,6 +1482,7 @@ async function generateActivitiesInternal(payload: any) {
       JSON.stringify(activity.contentData),
       JSON.stringify(activity.correctData),
       JSON.stringify(activity.hints || []),
+      activity.points || pointsPerActivity,
       index,
       difficulty
     );
