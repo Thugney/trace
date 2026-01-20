@@ -1168,27 +1168,30 @@ function scoreFillBlanks(correct: any, response: any, maxScore: number): Scoring
 }
 
 function scoreMatching(correct: any, response: any, maxScore: number): ScoringResult {
-  const pairs = correct.pairs || [];
+  const correctPairs = correct.correctPairs || {};
   const matches = response.matches || {};
   let correctCount = 0;
+  const totalPairs = Object.keys(correctPairs).length;
 
-  pairs.forEach((pair: any) => {
-    if (matches[pair.left.id] === pair.right.id) {
+  // correctPairs format: {0: 0, 1: 1, 2: 2} - maps left index to right index
+  // matches format: {0: 2, 1: 1} - user's matches (left index to right index)
+  Object.entries(correctPairs).forEach(([leftIdx, rightIdx]) => {
+    if (matches[Number(leftIdx)] === rightIdx) {
       correctCount++;
     }
   });
 
-  const partialScore = pairs.length > 0 ? correctCount / pairs.length : 0;
+  const partialScore = totalPairs > 0 ? correctCount / totalPairs : 0;
   const score = Math.round(maxScore * partialScore);
 
   return {
     score,
     maxScore,
-    isCorrect: correctCount === pairs.length,
+    isCorrect: correctCount === totalPairs,
     partialScore,
-    feedback: correctCount === pairs.length
+    feedback: correctCount === totalPairs
       ? 'All pairs matched!'
-      : `${correctCount} of ${pairs.length} pairs correct`
+      : `${correctCount} of ${totalPairs} pairs correct`
   };
 }
 
@@ -1570,8 +1573,9 @@ Return JSON: { "title": "...", "instructions": "Fill in the missing words", "con
       user: `Create 2-3 fill-in-the-blank sentences about: ${topic}`
     },
     matching: {
-      system: `${baseContext} Create matching pairs.
-Return JSON: { "title": "...", "instructions": "Match the pairs", "contentData": { "pairs": [{"left": {"id": "l1", "text": "..."}, "right": {"id": "r1", "text": "..."}}] }, "correctData": { "pairs": [{"left": {"id": "l1"}, "right": {"id": "r1"}}] }, "hints": [] }`,
+      system: `${baseContext} Create matching pairs for a matching game.
+Return JSON: { "title": "...", "instructions": "Match the pairs", "contentData": { "pairs": [{"left": "Term 1", "right": "Match 1"}, {"left": "Term 2", "right": "Match 2"}, {"left": "Term 3", "right": "Match 3"}] }, "correctData": { "correctPairs": {"0": 0, "1": 1, "2": 2} }, "hints": [] }
+The "pairs" array contains the correct matches. "correctPairs" maps left index (as string key) to right index (number value). Always include at least 4 pairs.`,
       user: `Create 4-5 matching pairs about: ${topic}`
     },
     sorting: {
