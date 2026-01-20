@@ -2695,7 +2695,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       profile_id INTEGER NOT NULL,
       parent_id INTEGER,
-      feature_type TEXT NOT NULL CHECK(feature_type IN ('book', 'quiz', 'task', 'chat')),
+      feature_type TEXT NOT NULL CHECK(feature_type IN ('book', 'quiz', 'task', 'chat', 'activity')),
       provider TEXT NOT NULL,
       estimated_cost REAL DEFAULT 0,
       tokens_used INTEGER DEFAULT 0,
