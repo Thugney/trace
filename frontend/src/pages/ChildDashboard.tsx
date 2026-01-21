@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
+import { useProfileFeatures } from '../context/ProfileFeaturesContext';
 import { tasksAPI } from '../services/api';
 import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, notificationsAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
 import { ProfileStats, Task } from '../types';
@@ -136,6 +137,7 @@ export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const { isYoungChild, settings } = useAge();
   useFeatureFlags(); // Hook called for context subscription
+  const { isFeatureEnabled } = useProfileFeatures();
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
@@ -959,30 +961,31 @@ export default function ChildDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - filtered by feature access */}
           <div className="grid grid-cols-4 gap-3">
-            <Link to="/tasks" className="bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 rounded-xl p-3 text-center transition-all">
-              <ListTodo className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-              <p className="text-xs font-semibold text-gray-700">Tasks</p>
-            </Link>
-            <Link to="/quizzes" className="bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-xl p-3 text-center transition-all">
-              <Gamepad2 className="w-6 h-6 text-violet-600 mx-auto mb-1" />
-              <p className="text-xs font-semibold text-gray-700">Quizzes</p>
-            </Link>
-            <Link to="/shop" className="bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-xl p-3 text-center transition-all">
-              <ShoppingBag className="w-6 h-6 text-green-600 mx-auto mb-1" />
-              <p className="text-xs font-semibold text-gray-700">Shop</p>
-            </Link>
-            {currentProfile?.ai_enabled === 1 ? (
+            {isFeatureEnabled('tasks') && (
+              <Link to="/tasks" className="bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 rounded-xl p-3 text-center transition-all">
+                <ListTodo className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-gray-700">Tasks</p>
+              </Link>
+            )}
+            {isFeatureEnabled('quizzes') && (
+              <Link to="/quizzes" className="bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-xl p-3 text-center transition-all">
+                <Gamepad2 className="w-6 h-6 text-violet-600 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-gray-700">Quizzes</p>
+              </Link>
+            )}
+            {isFeatureEnabled('rewards') && (
+              <Link to="/shop" className="bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-xl p-3 text-center transition-all">
+                <ShoppingBag className="w-6 h-6 text-green-600 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-gray-700">Shop</p>
+              </Link>
+            )}
+            {isFeatureEnabled('ai') && currentProfile?.ai_enabled === 1 && (
               <Link to="/ai" className="bg-gradient-to-br from-indigo-100 to-blue-100 hover:from-indigo-200 hover:to-blue-200 rounded-xl p-3 text-center transition-all">
                 <Brain className="w-6 h-6 text-indigo-600 mx-auto mb-1" />
                 <p className="text-xs font-semibold text-gray-700">AI Help</p>
               </Link>
-            ) : (
-              <div className="bg-gray-100 rounded-xl p-3 text-center opacity-50">
-                <Brain className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                <p className="text-xs font-semibold text-gray-400">AI Help</p>
-              </div>
             )}
           </div>
 
@@ -1198,19 +1201,21 @@ export default function ChildDashboard() {
             </div>
           )}
 
-          {/* Shop Link */}
-          <Link to="/shop" className="block bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4 hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-xl">
-                <ShoppingBag className="w-6 h-6 text-green-600" />
+          {/* Shop Link - only if rewards feature enabled */}
+          {isFeatureEnabled('rewards') && (
+            <Link to="/shop" className="block bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-green-100 rounded-xl">
+                  <ShoppingBag className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900">Reward Shop</p>
+                  <p className="text-sm text-gray-500">Spend your points on cool rewards!</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
-              <div className="flex-1">
-                <p className="font-bold text-gray-900">Reward Shop</p>
-                <p className="text-sm text-gray-500">Spend your points on cool rewards!</p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </div>
-          </Link>
+            </Link>
+          )}
 
           {/* Achievements */}
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">

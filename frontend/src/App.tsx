@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ProfileProvider } from './context/ProfileContext';
 import { AgeProvider } from './context/AgeContext';
 import { FeatureFlagsProvider, useFeatureFlags } from './context/FeatureFlagsContext';
+import { ProfileFeaturesProvider } from './context/ProfileFeaturesContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -445,11 +446,13 @@ function App() {
     <Router>
       <FeatureFlagsProvider>
         <ProfileProvider>
-          <AgeProvider>
-            <ToastProvider>
-              <AppRoutes />
-            </ToastProvider>
-          </AgeProvider>
+          <ProfileFeaturesProvider>
+            <AgeProvider>
+              <ToastProvider>
+                <AppRoutes />
+              </ToastProvider>
+            </AgeProvider>
+          </ProfileFeaturesProvider>
         </ProfileProvider>
       </FeatureFlagsProvider>
     </Router>

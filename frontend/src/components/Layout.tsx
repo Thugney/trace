@@ -4,6 +4,7 @@ import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu,
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
+import { useProfileFeatures } from '../context/ProfileFeaturesContext';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
@@ -43,10 +44,33 @@ const KID_NAV_ITEMS: KidNavItem[] = [
   { path: '/settings', emoji: '🧠', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' },
 ];
 
+// Feature key mapping for nav items
+const NAV_PATH_FEATURES: Record<string, string> = {
+  '/tasks': 'tasks',
+  '/notes': 'notes',
+  '/shop': 'rewards',
+  '/calendar': 'calendar',
+  '/quizzes': 'quizzes',
+  '/quizzes/builder': 'quizzes',
+  '/leaderboard': 'leaderboard',
+  '/journey': 'journey',
+  '/ai': 'ai',
+  '/school': 'school',
+  '/shopping': 'shopping',
+  '/shopping/help': 'shopping',
+  '/books': 'books',
+  '/activities': 'activities',
+  '/activities/builder': 'activities',
+  '/h5p': 'activities',
+  '/h5p/play': 'activities',
+  '/diet': 'diet',
+};
+
 export default function Layout({ children }: LayoutProps) {
   const { currentProfile, setCurrentProfile } = useProfile();
   const { settings } = useAge();
   const { flags } = useFeatureFlags();
+  const { isFeatureEnabled } = useProfileFeatures();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -54,6 +78,13 @@ export default function Layout({ children }: LayoutProps) {
 
   const isActive = (path: string) => location.pathname === path;
   const isChild = currentProfile?.type === 'child';
+
+  // Check if a nav path is enabled based on profile features
+  const isNavPathEnabled = (path: string): boolean => {
+    const featureKey = NAV_PATH_FEATURES[path];
+    if (!featureKey) return true; // No feature restriction
+    return isFeatureEnabled(featureKey);
+  };
 
   const getNavItems = () => {
     if (!currentProfile) return [];
@@ -88,7 +119,7 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     if (type === 'parent') {
-      return [
+      const items = [
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/school', icon: BookOpen, label: 'School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
@@ -106,6 +137,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
       ];
+      return items.filter(item => isNavPathEnabled(item.path));
     }
 
     if (type === 'teacher') {
@@ -131,11 +163,12 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/journey', icon: Map, label: 'Journey' }
       ];
 
-      if (currentProfile.ai_enabled === 1) {
+      if (currentProfile.ai_enabled === 1 && isNavPathEnabled('/ai')) {
         items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });
       }
       items.push({ path: '/settings', icon: Settings, label: 'Settings' });
-      return items;
+      // Filter items based on feature access
+      return items.filter(item => isNavPathEnabled(item.path));
     }
 
     return [];
@@ -158,6 +191,9 @@ export default function Layout({ children }: LayoutProps) {
       : KID_NAV_ITEMS;
 
     const available = baseItems.filter(item => {
+      // Check feature access
+      if (!isNavPathEnabled(item.path)) return false;
+      // Special check for AI
       if (item.path === '/ai') {
         return currentProfile.ai_enabled === 1;
       }
