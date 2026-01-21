@@ -31,7 +31,16 @@ import {
   checkRequiredLibraries,
   getRunnableContentTypes,
   H5P_PATHS,
-  QuizSpec
+  QuizSpec,
+  // Standalone content converters
+  convertMemoryGameToH5P,
+  convertFlashcardsToH5P,
+  convertFindTheWordsToH5P,
+  convertDialogCardsToH5P,
+  MemoryGameSpec,
+  FlashcardsSpec,
+  FindTheWordsSpec,
+  DialogCardsSpec
 } from '../services/h5pService';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { sendPushNotification } from '../services/notifications';
@@ -277,6 +286,22 @@ function getQuizGenerationPrompt(
     typeInstructions = 'Create ONLY fill-in-the-blank questions (fill_blank type).';
     questionTypesAllowed = `Question type to use:
 - "fill_blank": needs "prompt" with ___ where the blank is, and "correctAnswer" (the word/phrase that fills the blank)`;
+  } else if (quizType === 'drag_text') {
+    typeInstructions = 'Create ONLY drag-the-word questions (drag_text type).';
+    questionTypesAllowed = `Question type to use:
+- "drag_text": needs "prompt" with instruction, and "textWithDraggables" with *asterisks* around words to drag`;
+  } else if (quizType === 'mark_words') {
+    typeInstructions = 'Create ONLY mark-the-words questions (mark_words type).';
+    questionTypesAllowed = `Question type to use:
+- "mark_words": needs "prompt" with instruction, and "textWithMarks" with *asterisks* around correct words to click`;
+  } else if (quizType === 'mixed_advanced') {
+    typeInstructions = 'Create a varied mix using MCQ, True/False, Fill in the Blank, Drag Text, and Mark Words.';
+    questionTypesAllowed = `Question types you can use (vary them for an engaging quiz):
+- "mcq" (multiple choice): needs "choices" array (4 options) and "answerIndex" (0-3)
+- "true_false": needs "correctAnswer" (boolean)
+- "fill_blank": needs "prompt" with ___ and "correctAnswer" (the word)
+- "drag_text": needs "textWithDraggables" with *words* to drag, and "correctAnswer" array
+- "mark_words": needs "textWithMarks" with *words* to click, and "correctAnswer" array`;
   } else {
     typeInstructions = 'Create a good mix of multiple choice and true/false questions.';
     questionTypesAllowed = `Question types you can use:
@@ -301,35 +326,32 @@ function getQuizGenerationPrompt(
   return {
     system: `You are an expert educational quiz creator for children. Create age-appropriate, engaging quiz questions.
 
-IMPORTANT: Return ONLY valid JSON, no explanation or markdown.
+CRITICAL REQUIREMENTS:
+1. Return ONLY valid JSON, no explanation or markdown
+2. EVERY SINGLE QUESTION must be DIRECTLY about the specific topic: "${theme}"
+3. DO NOT include ANY questions about unrelated topics like capitals, countries, or general knowledge unless the theme specifically asks for it
+4. If the theme is about a specific subject (e.g., "Eritrea's Past"), ALL questions must be about that exact subject
 
 The JSON format must be:
 {
-  "title": "Quiz title about the theme",
+  "title": "Quiz title about ${theme}",
   "theme": "${theme}",
   "age": ${age},
   "questions": [
-    {
-      "type": "mcq",
-      "prompt": "Question text here?",
-      "choices": ["Option A", "Option B", "Option C", "Option D"],
-      "answerIndex": 0,
-      "explanation": "Why this is correct"
-    },
-    {
-      "type": "true_false",
-      "prompt": "Statement to evaluate as true or false",
-      "correctAnswer": true,
-      "explanation": "Why this is true/false"
-    },
-    {
-      "type": "fill_blank",
-      "prompt": "The capital of France is ___.",
-      "correctAnswer": "Paris",
-      "explanation": "Paris is the capital city of France"
-    }
+    // ALL questions MUST be about "${theme}" - no exceptions!
   ]
 }
+
+Question formats:
+- "mcq": {"type": "mcq", "prompt": "Question?", "choices": ["A", "B", "C", "D"], "answerIndex": 0, "explanation": "Why"}
+- "true_false": {"type": "true_false", "prompt": "Statement", "correctAnswer": true, "explanation": "Why"}
+- "fill_blank": {"type": "fill_blank", "prompt": "Sentence with ___ blank.", "correctAnswer": "answer", "explanation": "Why"}
+
+RULES FOR FILL_BLANK QUESTIONS:
+- The "prompt" MUST contain exactly three underscores (___) where the blank goes
+- The prompt must be about "${theme}" - NOT generic examples
+- Do NOT put the answer in the prompt - only in "correctAnswer"
+- Do NOT use asterisks (*) in the prompt
 
 ${questionTypesAllowed}${answerStyleInstructions}
 
@@ -338,8 +360,10 @@ ${age <= 6 ? '- Use very simple words and short sentences\n- Focus on colors, an
 ${age >= 7 && age <= 10 ? '- Use clear, straightforward language\n- Include interesting facts they can learn\n- Mix easy and medium difficulty' : ''}
 ${age >= 11 ? '- Can use more complex vocabulary\n- Include challenging but achievable questions\n- Cover deeper knowledge about the topic' : ''}
 
-${typeInstructions} Create exactly ${questionCount} questions.${customSection}`,
-    user: `Create a fun, educational quiz about "${theme}" for a ${age}-year-old child. Make it engaging and educational with ${questionCount} questions.`
+${typeInstructions} Create exactly ${questionCount} questions about "${theme}".${customSection}`,
+    user: `Create ${questionCount} educational quiz questions SPECIFICALLY about "${theme}" for a ${age}-year-old child.
+
+IMPORTANT: Every question must be directly related to "${theme}". Do not include any questions about other topics.`
   };
 }
 
@@ -364,6 +388,127 @@ async function generateQuizWithAI(
   }
 
   return parsed as QuizSpec;
+}
+
+// ==================== STANDALONE CONTENT AI GENERATION ====================
+
+function getStandaloneContentPrompt(
+  contentType: 'memory_game' | 'flashcards' | 'word_search' | 'dialog_cards',
+  theme: string,
+  age: number,
+  itemCount: number,
+  customInstructions: string = ''
+): { system: string; user: string } {
+  const customSection = customInstructions?.trim() ? `\n\nADDITIONAL INSTRUCTIONS:\n${customInstructions}` : '';
+
+  if (contentType === 'memory_game') {
+    return {
+      system: `You create memory matching games for children. Return ONLY valid JSON.
+
+Format:
+{
+  "title": "Memory Game: [Theme]",
+  "description": "Match the pairs!",
+  "pairs": [
+    { "text": "Apple", "matchingText": "A red fruit" },
+    { "text": "Banana", "matchingText": "A yellow fruit" }
+  ]
+}
+
+Create ${itemCount} pairs. Each pair has a "text" (main card) and "matchingText" (matching card).
+For age ${age}: ${age <= 6 ? 'Use simple, familiar words' : age <= 10 ? 'Include interesting facts' : 'Can use more complex vocabulary'}.${customSection}`,
+      user: `Create a memory matching game about "${theme}" for a ${age}-year-old with ${itemCount} pairs.`
+    };
+  }
+
+  if (contentType === 'flashcards') {
+    return {
+      system: `You create educational flashcards for children. Return ONLY valid JSON.
+
+Format:
+{
+  "title": "Flashcards: [Theme]",
+  "description": "Learn about [theme]!",
+  "cards": [
+    { "front": "What is the capital of France?", "back": "Paris" },
+    { "front": "How many planets in our solar system?", "back": "8 planets" }
+  ]
+}
+
+Create ${itemCount} cards. Each card has "front" (question/term) and "back" (answer/definition).
+For age ${age}: ${age <= 6 ? 'Use simple questions and short answers' : age <= 10 ? 'Include interesting facts' : 'Can be more detailed'}.${customSection}`,
+      user: `Create flashcards about "${theme}" for a ${age}-year-old with ${itemCount} cards.`
+    };
+  }
+
+  if (contentType === 'word_search') {
+    return {
+      system: `You create word search puzzles for children. Return ONLY valid JSON.
+
+Format:
+{
+  "title": "Word Search: [Theme]",
+  "description": "Find the hidden words about [theme]!",
+  "words": ["APPLE", "BANANA", "ORANGE", "GRAPE", "MANGO"]
+}
+
+Create ${itemCount} words. Words should be UPPERCASE, single words (no spaces), 3-10 letters for younger kids, up to 12 for older.
+For age ${age}: ${age <= 6 ? 'Use 3-5 letter simple words' : age <= 10 ? 'Use 4-8 letter words' : 'Can use longer, more complex words'}.${customSection}`,
+      user: `Create a word search puzzle about "${theme}" for a ${age}-year-old with ${itemCount} words.`
+    };
+  }
+
+  // dialog_cards
+  return {
+    system: `You create dialog/flip cards for children to study. Return ONLY valid JSON.
+
+Format:
+{
+  "title": "Study Cards: [Theme]",
+  "description": "Flip to learn!",
+  "cards": [
+    { "front": "Photosynthesis", "back": "The process by which plants make food using sunlight", "tips": "Think about what plants need to grow" },
+    { "front": "Mammal", "back": "A warm-blooded animal that feeds milk to its babies" }
+  ]
+}
+
+Create ${itemCount} cards. Each has "front" (term/concept), "back" (definition/explanation), and optional "tips".
+For age ${age}: ${age <= 6 ? 'Use simple terms with short explanations' : age <= 10 ? 'Include helpful tips' : 'Can use academic vocabulary'}.${customSection}`,
+    user: `Create study cards about "${theme}" for a ${age}-year-old with ${itemCount} cards.`
+  };
+}
+
+async function generateStandaloneContentWithAI(
+  contentType: 'memory_game' | 'flashcards' | 'word_search' | 'dialog_cards',
+  theme: string,
+  age: number,
+  itemCount: number,
+  provider: string,
+  customInstructions: string = ''
+): Promise<any> {
+  const prompt = getStandaloneContentPrompt(contentType, theme, age, itemCount, customInstructions);
+  const response = await callAiProvider(provider, prompt.system, prompt.user);
+  const parsed = parseAiJson(response);
+
+  // Basic validation
+  if (!parsed.title) {
+    throw new Error('Generated content missing title');
+  }
+
+  if (contentType === 'memory_game' && (!Array.isArray(parsed.pairs) || parsed.pairs.length === 0)) {
+    throw new Error('Memory game missing pairs');
+  }
+  if (contentType === 'flashcards' && (!Array.isArray(parsed.cards) || parsed.cards.length === 0)) {
+    throw new Error('Flashcards missing cards');
+  }
+  if (contentType === 'word_search' && (!Array.isArray(parsed.words) || parsed.words.length === 0)) {
+    throw new Error('Word search missing words');
+  }
+  if (contentType === 'dialog_cards' && (!Array.isArray(parsed.cards) || parsed.cards.length === 0)) {
+    throw new Error('Dialog cards missing cards');
+  }
+
+  return parsed;
 }
 
 const router = Router();
@@ -1390,6 +1535,182 @@ router.post('/content/generate-ai', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[H5P AI] Error generating quiz:', error);
     res.status(500).json({ error: 'Failed to generate quiz', details: error.message });
+  }
+});
+
+// Generate standalone H5P content (Memory Game, Flashcards, Word Search, Dialog Cards)
+router.post('/content/generate-standalone', async (req: Request, res: Response) => {
+  try {
+    await ensureH5PInitialized();
+    const profile = (req as any).profile;
+
+    if (profile.type !== 'parent' && profile.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents can create H5P content' });
+    }
+
+    const {
+      contentType,  // 'memory_game' | 'flashcards' | 'word_search' | 'dialog_cards'
+      title,
+      theme,
+      age = 8,
+      itemCount = 8,
+      assignTo,
+      points = 20,
+      provider = 'auto',
+      customInstructions = ''
+    } = req.body;
+
+    if (!contentType || !['memory_game', 'flashcards', 'word_search', 'dialog_cards'].includes(contentType)) {
+      return res.status(400).json({ error: 'Invalid contentType. Must be: memory_game, flashcards, word_search, or dialog_cards' });
+    }
+
+    if (!theme) {
+      return res.status(400).json({ error: 'theme is required' });
+    }
+
+    // Check AI usage limits
+    const aiCheck = canGenerateAi(profile.id, 'quiz');
+    if (!aiCheck.allowed) {
+      return res.status(429).json({
+        error: aiCheck.reason || 'AI generation limit reached',
+        remaining: aiCheck.remaining
+      });
+    }
+
+    console.log(`[H5P AI] Generating standalone content: type="${contentType}", theme="${theme}", age=${age}, items=${itemCount}`);
+
+    // Determine provider
+    let usedProvider = provider;
+    if (provider === 'auto') {
+      if (getOllamaUrl()) usedProvider = 'ollama';
+      else if (getGeminiApiKey()) usedProvider = 'gemini';
+      else if (getGrokApiKey()) usedProvider = 'grok';
+      else if (getOpenAiApiKey()) usedProvider = 'openai';
+      else {
+        return res.status(400).json({ error: 'No AI provider configured' });
+      }
+    }
+
+    // Generate content using AI
+    const contentSpec = await generateStandaloneContentWithAI(
+      contentType,
+      theme,
+      age,
+      itemCount,
+      usedProvider,
+      customInstructions
+    );
+
+    // Override title if provided
+    if (title) {
+      contentSpec.title = title;
+    }
+
+    console.log(`[H5P AI] Generated ${contentType}: "${contentSpec.title}"`);
+
+    // Convert to H5P format based on content type
+    let h5pData;
+    let h5pContentType: string;
+
+    switch (contentType) {
+      case 'memory_game':
+        h5pData = convertMemoryGameToH5P(contentSpec as MemoryGameSpec);
+        h5pContentType = 'MemoryGame';
+        break;
+      case 'flashcards':
+        h5pData = convertFlashcardsToH5P(contentSpec as FlashcardsSpec);
+        h5pContentType = 'Flashcards';
+        break;
+      case 'word_search':
+        h5pData = convertFindTheWordsToH5P(contentSpec as FindTheWordsSpec);
+        h5pContentType = 'FindTheWords';
+        break;
+      case 'dialog_cards':
+        h5pData = convertDialogCardsToH5P(contentSpec as DialogCardsSpec);
+        h5pContentType = 'DialogCards';
+        break;
+      default:
+        return res.status(400).json({ error: 'Unknown content type' });
+    }
+
+    // Create H5P user
+    const h5pUser = createH5PUser(profile.id, profile.name);
+
+    // Create the H5P content
+    const contentId = await createH5PContent(
+      h5pData.library,
+      h5pData.params,
+      h5pData.metadata,
+      h5pUser
+    );
+
+    // Save to database
+    const result = db.prepare(`
+      INSERT INTO h5p_content (
+        h5p_content_id, title, content_type, library_name, created_by,
+        metadata, is_ai_generated, ai_prompt
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    `).run(
+      contentId.toString(),
+      contentSpec.title,
+      h5pContentType,
+      h5pData.library,
+      profile.id,
+      JSON.stringify(h5pData.metadata),
+      JSON.stringify({ contentType, theme, age, itemCount, provider: usedProvider, contentSpec })
+    );
+
+    const dbContentId = result.lastInsertRowid;
+
+    // Log AI usage
+    const cost = usedProvider === 'ollama' ? 0 : estimateCost(usedProvider, null, 0);
+    logAiUsage(profile.id, 'quiz', usedProvider, {
+      estimatedCost: cost,
+      success: true
+    });
+
+    // Create assignments and send notifications
+    if (Array.isArray(assignTo) && assignTo.length > 0) {
+      const insertAssignment = db.prepare(`
+        INSERT INTO h5p_assignments (
+          h5p_content_id, assigned_to, assigned_by, points
+        ) VALUES (?, ?, ?, ?)
+      `);
+
+      const contentTypeLabels: Record<string, string> = {
+        memory_game: 'Memory Game',
+        flashcards: 'Flashcards',
+        word_search: 'Word Search',
+        dialog_cards: 'Study Cards'
+      };
+
+      for (const childId of assignTo) {
+        insertAssignment.run(dbContentId, childId, profile.id, points);
+
+        sendPushNotification(childId, {
+          type: 'h5p_quiz_assigned' as any,
+          title: `New ${contentTypeLabels[contentType]} Assigned! 🎮`,
+          message: `You have a new activity: "${contentSpec.title}"`,
+          data: { h5pContentId: dbContentId },
+          url: '/h5p'
+        });
+      }
+    }
+
+    res.json({
+      id: dbContentId,
+      h5pContentId: contentId.toString(),
+      title: contentSpec.title,
+      contentType: h5pContentType,
+      itemCount: contentType === 'memory_game' ? contentSpec.pairs?.length :
+                 contentType === 'word_search' ? contentSpec.words?.length :
+                 contentSpec.cards?.length,
+      provider: usedProvider,
+      assignedCount: assignTo?.length || 0
+    });
+  } catch (error: any) {
+    console.error('[H5P AI] Error generating standalone content:', error);
+    res.status(500).json({ error: 'Failed to generate content', details: error.message });
   }
 });
 

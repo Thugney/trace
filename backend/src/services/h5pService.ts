@@ -596,13 +596,17 @@ export interface QuizSpec {
 }
 
 export interface QuizQuestion {
-  type: 'mcq' | 'true_false' | 'fill_blank' | 'matching';
+  type: 'mcq' | 'true_false' | 'fill_blank' | 'matching' | 'drag_text' | 'mark_words';
   prompt: string;
   choices?: string[];
   answerIndex?: number;
-  correctAnswer?: boolean | string;
+  correctAnswer?: boolean | string | string[];
   explanation?: string;
   pairs?: { left: string; right: string }[];
+  // For drag_text: text with *draggable* words marked with asterisks
+  textWithDraggables?: string;
+  // For mark_words: text with *correct* words marked with asterisks
+  textWithMarks?: string;
 }
 
 /**
@@ -621,6 +625,10 @@ export function convertQuizSpecToH5P(quizSpec: QuizSpec): {
         return convertTrueFalseToH5P(q, index);
       case 'fill_blank':
         return convertFillBlankToH5P(q, index);
+      case 'drag_text':
+        return convertDragTextToH5P(q, index);
+      case 'mark_words':
+        return convertMarkWordsToH5P(q, index);
       default:
         return convertMCQToH5P(q, index); // Default to MCQ
     }
@@ -782,8 +790,69 @@ function convertTrueFalseToH5P(q: QuizQuestion, index: number): any {
  * Convert Fill in the Blank question to H5P Blanks format
  */
 function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
-  // Convert prompt with blanks marked as *answer*
-  const textWithBlanks = q.prompt.replace(/___+/g, `*${q.correctAnswer}*`);
+  // Clean up the prompt and convert to H5P format
+  let textWithBlanks = q.prompt;
+
+  // Remove any asterisks that AI might have incorrectly added
+  textWithBlanks = textWithBlanks.replace(/\*+/g, '');
+
+  // If prompt has ___ blanks, replace with *answer*
+  if (textWithBlanks.includes('___')) {
+    textWithBlanks = textWithBlanks.replace(/___+/g, `*${q.correctAnswer}*`);
+  } else {
+    // If no blanks in prompt, AI might have generated incorrectly
+    // Try to create a proper fill-in-the-blank by appending the answer
+    // This is a fallback - ideally the AI generates correct format
+    console.warn(`[H5P] Fill-blank question ${index} has no ___ in prompt, using fallback`);
+    textWithBlanks = `${textWithBlanks.trim().replace(/[.!?]$/, '')} *${q.correctAnswer}*.`;
+  }
+
+  // Split into sentences and filter
+  const sentences = textWithBlanks.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+
+  if (sentences.length > 1) {
+    // Multiple sentences detected - keep only the one with the answer marker
+    const sentenceWithAnswer = sentences.find(s => s.includes('*'));
+    if (sentenceWithAnswer) {
+      textWithBlanks = sentenceWithAnswer.trim();
+    } else {
+      // No sentence has the marker, just use the first sentence
+      textWithBlanks = sentences[0].trim();
+    }
+  }
+
+  // Additional cleanup: if there are still multiple sentences (common AI error pattern)
+  // where AI appends unrelated example sentences, only keep up to the first period after the answer
+  const answerMatch = textWithBlanks.match(/\*[^*]+\*/);
+  if (answerMatch) {
+    const answerEnd = textWithBlanks.indexOf(answerMatch[0]) + answerMatch[0].length;
+    const textAfterAnswer = textWithBlanks.slice(answerEnd);
+    const firstPeriodAfterAnswer = textAfterAnswer.search(/[.!?]/);
+    if (firstPeriodAfterAnswer !== -1) {
+      // Only keep up to the first sentence ending after the answer
+      textWithBlanks = textWithBlanks.slice(0, answerEnd + firstPeriodAfterAnswer + 1).trim();
+    }
+  }
+
+  // Final cleanup - ensure no stray text patterns that indicate AI bleeding
+  // Common patterns: "Oslo is the capital of", "Example:", "For instance:"
+  const offTopicPatterns = [
+    /\bOslo\b/i,
+    /\bExample:/i,
+    /\bFor instance:/i,
+    /\bSample:/i,
+    /\bE\.g\.:/i,
+  ];
+
+  for (const pattern of offTopicPatterns) {
+    if (pattern.test(textWithBlanks) && !textWithBlanks.includes('*')) {
+      // This sentence is likely off-topic and doesn't have our answer
+      console.warn(`[H5P] Fill-blank question ${index} contains off-topic content, attempting recovery`);
+      // Try to use just the answer in a simple format
+      textWithBlanks = `The answer is *${q.correctAnswer}*.`;
+      break;
+    }
+  }
 
   return {
     library: 'H5P.Blanks 1.14',
@@ -830,6 +899,318 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
 }
 
 /**
+ * Convert Drag Text question to H5P DragText format
+ * Text has *draggable* words marked with asterisks that get turned into blanks
+ */
+function convertDragTextToH5P(q: QuizQuestion, index: number): any {
+  // The text should have words wrapped in *asterisks* which become draggable
+  // Format: "The *capital* of France is *Paris*."
+  let textContent = q.textWithDraggables || q.prompt;
+
+  // If no asterisks in text, try to add them based on correctAnswer
+  if (!textContent.includes('*') && q.correctAnswer) {
+    const answers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer as string];
+    answers.forEach(answer => {
+      textContent = textContent.replace(new RegExp(`\\b${answer}\\b`, 'i'), `*${answer}*`);
+    });
+  }
+
+  return {
+    library: 'H5P.DragText 1.10',
+    params: {
+      taskDescription: `<p>${q.prompt}</p>`,
+      textField: textContent,
+      overallFeedback: [
+        { from: 0, to: 50, feedback: 'Keep practicing!' },
+        { from: 51, to: 80, feedback: 'Good job!' },
+        { from: 81, to: 100, feedback: 'Excellent!' }
+      ],
+      checkAnswer: 'Check',
+      tryAgain: 'Retry',
+      showSolution: 'Show solution',
+      dropZoneIndex: 'Drop Zone @index.',
+      empty: 'Drop Zone @index is empty.',
+      contains: 'Drop Zone @index contains draggable @draggable.',
+      ariaDraggableIndex: '@index of @count draggables.',
+      tipLabel: 'Show tip',
+      correctText: 'Correct!',
+      incorrectText: 'Incorrect!',
+      resetDropTitle: 'Reset drop',
+      resetDropDescription: 'Are you sure you want to reset this drop zone?',
+      grabbed: 'Draggable is grabbed.',
+      cancelledDragging: 'Cancelled dragging.',
+      correctAnswer: 'Correct answer:',
+      feedbackHeader: 'Feedback',
+      behaviour: {
+        enableRetry: true,
+        enableSolutionsButton: true,
+        enableCheckButton: true,
+        instantFeedback: false
+      }
+    },
+    subContentId: `q-${index}-${Date.now()}`
+  };
+}
+
+/**
+ * Convert Mark the Words question to H5P MarkTheWords format
+ * Text has *correct* words marked with asterisks that should be selected
+ */
+function convertMarkWordsToH5P(q: QuizQuestion, index: number): any {
+  // The text should have words wrapped in *asterisks* which are the correct answers
+  // Format: "Click on all the *verbs* in this sentence: The dog *runs* and *jumps*."
+  let textContent = q.textWithMarks || q.prompt;
+
+  // If no asterisks in text, try to add them based on correctAnswer
+  if (!textContent.includes('*') && q.correctAnswer) {
+    const answers = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer as string];
+    answers.forEach(answer => {
+      textContent = textContent.replace(new RegExp(`\\b${answer}\\b`, 'gi'), `*${answer}*`);
+    });
+  }
+
+  return {
+    library: 'H5P.MarkTheWords 1.11',
+    params: {
+      taskDescription: `<p>${q.prompt}</p>`,
+      textField: textContent,
+      overallFeedback: [
+        { from: 0, to: 50, feedback: 'Keep practicing!' },
+        { from: 51, to: 80, feedback: 'Good job!' },
+        { from: 81, to: 100, feedback: 'Excellent!' }
+      ],
+      checkAnswerButton: 'Check',
+      tryAgainButton: 'Retry',
+      showSolutionButton: 'Show solution',
+      behaviour: {
+        enableRetry: true,
+        enableSolutionsButton: true,
+        enableCheckButton: true,
+        showScorePoints: true
+      },
+      correctAnswer: 'Correct!',
+      incorrectAnswer: 'Incorrect!',
+      missedAnswer: 'Missed!',
+      displaySolutionDescription: 'Task is updated to show the solution.'
+    },
+    subContentId: `q-${index}-${Date.now()}`
+  };
+}
+
+// ==================== STANDALONE CONTENT TYPE CONVERTERS ====================
+
+/**
+ * Standalone content spec interfaces
+ */
+export interface MemoryGameSpec {
+  title: string;
+  description?: string;
+  pairs: Array<{ image?: string; text: string; matchingText?: string }>;
+}
+
+export interface FlashcardsSpec {
+  title: string;
+  description?: string;
+  cards: Array<{ front: string; back: string; image?: string }>;
+}
+
+export interface FindTheWordsSpec {
+  title: string;
+  description?: string;
+  words: string[];
+  gridSize?: number;
+}
+
+export interface DialogCardsSpec {
+  title: string;
+  description?: string;
+  cards: Array<{ front: string; back: string; tips?: string }>;
+}
+
+/**
+ * Convert Memory Game spec to H5P format
+ */
+export function convertMemoryGameToH5P(spec: MemoryGameSpec): {
+  library: string;
+  params: any;
+  metadata: Partial<IContentMetadata>;
+} {
+  const cards = spec.pairs.map((pair, index) => ({
+    image: pair.image ? { path: pair.image } : undefined,
+    imageAlt: pair.text,
+    matchAlt: pair.matchingText || pair.text,
+    description: pair.text,
+    match: pair.matchingText || pair.text
+  }));
+
+  return {
+    library: 'H5P.MemoryGame 1.3',
+    params: {
+      cards: cards.map(card => ({
+        image: card.image,
+        imageAlt: card.imageAlt,
+        match: { image: card.image, imageAlt: card.matchAlt },
+        description: card.description
+      })),
+      behaviour: {
+        useGrid: true,
+        allowRetry: true
+      },
+      lookNFeel: {
+        themeColor: '#1a73e8'
+      },
+      l10n: {
+        cardTurns: 'Card turns',
+        timeSpent: 'Time spent',
+        feedback: 'Good job!',
+        tryAgain: 'Try again?',
+        closeLabel: 'Close',
+        label: 'Memory Game. Find matching cards.'
+      }
+    },
+    metadata: {
+      title: spec.title,
+      license: 'U'
+    }
+  };
+}
+
+/**
+ * Convert Flashcards spec to H5P format
+ */
+export function convertFlashcardsToH5P(spec: FlashcardsSpec): {
+  library: string;
+  params: any;
+  metadata: Partial<IContentMetadata>;
+} {
+  const cards = spec.cards.map((card, index) => ({
+    text: card.front,
+    answer: card.back,
+    image: card.image ? { path: card.image } : undefined,
+    tip: ''
+  }));
+
+  return {
+    library: 'H5P.Flashcards 1.7',
+    params: {
+      title: spec.title,
+      description: spec.description || 'Study these flashcards!',
+      cards,
+      progressText: 'Card @card of @total',
+      next: 'Next',
+      previous: 'Previous',
+      checkAnswerText: 'Check answer',
+      showSolutionText: 'Show answer',
+      resultsText: 'Results',
+      answeredCorrectlyText: 'Correct!',
+      answeredIncorrectlyText: 'Incorrect',
+      answeredText: ':num/:total correct',
+      submitText: 'Submit',
+      caseSensitive: false,
+      showSolutionsRequiresInput: false
+    },
+    metadata: {
+      title: spec.title,
+      license: 'U'
+    }
+  };
+}
+
+/**
+ * Convert Find the Words (Word Search) spec to H5P format
+ */
+export function convertFindTheWordsToH5P(spec: FindTheWordsSpec): {
+  library: string;
+  params: any;
+  metadata: Partial<IContentMetadata>;
+} {
+  const gridSize = spec.gridSize || Math.max(10, Math.ceil(Math.sqrt(spec.words.join('').length * 2)));
+
+  return {
+    library: 'H5P.FindTheWords 1.4',
+    params: {
+      taskDescription: spec.description || `<p>Find the hidden words: ${spec.words.join(', ')}</p>`,
+      wordList: spec.words.join(','),
+      behaviour: {
+        enableShowSolution: true,
+        enableRetry: true
+      },
+      l10n: {
+        wordListHeader: 'Find these words',
+        check: 'Check',
+        tryAgain: 'Retry',
+        showSolution: 'Show solution',
+        found: ':found of :total found',
+        score: 'You got @score of @total points',
+        timeSpent: 'Time spent'
+      },
+      overallFeedback: [
+        { from: 0, to: 50, feedback: 'Keep looking!' },
+        { from: 51, to: 80, feedback: 'Good job!' },
+        { from: 81, to: 100, feedback: 'Excellent! You found them all!' }
+      ]
+    },
+    metadata: {
+      title: spec.title,
+      license: 'U'
+    }
+  };
+}
+
+/**
+ * Convert Dialog Cards spec to H5P format
+ */
+export function convertDialogCardsToH5P(spec: DialogCardsSpec): {
+  library: string;
+  params: any;
+  metadata: Partial<IContentMetadata>;
+} {
+  const cards = spec.cards.map(card => ({
+    text: card.front,
+    answer: card.back,
+    tips: card.tips ? [card.tips] : []
+  }));
+
+  return {
+    library: 'H5P.DialogCards 1.9',
+    params: {
+      title: spec.title,
+      description: spec.description || 'Click to flip the cards!',
+      dialogs: cards,
+      behaviour: {
+        enableRetry: true,
+        disableBackwardsNavigation: false,
+        scaleTextNotCard: false,
+        randomCards: false
+      },
+      answer: 'Turn',
+      next: 'Next',
+      prev: 'Previous',
+      retry: 'Retry',
+      correctAnswer: 'I got it right!',
+      incorrectAnswer: 'I got it wrong',
+      round: 'Round @round',
+      cardsLeft: 'Cards left: @number',
+      nextRound: 'Proceed to round @round',
+      startOver: 'Start over',
+      showSummary: 'Final summary',
+      summary: 'Summary',
+      summaryCardsRight: 'Cards you got right:',
+      summaryCardsWrong: 'Cards you got wrong:',
+      summaryCardsNotShown: 'Cards not shown:',
+      summaryOverallScore: 'Overall Score',
+      summaryCardsCompleted: 'Cards you have completed learning:',
+      summaryCompletedRounds: 'Completed rounds:',
+      summaryAllDone: 'Well done! You completed all @cards cards!'
+    },
+    metadata: {
+      title: spec.title,
+      license: 'U'
+    }
+  };
+}
+
+/**
  * Validate a QuizSpec from AI
  */
 export function validateQuizSpec(spec: any): { valid: boolean; errors: string[] } {
@@ -855,7 +1236,7 @@ export function validateQuizSpec(spec: any): { valid: boolean; errors: string[] 
         errors.push(`Question ${i + 1}: Missing prompt`);
       }
 
-      if (!['mcq', 'true_false', 'fill_blank', 'matching'].includes(q.type)) {
+      if (!['mcq', 'true_false', 'fill_blank', 'matching', 'drag_text', 'mark_words'].includes(q.type)) {
         errors.push(`Question ${i + 1}: Invalid type "${q.type}"`);
       }
 
@@ -877,8 +1258,18 @@ export function validateQuizSpec(spec: any): { valid: boolean; errors: string[] 
         errors.push(`Question ${i + 1}: True/False needs boolean correctAnswer`);
       }
 
-      if (q.type === 'fill_blank' && !q.correctAnswer) {
-        errors.push(`Question ${i + 1}: Fill blank needs correctAnswer`);
+      if (q.type === 'fill_blank') {
+        if (!q.correctAnswer) {
+          errors.push(`Question ${i + 1}: Fill blank needs correctAnswer`);
+        }
+        // Warn if prompt doesn't have proper blank format (but don't fail validation)
+        if (!q.prompt?.includes('___')) {
+          console.warn(`Question ${i + 1}: Fill blank prompt should contain '___' - will use fallback`);
+        }
+        // Warn if prompt contains asterisks (AI formatting error)
+        if (q.prompt?.includes('*')) {
+          console.warn(`Question ${i + 1}: Fill blank prompt contains asterisks - will be cleaned`);
+        }
       }
     });
 
