@@ -2,21 +2,60 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
-import { profilesAPI, aiGamificationAPI, AISuggestion } from '../services/api';
-import { Profile } from '../types';
-import { Baby, CheckCircle, AlertCircle, Award, Sparkles, ThumbsUp, ThumbsDown, Brain, Target, Zap, RefreshCw, Trophy, BookOpen, Timer } from 'lucide-react';
+import { profilesAPI, aiGamificationAPI, gamificationAPI, tasksAPI, AISuggestion } from '../services/api';
+import { Profile, Task } from '../types';
+import {
+  Baby, CheckCircle, AlertCircle, Sparkles, ThumbsUp, ThumbsDown,
+  Brain, Target, Zap, RefreshCw, Trophy, BookOpen, Timer, TrendingUp,
+  Flame, Calendar, Star, ChevronRight, AlertTriangle, CalendarClock,
+  Users, ListTodo, Gift
+} from 'lucide-react';
 import Avatar from '../components/Avatar';
 import RewardManagement from '../components/RewardManagement';
 import ChildInsights from '../components/ChildInsights';
+
+// Extended child progress data type
+interface ChildProgress {
+  id: number;
+  name: string;
+  avatar: string;
+  age: number;
+  stats: {
+    tasks: { total_tasks: number; completed_tasks: number; overdue_tasks: number };
+    progress: { total_points: number; total_stars: number; level: number };
+  };
+  streaks: { tasks: { current: number; longest: number }; water: { current: number; longest: number } };
+  completionRate: number;
+  weeklyActivity: { tasksCompleted: number; pointsEarned: number };
+  recentActivity: string;
+  achievements: number;
+}
+
+// Task with child info
+interface TaskWithChild extends Task {
+  childName: string;
+  childAvatar: string;
+}
+
+// Dashboard tabs
+type DashboardTab = 'overview' | 'tasks' | 'challenges' | 'rewards';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
   const toast = useToast();
   const [children, setChildren] = useState<Profile[]>([]);
-  const [childrenStats, setChildrenStats] = useState<any[]>([]);
+  const [childrenProgress, setChildrenProgress] = useState<ChildProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+
+  // Task timeline data
+  const [overdueTasks, setOverdueTasks] = useState<TaskWithChild[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<TaskWithChild[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
+  // AI Suggestions
   const [aiSuggestions, setAiSuggestions] = useState<(AISuggestion & { child_name: string })[]>([]);
-  const [loadingAI, setLoadingAI] = useState(false);
+  const [, setLoadingAI] = useState(false);
   const [generatingForChild, setGeneratingForChild] = useState<number | null>(null);
   const [timerSettings, setTimerSettings] = useState<Record<number, { enabled: boolean; minutes: number }>>({});
 
@@ -35,29 +74,132 @@ export default function ParentDashboard() {
 
     try {
       setLoading(true);
-      // Get all profiles
       const response = await profilesAPI.getAll();
       const allProfiles = response.data;
 
-      // Filter children that belong to this parent
       const myKids = allProfiles.filter(
         (p: Profile) => p.type === 'child' && p.parent_id === currentProfile.id
       );
       setChildren(myKids);
 
-      // Load stats for each child
-      const statsPromises = myKids.map((child: Profile) =>
-        profilesAPI.getStats(child.id).then((res) => ({
-          ...child,
-          stats: res.data
-        }))
-      );
-      const stats = await Promise.all(statsPromises);
-      setChildrenStats(stats);
+      // Load progress data for each child
+      const progressPromises = myKids.map(async (child: Profile) => {
+        try {
+          const [statsRes, streaksRes, weeklyRes, achievementsRes] = await Promise.all([
+            profilesAPI.getStats(child.id),
+            gamificationAPI.getStreaks(child.id).catch(() => ({ data: [] })),
+            gamificationAPI.getWeeklySummary(child.id).catch(() => ({ data: { summary: { tasksCompleted: 0, pointsEarned: 0 } } })),
+            gamificationAPI.getProfileAchievements(child.id).catch(() => ({ data: { earned_count: 0 } }))
+          ]);
+
+          const stats = statsRes.data;
+          const streaksData = streaksRes.data || [];
+          const weeklyData = weeklyRes.data;
+          const achievementsData = achievementsRes.data;
+
+          const taskStreak = streaksData.find((s: any) => s.streak_type === 'tasks') || { current_streak: 0, longest_streak: 0 };
+          const waterStreak = streaksData.find((s: any) => s.streak_type === 'water') || { current_streak: 0, longest_streak: 0 };
+
+          const completionRate = stats?.tasks?.total_tasks > 0
+            ? Math.round((stats.tasks.completed_tasks / stats.tasks.total_tasks) * 100)
+            : 0;
+
+          let recentActivity = 'inactive';
+          const tasksThisWeek = weeklyData?.summary?.tasksCompleted || 0;
+          if (tasksThisWeek > 0) {
+            recentActivity = tasksThisWeek >= 5 ? 'today' : tasksThisWeek >= 2 ? 'this_week' : 'yesterday';
+          }
+
+          return {
+            id: child.id,
+            name: child.name,
+            avatar: child.avatar || '',
+            age: child.age || 0,
+            stats: {
+              tasks: stats?.tasks || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
+              progress: stats?.progress || { total_points: 0, total_stars: 0, level: 1 }
+            },
+            streaks: {
+              tasks: { current: taskStreak.current_streak || 0, longest: taskStreak.longest_streak || 0 },
+              water: { current: waterStreak.current_streak || 0, longest: waterStreak.longest_streak || 0 }
+            },
+            completionRate,
+            weeklyActivity: {
+              tasksCompleted: weeklyData?.summary?.tasksCompleted || 0,
+              pointsEarned: weeklyData?.summary?.pointsEarned || 0
+            },
+            recentActivity,
+            achievements: achievementsData?.earned_count || 0
+          } as ChildProgress;
+        } catch (err) {
+          console.error(`Failed to load progress for child ${child.id}:`, err);
+          return {
+            id: child.id, name: child.name, avatar: child.avatar || '', age: child.age || 0,
+            stats: { tasks: { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 }, progress: { total_points: 0, total_stars: 0, level: 1 } },
+            streaks: { tasks: { current: 0, longest: 0 }, water: { current: 0, longest: 0 } },
+            completionRate: 0, weeklyActivity: { tasksCompleted: 0, pointsEarned: 0 },
+            recentActivity: 'inactive', achievements: 0
+          } as ChildProgress;
+        }
+      });
+
+      const progressData = await Promise.all(progressPromises);
+      setChildrenProgress(progressData);
+
+      // Load tasks for timeline
+      await loadTaskTimeline(myKids);
     } catch (error) {
       console.error('Failed to load family data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTaskTimeline = async (kids: Profile[]) => {
+    if (kids.length === 0) return;
+
+    setLoadingTasks(true);
+    try {
+      const now = new Date();
+      const allOverdue: TaskWithChild[] = [];
+      const allUpcoming: TaskWithChild[] = [];
+
+      for (const child of kids) {
+        const tasksRes = await tasksAPI.getByProfile(child.id, false); // Get incomplete tasks
+        const tasks = tasksRes.data || [];
+
+        for (const task of tasks) {
+          const taskWithChild: TaskWithChild = {
+            ...task,
+            childName: child.name,
+            childAvatar: child.avatar || ''
+          };
+
+          if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            if (dueDate < now) {
+              allOverdue.push(taskWithChild);
+            } else {
+              // Upcoming = within next 7 days
+              const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+              if (dueDate <= weekFromNow) {
+                allUpcoming.push(taskWithChild);
+              }
+            }
+          }
+        }
+      }
+
+      // Sort by due date
+      allOverdue.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+      allUpcoming.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+      setOverdueTasks(allOverdue);
+      setUpcomingTasks(allUpcoming.slice(0, 10)); // Limit to 10 upcoming
+    } catch (error) {
+      console.error('Failed to load task timeline:', error);
+    } finally {
+      setLoadingTasks(false);
     }
   };
 
@@ -80,11 +222,9 @@ export default function ParentDashboard() {
       setGeneratingForChild(childId);
       await aiGamificationAPI.generateChallenges(childId, 3);
       await loadAISuggestions();
-      toast.success('AI challenges generated! Review them below.');
+      toast.success('AI challenges generated!');
     } catch (error: any) {
-      console.error('Failed to generate challenges:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to generate challenges';
-      toast.error(errorMsg);
+      toast.error(error.response?.data?.error || 'Failed to generate challenges');
     } finally {
       setGeneratingForChild(null);
     }
@@ -94,17 +234,13 @@ export default function ParentDashboard() {
     if (!currentProfile) return;
     try {
       const settings = timerSettings[suggestion.id];
-      const requiresTimer = settings?.enabled ?? false;
-      const minutes = settings?.minutes ?? 5;
-
       await aiGamificationAPI.approveSuggestion(suggestion.id, currentProfile.id, {
-        requires_timer: requiresTimer,
-        timer_duration: requiresTimer ? Math.max(1, Math.round(minutes)) * 60 : undefined
+        requires_timer: settings?.enabled ?? false,
+        timer_duration: settings?.enabled ? Math.max(1, Math.round(settings?.minutes ?? 5)) * 60 : undefined
       });
       setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
       toast.success(`Challenge "${suggestion.title}" approved!`);
     } catch (error) {
-      console.error('Failed to approve suggestion:', error);
       toast.error('Failed to approve challenge');
     }
   };
@@ -116,7 +252,6 @@ export default function ParentDashboard() {
       setAiSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
       toast.info('Challenge rejected');
     } catch (error) {
-      console.error('Failed to reject suggestion:', error);
       toast.error('Failed to reject challenge');
     }
   };
@@ -130,15 +265,34 @@ export default function ParentDashboard() {
     }
   };
 
-  const updateTimerSetting = (suggestionId: number, updates: Partial<{ enabled: boolean; minutes: number }>) => {
-    setTimerSettings(prev => {
-      const current = prev[suggestionId] || { enabled: false, minutes: 5 };
-      return {
-        ...prev,
-        [suggestionId]: { ...current, ...updates }
-      };
-    });
+  const formatDueDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return overdueDays === 1 ? '1 day overdue' : `${overdueDays} days overdue`;
+    } else if (diffDays === 0) {
+      return 'Due today';
+    } else if (diffDays === 1) {
+      return 'Due tomorrow';
+    } else {
+      return `Due in ${diffDays} days`;
+    }
   };
+
+  const updateTimerSetting = (suggestionId: number, updates: Partial<{ enabled: boolean; minutes: number }>) => {
+    setTimerSettings(prev => ({
+      ...prev,
+      [suggestionId]: { ...(prev[suggestionId] || { enabled: false, minutes: 5 }), ...updates }
+    }));
+  };
+
+  // Calculate totals
+  const totalOverdue = childrenProgress.reduce((sum, c) => sum + c.stats.tasks.overdue_tasks, 0);
+  const totalCompleted = childrenProgress.reduce((sum, c) => sum + c.stats.tasks.completed_tasks, 0);
+  const totalTasks = childrenProgress.reduce((sum, c) => sum + c.stats.tasks.total_tasks, 0);
 
   if (loading) {
     return (
@@ -149,264 +303,355 @@ export default function ParentDashboard() {
   }
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {currentProfile?.name}! 👋
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Welcome back, {currentProfile?.name}!
         </h1>
-        <p className="text-gray-600 mt-2">Manage your family's learning and progress</p>
+        <p className="text-gray-500 text-sm mt-1">Here's what's happening with your family</p>
       </div>
 
-      {/* Family Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">Your Children</p>
-              <p className="text-4xl font-bold mt-1">{children.length}</p>
-              <p className="text-purple-100 text-xs mt-1">Active learners</p>
-            </div>
-            <Baby size={48} className="opacity-80" />
+      {/* Alert Banner - Show if there are overdue tasks */}
+      {totalOverdue > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+          <div className="p-2 bg-red-100 rounded-lg">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
           </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">Total Tasks</p>
-              <p className="text-4xl font-bold mt-1">
-                {childrenStats.reduce((sum, child) => sum + (child.stats?.tasks?.total_tasks || 0), 0)}
-              </p>
-              <p className="text-blue-100 text-xs mt-1">Across all children</p>
-            </div>
-            <CheckCircle size={48} className="opacity-80" />
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm">Completed</p>
-              <p className="text-4xl font-bold mt-1">
-                {childrenStats.reduce((sum, child) => sum + (child.stats?.tasks?.completed_tasks || 0), 0)}
-              </p>
-              <p className="text-green-100 text-xs mt-1">Tasks finished</p>
-            </div>
-            <Award size={48} className="opacity-80" />
-          </div>
-        </div>
-      </div>
-
-      {/* Children Overview */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4">Your Children</h2>
-        {children.length === 0 ? (
-          <div className="card p-8 text-center">
-            <Baby size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Children Yet</h3>
-            <p className="text-gray-600 mb-4">
-              Add your children's profiles to start tracking their progress
+          <div className="flex-1">
+            <p className="font-medium text-red-800">
+              {totalOverdue} task{totalOverdue > 1 ? 's' : ''} overdue
             </p>
-            <Link to="/settings" className="btn btn-primary inline-flex items-center">
-              <Baby className="mr-2" size={20} />
-              Add Child Profile
-            </Link>
+            <p className="text-sm text-red-600">Some tasks need attention</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {childrenStats.map((child) => (
-              <div key={child.id} className="card">
-                <div className="flex items-center space-x-4 mb-4">
-                  <Avatar avatar={child.avatar} size="xl" alt={child.name} />
-                  <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-gray-900">{child.name}</h3>
-                    <p className="text-sm text-gray-600">{child.age} years old</p>
-                  </div>
-                </div>
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className="text-sm font-medium text-red-700 hover:text-red-800 flex items-center gap-1"
+          >
+            View Tasks <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
-                {/* Child Stats */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="text-blue-600" size={20} />
-                      <span className="text-sm font-medium text-gray-900">Tasks</span>
-                    </div>
-                    <span className="text-sm font-semibold text-blue-600">
-                      {child.stats?.tasks?.completed_tasks || 0}/{child.stats?.tasks?.total_tasks || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <Award className="text-purple-600" size={20} />
-                      <span className="text-sm font-medium text-gray-900">Level</span>
-                    </div>
-                    <span className="text-sm font-semibold text-purple-600">
-                      Level {child.stats?.progress?.level || 1}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <div className="text-yellow-600 text-lg">⭐</div>
-                      <span className="text-sm font-medium text-gray-900">Stars</span>
-                    </div>
-                    <span className="text-sm font-semibold text-yellow-600">
-                      {child.stats?.progress?.total_stars || 0} stars
-                    </span>
-                  </div>
-
-                  {child.stats?.tasks?.overdue_tasks > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <AlertCircle className="text-red-600" size={20} />
-                        <span className="text-sm font-medium text-gray-900">Overdue</span>
-                      </div>
-                      <span className="text-sm font-semibold text-red-600">
-                        {child.stats?.tasks?.overdue_tasks} tasks
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <Link
-              to="/tasks"
-              className="block p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center space-x-3">
-                <CheckCircle className="text-primary-600" size={20} />
-                <div>
-                  <p className="font-medium">Manage Tasks</p>
-                  <p className="text-sm text-gray-600">Create and assign tasks to children</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              to="/leaderboard"
-              className="block p-4 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors border-2 border-amber-200"
-            >
-              <div className="flex items-center space-x-3">
-                <Trophy className="text-amber-600" size={20} />
-                <div>
-                  <p className="font-medium text-amber-900">Family Leaderboard</p>
-                  <p className="text-sm text-amber-700">See who's winning!</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link
-              to="/quizzes/builder"
-              className="block p-4 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border-2 border-purple-200"
-            >
-              <div className="flex items-center space-x-3">
-                <BookOpen className="text-purple-600" size={20} />
-                <div>
-                  <p className="font-medium text-purple-900">Quiz Builder</p>
-                  <p className="text-sm text-purple-700">Create educational quizzes for your kids</p>
-                </div>
-              </div>
-            </Link>
+      {/* Quick Stats Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Users className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{children.length}</p>
+              <p className="text-xs text-gray-500">Children</p>
+            </div>
           </div>
         </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{totalCompleted}/{totalTasks}</p>
+              <p className="text-xs text-gray-500">Tasks Done</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Star className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {childrenProgress.reduce((sum, c) => sum + c.stats.progress.total_stars, 0)}
+              </p>
+              <p className="text-xs text-gray-500">Total Stars</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Flame className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {Math.max(...childrenProgress.map(c => c.streaks.tasks.current), 0)}
+              </p>
+              <p className="text-xs text-gray-500">Best Streak</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* Family Progress */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">Family Progress</h2>
-          <div className="space-y-4">
-            {children.length > 0 ? (
-              children.map((child) => {
-                const childStats = childrenStats.find((c) => c.id === child.id);
-                const completionRate = childStats?.stats?.tasks?.total_tasks > 0
-                  ? Math.round((childStats.stats.tasks.completed_tasks / childStats.stats.tasks.total_tasks) * 100)
-                  : 0;
+      {/* Tab Navigation */}
+      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl">
+        {[
+          { id: 'overview', label: 'Overview', icon: TrendingUp },
+          { id: 'tasks', label: 'Tasks', icon: ListTodo, badge: totalOverdue > 0 ? totalOverdue : undefined },
+          { id: 'challenges', label: 'Challenges', icon: Sparkles, badge: aiSuggestions.length > 0 ? aiSuggestions.length : undefined },
+          { id: 'rewards', label: 'Rewards', icon: Gift },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as DashboardTab)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <tab.icon size={18} />
+            <span className="hidden sm:inline">{tab.label}</span>
+            {tab.badge && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                {tab.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-                return (
-                  <div key={child.id} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <Avatar avatar={child.avatar} size="sm" alt={child.name} />
-                        <span className="font-medium text-gray-900">{child.name}</span>
-                      </div>
-                      <span className="text-sm font-semibold text-primary-600">{completionRate}%</span>
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Children Progress Cards */}
+          {children.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center border border-gray-100">
+              <Baby size={48} className="mx-auto text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Children Yet</h3>
+              <p className="text-gray-500 mb-4">Add your children's profiles to start tracking their progress</p>
+              <Link to="/settings" className="btn btn-primary inline-flex items-center">
+                <Baby className="mr-2" size={18} />
+                Add Child
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {childrenProgress.map((child) => (
+                <div key={child.id} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-4 mb-4">
+                    <Avatar avatar={child.avatar} size="lg" alt={child.name} />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">{child.name}</h3>
+                      <p className="text-sm text-gray-500">Level {child.stats.progress.level} • {child.age}y</p>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      child.completionRate >= 80 ? 'bg-green-100 text-green-700' :
+                      child.completionRate >= 50 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {child.completionRate}%
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Tasks: {child.stats.tasks.completed_tasks}/{child.stats.tasks.total_tasks}</span>
+                      {child.stats.tasks.overdue_tasks > 0 && (
+                        <span className="text-red-600 font-medium">{child.stats.tasks.overdue_tasks} overdue</span>
+                      )}
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="bg-primary-600 h-2 rounded-full transition-all"
-                        style={{ width: `${completionRate}%` }}
+                        className={`h-full rounded-full transition-all ${
+                          child.completionRate >= 80 ? 'bg-green-500' :
+                          child.completionRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${child.completionRate}%` }}
                       />
                     </div>
                   </div>
-                );
-              })
+
+                  {/* Quick stats */}
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Flame size={14} className="text-orange-500" />
+                      <span>{child.streaks.tasks.current} day streak</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Star size={14} className="text-amber-500" />
+                      <span>{child.stats.progress.total_stars} stars</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Trophy size={14} className="text-blue-500" />
+                      <span>{child.achievements} badges</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Links */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Link to="/tasks" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-primary-300 hover:shadow-sm transition-all group">
+              <CheckCircle className="w-6 h-6 text-primary-600 mb-2" />
+              <p className="font-medium text-gray-900 group-hover:text-primary-600">Manage Tasks</p>
+              <p className="text-xs text-gray-500">Create & assign</p>
+            </Link>
+            <Link to="/leaderboard" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-amber-300 hover:shadow-sm transition-all group">
+              <Trophy className="w-6 h-6 text-amber-600 mb-2" />
+              <p className="font-medium text-gray-900 group-hover:text-amber-600">Leaderboard</p>
+              <p className="text-xs text-gray-500">Family rankings</p>
+            </Link>
+            <Link to="/quizzes/builder" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-purple-300 hover:shadow-sm transition-all group">
+              <BookOpen className="w-6 h-6 text-purple-600 mb-2" />
+              <p className="font-medium text-gray-900 group-hover:text-purple-600">Quiz Builder</p>
+              <p className="text-xs text-gray-500">Create quizzes</p>
+            </Link>
+            <Link to="/settings" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all group">
+              <Users className="w-6 h-6 text-gray-600 mb-2" />
+              <p className="font-medium text-gray-900">Family Settings</p>
+              <p className="text-xs text-gray-500">Manage profiles</p>
+            </Link>
+          </div>
+
+          {/* Child Insights (collapsed by default) */}
+          {currentProfile && children.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <ChildInsights parentId={currentProfile.id} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'tasks' && (
+        <div className="space-y-6">
+          {/* Overdue Tasks */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <h3 className="font-semibold text-gray-900">Overdue Tasks</h3>
+                {overdueTasks.length > 0 && (
+                  <span className="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full font-medium">
+                    {overdueTasks.length}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => loadTaskTimeline(children)}
+                disabled={loadingTasks}
+                className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              >
+                <RefreshCw size={14} className={loadingTasks ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+            </div>
+
+            {overdueTasks.length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                <p className="text-gray-500">No overdue tasks! Great job!</p>
+              </div>
             ) : (
-              <p className="text-gray-600 text-center py-8">
-                Add children to see their progress
-              </p>
+              <div className="divide-y divide-gray-50">
+                {overdueTasks.map(task => (
+                  <div key={task.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <Avatar avatar={task.childAvatar} size="sm" alt={task.childName} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900 truncate">{task.title}</p>
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{task.category}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-sm">
+                          <span className="text-gray-500">{task.childName}</span>
+                          <span className="text-red-600 font-medium">{formatDueDate(task.due_date!)}</span>
+                        </div>
+                      </div>
+                      <Link
+                        to="/tasks"
+                        className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* AI-Generated Challenges */}
-      {children.length > 0 && (
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <Sparkles className="text-purple-600" size={24} />
-              <h2 className="text-2xl font-bold text-gray-900">AI Personalized Challenges</h2>
+          {/* Upcoming Tasks */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+              <CalendarClock className="w-5 h-5 text-blue-500" />
+              <h3 className="font-semibold text-gray-900">Upcoming This Week</h3>
+              {upcomingTasks.length > 0 && (
+                <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full font-medium">
+                  {upcomingTasks.length}
+                </span>
+              )}
             </div>
-            <button
-              onClick={loadAISuggestions}
-              disabled={loadingAI}
-              className="btn btn-sm btn-secondary flex items-center space-x-1"
-            >
-              <RefreshCw size={16} className={loadingAI ? 'animate-spin' : ''} />
-              <span>Refresh</span>
-            </button>
+
+            {upcomingTasks.length === 0 ? (
+              <div className="p-8 text-center">
+                <Calendar className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">No upcoming tasks this week</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {upcomingTasks.map(task => (
+                  <div key={task.id} className="p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <Avatar avatar={task.childAvatar} size="sm" alt={task.childName} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-900 truncate">{task.title}</p>
+                          <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{task.category}</span>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-sm">
+                          <span className="text-gray-500">{task.childName}</span>
+                          <span className="text-blue-600">{formatDueDate(task.due_date!)}</span>
+                        </div>
+                      </div>
+                      <span className="text-sm text-amber-600 font-medium">{task.points} pts</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Generate Challenges for Children */}
-          <div className="card mb-4 bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200">
-            <div className="flex items-start space-x-3">
-              <Brain className="text-purple-600 flex-shrink-0 mt-1" size={24} />
+          {/* Link to full tasks page */}
+          <div className="text-center">
+            <Link to="/tasks" className="btn btn-primary inline-flex items-center gap-2">
+              <ListTodo size={18} />
+              Manage All Tasks
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'challenges' && (
+        <div className="space-y-6">
+          {/* Generate Challenges */}
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border border-purple-100">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Brain className="w-6 h-6 text-purple-600" />
+              </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-purple-900 mb-1">Generate AI Challenges</h3>
-                <p className="text-sm text-purple-700 mb-2">
-                  AI analyzes each child's behavior patterns, strengths, and areas to improve to create personalized challenges.
-                </p>
-                <p className="text-xs text-purple-600 mb-3 flex items-center gap-1">
-                  💰 Estimated cost: ~$0.01 per child (text generation only)
+                <h3 className="font-semibold text-purple-900 mb-1">AI Challenges</h3>
+                <p className="text-sm text-purple-700 mb-3">
+                  Generate personalized challenges based on each child's patterns and progress.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {children.map((child) => (
+                  {children.map(child => (
                     <button
                       key={child.id}
                       onClick={() => generateChallenges(child.id)}
                       disabled={generatingForChild === child.id}
-                      className="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center space-x-1"
+                      className="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1.5"
                     >
                       {generatingForChild === child.id ? (
-                        <>
-                          <RefreshCw size={14} className="animate-spin" />
-                          <span>Generating...</span>
-                        </>
+                        <><RefreshCw size={14} className="animate-spin" />Generating...</>
                       ) : (
-                        <>
-                          <Zap size={14} />
-                          <span>Generate for {child.name}</span>
-                        </>
+                        <><Zap size={14} />Generate for {child.name}</>
                       )}
                     </button>
                   ))}
@@ -415,115 +660,92 @@ export default function ParentDashboard() {
             </div>
           </div>
 
-          {/* Pending AI Suggestions */}
+          {/* Pending Suggestions */}
           {aiSuggestions.length > 0 ? (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 flex items-center space-x-2">
-                <Target size={18} className="text-orange-500" />
-                <span>Pending Approval ({aiSuggestions.length})</span>
-              </h3>
-              {aiSuggestions.map((suggestion) => (
-                <div key={suggestion.id} className="card border-l-4 border-l-purple-500">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-lg font-semibold text-gray-900">{suggestion.title}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getDifficultyColor(suggestion.difficulty)}`}>
-                          {suggestion.difficulty}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                          {suggestion.points_reward} pts
-                        </span>
-                        {suggestion.bonus_multiplier > 1 && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                            {suggestion.bonus_multiplier}x bonus
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+                <Target className="w-5 h-5 text-orange-500" />
+                <h3 className="font-semibold text-gray-900">Pending Approval</h3>
+                <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 rounded-full font-medium">
+                  {aiSuggestions.length}
+                </span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {aiSuggestions.map(suggestion => (
+                  <div key={suggestion.id} className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center flex-wrap gap-2 mb-2">
+                          <span className="font-semibold text-gray-900">{suggestion.title}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getDifficultyColor(suggestion.difficulty)}`}>
+                            {suggestion.difficulty}
                           </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
-                      {suggestion.reasoning && (
-                        <p className="text-xs text-purple-600 italic mb-2">
-                          <Brain size={12} className="inline mr-1" />
-                          AI reasoning: {suggestion.reasoning}
-                        </p>
-                      )}
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>For: <strong>{suggestion.child_name}</strong></span>
-                        <span>Duration: {suggestion.duration_days} days</span>
-                        {suggestion.target_value && suggestion.target_value > 1 && (
-                          <span>Target: {suggestion.target_value}x</span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                        <label className="flex items-center gap-2 text-gray-700">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300"
-                            checked={timerSettings[suggestion.id]?.enabled || false}
-                            onChange={(e) => updateTimerSetting(suggestion.id, { enabled: e.target.checked })}
-                          />
-                          <span className="flex items-center gap-1">
+                          <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">
+                            {suggestion.points_reward} pts
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{suggestion.description}</p>
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          <span>For: <strong>{suggestion.child_name}</strong></span>
+                          <span>{suggestion.duration_days} days</span>
+                        </div>
+
+                        {/* Timer setting */}
+                        <div className="mt-3 flex items-center gap-3">
+                          <label className="flex items-center gap-2 text-sm text-gray-700">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300"
+                              checked={timerSettings[suggestion.id]?.enabled || false}
+                              onChange={(e) => updateTimerSetting(suggestion.id, { enabled: e.target.checked })}
+                            />
                             <Timer size={14} />
-                            Require timer
-                          </span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">Minutes</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={120}
-                            className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
-                            value={timerSettings[suggestion.id]?.minutes ?? 5}
-                            onChange={(e) => updateTimerSetting(suggestion.id, { minutes: Number(e.target.value) || 1 })}
-                            disabled={!timerSettings[suggestion.id]?.enabled}
-                          />
+                            <span>Require timer</span>
+                          </label>
+                          {timerSettings[suggestion.id]?.enabled && (
+                            <input
+                              type="number"
+                              min={1}
+                              max={120}
+                              className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                              value={timerSettings[suggestion.id]?.minutes ?? 5}
+                              onChange={(e) => updateTimerSetting(suggestion.id, { minutes: Number(e.target.value) || 1 })}
+                            />
+                          )}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex space-x-2 ml-4">
-                      <button
-                        onClick={() => approveSuggestion(suggestion)}
-                        className="btn btn-sm bg-green-600 hover:bg-green-700 text-white flex items-center space-x-1"
-                      >
-                        <ThumbsUp size={14} />
-                        <span>Approve</span>
-                      </button>
-                      <button
-                        onClick={() => rejectSuggestion(suggestion)}
-                        className="btn btn-sm bg-red-100 hover:bg-red-200 text-red-700 flex items-center space-x-1"
-                      >
-                        <ThumbsDown size={14} />
-                        <span>Reject</span>
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => approveSuggestion(suggestion)}
+                          className="btn btn-sm bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <ThumbsUp size={14} />
+                        </button>
+                        <button
+                          onClick={() => rejectSuggestion(suggestion)}
+                          className="btn btn-sm bg-gray-100 hover:bg-gray-200 text-gray-600"
+                        >
+                          <ThumbsDown size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
-            <div className="card bg-gray-50 text-center py-8">
-              <Sparkles size={32} className="mx-auto text-gray-400 mb-3" />
-              <p className="text-gray-600 mb-2">No pending AI suggestions</p>
-              <p className="text-sm text-gray-500">
-                Click "Generate" above to create personalized challenges for your children
-              </p>
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <Sparkles className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500 mb-1">No pending challenges</p>
+              <p className="text-sm text-gray-400">Generate new challenges for your children above</p>
             </div>
           )}
         </div>
       )}
 
-      {/* AI Child Insights - Shows encouragement moments and mood tracking */}
-      {currentProfile && children.length > 0 && (
-        <div className="mt-6">
-          <ChildInsights parentId={currentProfile.id} />
-        </div>
-      )}
-
-      {/* Reward Shop Management */}
-      {currentProfile && (
-        <div className="mt-6 card">
-          <RewardManagement parentId={currentProfile.id} />
+      {activeTab === 'rewards' && (
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+          {currentProfile && <RewardManagement parentId={currentProfile.id} />}
         </div>
       )}
     </div>

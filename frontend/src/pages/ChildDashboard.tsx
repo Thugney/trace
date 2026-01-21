@@ -5,17 +5,18 @@ import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { tasksAPI } from '../services/api';
 import { profilesAPI, gamificationAPI, goalsAPI, aiGamificationAPI, remindersAPI, notificationsAPI, GoalWithMilestones, CustomChallenge, EconomySettings } from '../services/api';
-import { ProfileStats } from '../types';
-import { Star, Target, Zap, CheckCircle, Lock, X, Gift, ChevronRight, ChevronDown } from 'lucide-react';
+import { ProfileStats, Task } from '../types';
+import {
+  Star, Target, Zap, CheckCircle, Lock, X, Gift, ChevronRight,
+  Flame, Trophy, AlertTriangle, Calendar, Clock, Settings, Bell, Droplets,
+  Gamepad2, ShoppingBag, Brain, ListTodo, Home
+} from 'lucide-react';
 import CountdownChallengeCard from '../components/CountdownChallengeCard';
 import SpinWheel from '../components/SpinWheel';
 import HiddenAchievements from '../components/HiddenAchievements';
 import Avatar from '../components/Avatar';
 import ChallengeTimerCard from '../components/ChallengeTimerCard';
 import playSounds from '../utils/sounds';
-
-// Kid-friendly components
-import { HeroStats } from '../components/kids/QuickStats';
 import ReminderWidget from '../components/kids/ReminderWidget';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
 
@@ -120,35 +121,51 @@ interface DailyChallenge {
   current_progress: number;
 }
 
+// Dashboard tabs
+type DashboardTab = 'home' | 'tasks' | 'challenges' | 'rewards';
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
   const { isYoungChild, settings } = useAge();
-  const { flags: featureFlags } = useFeatureFlags();
-  const [simpleTasks, setSimpleTasks] = useState<any[]>([]);
+  useFeatureFlags(); // Hook called for context subscription
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('home');
+
+  // Tasks with due date info
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
+  const [todayTasks, setTodayTasks] = useState<Task[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<Task[]>([]);
+  const [otherTasks, setOtherTasks] = useState<Task[]>([]);
+
+  // Water & streaks
   const [waterData, setWaterData] = useState<{ total_ml: number; goal_ml: number }>({ total_ml: 0, goal_ml: 2000 });
   const [streaks, setStreaks] = useState<Record<string, { current: number; longest: number }>>({});
   const [, setAchievements] = useState<{ earned: any[]; total_count: number }>({ earned: [], total_count: 0 });
+
+  // Challenges
   const [challenges, setChallenges] = useState<DailyChallenge[]>([]);
+  const [customChallenges, setCustomChallenges] = useState<CustomChallenge[]>([]);
+
+  // Goals
+  const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
+
+  // UI state
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [newLevel, setNewLevel] = useState(0);
   const [prevLevel, setPrevLevel] = useState<number | null>(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
-  const [activeGoals, setActiveGoals] = useState<GoalWithMilestones[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Reminder state
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [reminderTime, setReminderTime] = useState('07:30');
   const [savingReminder, setSavingReminder] = useState(false);
 
-  // AI Custom Challenges state
-  const [customChallenges, setCustomChallenges] = useState<CustomChallenge[]>([]);
-
   // Economy limits state
-  const [economyData, setEconomyData] = useState<{
+  const [, setEconomyData] = useState<{
     settings: EconomySettings;
     dailyRemaining: number;
     weeklyRemaining: number;
@@ -183,12 +200,7 @@ export default function ChildDashboard() {
     awardedBy: string;
   } | null>(null);
 
-  // Collapsible sections
-  const [showChallenges, setShowChallenges] = useState(false);
-  const [showGoals, setShowGoals] = useState(false);
-  const [showBoosters, setShowBoosters] = useState(false);
-  const [showAchievements, setShowAchievements] = useState(false);
-
+  // Load all data
   useEffect(() => {
     if (!currentProfile) return;
 
@@ -220,7 +232,6 @@ export default function ChildDashboard() {
             todayEarned: economyRes.data.earnings?.today?.points_earned || 0
           });
         }
-
       } catch (error) {
         console.error('Failed to load stats:', error);
       } finally {
@@ -229,6 +240,64 @@ export default function ChildDashboard() {
     };
 
     loadStats();
+  }, [currentProfile]);
+
+  // Load tasks with due date categorization
+  useEffect(() => {
+    if (!currentProfile) return;
+
+    const loadTasks = async () => {
+      try {
+        const res = await tasksAPI.getByProfile(currentProfile.id);
+        const incompleteTasks = res.data.filter((t: Task) => !t.completed);
+        setAllTasks(incompleteTasks);
+
+        // Categorize tasks by due date
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const weekFromNow = new Date(now);
+        weekFromNow.setDate(weekFromNow.getDate() + 7);
+
+        const overdue: Task[] = [];
+        const today: Task[] = [];
+        const upcoming: Task[] = [];
+        const other: Task[] = [];
+
+        for (const task of incompleteTasks) {
+          if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+
+            if (dueDate < now) {
+              overdue.push(task);
+            } else if (dueDate.getTime() === now.getTime()) {
+              today.push(task);
+            } else if (dueDate <= weekFromNow) {
+              upcoming.push(task);
+            } else {
+              other.push(task);
+            }
+          } else {
+            other.push(task);
+          }
+        }
+
+        // Sort by due date
+        overdue.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+        upcoming.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+        setOverdueTasks(overdue);
+        setTodayTasks(today);
+        setUpcomingTasks(upcoming);
+        setOtherTasks(other);
+      } catch (e) {
+        console.error('Failed to load tasks:', e);
+      }
+    };
+
+    loadTasks();
   }, [currentProfile]);
 
   // Load reminder preferences
@@ -248,40 +317,6 @@ export default function ChildDashboard() {
 
     loadReminderPrefs();
   }, [currentProfile?.id]);
-
-  const toggleReminder = async () => {
-    if (!currentProfile?.id || savingReminder) return;
-    setSavingReminder(true);
-    try {
-      const newEnabled = !reminderEnabled;
-      await remindersAPI.updatePreferences(currentProfile.id, {
-        enabled: newEnabled,
-        time: reminderTime
-      });
-      setReminderEnabled(newEnabled);
-      playSounds.click();
-    } catch (error) {
-      console.error('Failed to update reminder:', error);
-    } finally {
-      setSavingReminder(false);
-    }
-  };
-
-  const handleReminderTimeChange = async (time: string) => {
-    if (!currentProfile?.id) return;
-    setSavingReminder(true);
-    try {
-      await remindersAPI.updatePreferences(currentProfile.id, {
-        enabled: reminderEnabled,
-        time: time
-      });
-      setReminderTime(time);
-    } catch (error) {
-      console.error('Failed to update reminder time:', error);
-    } finally {
-      setSavingReminder(false);
-    }
-  };
 
   // Level up detection
   useEffect(() => {
@@ -323,60 +358,7 @@ export default function ChildDashboard() {
     };
 
     checkLoginBonus();
-    let dayTimer: ReturnType<typeof setTimeout> | null = null;
-    let dayInterval: ReturnType<typeof setInterval> | null = null;
-
-    const scheduleNextCheck = () => {
-      const now = new Date();
-      const nextLocalDay = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-        0,
-        1,
-        0
-      );
-      const delayMs = Math.max(1000, nextLocalDay.getTime() - now.getTime());
-      dayTimer = setTimeout(() => {
-        checkLoginBonus();
-        dayInterval = setInterval(checkLoginBonus, 24 * 60 * 60 * 1000);
-      }, delayMs);
-    };
-
-    scheduleNextCheck();
-    return () => {
-      if (dayTimer) clearTimeout(dayTimer);
-      if (dayInterval) clearInterval(dayInterval);
-    };
   }, [currentProfile, loading]);
-
-  // Claim login bonus
-  const claimLoginBonus = async () => {
-    if (!currentProfile || claimingBonus) return;
-    try {
-      setClaimingBonus(true);
-      const res = await gamificationAPI.claimLoginBonus(currentProfile.id);
-      setLoginBonusData({
-        claimed: true,
-        consecutive_days: res.data.consecutive_days,
-        points_earned: res.data.points_earned
-      });
-      setBonusClaimed(true);
-      playSounds.bonusClaimed();
-
-      const statsRes = await profilesAPI.getStats(currentProfile.id);
-      setStats(statsRes.data);
-
-      setTimeout(() => {
-        setShowLoginBonus(false);
-        setBonusClaimed(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Failed to claim login bonus:', error);
-    } finally {
-      setClaimingBonus(false);
-    }
-  };
 
   // Check for surprise bonus
   useEffect(() => {
@@ -421,6 +403,68 @@ export default function ChildDashboard() {
     return () => clearTimeout(timer);
   }, [currentProfile, loading, showLoginBonus]);
 
+  // Handlers
+  const toggleReminder = async () => {
+    if (!currentProfile?.id || savingReminder) return;
+    setSavingReminder(true);
+    try {
+      const newEnabled = !reminderEnabled;
+      await remindersAPI.updatePreferences(currentProfile.id, {
+        enabled: newEnabled,
+        time: reminderTime
+      });
+      setReminderEnabled(newEnabled);
+      playSounds.click();
+    } catch (error) {
+      console.error('Failed to update reminder:', error);
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  const handleReminderTimeChange = async (time: string) => {
+    if (!currentProfile?.id) return;
+    setSavingReminder(true);
+    try {
+      await remindersAPI.updatePreferences(currentProfile.id, {
+        enabled: reminderEnabled,
+        time: time
+      });
+      setReminderTime(time);
+    } catch (error) {
+      console.error('Failed to update reminder time:', error);
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  const claimLoginBonus = async () => {
+    if (!currentProfile || claimingBonus) return;
+    try {
+      setClaimingBonus(true);
+      const res = await gamificationAPI.claimLoginBonus(currentProfile.id);
+      setLoginBonusData({
+        claimed: true,
+        consecutive_days: res.data.consecutive_days,
+        points_earned: res.data.points_earned
+      });
+      setBonusClaimed(true);
+      playSounds.bonusClaimed();
+
+      const statsRes = await profilesAPI.getStats(currentProfile.id);
+      setStats(statsRes.data);
+
+      setTimeout(() => {
+        setShowLoginBonus(false);
+        setBonusClaimed(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to claim login bonus:', error);
+    } finally {
+      setClaimingBonus(false);
+    }
+  };
+
   const acknowledgeSurpriseBonus = async () => {
     if (surpriseBonusData?.id) {
       try {
@@ -437,46 +481,24 @@ export default function ChildDashboard() {
     }
   };
 
-  // Load simplified tasks
-  useEffect(() => {
-    if (!currentProfile) return;
-
-    const loadTasks = async () => {
-      try {
-        const res = await tasksAPI.getByProfile(currentProfile.id);
-        const incompleteTasks = res.data.filter((t: any) => !t.completed);
-        setSimpleTasks(isYoungChild ? incompleteTasks.slice(0, 4) : incompleteTasks.slice(0, 6));
-      } catch (e) {
-        console.error('Failed to load tasks:', e);
-      }
-    };
-
-    loadTasks();
-  }, [currentProfile, isYoungChild]);
-
-  // Handle task completion
   const handleTaskComplete = async (taskId: number) => {
     try {
-      setSimpleTasks(prev => prev.filter(t => t.id !== taskId));
       await tasksAPI.complete(taskId);
       playSounds.taskComplete();
 
+      // Remove from all lists
+      setAllTasks(prev => prev.filter(t => t.id !== taskId));
+      setOverdueTasks(prev => prev.filter(t => t.id !== taskId));
+      setTodayTasks(prev => prev.filter(t => t.id !== taskId));
+      setUpcomingTasks(prev => prev.filter(t => t.id !== taskId));
+      setOtherTasks(prev => prev.filter(t => t.id !== taskId));
+
       if (currentProfile) {
-        const [res, statsRes] = await Promise.all([
-          tasksAPI.getByProfile(currentProfile.id),
-          profilesAPI.getStats(currentProfile.id)
-        ]);
-        const incompleteTasks = res.data.filter((t: any) => !t.completed);
-        setSimpleTasks(isYoungChild ? incompleteTasks.slice(0, 4) : incompleteTasks.slice(0, 6));
+        const statsRes = await profilesAPI.getStats(currentProfile.id);
         setStats(statsRes.data);
       }
     } catch (e: any) {
       console.error('Failed to complete task:', e);
-      if (currentProfile) {
-        const res = await tasksAPI.getByProfile(currentProfile.id);
-        const incompleteTasks = res.data.filter((t: any) => !t.completed);
-        setSimpleTasks(isYoungChild ? incompleteTasks.slice(0, 4) : incompleteTasks.slice(0, 6));
-      }
     }
   };
 
@@ -552,6 +574,25 @@ export default function ChildDashboard() {
     }
   };
 
+  const formatDueDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return overdueDays === 1 ? '1 day late!' : `${overdueDays} days late!`;
+    } else if (diffDays === 0) {
+      return 'Due today';
+    } else if (diffDays === 1) {
+      return 'Due tomorrow';
+    } else {
+      return `Due in ${diffDays} days`;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -564,202 +605,227 @@ export default function ChildDashboard() {
   const totalPoints = stats?.progress?.total_points || 0;
   const totalStars = stats?.progress?.total_stars || 0;
   const completedTasks = stats?.tasks?.completed_tasks || 0;
+  const totalOverdue = overdueTasks.length;
+  const pendingChallenges = challenges.filter(c => c.completed !== 1).length + customChallenges.filter(c => !c.completed).length;
 
   // ============================================
-  // YOUNG CHILD VIEW (Ages 5-6) - Simple & Fun
+  // YOUNG CHILD VIEW (Ages 5-6) - Keep Simple
   // ============================================
   if (isYoungChild) {
     return (
-      <div className={`max-w-2xl mx-auto px-4 pb-8 ${settings.themeClass}`}>
-        {/* Level Up Celebration */}
-        {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
-
-        {/* Login Bonus */}
-        {showLoginBonus && loginBonusData && (
-          <LoginBonusModal
-            data={loginBonusData}
-            claimed={bonusClaimed}
-            claiming={claimingBonus}
-            onClaim={claimLoginBonus}
-            onClose={() => setShowLoginBonus(false)}
-          />
-        )}
-
-        {/* Surprise Bonus from Parent */}
-        {showSurpriseBonus && surpriseBonusData && (
-          <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
-        )}
-
-                {/* Avatar with greeting */}
-        <div className="text-center mb-6">
-          <button
-            onClick={() => setShowAvatarPicker(true)}
-            className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-4xl shadow-lg hover:scale-110 transition-transform ring-4 ring-yellow-300 overflow-hidden"
-          >
-            <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
-          </button>
-          <p className="text-xs text-slate-500 mb-1">Tap to change!</p>
-          <h1 className="text-2xl font-bold text-slate-800">Hi {currentProfile?.name?.split(' ')[0]}! 🐯</h1>
-          <p className="text-sm text-slate-600">Your hero squad is ready!</p>
-
-          {/* Quick stats */}
-          <div className="mt-3 flex justify-center gap-3">
-            <div className="bg-yellow-100 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <span className="text-xl">⭐</span>
-              <span className="text-lg font-bold text-yellow-700">{totalStars}</span>
-            </div>
-            <div className="bg-purple-100 px-3 py-1.5 rounded-full flex items-center gap-1.5">
-              <span className="text-xl">🛡️</span>
-              <span className="text-lg font-bold text-purple-700">Lv {level}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Reminder Widget - Compact */}
-        <div className="mb-6">
-          <ReminderWidget
-            enabled={reminderEnabled}
-            time={reminderTime}
-            onToggle={toggleReminder}
-            onTimeChange={handleReminderTimeChange}
-            saving={savingReminder}
-            compact
-          />
-        </div>
-
-        {/* Today's Tasks */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-center text-slate-700 mb-4">Today's Jobs 🦸</h2>
-          <SimpleTaskGrid tasks={simpleTasks} onComplete={handleTaskComplete} />
-        </div>
-
-        {/* Completed count */}
-        {completedTasks > 0 && (
-          <div className="text-center py-3">
-            <div className="inline-flex items-center gap-2 bg-green-100 px-5 py-2 rounded-full">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              <span className="text-lg font-bold text-green-700">{completedTasks} Done!</span>
-            </div>
-          </div>
-        )}
-
-        {/* Avatar Picker Modal */}
-        {showAvatarPicker && (
-          <AvatarPickerModal
-            level={level}
-            currentAvatar={currentProfile?.avatar}
-            onSelect={updateAvatar}
-            onClose={() => setShowAvatarPicker(false)}
-            saving={savingAvatar}
-            isYoungChild
-          />
-        )}
-      </div>
+      <YoungChildDashboard
+        currentProfile={currentProfile}
+        settings={settings}
+        stats={stats}
+        totalStars={totalStars}
+        level={level}
+        completedTasks={completedTasks}
+        allTasks={[...todayTasks, ...otherTasks].slice(0, 4)}
+        onTaskComplete={handleTaskComplete}
+        showLevelUp={showLevelUp}
+        newLevel={newLevel}
+        setShowLevelUp={setShowLevelUp}
+        showLoginBonus={showLoginBonus}
+        loginBonusData={loginBonusData}
+        bonusClaimed={bonusClaimed}
+        claimingBonus={claimingBonus}
+        claimLoginBonus={claimLoginBonus}
+        setShowLoginBonus={setShowLoginBonus}
+        showSurpriseBonus={showSurpriseBonus}
+        surpriseBonusData={surpriseBonusData}
+        acknowledgeSurpriseBonus={acknowledgeSurpriseBonus}
+        showAvatarPicker={showAvatarPicker}
+        setShowAvatarPicker={setShowAvatarPicker}
+        updateAvatar={updateAvatar}
+        savingAvatar={savingAvatar}
+        reminderEnabled={reminderEnabled}
+        reminderTime={reminderTime}
+        toggleReminder={toggleReminder}
+        handleReminderTimeChange={handleReminderTimeChange}
+        savingReminder={savingReminder}
+      />
     );
   }
 
   // ============================================
-  // REGULAR VIEW (Ages 7+) - Clean & Organized
+  // REGULAR VIEW (Ages 7+) - Clean Tabbed Layout
   // ============================================
   return (
-  <div className={`max-w-5xl mx-auto px-4 pb-10 ${settings.themeClass}`}>
-    {/* === MODALS === */}
-    {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
+    <div className={`max-w-4xl mx-auto px-4 pb-10 ${settings.themeClass}`}>
+      {/* === MODALS === */}
+      {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
 
-    {showLoginBonus && loginBonusData && (
-      <LoginBonusModal
-        data={loginBonusData}
-        claimed={bonusClaimed}
-        claiming={claimingBonus}
-        onClaim={claimLoginBonus}
-        onClose={() => setShowLoginBonus(false)}
-      />
-    )}
+      {showLoginBonus && loginBonusData && (
+        <LoginBonusModal
+          data={loginBonusData}
+          claimed={bonusClaimed}
+          claiming={claimingBonus}
+          onClaim={claimLoginBonus}
+          onClose={() => setShowLoginBonus(false)}
+        />
+      )}
 
-    {showSurpriseBonus && surpriseBonusData && (
-      <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
-    )}
+      {showSurpriseBonus && surpriseBonusData && (
+        <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
+      )}
 
-    {showAvatarPicker && (
-      <AvatarPickerModal
-        level={level}
-        currentAvatar={currentProfile?.avatar}
-        onSelect={updateAvatar}
-        onClose={() => setShowAvatarPicker(false)}
-        saving={savingAvatar}
-      />
-    )}
+      {showAvatarPicker && (
+        <AvatarPickerModal
+          level={level}
+          currentAvatar={currentProfile?.avatar}
+          onSelect={updateAvatar}
+          onClose={() => setShowAvatarPicker(false)}
+          saving={savingAvatar}
+        />
+      )}
 
-    <div className="space-y-6">
-      {/* === HERO === */}
-      <HeroStats
-        name={currentProfile?.name?.split(' ')[0] || 'Friend'}
-        avatar={<Avatar avatar={currentProfile?.avatar} size="lg" alt={currentProfile?.name || ''} />}
-        level={level}
-        points={totalPoints}
-        pointsToNextLevel={100 - (totalPoints % 100)}
-        onAvatarClick={() => setShowAvatarPicker(true)}
-      />
+      {showSettings && (
+        <SettingsModal
+          reminderEnabled={reminderEnabled}
+          reminderTime={reminderTime}
+          onToggleReminder={toggleReminder}
+          onTimeChange={handleReminderTimeChange}
+          saving={savingReminder}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
-      {/* === AT-A-GLANCE === */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 p-4">
-          <p className="text-xs font-semibold text-amber-700">Points</p>
-          <p className="text-2xl font-bold text-amber-900">{totalPoints}</p>
-        </div>
-        <div className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-sky-100 p-4">
-          <p className="text-xs font-semibold text-sky-700">Stars</p>
-          <p className="text-2xl font-bold text-sky-900">{totalStars}</p>
-        </div>
-        <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 p-4">
-          <p className="text-xs font-semibold text-orange-700">Streak</p>
-          <p className="text-2xl font-bold text-orange-900">{streaks?.tasks?.current || 0}</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 p-4">
-          <p className="text-xs font-semibold text-emerald-700">Today</p>
-          <p className="text-lg font-bold text-emerald-900">
-            {economyData ? `${economyData.todayEarned} / ${economyData.settings.daily_points_cap} pts` : `${simpleTasks.length} tasks`}
-          </p>
-          {economyData && (
-            <div className="mt-2 h-2 rounded-full bg-emerald-200">
-              <div
-                className="h-2 rounded-full bg-emerald-500 transition-all"
-                style={{ width: `${Math.min((economyData.todayEarned / economyData.settings.daily_points_cap) * 100, 100)}%` }}
-              />
+      {/* === HEADER === */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="relative group"
+          >
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center ring-4 ring-purple-200 overflow-hidden group-hover:ring-purple-300 transition-all">
+              <Avatar avatar={currentProfile?.avatar} size="lg" alt={currentProfile?.name || ''} />
             </div>
-          )}
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              {level}
+            </div>
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Hey {currentProfile?.name?.split(' ')[0]}! 👋</h1>
+            <p className="text-sm text-gray-500">Level {level} • {totalPoints} pts</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowSettings(true)}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <Settings size={22} className="text-gray-500" />
+        </button>
+      </div>
+
+      {/* === ALERT BANNER === */}
+      {totalOverdue > 0 && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+          <div className="p-2 bg-red-100 rounded-lg">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-medium text-red-800">{totalOverdue} task{totalOverdue > 1 ? 's' : ''} overdue!</p>
+            <p className="text-sm text-red-600">Complete them to keep your streak!</p>
+          </div>
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className="text-sm font-medium text-red-700 hover:text-red-800 flex items-center gap-1"
+          >
+            View <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* === QUICK STATS === */}
+      <div className="grid grid-cols-4 gap-3 mb-4">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 text-center border border-amber-100">
+          <Star className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-amber-700">{totalStars}</p>
+          <p className="text-xs text-amber-600">Stars</p>
+        </div>
+        <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-3 text-center border border-orange-100">
+          <Flame className="w-5 h-5 text-orange-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-orange-700">{streaks?.tasks?.current || 0}</p>
+          <p className="text-xs text-orange-600">Streak</p>
+        </div>
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center border border-green-100">
+          <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-green-700">{completedTasks}</p>
+          <p className="text-xs text-green-600">Done</p>
+        </div>
+        <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-xl p-3 text-center border border-sky-100">
+          <Droplets className="w-5 h-5 text-sky-500 mx-auto mb-1" />
+          <p className="text-lg font-bold text-sky-700">{Math.round((waterData.total_ml / waterData.goal_ml) * 100)}%</p>
+          <p className="text-xs text-sky-600">Water</p>
         </div>
       </div>
 
-      {/* === TODAY FOCUS === */}
-      <section className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
-        <div className="card border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <span className="text-2xl">📝</span> Today's Tasks
-            </h2>
-            <Link to="/tasks" className="text-sm text-slate-500 hover:text-slate-700 font-medium flex items-center gap-1">
-              See all <ChevronRight size={16} />
-            </Link>
-          </div>
-          <SimpleTaskGrid tasks={simpleTasks} onComplete={handleTaskComplete} />
-          {completedTasks > 0 && (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-1.5 text-sm font-semibold text-emerald-700">
-              <CheckCircle size={16} /> {completedTasks} done today
-            </div>
-          )}
-        </div>
+      {/* === TAB NAVIGATION === */}
+      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl">
+        {[
+          { id: 'home', label: 'Home', icon: Home },
+          { id: 'tasks', label: 'Tasks', icon: ListTodo, badge: totalOverdue > 0 ? totalOverdue : undefined },
+          { id: 'challenges', label: 'Challenges', icon: Zap, badge: pendingChallenges > 0 ? pendingChallenges : undefined },
+          { id: 'rewards', label: 'Rewards', icon: Gift },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as DashboardTab)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <tab.icon size={18} />
+            <span className="hidden sm:inline">{tab.label}</span>
+            {tab.badge && (
+              <span className="ml-1 px-1.5 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                {tab.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
+      {/* === TAB CONTENT === */}
+      {activeTab === 'home' && (
         <div className="space-y-4">
-          <div className="card border border-slate-200 bg-white p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl">💧</span>
-              <p className="font-semibold text-slate-800">Water</p>
+          {/* Today's Priority */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-gray-900 flex items-center gap-2">
+                <span className="text-xl">📝</span> Today's Tasks
+              </h2>
+              <Link to="/tasks" className="text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1">
+                See all <ChevronRight size={16} />
+              </Link>
             </div>
-            <p className="text-sm text-slate-500 mb-2">{waterData.total_ml} / {waterData.goal_ml} ml</p>
-            <div className="h-2 bg-slate-200 rounded-full mb-3">
+
+            {todayTasks.length === 0 && otherTasks.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
+                <p className="text-gray-500">All done for today! 🎉</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {[...todayTasks, ...otherTasks].slice(0, 4).map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Water Tracker */}
+          <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Droplets className="w-5 h-5 text-sky-500" />
+              <p className="font-bold text-gray-900">Water Today</p>
+              <span className="ml-auto text-sm text-gray-500">{waterData.total_ml} / {waterData.goal_ml} ml</span>
+            </div>
+            <div className="h-3 bg-gray-100 rounded-full mb-3 overflow-hidden">
               <div
-                className="h-2 rounded-full bg-sky-500 transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-sky-400 to-blue-500 transition-all"
                 style={{ width: `${Math.min((waterData.total_ml / waterData.goal_ml) * 100, 100)}%` }}
               />
             </div>
@@ -768,287 +834,203 @@ export default function ChildDashboard() {
                 <button
                   key={amt}
                   onClick={() => logWater(amt)}
-                  className="flex-1 rounded-xl border border-sky-200 bg-sky-50 py-1.5 text-sm font-semibold text-sky-700 hover:bg-sky-100"
+                  className="flex-1 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-lg text-sm font-semibold text-sky-700 transition-colors"
                 >
-                  +{amt}
+                  +{amt}ml
                 </button>
               ))}
             </div>
           </div>
 
-          <ReminderWidget
-            enabled={reminderEnabled}
-            time={reminderTime}
-            onToggle={toggleReminder}
-            onTimeChange={handleReminderTimeChange}
-            saving={savingReminder}
-            compact
-          />
-
-          {activeGoals.length > 0 && (
-            <div className="card border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{activeGoals[0].reward_image || getGoalTypeDisplay(activeGoals[0].goal_type).emoji}</span>
-                  <p className="font-semibold text-slate-800">Top Goal</p>
-                </div>
-                <button
-                  onClick={() => setShowGoals(true)}
-                  className="text-xs font-semibold text-slate-500 hover:text-slate-700"
-                >
-                  View all
-                </button>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-4 gap-3">
+            <Link to="/tasks" className="bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 rounded-xl p-3 text-center transition-all">
+              <ListTodo className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+              <p className="text-xs font-semibold text-gray-700">Tasks</p>
+            </Link>
+            <Link to="/quizzes" className="bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-xl p-3 text-center transition-all">
+              <Gamepad2 className="w-6 h-6 text-violet-600 mx-auto mb-1" />
+              <p className="text-xs font-semibold text-gray-700">Quizzes</p>
+            </Link>
+            <Link to="/shop" className="bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-xl p-3 text-center transition-all">
+              <ShoppingBag className="w-6 h-6 text-green-600 mx-auto mb-1" />
+              <p className="text-xs font-semibold text-gray-700">Shop</p>
+            </Link>
+            {currentProfile?.ai_enabled === 1 ? (
+              <Link to="/ai" className="bg-gradient-to-br from-indigo-100 to-blue-100 hover:from-indigo-200 hover:to-blue-200 rounded-xl p-3 text-center transition-all">
+                <Brain className="w-6 h-6 text-indigo-600 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-gray-700">AI Help</p>
+              </Link>
+            ) : (
+              <div className="bg-gray-100 rounded-xl p-3 text-center opacity-50">
+                <Brain className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                <p className="text-xs font-semibold text-gray-400">AI Help</p>
               </div>
-              <p className="text-sm text-slate-600 mt-2">{activeGoals[0].goal_description}</p>
-              <div className="mt-3 h-2 rounded-full bg-slate-200">
+            )}
+          </div>
+
+          {/* Top Goal Preview */}
+          {activeGoals.length > 0 && (
+            <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl border border-violet-200 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{activeGoals[0].reward_image || getGoalTypeDisplay(activeGoals[0].goal_type).emoji}</span>
+                  <div>
+                    <p className="font-bold text-gray-900">{activeGoals[0].goal_description}</p>
+                    <p className="text-sm text-gray-500">{activeGoals[0].current_points || 0} / {activeGoals[0].goal_points} pts</p>
+                  </div>
+                </div>
+                <button onClick={() => setActiveTab('rewards')} className="text-sm text-violet-600 font-medium">View all</button>
+              </div>
+              <div className="h-2 bg-violet-200 rounded-full overflow-hidden">
                 <div
-                  className="h-2 rounded-full bg-violet-500 transition-all"
-                  style={{
-                    width: `${Math.min(((activeGoals[0].current_points || 0) / activeGoals[0].goal_points) * 100, 100)}%`
-                  }}
+                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+                  style={{ width: `${Math.min(((activeGoals[0].current_points || 0) / activeGoals[0].goal_points) * 100, 100)}%` }}
                 />
               </div>
             </div>
           )}
         </div>
-      </section>
+      )}
 
-      {/* === QUICK ACTIONS === */}
-      <section>
-        <h2 className="text-lg font-bold mb-3 text-slate-800">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Link
-            to="/tasks"
-            className="p-4 bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 rounded-2xl transition-all text-center hover:scale-105"
-          >
-            <div className="text-3xl mb-1">📝</div>
-            <p className="text-xs font-bold text-slate-700">Tasks</p>
-          </Link>
-          <Link
-            to="/quizzes"
-            className="p-4 bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-2xl transition-all text-center hover:scale-105"
-          >
-            <div className="text-3xl mb-1">🦁</div>
-            <p className="text-xs font-bold text-slate-700">Quizzes</p>
-          </Link>
-          <Link
-            to="/shop"
-            className="p-4 bg-gradient-to-br from-green-100 to-emerald-100 hover:from-green-200 hover:to-emerald-200 rounded-2xl transition-all text-center hover:scale-105"
-          >
-            <div className="text-3xl mb-1">🛍️</div>
-            <p className="text-xs font-bold text-slate-700">Shop</p>
-          </Link>
-          {featureFlags.diet_enabled && currentProfile?.diet_enabled === 1 && (
-            <Link
-              to="/diet"
-              className="p-4 bg-gradient-to-br from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 rounded-2xl transition-all text-center hover:scale-105"
-            >
-              <div className="text-3xl mb-1">🥗</div>
-              <p className="text-xs font-bold text-slate-700">Diet</p>
-            </Link>
+      {activeTab === 'tasks' && (
+        <div className="space-y-4">
+          {/* Overdue Tasks */}
+          {overdueTasks.length > 0 && (
+            <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
+              <div className="p-3 bg-red-50 border-b border-red-100 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+                <h3 className="font-bold text-red-800">Overdue ({overdueTasks.length})</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {overdueTasks.map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} isOverdue />
+                ))}
+              </div>
+            </div>
           )}
-          {currentProfile?.ai_enabled === 1 ? (
-            <Link
-              to="/ai"
-              className="p-4 bg-gradient-to-br from-indigo-100 to-blue-100 hover:from-indigo-200 hover:to-blue-200 rounded-2xl transition-all text-center hover:scale-105"
-            >
-              <div className="text-3xl mb-1">🤖</div>
-              <p className="text-xs font-bold text-slate-700">AI Help</p>
-            </Link>
-          ) : (
-            <div className="p-4 bg-slate-100 rounded-2xl text-center opacity-50">
-              <div className="text-3xl mb-1">🤖</div>
-              <p className="text-xs font-bold text-slate-400">AI Help</p>
+
+          {/* Today's Tasks */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-amber-500" />
+              <h3 className="font-bold text-amber-800">Due Today ({todayTasks.length})</h3>
+            </div>
+            {todayTasks.length === 0 ? (
+              <div className="p-6 text-center">
+                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                <p className="text-gray-500">Nothing due today!</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {todayTasks.map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Tasks */}
+          {upcomingTasks.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-blue-500" />
+                <h3 className="font-bold text-blue-800">Coming Up ({upcomingTasks.length})</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {upcomingTasks.map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Other Tasks */}
+          {otherTasks.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                <ListTodo className="w-5 h-5 text-gray-500" />
+                <h3 className="font-bold text-gray-800">Other Tasks ({otherTasks.length})</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {otherTasks.map(task => (
+                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {allTasks.length === 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
+              <p className="text-lg font-semibold text-gray-900">All tasks completed!</p>
+              <p className="text-gray-500">Great job! Check back later for more.</p>
             </div>
           )}
         </div>
-      </section>
+      )}
 
-      {/* === EXPLORE MORE === */}
-      <section className="space-y-3">
-        {activeGoals.length > 0 && (
-          <div className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
-            <button
-              onClick={() => setShowGoals(!showGoals)}
-              className="w-full flex items-center justify-between text-slate-800 font-semibold"
-            >
-              <span className="flex items-center gap-2">
-                <Target size={18} className="text-violet-500" />
-                Goals & rewards
-              </span>
-              {showGoals ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-            </button>
-            {showGoals && (
-              <div className="mt-3 space-y-3">
-                {activeGoals.map((goal) => {
-                  const progress = goal.goal_points > 0
-                    ? Math.min(100, ((goal.current_points || 0) / goal.goal_points) * 100)
-                    : 0;
-
-                  return (
-                    <div key={goal.id} className="bg-white rounded-xl p-4 border border-violet-200">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="text-3xl">{goal.reward_image || getGoalTypeDisplay(goal.goal_type).emoji}</span>
-                        <div className="flex-1">
-                          <p className="font-bold text-slate-800">{goal.goal_description}</p>
-                          <p className="text-sm text-slate-600">
-                            {goal.current_points || 0} / {goal.goal_points} pts
-                          </p>
-                        </div>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div
-                          className="bg-gradient-to-r from-violet-500 to-purple-500 h-3 rounded-full transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-2 text-right">{Math.round(progress)}% complete</p>
-                    </div>
-                  );
-                })}
+      {activeTab === 'challenges' && (
+        <div className="space-y-4">
+          {/* Daily Challenges */}
+          {challenges.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-amber-500" />
+                <h3 className="font-bold text-amber-800">Daily Challenges</h3>
               </div>
-            )}
-          </div>
-        )}
+              <div className="divide-y divide-gray-50">
+                {challenges.map((challenge) => (
+                  <ChallengeCard
+                    key={challenge.id}
+                    challenge={challenge}
+                    onClaim={() => claimChallenge(challenge.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
-        {(challenges.length > 0 || customChallenges.length > 0) && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-            <button
-              onClick={() => setShowChallenges(!showChallenges)}
-              className="w-full flex items-center justify-between text-slate-800 font-semibold"
-            >
-              <span className="flex items-center gap-2">
-                <Zap size={18} className="text-amber-500" />
-                Challenges
-              </span>
-              {showChallenges ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-            </button>
-            {showChallenges && (
-              <div className="mt-3 space-y-3">
-                {challenges.map((challenge) => {
-                  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
-                  const isComplete = challenge.current_progress >= challenge.target_value;
-                  const isClaimed = challenge.completed === 1;
-
-                  return (
-                    <div
-                      key={challenge.id}
-                      className={`p-4 rounded-xl border ${
-                        isClaimed ? 'bg-green-50 border-green-200' :
-                        isComplete ? 'bg-yellow-50 border-yellow-300' :
-                        'bg-white border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className={`font-medium ${isClaimed ? 'text-green-700' : 'text-slate-800'}`}>
-                            {isClaimed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
-                            {challenge.description}
-                          </p>
-                          <p className="text-xs text-slate-500">+{challenge.bonus_points} bonus pts</p>
-                        </div>
-                        {isComplete && !isClaimed && (
-                          <button
-                            onClick={() => claimChallenge(challenge.id)}
-                            className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-bold"
-                          >
-                            Claim
-                          </button>
-                        )}
-                      </div>
-                      {!isClaimed && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-slate-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-yellow-500' : 'bg-blue-500'}`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
+          {/* AI Challenges */}
+          {customChallenges.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-purple-50 border-b border-purple-100 flex items-center gap-2">
+                <Target className="w-5 h-5 text-purple-500" />
+                <h3 className="font-bold text-purple-800">Special Challenges</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
                 {customChallenges.map((challenge, index) => {
-                  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
-                  const isComplete = challenge.current_progress >= challenge.target_value;
                   const requiresTimer = challenge.requires_timer === true || challenge.requires_timer === 1;
-
                   if (requiresTimer) {
                     return (
-                      <ChallengeTimerCard
-                        key={challenge.id}
-                        challenge={challenge}
-                        onUpdate={refreshCustomChallenges}
-                        index={index}
-                      />
+                      <div key={challenge.id} className="p-4">
+                        <ChallengeTimerCard
+                          challenge={challenge}
+                          onUpdate={refreshCustomChallenges}
+                          index={index}
+                        />
+                      </div>
                     );
                   }
-
                   return (
-                    <div
+                    <CustomChallengeCard
                       key={challenge.id}
-                      className={`p-4 rounded-xl border ${
-                        challenge.completed ? 'bg-green-50 border-green-200' :
-                        isComplete ? 'bg-purple-50 border-purple-300' :
-                        'bg-white border-purple-200'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className={`font-medium ${challenge.completed ? 'text-green-700' : 'text-slate-800'}`}>
-                              {challenge.completed && <CheckCircle size={16} className="inline mr-1 text-green-600" />}
-                              {challenge.title}
-                            </p>
-                            <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded">AI</span>
-                          </div>
-                          <p className="text-sm text-slate-600">{challenge.description}</p>
-                          <p className="text-xs text-purple-600">+{Math.round(challenge.points_reward * challenge.bonus_multiplier)} pts</p>
-                        </div>
-                        {!challenge.completed && challenge.target_value > 1 && (
-                          <button
-                            onClick={() => updateCustomChallengeProgress(challenge.id)}
-                            className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
-                          >
-                            +1
-                          </button>
-                        )}
-                      </div>
-                      {!challenge.completed && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-slate-200 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-green-500' : 'bg-purple-500'}`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-slate-600">{challenge.current_progress}/{challenge.target_value}</span>
-                        </div>
-                      )}
-                    </div>
+                      challenge={challenge}
+                      onProgress={() => updateCustomChallengeProgress(challenge.id)}
+                    />
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <button
-            onClick={() => setShowBoosters(!showBoosters)}
-            className="w-full flex items-center justify-between text-slate-800 font-semibold"
-          >
-            <span className="flex items-center gap-2">
-              <Star size={18} className="text-slate-500" />
-              Boosters
-            </span>
-            {showBoosters ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          </button>
-          {showBoosters && (
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Boosters */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-3 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+              <Star className="w-5 h-5 text-gray-500" />
+              <h3 className="font-bold text-gray-800">Bonus Games</h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <CountdownChallengeCard
                 profileId={currentProfile?.id || 0}
                 onChallengeComplete={() => {
@@ -1066,31 +1048,418 @@ export default function ChildDashboard() {
                 }}
               />
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <button
-            onClick={() => setShowAchievements(!showAchievements)}
-            className="w-full flex items-center justify-between text-slate-800 font-semibold"
-          >
-            <span className="flex items-center gap-2">
-              <Star size={18} className="text-amber-500" />
-              Achievements
-            </span>
-            {showAchievements ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-          </button>
-          {showAchievements && (
-            <div className="mt-3">
-              <HiddenAchievements profileId={currentProfile?.id || 0} />
+          {challenges.length === 0 && customChallenges.length === 0 && (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <Zap className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">No challenges right now. Check back later!</p>
             </div>
           )}
         </div>
-      </section>
+      )}
+
+      {activeTab === 'rewards' && (
+        <div className="space-y-4">
+          {/* Active Goals */}
+          {activeGoals.length > 0 ? (
+            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+              <div className="p-3 bg-violet-50 border-b border-violet-100 flex items-center gap-2">
+                <Target className="w-5 h-5 text-violet-500" />
+                <h3 className="font-bold text-violet-800">My Goals</h3>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {activeGoals.map((goal) => (
+                  <GoalCard key={goal.id} goal={goal} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-100 p-6 text-center">
+              <Target className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">No active goals. Ask your parent to set one!</p>
+            </div>
+          )}
+
+          {/* Shop Link */}
+          <Link to="/shop" className="block bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4 hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-green-100 rounded-xl">
+                <ShoppingBag className="w-6 h-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-gray-900">Reward Shop</p>
+                <p className="text-sm text-gray-500">Spend your points on cool rewards!</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </div>
+          </Link>
+
+          {/* Achievements */}
+          <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+            <div className="p-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <h3 className="font-bold text-amber-800">Achievements</h3>
+            </div>
+            <div className="p-4">
+              <HiddenAchievements profileId={currentProfile?.id || 0} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
 }
+
+// ============================================
+// COMPONENT: Task Card
+// ============================================
+function TaskCard({ task, onComplete, formatDueDate, isOverdue = false }: {
+  task: Task;
+  onComplete: (id: number) => void;
+  formatDueDate: (date: string) => string;
+  isOverdue?: boolean;
+}) {
+  const hasTimer = task.requires_timer === 1 || task.requires_timer === true;
+
+  return (
+    <div className={`p-3 hover:bg-gray-50 transition-colors ${isOverdue ? 'bg-red-50/50' : ''}`}>
+      <div className="flex items-start gap-3">
+        <button
+          onClick={() => !hasTimer && onComplete(task.id)}
+          disabled={hasTimer}
+          className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+            hasTimer
+              ? 'border-gray-300 bg-gray-100 cursor-not-allowed'
+              : 'border-gray-300 hover:border-green-500 hover:bg-green-50'
+          }`}
+        >
+          {hasTimer && <Clock size={12} className="text-gray-400" />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900">{task.title}</p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{task.category}</span>
+            <span className="text-xs text-amber-600 font-medium">+{task.points} pts</span>
+            {task.due_date && (
+              <span className={`text-xs font-medium ${isOverdue ? 'text-red-600' : 'text-blue-600'}`}>
+                {formatDueDate(task.due_date)}
+              </span>
+            )}
+            {hasTimer && (
+              <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full flex items-center gap-1">
+                <Clock size={10} /> Timer required
+              </span>
+            )}
+          </div>
+        </div>
+        {hasTimer && (
+          <Link to="/tasks" className="text-sm text-purple-600 font-medium">
+            Start
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// COMPONENT: Challenge Card
+// ============================================
+function ChallengeCard({ challenge, onClaim }: { challenge: DailyChallenge; onClaim: () => void }) {
+  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+  const isComplete = challenge.current_progress >= challenge.target_value;
+  const isClaimed = challenge.completed === 1;
+
+  return (
+    <div className={`p-4 ${isClaimed ? 'bg-green-50' : isComplete ? 'bg-amber-50' : ''}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <p className={`font-medium ${isClaimed ? 'text-green-700' : 'text-gray-900'}`}>
+            {isClaimed && <CheckCircle size={14} className="inline mr-1 text-green-600" />}
+            {challenge.description}
+          </p>
+          <p className="text-xs text-gray-500">+{challenge.bonus_points} bonus pts</p>
+        </div>
+        {isComplete && !isClaimed && (
+          <button
+            onClick={onClaim}
+            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold"
+          >
+            Claim!
+          </button>
+        )}
+      </div>
+      {!isClaimed && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-amber-500' : 'bg-blue-500'}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-600">{challenge.current_progress}/{challenge.target_value}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// COMPONENT: Custom Challenge Card
+// ============================================
+function CustomChallengeCard({ challenge, onProgress }: { challenge: CustomChallenge; onProgress: () => void }) {
+  const progress = Math.min(100, (challenge.current_progress / challenge.target_value) * 100);
+  const isComplete = challenge.current_progress >= challenge.target_value;
+
+  return (
+    <div className={`p-4 ${challenge.completed ? 'bg-green-50' : isComplete ? 'bg-purple-50' : ''}`}>
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <p className={`font-medium ${challenge.completed ? 'text-green-700' : 'text-gray-900'}`}>
+              {challenge.completed && <CheckCircle size={14} className="inline mr-1 text-green-600" />}
+              {challenge.title}
+            </p>
+            <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded">AI</span>
+          </div>
+          <p className="text-sm text-gray-600">{challenge.description}</p>
+          <p className="text-xs text-purple-600">+{Math.round(challenge.points_reward * challenge.bonus_multiplier)} pts</p>
+        </div>
+        {!challenge.completed && challenge.target_value > 1 && (
+          <button
+            onClick={onProgress}
+            className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-sm font-bold"
+          >
+            +1
+          </button>
+        )}
+      </div>
+      {!challenge.completed && (
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-gray-200 rounded-full h-2">
+            <div
+              className={`h-2 rounded-full transition-all ${isComplete ? 'bg-green-500' : 'bg-purple-500'}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-xs text-gray-600">{challenge.current_progress}/{challenge.target_value}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// COMPONENT: Goal Card
+// ============================================
+function GoalCard({ goal }: { goal: GoalWithMilestones }) {
+  const progress = goal.goal_points > 0 ? Math.min(100, ((goal.current_points || 0) / goal.goal_points) * 100) : 0;
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-3xl">{goal.reward_image || getGoalTypeDisplay(goal.goal_type).emoji}</span>
+        <div className="flex-1">
+          <p className="font-bold text-gray-900">{goal.goal_description}</p>
+          <p className="text-sm text-gray-500">{goal.current_points || 0} / {goal.goal_points} pts</p>
+        </div>
+        <span className="text-sm font-bold text-violet-600">{Math.round(progress)}%</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-3">
+        <div
+          className="bg-gradient-to-r from-violet-500 to-purple-500 h-3 rounded-full transition-all"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// COMPONENT: Settings Modal
+// ============================================
+function SettingsModal({
+  reminderEnabled,
+  reminderTime,
+  onToggleReminder,
+  onTimeChange,
+  saving,
+  onClose
+}: {
+  reminderEnabled: boolean;
+  reminderTime: string;
+  onToggleReminder: () => void;
+  onTimeChange: (time: string) => void;
+  saving: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full">
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">Settings</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          {/* Reminders */}
+          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-amber-500" />
+                <span className="font-semibold text-gray-900">Daily Reminder</span>
+              </div>
+              <button
+                onClick={onToggleReminder}
+                disabled={saving}
+                className={`w-12 h-6 rounded-full transition-colors ${
+                  reminderEnabled ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  reminderEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+            {reminderEnabled && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Remind me at:</span>
+                <input
+                  type="time"
+                  value={reminderTime}
+                  onChange={(e) => onTimeChange(e.target.value)}
+                  disabled={saving}
+                  className="px-2 py-1 border border-amber-200 rounded-lg text-sm"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// YOUNG CHILD DASHBOARD COMPONENT
+// ============================================
+function YoungChildDashboard({
+  currentProfile,
+  settings,
+  totalStars,
+  level,
+  completedTasks,
+  allTasks,
+  onTaskComplete,
+  showLevelUp,
+  newLevel,
+  setShowLevelUp,
+  showLoginBonus,
+  loginBonusData,
+  bonusClaimed,
+  claimingBonus,
+  claimLoginBonus,
+  setShowLoginBonus,
+  showSurpriseBonus,
+  surpriseBonusData,
+  acknowledgeSurpriseBonus,
+  showAvatarPicker,
+  setShowAvatarPicker,
+  updateAvatar,
+  savingAvatar,
+  reminderEnabled,
+  reminderTime,
+  toggleReminder,
+  handleReminderTimeChange,
+  savingReminder
+}: any) {
+  return (
+    <div className={`max-w-2xl mx-auto px-4 pb-8 ${settings.themeClass}`}>
+      {showLevelUp && <LevelUpModal level={newLevel} onClose={() => setShowLevelUp(false)} />}
+
+      {showLoginBonus && loginBonusData && (
+        <LoginBonusModal
+          data={loginBonusData}
+          claimed={bonusClaimed}
+          claiming={claimingBonus}
+          onClaim={claimLoginBonus}
+          onClose={() => setShowLoginBonus(false)}
+        />
+      )}
+
+      {showSurpriseBonus && surpriseBonusData && (
+        <SurpriseBonusModal data={surpriseBonusData} onClose={acknowledgeSurpriseBonus} />
+      )}
+
+      {/* Avatar with greeting */}
+      <div className="text-center mb-6">
+        <button
+          onClick={() => setShowAvatarPicker(true)}
+          className="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-4xl shadow-lg hover:scale-110 transition-transform ring-4 ring-yellow-300 overflow-hidden"
+        >
+          <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
+        </button>
+        <p className="text-xs text-slate-500 mb-1">Tap to change!</p>
+        <h1 className="text-2xl font-bold text-slate-800">Hi {currentProfile?.name?.split(' ')[0]}! 🐯</h1>
+        <p className="text-sm text-slate-600">Your hero squad is ready!</p>
+
+        <div className="mt-3 flex justify-center gap-3">
+          <div className="bg-yellow-100 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+            <span className="text-xl">⭐</span>
+            <span className="text-lg font-bold text-yellow-700">{totalStars}</span>
+          </div>
+          <div className="bg-purple-100 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+            <span className="text-xl">🛡️</span>
+            <span className="text-lg font-bold text-purple-700">Lv {level}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Reminder Widget */}
+      <div className="mb-6">
+        <ReminderWidget
+          enabled={reminderEnabled}
+          time={reminderTime}
+          onToggle={toggleReminder}
+          onTimeChange={handleReminderTimeChange}
+          saving={savingReminder}
+          compact
+        />
+      </div>
+
+      {/* Today's Tasks */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-center text-slate-700 mb-4">Today's Jobs 🦸</h2>
+        <SimpleTaskGrid tasks={allTasks} onComplete={onTaskComplete} />
+      </div>
+
+      {/* Completed count */}
+      {completedTasks > 0 && (
+        <div className="text-center py-3">
+          <div className="inline-flex items-center gap-2 bg-green-100 px-5 py-2 rounded-full">
+            <CheckCircle className="w-6 h-6 text-green-500" />
+            <span className="text-lg font-bold text-green-700">{completedTasks} Done!</span>
+          </div>
+        </div>
+      )}
+
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <AvatarPickerModal
+          level={level}
+          currentAvatar={currentProfile?.avatar}
+          onSelect={updateAvatar}
+          onClose={() => setShowAvatarPicker(false)}
+          saving={savingAvatar}
+          isYoungChild
+        />
+      )}
+    </div>
+  );
+}
+
 // ============================================
 // MODAL COMPONENTS
 // ============================================
@@ -1269,7 +1638,7 @@ function AvatarPickerModal({
         </div>
 
         <div className="p-4 overflow-y-auto max-h-[50vh]">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             {AVATAR_CATEGORIES[categoryIndex].avatars.map((avatar) => {
               const isUnlocked = level >= avatar.minLevel;
               const isSelected = currentAvatar === avatar.emoji;
@@ -1286,18 +1655,18 @@ function AvatarPickerModal({
                   }`}
                   title={isUnlocked ? avatar.label : `Unlock at Level ${avatar.minLevel}`}
                 >
-                  <span className="text-4xl block">{avatar.emoji}</span>
+                  <span className="text-3xl block">{avatar.emoji}</span>
                   {!isUnlocked && (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-900/40 rounded-xl">
                       <div className="text-center">
-                        <Lock size={14} className="text-white mx-auto" />
+                        <Lock size={12} className="text-white mx-auto" />
                         <span className="text-[10px] text-white font-bold">Lv{avatar.minLevel}</span>
                       </div>
                     </div>
                   )}
                   {isSelected && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                      <CheckCircle size={12} className="text-white" />
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                      <CheckCircle size={10} className="text-white" />
                     </div>
                   )}
                 </button>
@@ -1316,6 +1685,3 @@ function AvatarPickerModal({
     </div>
   );
 }
-
-
-
