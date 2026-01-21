@@ -57,7 +57,7 @@ export default function BookLibrary() {
   const [assignedTo, setAssignedTo] = useState<number | null>(null);
 
   // Reading Tracker state
-  const [activeTab, setActiveTab] = useState<'library' | 'currently-reading' | 'books-read' | 'children-history'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'currently-reading' | 'books-read' | 'children-history' | 'children-notes'>('library');
   const [showPhysicalBookModal, setShowPhysicalBookModal] = useState(false);
   const [lookingUpBook, setLookingUpBook] = useState(false);
   const [physicalBookForm, setPhysicalBookForm] = useState({
@@ -77,6 +77,10 @@ export default function BookLibrary() {
   const [childrenHistory, setChildrenHistory] = useState<{
     children: Array<{ id: number; name: string; avatar: string }>;
     history: Array<BookReadingProgress & { title: string; cover_image?: string; child_name: string; child_avatar: string }>;
+  } | null>(null);
+  const [childrenNotes, setChildrenNotes] = useState<{
+    children: Array<{ id: number; name: string; avatar: string }>;
+    notes: Array<BookReadingNote & { profile_name: string; profile_avatar: string; book_title: string; book_cover?: string }>;
   } | null>(null);
 
   // Custom instructions state
@@ -278,10 +282,14 @@ export default function BookLibrary() {
       // Filter to only books actively being read
       setCurrentlyReading(progressRes.data.filter((p: BookReadingProgress) => p.completed !== 1));
 
-      // Load children's history if parent
+      // Load children's history and notes if parent
       if (isParentOrTeacher) {
-        const historyRes = await booksAPI.getChildrenReadingHistory(currentProfile.id);
+        const [historyRes, notesRes] = await Promise.all([
+          booksAPI.getChildrenReadingHistory(currentProfile.id),
+          booksAPI.getChildrenBookNotes(currentProfile.id)
+        ]);
         setChildrenHistory(historyRes.data);
+        setChildrenNotes(notesRes.data);
       }
     } catch (error) {
       console.error('Failed to load reading data:', error);
@@ -290,7 +298,7 @@ export default function BookLibrary() {
 
   // Load reading data when tab changes
   useEffect(() => {
-    if (activeTab === 'books-read' || activeTab === 'currently-reading' || activeTab === 'children-history') {
+    if (activeTab === 'books-read' || activeTab === 'currently-reading' || activeTab === 'children-history' || activeTab === 'children-notes') {
       loadReadingData();
     }
   }, [activeTab, currentProfile?.id]);
@@ -512,7 +520,10 @@ export default function BookLibrary() {
           <option value="currently-reading">📖 Currently Reading {currentlyReading.length > 0 ? `(${currentlyReading.length})` : ''}</option>
           <option value="books-read">✅ Books I've Read {completedBooks.length > 0 ? `(${completedBooks.length})` : ''}</option>
           {isParentOrTeacher && (
-            <option value="children-history">👨‍👩‍👧‍👦 Kids' Reading History</option>
+            <>
+              <option value="children-history">👨‍👩‍👧‍👦 Kids' Reading History</option>
+              <option value="children-notes">📝 Kids' Book Notes {childrenNotes?.notes?.length ? `(${childrenNotes.notes.length})` : ''}</option>
+            </>
           )}
         </select>
       </div>
@@ -896,6 +907,78 @@ export default function BookLibrary() {
                           </div>
                           <div className="text-xs text-gray-400">
                             {new Date(book.last_read_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Children's Book Notes Tab (Parents only) */}
+      {activeTab === 'children-notes' && isParentOrTeacher && (
+        <div>
+          {!childrenNotes || childrenNotes.notes.length === 0 ? (
+            <div className="text-center py-16">
+              <StickyNote className="mx-auto text-gray-300 mb-4" size={64} />
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No notes yet</h3>
+              <p className="text-gray-500">
+                Your children's reading notes will appear here. Notes help them reflect on what they've learned!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {childrenNotes.children.map(child => {
+                const childNotes = childrenNotes.notes.filter(n => n.profile_name === child.name);
+                if (childNotes.length === 0) return null;
+                return (
+                  <div key={child.id} className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+                    <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                      <Avatar avatar={child.avatar} size="md" alt={child.name} />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{child.name}</h3>
+                        <p className="text-sm text-gray-500">{childNotes.length} notes</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {childNotes.map(note => (
+                        <div key={note.id} className="p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            {note.book_cover && (
+                              <div className="w-10 h-14 flex-shrink-0 rounded overflow-hidden">
+                                <img src={note.book_cover} alt={note.book_title} className="w-full h-full object-cover" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium text-gray-900 text-sm">{note.book_title}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  note.note_type === 'learning' ? 'bg-yellow-100 text-yellow-700' :
+                                  note.note_type === 'favorite_part' ? 'bg-pink-100 text-pink-700' :
+                                  note.note_type === 'question' ? 'bg-blue-100 text-blue-700' :
+                                  note.note_type === 'vocabulary' ? 'bg-purple-100 text-purple-700' :
+                                  note.note_type === 'struggle' ? 'bg-red-100 text-red-700' :
+                                  'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {note.note_type === 'learning' ? '💡 Learning' :
+                                   note.note_type === 'favorite_part' ? '❤️ Favorite' :
+                                   note.note_type === 'question' ? '❓ Question' :
+                                   note.note_type === 'vocabulary' ? '📖 Vocabulary' :
+                                   note.note_type === 'struggle' ? '🤔 Struggle' : note.note_type}
+                                </span>
+                              </div>
+                              <p className="text-gray-700 text-sm">{note.content}</p>
+                              {note.page_reference && (
+                                <p className="text-xs text-gray-400 mt-1">Page {note.page_reference}</p>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(note.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       ))}

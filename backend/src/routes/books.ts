@@ -1011,6 +1011,90 @@ router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Res
   }
 });
 
+// Get all reading notes from children (for parents)
+router.get('/notes/children/:parentId', authenticate, (req: Request, res: Response) => {
+  try {
+    const { parentId } = req.params;
+    const bookId = req.query.book_id ? Number(req.query.book_id) : null;
+
+    // Get children linked to this parent
+    const children = db.prepare(`
+      SELECT id, name, avatar FROM profiles
+      WHERE parent_id = ? OR id IN (
+        SELECT student_id FROM guardian_students WHERE guardian_id = ?
+      )
+    `).all(parentId, parentId) as { id: number; name: string; avatar: string }[];
+
+    const childIds = children.map(c => c.id);
+    if (childIds.length === 0) {
+      return res.json({ children: [], notes: [] });
+    }
+
+    const placeholders = childIds.map(() => '?').join(',');
+    let query = `
+      SELECT brn.*,
+             p.name as profile_name, p.avatar as profile_avatar,
+             b.title as book_title, b.cover_image as book_cover
+      FROM book_reading_notes brn
+      JOIN profiles p ON brn.profile_id = p.id
+      JOIN books b ON brn.book_id = b.id
+      WHERE brn.profile_id IN (${placeholders})
+    `;
+    const params: any[] = [...childIds];
+
+    if (bookId) {
+      query += ' AND brn.book_id = ?';
+      params.push(bookId);
+    }
+
+    query += ' ORDER BY brn.created_at DESC LIMIT 100';
+
+    const notes = db.prepare(query).all(...params);
+
+    res.json({ children, notes });
+  } catch (error: any) {
+    console.error('[Books] Get children notes error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== READING NOTES (must be before :bookId routes) ====================
+
+// Update a reading note
+router.put('/notes/:noteId', authenticate, (req: Request, res: Response) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    const { note_type, content, page_reference } = req.body;
+
+    db.prepare(`
+      UPDATE book_reading_notes
+      SET note_type = COALESCE(?, note_type),
+          content = COALESCE(?, content),
+          page_reference = COALESCE(?, page_reference),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(note_type, content, page_reference, noteId);
+
+    const note = db.prepare('SELECT * FROM book_reading_notes WHERE id = ?').get(noteId);
+    res.json(note);
+  } catch (error: any) {
+    console.error('[Books] Update note error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a reading note
+router.delete('/notes/:noteId', authenticate, (req: Request, res: Response) => {
+  try {
+    const noteId = Number(req.params.noteId);
+    db.prepare('DELETE FROM book_reading_notes WHERE id = ?').run(noteId);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('[Books] Delete note error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== ROUTES WITH :bookId PARAM ====================
 
 // Get single book with pages
@@ -1374,41 +1458,6 @@ router.post('/:bookId/notes', authenticate, (req: Request, res: Response) => {
     res.json(note);
   } catch (error: any) {
     console.error('[Books] Create note error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update a reading note
-router.put('/notes/:noteId', authenticate, (req: Request, res: Response) => {
-  try {
-    const noteId = Number(req.params.noteId);
-    const { note_type, content, page_reference } = req.body;
-
-    db.prepare(`
-      UPDATE book_reading_notes
-      SET note_type = COALESCE(?, note_type),
-          content = COALESCE(?, content),
-          page_reference = COALESCE(?, page_reference),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(note_type, content, page_reference, noteId);
-
-    const note = db.prepare('SELECT * FROM book_reading_notes WHERE id = ?').get(noteId);
-    res.json(note);
-  } catch (error: any) {
-    console.error('[Books] Update note error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a reading note
-router.delete('/notes/:noteId', authenticate, (req: Request, res: Response) => {
-  try {
-    const noteId = Number(req.params.noteId);
-    db.prepare('DELETE FROM book_reading_notes WHERE id = ?').run(noteId);
-    res.json({ success: true });
-  } catch (error: any) {
-    console.error('[Books] Delete note error:', error);
     res.status(500).json({ error: error.message });
   }
 });

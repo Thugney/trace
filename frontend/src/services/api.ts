@@ -1919,6 +1919,13 @@ export const booksAPI = {
       history: Array<BookReadingProgress & { title: string; cover_image?: string; child_name: string; child_avatar: string }>;
     }>(`/books/children-history/${parentId}`),
 
+  // Children's Reading Notes (for parents to see what kids wrote)
+  getChildrenBookNotes: (parentId: number, bookId?: number) =>
+    api.get<{
+      children: Array<{ id: number; name: string; avatar: string }>;
+      notes: Array<BookReadingNote & { profile_name: string; profile_avatar: string; book_title: string; book_cover?: string }>;
+    }>(`/books/notes/children/${parentId}`, { params: bookId ? { book_id: bookId } : undefined }),
+
   // Book Lookup (for physical books)
   lookupBook: (title: string) =>
     api.get<{ found: boolean; book?: Partial<Book> }>(`/books/lookup`, { params: { title } }),
@@ -2433,7 +2440,7 @@ export const h5pAPI = {
     theme: string;
     age?: number;
     questionCount?: number;
-    quizType?: 'mixed' | 'mcq_only' | 'true_false_only' | 'fill_blank';
+    quizType?: 'mixed' | 'mixed_advanced' | 'mcq_only' | 'true_false_only' | 'fill_blank' | 'drag_text' | 'mark_words';
     assignTo?: number[];
     points?: number;
     provider?: 'auto' | 'ollama' | 'gemini' | 'grok' | 'openai';
@@ -2449,6 +2456,27 @@ export const h5pAPI = {
     assignedCount: number;
     imagesGenerated?: number;
   }>('/h5p/content/generate-ai', data),
+
+  // Generate standalone H5P content (Memory Game, Flashcards, Word Search, Dialog Cards)
+  generateStandalone: (data: {
+    contentType: 'memory_game' | 'flashcards' | 'word_search' | 'dialog_cards';
+    title?: string;
+    theme: string;
+    age?: number;
+    itemCount?: number;
+    assignTo?: number[];
+    points?: number;
+    provider?: 'auto' | 'ollama' | 'gemini' | 'grok' | 'openai';
+    customInstructions?: string;
+  }) => api.post<{
+    id: number;
+    h5pContentId: string;
+    title: string;
+    contentType: string;
+    itemCount: number;
+    provider: string;
+    assignedCount: number;
+  }>('/h5p/content/generate-standalone', data),
 
   // Get player data for rendering H5P content
   getPlayerData: (id: number) => api.get<H5PPlayerData>(`/h5p/play/${id}`),
