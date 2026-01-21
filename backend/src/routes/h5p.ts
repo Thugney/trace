@@ -37,10 +37,12 @@ import {
   convertFlashcardsToH5P,
   convertFindTheWordsToH5P,
   convertDialogCardsToH5P,
+  copyCardImagesToH5PContent,
   MemoryGameSpec,
   FlashcardsSpec,
   FindTheWordsSpec,
-  DialogCardsSpec
+  DialogCardsSpec,
+  MemoryGameCardImages
 } from '../services/h5pService';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { sendPushNotification } from '../services/notifications';
@@ -536,6 +538,16 @@ router.use('/libraries', express.static(H5P_PATHS.libraries));
 
 // Serve H5P content files (images, videos, etc.)
 router.use('/content', express.static(H5P_PATHS.content));
+
+// Serve generated card images (for Memory Game text cards)
+router.use('/card-images', express.static(H5P_PATHS.cardImages, {
+  setHeaders: (res, filePath) => {
+    // Set correct content type for SVG files
+    if (filePath.endsWith('.svg')) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+    }
+  }
+}));
 
 // ==================== AUTHENTICATED ROUTES ====================
 
@@ -1608,13 +1620,20 @@ router.post('/content/generate-standalone', async (req: Request, res: Response) 
 
     console.log(`[H5P AI] Generated ${contentType}: "${contentSpec.title}"`);
 
+    // Generate unique ID for this content (used for card image filenames)
+    const uniqueContentId = `h5p-${profile.id}-${Date.now()}`;
+
     // Convert to H5P format based on content type
-    let h5pData;
+    let h5pData: any;
     let h5pContentType: string;
+    let cardImages: MemoryGameCardImages | null = null;
 
     switch (contentType) {
       case 'memory_game':
-        h5pData = convertMemoryGameToH5P(contentSpec as MemoryGameSpec);
+        // Pass uniqueContentId so card images get unique filenames
+        const memoryResult = convertMemoryGameToH5P(contentSpec as MemoryGameSpec, uniqueContentId);
+        h5pData = memoryResult;
+        cardImages = memoryResult.cardImages;
         h5pContentType = 'MemoryGame';
         break;
       case 'flashcards':
@@ -1637,12 +1656,18 @@ router.post('/content/generate-standalone', async (req: Request, res: Response) 
     const h5pUser = createH5PUser(profile.id, profile.name);
 
     // Create the H5P content
-    const contentId = await createH5PContent(
+    const h5pContentId = await createH5PContent(
       h5pData.library,
       h5pData.params,
       h5pData.metadata,
       h5pUser
     );
+
+    // For Memory Game, copy generated card images to the H5P content folder
+    if (contentType === 'memory_game' && cardImages) {
+      console.log(`[H5P] Copying ${cardImages.generatedFiles.length} card images to content folder...`);
+      copyCardImagesToH5PContent(h5pContentId.toString(), cardImages);
+    }
 
     // Save to database
     const result = db.prepare(`
@@ -1651,7 +1676,7 @@ router.post('/content/generate-standalone', async (req: Request, res: Response) 
         metadata, is_ai_generated, ai_prompt
       ) VALUES (?, ?, ?, ?, ?, ?, 1, ?)
     `).run(
-      contentId.toString(),
+      h5pContentId.toString(),
       contentSpec.title,
       h5pContentType,
       h5pData.library,
@@ -1699,7 +1724,7 @@ router.post('/content/generate-standalone', async (req: Request, res: Response) 
 
     res.json({
       id: dbContentId,
-      h5pContentId: contentId.toString(),
+      h5pContentId: h5pContentId.toString(),
       title: contentSpec.title,
       contentType: h5pContentType,
       itemCount: contentType === 'memory_game' ? contentSpec.pairs?.length :

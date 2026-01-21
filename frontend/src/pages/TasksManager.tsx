@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
+import { useAge } from '../context/AgeContext';
 import { tasksAPI, goalsAPI } from '../services/api';
 import { Task, MonthlyGoal } from '../types';
-import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera, Timer, Bell } from 'lucide-react';
+import { Plus, Check, Star, Trophy, Gift, Target, Award, Edit2, Trash2, Repeat, Clock, AlertTriangle, Calendar, Camera, Timer, Bell, CheckCircle } from 'lucide-react';
 import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
 import Avatar from '../components/Avatar';
 import TaskTimerCard from '../components/TaskTimerCard';
+import {
+  ActiveMissionCard,
+  TodaysMissions,
+  CompletedToday,
+  OverdueMissions,
+  ComingUpMissions,
+  MissionCompleteModal
+} from '../components/MissionControl';
 
 // Category icons map
 const categoryIcons: Record<string, string> = {
@@ -49,8 +58,24 @@ const getGoalTypeLabel = (type: string | undefined): string => {
   return goalTypeLabels[type.toLowerCase()] || `🎯 ${type}`;
 };
 
+// Page title based on age group
+const getPageTitle = (ageGroup: string, isParent: boolean): { title: string; emoji: string; subtitle: string } => {
+  if (isParent) {
+    return { title: 'Task Management', emoji: '📋', subtitle: 'Manage tasks for your kids' };
+  }
+  switch (ageGroup) {
+    case 'young':
+      return { title: 'My Jobs', emoji: '🦸', subtitle: 'Do your jobs to earn stars!' };
+    case 'middle':
+      return { title: 'Missions', emoji: '🦹', subtitle: 'Complete missions to earn points!' };
+    default:
+      return { title: 'Tasks', emoji: '📝', subtitle: 'Complete tasks to earn points and stars' };
+  }
+};
+
 export default function TasksManager() {
   const { currentProfile, isParent, profiles } = useProfile();
+  const { settings } = useAge();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<any>(null);
   const [monthlyGoal, setMonthlyGoal] = useState<MonthlyGoal | null>(null);
@@ -68,6 +93,19 @@ export default function TasksManager() {
   const [editingGoal, setEditingGoal] = useState<MonthlyGoal | null>(null);
   const [showPhotoProof, setShowPhotoProof] = useState(false);
   const [photoProofTask, setPhotoProofTask] = useState<Task | null>(null);
+
+  // Mission Control state for kids
+  const [activeMission, setActiveMission] = useState<Task | null>(null);
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
+  const [missionCompleteData, setMissionCompleteData] = useState<{
+    task: Task;
+    pointsEarned: number;
+    starsEarned: number;
+    timeSpent: number;
+  } | null>(null);
+
+  // Get page title based on age
+  const pageInfo = getPageTitle(settings.ageGroup, isParent);
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
@@ -492,32 +530,179 @@ export default function TasksManager() {
     ? Math.min(100, (progress.current.total_points / monthlyGoal.goal_points) * 100)
     : 0;
 
-  return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {isParent ? 'Task Management' : 'My Tasks'}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {isParent ? 'Manage tasks for your kids' : 'Complete tasks to earn points and stars'}
-          </p>
-        </div>
+  // Categorize tasks for kid view
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const weekFromNow = new Date(today);
+  weekFromNow.setDate(weekFromNow.getDate() + 7);
 
-        <div className="flex space-x-2">
-          {isParent && displayProfileId && (
-            <button onClick={() => setShowBonusPoints(true)} className="btn btn-secondary">
-              <Award size={20} className="mr-2" />
-              Award Bonus
+  const overdueTasks = incompleteTasks.filter(t => {
+    if (!t.due_date || !t.parent_approved) return false;
+    const dueDate = new Date(t.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  });
+
+  const todayTasks = incompleteTasks.filter(t => {
+    if (!t.due_date || !t.parent_approved) return false;
+    const dueDate = new Date(t.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate.getTime() === today.getTime();
+  });
+
+  const upcomingTasks = incompleteTasks.filter(t => {
+    if (!t.due_date || !t.parent_approved) return false;
+    const dueDate = new Date(t.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate > today && dueDate <= weekFromNow;
+  });
+
+  const otherApprovedTasks = incompleteTasks.filter(t => {
+    if (!t.parent_approved) return false;
+    if (!t.due_date) return true;
+    const dueDate = new Date(t.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate > weekFromNow;
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const completedTodayTasks = completedTasks.filter(t => {
+    if (!t.completed_at) return false;
+    return t.completed_at.split('T')[0] === todayStr;
+  });
+
+  const formatDueDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return overdueDays === 1 ? '1 day late!' : `${overdueDays} days late!`;
+    } else if (diffDays === 0) {
+      return 'Due today';
+    } else if (diffDays === 1) {
+      return 'Due tomorrow';
+    } else {
+      return `Due in ${diffDays} days`;
+    }
+  };
+
+  // Mission control handlers for kids
+  const handleStartMission = (task: Task) => {
+    const hasTimer = task.requires_timer === 1 || task.requires_timer === true;
+    if (hasTimer) {
+      setActiveMission(task);
+    } else {
+      handleCompleteTask(task.id, task);
+    }
+  };
+
+  const handleMissionComplete = async (taskId: number, pointsEarned: number, starsEarned: number, timeSpent: number) => {
+    const completedTask = activeMission || tasks.find(t => t.id === taskId);
+
+    if (completedTask) {
+      setMissionCompleteData({
+        task: completedTask,
+        pointsEarned,
+        starsEarned,
+        timeSpent
+      });
+      setShowMissionComplete(true);
+    }
+
+    setActiveMission(null);
+    await loadTasks();
+    await loadProgress();
+  };
+
+  // Check if we should show kid-friendly Mission Control UI
+  const showMissionControlUI = !isParent && currentProfile?.type === 'child';
+
+  return (
+    <div className={clsx("max-w-7xl mx-auto", showMissionControlUI && settings.themeClass)}>
+      {/* Mission Complete Modal for Kids */}
+      {showMissionComplete && missionCompleteData && (
+        <MissionCompleteModal
+          task={missionCompleteData.task}
+          pointsEarned={missionCompleteData.pointsEarned}
+          starsEarned={missionCompleteData.starsEarned}
+          timeSpent={missionCompleteData.timeSpent}
+          onClose={() => {
+            setShowMissionComplete(false);
+            setMissionCompleteData(null);
+          }}
+        />
+      )}
+
+      {/* Header - Kid-friendly or Parent view */}
+      {showMissionControlUI ? (
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-2xl">{pageInfo.emoji}</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{pageInfo.title}</h1>
+                <p className="text-sm text-gray-500">{pageInfo.subtitle}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddTask(true)}
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-sm hover:from-purple-600 hover:to-pink-600 active:scale-95 transition-all flex items-center gap-2 shadow-md"
+            >
+              <Plus size={18} />
+              Add {settings.ageGroup === 'young' ? 'Job' : settings.ageGroup === 'middle' ? 'Mission' : 'Task'}
             </button>
+          </div>
+
+          {/* Quick Stats for Kids */}
+          {progress && (
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 text-center border border-amber-100">
+                <Star className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                <p className="text-lg font-bold text-amber-700">{progress.current.total_stars}</p>
+                <p className="text-xs text-amber-600">Stars</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 text-center border border-purple-100">
+                <Gift className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+                <p className="text-lg font-bold text-purple-700">{progress.current.total_points}</p>
+                <p className="text-xs text-purple-600">Points</p>
+              </div>
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center border border-green-100">
+                <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
+                <p className="text-lg font-bold text-green-700">{completedTasks.length}</p>
+                <p className="text-xs text-green-600">Done</p>
+              </div>
+            </div>
           )}
-          <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
-            <Plus size={20} className="mr-2" />
-            Add Task
-          </button>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{pageInfo.title}</h1>
+            <p className="text-gray-600 mt-1">{pageInfo.subtitle}</p>
+          </div>
+
+          <div className="flex space-x-2">
+            {isParent && displayProfileId && (
+              <button onClick={() => setShowBonusPoints(true)} className="btn btn-secondary">
+                <Award size={20} className="mr-2" />
+                Award Bonus
+              </button>
+            )}
+            <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
+              <Plus size={20} className="mr-2" />
+              Add Task
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Child Selector for Parents */}
       {isParent && children.length > 0 && (
@@ -884,40 +1069,158 @@ export default function TasksManager() {
         </div>
       )}
 
-      {/* Progress Card */}
-      {progress && !isParent && (
-        <div className="card bg-gradient-to-r from-primary-500 to-purple-600 text-white mb-6">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <Trophy size={32} className="mx-auto mb-2" />
-              <p className="text-2xl font-bold">{progress.current.level}</p>
-              <p className="text-sm text-primary-100">Level</p>
-            </div>
-            <div>
-              <Star size={32} className="mx-auto mb-2" />
-              <p className="text-2xl font-bold">{progress.current.total_stars}</p>
-              <p className="text-sm text-primary-100">Stars</p>
-            </div>
-            <div>
-              <Gift size={32} className="mx-auto mb-2" />
-              <p className="text-2xl font-bold">{progress.current.total_points}</p>
-              <p className="text-sm text-primary-100">Points</p>
-            </div>
+      {/* ======================= */}
+      {/* KID-FRIENDLY MISSION VIEW */}
+      {/* ======================= */}
+      {showMissionControlUI && (
+        <div className="space-y-4">
+          {/* Active Mission (Hero Section) */}
+          {activeMission && (
+            <ActiveMissionCard
+              task={activeMission}
+              onComplete={handleMissionComplete}
+              onCancel={() => setActiveMission(null)}
+            />
+          )}
+
+          {/* Mission Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Today's Missions */}
+            <TodaysMissions
+              tasks={[...todayTasks, ...otherApprovedTasks].filter(t => t.id !== activeMission?.id)}
+              onStartMission={handleStartMission}
+            />
+
+            {/* Completed Today */}
+            <CompletedToday tasks={completedTodayTasks} />
           </div>
 
-          {progress.weekly && (
-            <div className="mt-4 pt-4 border-t border-primary-400">
-              <p className="text-sm text-primary-100">This Week</p>
-              <p className="text-lg font-semibold">
-                {progress.weekly.tasks_completed_this_week} tasks • {progress.weekly.points_this_week} points
-              </p>
+          {/* Overdue & Coming Up Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <OverdueMissions
+              tasks={overdueTasks.filter(t => t.id !== activeMission?.id)}
+              onStartMission={handleStartMission}
+              formatDueDate={formatDueDate}
+            />
+            <ComingUpMissions
+              tasks={upcomingTasks}
+              formatDueDate={formatDueDate}
+            />
+          </div>
+
+          {/* Pending Tasks (unapproved) */}
+          {incompleteTasks.filter(t => !t.parent_approved).length > 0 && (
+            <div className="bg-white rounded-xl border border-orange-200 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-5 h-5 text-orange-500" />
+                <h3 className="font-bold text-orange-800">Waiting for Approval</h3>
+                <span className="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                  {incompleteTasks.filter(t => !t.parent_approved).length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {incompleteTasks.filter(t => !t.parent_approved).slice(0, 5).map(task => (
+                  <div key={task.id} className="flex items-center gap-3 p-2 bg-orange-50 rounded-lg">
+                    <span className="text-xl opacity-60">{categoryIcons[task.category] || '📌'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-orange-800 truncate text-sm">{task.title}</p>
+                      <p className="text-xs text-orange-600">Ask your parent to approve</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* All done state */}
+          {incompleteTasks.filter(t => t.parent_approved).length === 0 && !loading && (
+            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
+              <div className="text-5xl mb-3">🎉</div>
+              <p className="text-lg font-semibold text-gray-900">All {settings.ageGroup === 'young' ? 'jobs' : settings.ageGroup === 'middle' ? 'missions' : 'tasks'} done!</p>
+              <p className="text-gray-500">Great job! Check back later for more.</p>
+            </div>
+          )}
+
+          {/* Monthly Goal for Kids */}
+          {monthlyGoal && (
+            <div className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl border border-violet-200 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="w-5 h-5 text-violet-600" />
+                <h3 className="font-bold text-violet-800">My Goal</h3>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-gray-700">{monthlyGoal.goal_description}</span>
+                <span className="text-sm font-medium text-violet-600">
+                  {progress?.current.total_points || 0} / {monthlyGoal.goal_points} pts
+                </span>
+              </div>
+              <div className="h-2 bg-violet-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500 transition-all"
+                  style={{ width: `${goalProgress}%` }}
+                />
+              </div>
+              {goalProgress >= 100 && !monthlyGoal.achieved && (
+                <p className="text-sm text-green-600 font-medium mt-2">Goal reached! Ask your parent for your reward!</p>
+              )}
+              {monthlyGoal.achieved && (
+                <p className="text-sm text-green-600 font-medium mt-2">Goal achieved! {getGoalTypeLabel(monthlyGoal.goal_type)}</p>
+              )}
+            </div>
+          )}
+
+          {/* Add new goal button */}
+          {!monthlyGoal && (
+            <button
+              onClick={() => setShowAddGoal(true)}
+              className="w-full py-4 bg-gradient-to-r from-violet-100 to-purple-100 rounded-xl border-2 border-dashed border-violet-300 text-violet-700 font-semibold hover:from-violet-200 hover:to-purple-200 transition-all flex items-center justify-center gap-2"
+            >
+              <Target size={20} />
+              Set a Goal
+            </button>
           )}
         </div>
       )}
 
-      {/* Tasks List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ======================= */}
+      {/* PARENT / ADMIN VIEW */}
+      {/* ======================= */}
+      {!showMissionControlUI && (
+        <>
+          {/* Progress Card */}
+          {progress && !isParent && (
+            <div className="card bg-gradient-to-r from-primary-500 to-purple-600 text-white mb-6">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <Trophy size={32} className="mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{progress.current.level}</p>
+                  <p className="text-sm text-primary-100">Level</p>
+                </div>
+                <div>
+                  <Star size={32} className="mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{progress.current.total_stars}</p>
+                  <p className="text-sm text-primary-100">Stars</p>
+                </div>
+                <div>
+                  <Gift size={32} className="mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{progress.current.total_points}</p>
+                  <p className="text-sm text-primary-100">Points</p>
+                </div>
+              </div>
+
+              {progress.weekly && (
+                <div className="mt-4 pt-4 border-t border-primary-400">
+                  <p className="text-sm text-primary-100">This Week</p>
+                  <p className="text-lg font-semibold">
+                    {progress.weekly.tasks_completed_this_week} tasks • {progress.weekly.points_this_week} points
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tasks List */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Incomplete Tasks */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">
@@ -1098,6 +1401,8 @@ export default function TasksManager() {
           )}
         </div>
       </div>
+        </>
+      )}
 
       {/* Add Task Modal */}
       {showAddTask && (

@@ -19,6 +19,14 @@ import ChallengeTimerCard from '../components/ChallengeTimerCard';
 import playSounds from '../utils/sounds';
 import ReminderWidget from '../components/kids/ReminderWidget';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
+import {
+  ActiveMissionCard,
+  TodaysMissions,
+  CompletedToday,
+  OverdueMissions,
+  ComingUpMissions,
+  MissionCompleteModal
+} from '../components/MissionControl';
 
 // Goal type display helper
 const GOAL_TYPE_LABELS: Record<string, { label: string; emoji: string }> = {
@@ -200,6 +208,17 @@ export default function ChildDashboard() {
     awardedBy: string;
   } | null>(null);
 
+  // Mission Control state
+  const [activeMission, setActiveMission] = useState<Task | null>(null);
+  const [completedTodayTasks, setCompletedTodayTasks] = useState<Task[]>([]);
+  const [showMissionComplete, setShowMissionComplete] = useState(false);
+  const [missionCompleteData, setMissionCompleteData] = useState<{
+    task: Task;
+    pointsEarned: number;
+    starsEarned: number;
+    timeSpent: number;
+  } | null>(null);
+
   // Load all data
   useEffect(() => {
     if (!currentProfile) return;
@@ -249,8 +268,20 @@ export default function ChildDashboard() {
     const loadTasks = async () => {
       try {
         const res = await tasksAPI.getByProfile(currentProfile.id);
-        const incompleteTasks = res.data.filter((t: Task) => !t.completed);
+        const allTasksData = res.data as Task[];
+
+        // Filter for incomplete tasks
+        const incompleteTasks = allTasksData.filter((t: Task) => !t.completed);
         setAllTasks(incompleteTasks);
+
+        // Filter for tasks completed today
+        const todayStr = new Date().toISOString().split('T')[0];
+        const completedToday = allTasksData.filter((t: Task) => {
+          if (!t.completed || !t.completed_at) return false;
+          const completedDate = t.completed_at.split('T')[0];
+          return completedDate === todayStr;
+        });
+        setCompletedTodayTasks(completedToday);
 
         // Categorize tasks by due date
         const now = new Date();
@@ -486,6 +517,12 @@ export default function ChildDashboard() {
       await tasksAPI.complete(taskId);
       playSounds.taskComplete();
 
+      // Find the completed task to add to completedToday
+      const completedTask = allTasks.find(t => t.id === taskId);
+      if (completedTask) {
+        setCompletedTodayTasks(prev => [{ ...completedTask, completed: true, completed_at: new Date().toISOString() }, ...prev]);
+      }
+
       // Remove from all lists
       setAllTasks(prev => prev.filter(t => t.id !== taskId));
       setOverdueTasks(prev => prev.filter(t => t.id !== taskId));
@@ -500,6 +537,66 @@ export default function ChildDashboard() {
     } catch (e: any) {
       console.error('Failed to complete task:', e);
     }
+  };
+
+  // Mission Control handlers
+  const handleStartMission = (task: Task) => {
+    // Only start if task requires timer
+    const hasTimer = task.requires_timer === 1 || task.requires_timer === true;
+    if (hasTimer) {
+      setActiveMission(task);
+    } else {
+      // For non-timer tasks, complete directly
+      handleTaskComplete(task.id);
+    }
+  };
+
+  const handleMissionComplete = async (taskId: number, pointsEarned: number, starsEarned: number, timeSpent: number) => {
+    // Find the task before removing it
+    const completedTask = activeMission || allTasks.find(t => t.id === taskId);
+
+    if (completedTask) {
+      // Show celebration modal
+      setMissionCompleteData({
+        task: completedTask,
+        pointsEarned,
+        starsEarned,
+        timeSpent
+      });
+      setShowMissionComplete(true);
+
+      // Add to completed today list
+      setCompletedTodayTasks(prev => [{
+        ...completedTask,
+        completed: true,
+        completed_at: new Date().toISOString()
+      }, ...prev]);
+    }
+
+    // Remove from all lists
+    setAllTasks(prev => prev.filter(t => t.id !== taskId));
+    setOverdueTasks(prev => prev.filter(t => t.id !== taskId));
+    setTodayTasks(prev => prev.filter(t => t.id !== taskId));
+    setUpcomingTasks(prev => prev.filter(t => t.id !== taskId));
+    setOtherTasks(prev => prev.filter(t => t.id !== taskId));
+
+    // Clear active mission
+    setActiveMission(null);
+
+    // Refresh stats
+    if (currentProfile) {
+      const statsRes = await profilesAPI.getStats(currentProfile.id);
+      setStats(statsRes.data);
+    }
+  };
+
+  const handleCloseMissionComplete = () => {
+    setShowMissionComplete(false);
+    setMissionCompleteData(null);
+  };
+
+  const handleCancelMission = () => {
+    setActiveMission(null);
   };
 
   const logWater = async (amount: number) => {
@@ -690,6 +787,17 @@ export default function ChildDashboard() {
         />
       )}
 
+      {/* Mission Complete Modal */}
+      {showMissionComplete && missionCompleteData && (
+        <MissionCompleteModal
+          task={missionCompleteData.task}
+          pointsEarned={missionCompleteData.pointsEarned}
+          starsEarned={missionCompleteData.starsEarned}
+          timeSpent={missionCompleteData.timeSpent}
+          onClose={handleCloseMissionComplete}
+        />
+      )}
+
       {/* === HEADER === */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
@@ -791,29 +899,38 @@ export default function ChildDashboard() {
       {/* === TAB CONTENT === */}
       {activeTab === 'home' && (
         <div className="space-y-4">
-          {/* Today's Priority */}
-          <div className="bg-white rounded-xl border border-gray-100 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                <span className="text-xl">📝</span> Today's Tasks
-              </h2>
-              <Link to="/tasks" className="text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1">
-                See all <ChevronRight size={16} />
-              </Link>
-            </div>
+          {/* ACTIVE MISSION (Hero Section) */}
+          {activeMission && (
+            <ActiveMissionCard
+              task={activeMission}
+              onComplete={handleMissionComplete}
+              onCancel={handleCancelMission}
+            />
+          )}
 
-            {todayTasks.length === 0 && otherTasks.length === 0 ? (
-              <div className="text-center py-6">
-                <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-2" />
-                <p className="text-gray-500">All done for today! 🎉</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {[...todayTasks, ...otherTasks].slice(0, 4).map(task => (
-                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
-                ))}
-              </div>
-            )}
+          {/* Mission Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Today's Missions */}
+            <TodaysMissions
+              tasks={[...todayTasks, ...otherTasks].filter(t => t.id !== activeMission?.id)}
+              onStartMission={handleStartMission}
+            />
+
+            {/* Completed Today */}
+            <CompletedToday tasks={completedTodayTasks} />
+          </div>
+
+          {/* Overdue & Coming Up Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <OverdueMissions
+              tasks={overdueTasks.filter(t => t.id !== activeMission?.id)}
+              onStartMission={handleStartMission}
+              formatDueDate={formatDueDate}
+            />
+            <ComingUpMissions
+              tasks={upcomingTasks}
+              formatDueDate={formatDueDate}
+            />
           </div>
 
           {/* Water Tracker */}

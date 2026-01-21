@@ -32,9 +32,10 @@ const H5P_CONTENT_DIR = path.join(H5P_DATA_DIR, 'content');
 const H5P_TEMP_DIR = path.join(H5P_DATA_DIR, 'temp');
 const H5P_CORE_DIR = path.join(H5P_DATA_DIR, 'core');
 const H5P_EDITOR_DIR = path.join(H5P_DATA_DIR, 'editor');
+const H5P_CARD_IMAGES_DIR = path.join(H5P_DATA_DIR, 'card-images');
 
 // Ensure directories exist
-[H5P_DATA_DIR, H5P_LIBRARIES_DIR, H5P_CONTENT_DIR, H5P_TEMP_DIR, H5P_CORE_DIR, H5P_EDITOR_DIR].forEach(dir => {
+[H5P_DATA_DIR, H5P_LIBRARIES_DIR, H5P_CONTENT_DIR, H5P_TEMP_DIR, H5P_CORE_DIR, H5P_EDITOR_DIR, H5P_CARD_IMAGES_DIR].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     console.log(`[H5P] Created directory: ${dir}`);
@@ -997,6 +998,101 @@ function convertMarkWordsToH5P(q: QuizQuestion, index: number): any {
   };
 }
 
+// ==================== TEXT CARD IMAGE GENERATOR ====================
+
+/**
+ * Color palette for memory game cards (child-friendly colors)
+ */
+const CARD_COLORS = [
+  { bg: '#FF6B6B', text: '#FFFFFF' }, // Red
+  { bg: '#4ECDC4', text: '#FFFFFF' }, // Teal
+  { bg: '#45B7D1', text: '#FFFFFF' }, // Blue
+  { bg: '#96CEB4', text: '#2D3436' }, // Mint
+  { bg: '#FFEAA7', text: '#2D3436' }, // Yellow
+  { bg: '#DDA0DD', text: '#2D3436' }, // Plum
+  { bg: '#98D8C8', text: '#2D3436' }, // Sage
+  { bg: '#F7DC6F', text: '#2D3436' }, // Gold
+  { bg: '#BB8FCE', text: '#FFFFFF' }, // Purple
+  { bg: '#85C1E9', text: '#2D3436' }, // Light Blue
+  { bg: '#F8B500', text: '#2D3436' }, // Orange
+  { bg: '#58D68D', text: '#FFFFFF' }, // Green
+];
+
+/**
+ * Generate an SVG image with text for memory game cards
+ * @returns The filename of the generated SVG
+ */
+export function generateTextCardImage(
+  text: string,
+  colorIndex: number,
+  contentId: string
+): string {
+  const color = CARD_COLORS[colorIndex % CARD_COLORS.length];
+
+  // Truncate long text and split into lines
+  const maxCharsPerLine = 12;
+  const maxLines = 4;
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
+      currentLine = currentLine ? `${currentLine} ${word}` : word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word.length > maxCharsPerLine ? word.slice(0, maxCharsPerLine) : word;
+    }
+    if (lines.length >= maxLines) break;
+  }
+  if (currentLine && lines.length < maxLines) lines.push(currentLine);
+
+  // Calculate font size based on content
+  const longestLine = Math.max(...lines.map(l => l.length));
+  let fontSize = 32;
+  if (longestLine > 10) fontSize = 28;
+  if (longestLine > 12) fontSize = 24;
+  if (lines.length > 3) fontSize = Math.min(fontSize, 24);
+
+  // Generate SVG
+  const svgWidth = 200;
+  const svgHeight = 200;
+  const lineHeight = fontSize * 1.3;
+  const totalTextHeight = lines.length * lineHeight;
+  const startY = (svgHeight - totalTextHeight) / 2 + fontSize * 0.8;
+
+  const textElements = lines.map((line, i) =>
+    `<text x="${svgWidth / 2}" y="${startY + i * lineHeight}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${color.text}" text-anchor="middle">${escapeXml(line)}</text>`
+  ).join('\n    ');
+
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
+  <rect width="${svgWidth}" height="${svgHeight}" rx="15" fill="${color.bg}"/>
+  <rect x="10" y="10" width="${svgWidth - 20}" height="${svgHeight - 20}" rx="10" fill="none" stroke="${color.text}" stroke-width="3" stroke-opacity="0.3"/>
+    ${textElements}
+</svg>`;
+
+  // Save to file
+  const filename = `card-${contentId}-${colorIndex}-${Date.now()}.svg`;
+  const filepath = path.join(H5P_CARD_IMAGES_DIR, filename);
+  fs.writeFileSync(filepath, svg, 'utf8');
+
+  console.log(`[H5P] Generated card image: ${filename}`);
+  return filename;
+}
+
+/**
+ * Escape XML special characters
+ */
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 // ==================== STANDALONE CONTENT TYPE CONVERTERS ====================
 
 /**
@@ -1028,20 +1124,77 @@ export interface DialogCardsSpec {
 }
 
 /**
- * Convert Memory Game spec to H5P format
+ * Information about generated card images for memory game
  */
-export function convertMemoryGameToH5P(spec: MemoryGameSpec): {
+export interface MemoryGameCardImages {
+  generatedFiles: Array<{ filename: string; filepath: string }>;
+  cardParams: any[];
+}
+
+/**
+ * Convert Memory Game spec to H5P format with generated card images
+ * NOTE: H5P Memory Game REQUIRES images. For text-only pairs, we generate colored SVG cards.
+ *
+ * This function:
+ * 1. Generates SVG card images for each pair
+ * 2. Returns the card image info so they can be copied to the H5P content folder
+ * 3. Uses relative paths like "images/card-X.svg" that H5P expects
+ *
+ * @param spec - The memory game specification
+ * @param contentId - Unique identifier for this content (used for image filenames)
+ */
+export function convertMemoryGameToH5P(spec: MemoryGameSpec, contentId?: string): {
   library: string;
   params: any;
   metadata: Partial<IContentMetadata>;
+  cardImages: MemoryGameCardImages;
 } {
-  const cards = spec.pairs.map((pair, index) => ({
-    image: pair.image ? { path: pair.image } : undefined,
-    imageAlt: pair.text,
-    matchAlt: pair.matchingText || pair.text,
-    description: pair.text,
-    match: pair.matchingText || pair.text
-  }));
+  const uniqueId = contentId || `mg-${Date.now()}`;
+  const generatedFiles: Array<{ filename: string; filepath: string }> = [];
+
+  // Generate cards - H5P Memory Game requires images
+  const cards = spec.pairs.map((pair, index) => {
+    // Generate image for the first card (text)
+    const cardFilename = generateTextCardImage(pair.text, index * 2, uniqueId);
+    const cardFilepath = path.join(H5P_CARD_IMAGES_DIR, cardFilename);
+    generatedFiles.push({ filename: cardFilename, filepath: cardFilepath });
+
+    // H5P expects relative path like "images/filename.ext"
+    const cardImagePath = `images/${cardFilename}`;
+
+    // Generate image for the matching card (matchingText)
+    const matchText = pair.matchingText || pair.text;
+    let matchImagePath: string | undefined;
+    let matchImage: any = undefined;
+
+    if (pair.matchingText && pair.matchingText !== pair.text) {
+      // Different matching text - generate a different colored card
+      const matchFilename = generateTextCardImage(matchText, index * 2 + 1, uniqueId);
+      const matchFilepath = path.join(H5P_CARD_IMAGES_DIR, matchFilename);
+      generatedFiles.push({ filename: matchFilename, filepath: matchFilepath });
+      matchImagePath = `images/${matchFilename}`;
+      matchImage = {
+        path: matchImagePath,
+        mime: 'image/svg+xml',
+        width: 200,
+        height: 200
+      };
+    }
+    // If no matchingText, H5P will duplicate the card automatically (classic memory style)
+
+    return {
+      image: {
+        path: cardImagePath,
+        mime: 'image/svg+xml',
+        width: 200,
+        height: 200
+      },
+      imageAlt: pair.text,
+      match: matchImage,
+      matchAlt: matchText,
+      description: `Match: ${pair.text}` + (pair.matchingText ? ` ↔ ${pair.matchingText}` : '')
+    };
+  });
 
   return {
     library: 'H5P.MemoryGame 1.3',
@@ -1049,7 +1202,8 @@ export function convertMemoryGameToH5P(spec: MemoryGameSpec): {
       cards: cards.map(card => ({
         image: card.image,
         imageAlt: card.imageAlt,
-        match: { image: card.image, imageAlt: card.matchAlt },
+        match: card.match,
+        matchAlt: card.matchAlt,
         description: card.description
       })),
       behaviour: {
@@ -1071,8 +1225,43 @@ export function convertMemoryGameToH5P(spec: MemoryGameSpec): {
     metadata: {
       title: spec.title,
       license: 'U'
+    },
+    cardImages: {
+      generatedFiles,
+      cardParams: cards
     }
   };
+}
+
+/**
+ * Copy generated card images to H5P content folder
+ * Must be called after H5P content is created to copy images into the content directory
+ *
+ * @param h5pContentId - The H5P content ID returned from createH5PContent
+ * @param cardImages - The cardImages returned from convertMemoryGameToH5P
+ */
+export function copyCardImagesToH5PContent(
+  h5pContentId: string,
+  cardImages: MemoryGameCardImages
+): void {
+  const contentImagesDir = path.join(H5P_CONTENT_DIR, h5pContentId, 'images');
+
+  // Create images directory in content folder
+  if (!fs.existsSync(contentImagesDir)) {
+    fs.mkdirSync(contentImagesDir, { recursive: true });
+    console.log(`[H5P] Created content images directory: ${contentImagesDir}`);
+  }
+
+  // Copy each generated file
+  for (const file of cardImages.generatedFiles) {
+    const destPath = path.join(contentImagesDir, file.filename);
+    try {
+      fs.copyFileSync(file.filepath, destPath);
+      console.log(`[H5P] Copied card image: ${file.filename}`);
+    } catch (error) {
+      console.error(`[H5P] Failed to copy card image ${file.filename}:`, error);
+    }
+  }
 }
 
 /**
@@ -1292,7 +1481,8 @@ export const H5P_PATHS = {
   temp: H5P_TEMP_DIR,
   core: H5P_CORE_DIR,
   editor: H5P_EDITOR_DIR,
-  downloads: path.join(H5P_DATA_DIR, 'downloads')
+  downloads: path.join(H5P_DATA_DIR, 'downloads'),
+  cardImages: H5P_CARD_IMAGES_DIR
 };
 
 /**
