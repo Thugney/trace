@@ -275,7 +275,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     // Authorization check
-    // Parents can create children OR other parents (spouse/co-parent)
+    // Parents can create children OR other parents (spouse/co-parent) - subject to admin settings
     // Only admins can create teacher/admin profiles
     if (type !== 'child' && type !== 'parent' && userProfile.type !== 'admin') {
       return res.status(403).json({ error: 'Only admins can create teacher/admin profiles' });
@@ -284,6 +284,30 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     // Non-admins cannot create admin profiles
     if (type === 'admin' && userProfile.type !== 'admin') {
       return res.status(403).json({ error: 'Only admins can create admin profiles' });
+    }
+
+    // Check admin setting if a parent is trying to create another parent (co-parent)
+    if (type === 'parent' && userProfile.type === 'parent') {
+      const allowParentSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'allow_parent_creation'").get();
+      if (allowParentSetting?.value === 'false') {
+        return res.status(403).json({ error: 'Parent/co-parent creation has been disabled by the administrator.' });
+      }
+
+      // Check max parents per family limit
+      if (userProfile.family_id) {
+        const maxParentsSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'max_parents_per_family'").get();
+        const maxParents = parseInt(maxParentsSetting?.value || '4', 10);
+
+        const currentParentCount: any = db.prepare(`
+          SELECT COUNT(*) as count FROM profiles WHERE family_id = ? AND type = 'parent'
+        `).get(userProfile.family_id);
+
+        if (currentParentCount.count >= maxParents) {
+          return res.status(400).json({
+            error: `Maximum number of parents (${maxParents}) reached for this family. Contact admin to increase the limit.`
+          });
+        }
+      }
     }
 
     // If parent is creating a child, link to themselves and their family
@@ -304,6 +328,12 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     // Auto-generate username if not provided (lowercase name without spaces)
     const finalUsername = username || name.toLowerCase().replace(/\s+/g, '');
+
+    // Validate username uniqueness (FIX: was missing from admin create path)
+    const existingUser: any = db.prepare('SELECT id FROM profiles WHERE username = ?').get(finalUsername);
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists. Please choose a different username.' });
+    }
 
     // Hash PIN if provided (for kids - security: never store plain text)
     const hashedPin = pin ? await bcrypt.hash(pin, SALT_ROUNDS) : null;
@@ -374,6 +404,38 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
 
       console.log(`[Profile] Linked new parent ${newProfile.name} to ${existingChildren.length} existing children in family ${finalFamilyId}`);
+    }
+
+    // Audit log for parent profile creation (security tracking)
+    if (type === 'parent') {
+      try {
+        // Get actor name for audit log
+        const actorProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(userProfile.id);
+        const linkedChildCount: any = userProfile.type === 'parent' && finalFamilyId
+          ? db.prepare(`SELECT COUNT(*) as count FROM profiles WHERE family_id = ? AND type = 'child'`).get(finalFamilyId)
+          : { count: 0 };
+
+        db.prepare(`
+          INSERT INTO audit_logs (action, entity_type, entity_id, actor_id, actor_type, details)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          'PARENT_CREATED',
+          'profile',
+          newProfile.id,
+          userProfile.id,
+          userProfile.type,
+          JSON.stringify({
+            created_parent_name: newProfile.name,
+            created_parent_username: newProfile.username,
+            family_id: finalFamilyId,
+            created_by_name: actorProfile?.name || 'Unknown',
+            linked_children_count: linkedChildCount?.count || 0
+          })
+        );
+        console.log(`[Audit] Parent profile ${newProfile.name} created by ${actorProfile?.name} (${userProfile.type})`);
+      } catch (auditError: any) {
+        console.error('[Audit] Failed to log parent creation:', auditError.message);
+      }
     }
 
     if (type === 'teacher' && finalAssignedClassId) {

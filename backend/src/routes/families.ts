@@ -354,6 +354,26 @@ router.post('/my-family/add-adult', authenticate, (req: AuthRequest, res: Respon
       return res.status(400).json({ error: 'You are not assigned to a family. Contact admin.' });
     }
 
+    // Check if admin has disabled parent creation
+    const allowParentSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'allow_parent_creation'").get();
+    if (allowParentSetting?.value === 'false') {
+      return res.status(403).json({ error: 'Parent/co-parent creation has been disabled by the administrator.' });
+    }
+
+    // Check max parents per family limit
+    const maxParentsSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'max_parents_per_family'").get();
+    const maxParents = parseInt(maxParentsSetting?.value || '4', 10);
+
+    const currentParentCount: any = db.prepare(`
+      SELECT COUNT(*) as count FROM profiles WHERE family_id = ? AND type = 'parent'
+    `).get(userProfile.family_id);
+
+    if (currentParentCount.count >= maxParents) {
+      return res.status(400).json({
+        error: `Maximum number of parents (${maxParents}) reached for this family. Contact admin to increase the limit.`
+      });
+    }
+
     const { name, username, password, gender } = req.body;
 
     if (!name || name.trim() === '') {
@@ -398,7 +418,34 @@ router.post('/my-family/add-adult', authenticate, (req: AuthRequest, res: Respon
       `).run(newParentId, child.id);
     }
 
-    const newProfile = db.prepare('SELECT id, name, type, username, family_id FROM profiles WHERE id = ?').get(newParentId);
+    const newProfile: any = db.prepare('SELECT id, name, type, username, family_id FROM profiles WHERE id = ?').get(newParentId);
+
+    // Audit log for co-parent creation (security tracking)
+    try {
+      // Get actor name for audit log
+      const actorProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(userProfile.id);
+
+      db.prepare(`
+        INSERT INTO audit_logs (action, entity_type, entity_id, actor_id, actor_type, details)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        'COPARENT_CREATED',
+        'profile',
+        newParentId,
+        userProfile.id,
+        'parent',
+        JSON.stringify({
+          created_parent_name: newProfile.name,
+          created_parent_username: newProfile.username,
+          family_id: userProfile.family_id,
+          created_by_name: actorProfile?.name || 'Unknown',
+          linked_children_count: existingChildren.length
+        })
+      );
+      console.log(`[Audit] Co-parent ${newProfile.name} created by parent ${actorProfile?.name}`);
+    } catch (auditError: any) {
+      console.error('[Audit] Failed to log co-parent creation:', auditError.message);
+    }
 
     console.log(`[Families] Parent ${userProfile.id} added co-parent ${newParentId} to family ${userProfile.family_id}`);
     res.status(201).json(newProfile);

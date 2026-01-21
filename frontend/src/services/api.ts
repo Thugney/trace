@@ -399,7 +399,17 @@ export const settingsAPI = {
   getOllamaStatus: () => api.get<OllamaStatus>('/settings/ollama/status'),
   testOllama: (model?: string) => api.post<{ success: boolean; model: string; response: string; message: string }>('/settings/ollama/test', { model }),
   configureOllama: (config: { url?: string; model?: string }) => api.post<{ success: boolean; message: string; url: string; model: string }>('/settings/ollama/configure', config),
-  pullOllamaModel: (model: string) => api.post<{ success: boolean; model: string; message: string; status?: string }>('/settings/ollama/pull', { model })
+  pullOllamaModel: (model: string) => api.post<{ success: boolean; model: string; message: string; status?: string }>('/settings/ollama/pull', { model }),
+
+  // Admin: Parent Creation Controls
+  getParentCreationSettings: () => api.get<{ allow_parent_creation: boolean; max_parents_per_family: number }>('/settings/admin/parent-creation'),
+  updateParentCreationSettings: (settings: { allow_parent_creation?: boolean; max_parents_per_family?: number }) =>
+    api.put<{ success: boolean; message: string }>('/settings/admin/parent-creation', settings),
+
+  // Admin: Audit Logs
+  getAuditLogs: (params?: { action?: string; entity_type?: string; limit?: number; offset?: number }) =>
+    api.get<{ logs: any[]; pagination: { total: number; limit: number; offset: number; hasMore: boolean } }>('/settings/admin/audit-logs', { params }),
+  getParentCreationAuditLogs: () => api.get<{ logs: any[] }>('/settings/admin/audit-logs/parent-creation')
 };
 
 // School

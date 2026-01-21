@@ -1,6 +1,8 @@
-import express from 'express';
+import express, { Response } from 'express';
 import axios from 'axios';
 import db from '../database/init';
+import { authenticate, adminOnly } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -146,6 +148,167 @@ router.get('/features/flags', (req, res) => {
       diet_enabled: dietSetting?.value === 'true',
       school_only_mode: schoolOnlySetting?.value === 'true'
     });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== ADMIN: PARENT CREATION CONTROLS =====
+
+// Get parent creation settings (admin only)
+router.get('/admin/parent-creation', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const allowParentSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'allow_parent_creation'").get();
+    const maxParentsSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'max_parents_per_family'").get();
+
+    res.json({
+      allow_parent_creation: allowParentSetting?.value === 'true',
+      max_parents_per_family: parseInt(maxParentsSetting?.value || '4', 10)
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update parent creation settings (admin only)
+router.put('/admin/parent-creation', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { allow_parent_creation, max_parents_per_family } = req.body;
+
+    if (allow_parent_creation !== undefined) {
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('allow_parent_creation', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(allow_parent_creation ? 'true' : 'false');
+    }
+
+    if (max_parents_per_family !== undefined) {
+      const maxVal = Math.max(1, Math.min(10, parseInt(max_parents_per_family, 10) || 4));
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('max_parents_per_family', ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(key) DO UPDATE SET
+          value = excluded.value,
+          updated_at = CURRENT_TIMESTAMP
+      `).run(String(maxVal));
+    }
+
+    // Log the admin action
+    try {
+      db.prepare(`
+        INSERT INTO audit_logs (action, entity_type, entity_id, actor_id, actor_type, details)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        'PARENT_CREATION_SETTINGS_CHANGED',
+        'settings',
+        null,
+        req.profile?.id,
+        'admin',
+        JSON.stringify({
+          allow_parent_creation,
+          max_parents_per_family,
+          changed_by: req.profile?.id
+        })
+      );
+    } catch (auditError: any) {
+      console.error('[Audit] Failed to log settings change:', auditError.message);
+    }
+
+    console.log(`[Settings] Admin ${req.profile?.id} updated parent creation settings:`, {
+      allow_parent_creation,
+      max_parents_per_family
+    });
+
+    res.json({
+      success: true,
+      message: 'Parent creation settings updated',
+      allow_parent_creation: allow_parent_creation !== undefined ? allow_parent_creation : undefined,
+      max_parents_per_family: max_parents_per_family !== undefined ? max_parents_per_family : undefined
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== ADMIN: AUDIT LOGS =====
+
+// Get audit logs (admin only)
+router.get('/admin/audit-logs', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const { action, entity_type, limit: queryLimit, offset: queryOffset } = req.query;
+
+    let query = `
+      SELECT
+        al.*,
+        p.name as actor_name
+      FROM audit_logs al
+      LEFT JOIN profiles p ON al.actor_id = p.id
+    `;
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (action) {
+      conditions.push('al.action = ?');
+      params.push(action);
+    }
+
+    if (entity_type) {
+      conditions.push('al.entity_type = ?');
+      params.push(entity_type);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY al.created_at DESC';
+
+    const limitNum = Math.min(100, parseInt(queryLimit as string, 10) || 50);
+    const offsetNum = parseInt(queryOffset as string, 10) || 0;
+
+    query += ` LIMIT ${limitNum} OFFSET ${offsetNum}`;
+
+    const logs = db.prepare(query).all(...params);
+
+    // Get total count for pagination
+    let countQuery = 'SELECT COUNT(*) as total FROM audit_logs al';
+    if (conditions.length > 0) {
+      countQuery += ' WHERE ' + conditions.join(' AND ');
+    }
+    const countResult: any = db.prepare(countQuery).get(...params);
+
+    res.json({
+      logs,
+      pagination: {
+        total: countResult.total,
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: offsetNum + limitNum < countResult.total
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get parent creation audit logs specifically (admin only)
+router.get('/admin/audit-logs/parent-creation', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+  try {
+    const logs = db.prepare(`
+      SELECT
+        al.*,
+        p.name as actor_name
+      FROM audit_logs al
+      LEFT JOIN profiles p ON al.actor_id = p.id
+      WHERE al.action IN ('PARENT_CREATED', 'COPARENT_CREATED', 'PARENT_CREATION_SETTINGS_CHANGED')
+      ORDER BY al.created_at DESC
+      LIMIT 100
+    `).all();
+
+    res.json({ logs });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

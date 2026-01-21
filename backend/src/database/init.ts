@@ -303,28 +303,71 @@ export function initDatabase() {
   `);
 
   // Audit logs table for tracking important actions (especially parent creation)
+  // Note: This table may already exist with different columns from a previous version
+  // We use migration-style approach to add columns if they don't exist
   db.exec(`
     CREATE TABLE IF NOT EXISTS audit_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
+      action TEXT,
+      entity_type TEXT,
       entity_id INTEGER,
       actor_id INTEGER,
       actor_type TEXT,
       details TEXT,
       ip_address TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: Add new audit_logs columns if they don't exist (for existing databases)
+  try {
+    const auditCols: any[] = db.prepare('PRAGMA table_info(audit_logs)').all();
+    const hasAction = auditCols.some((col: any) => col.name === 'action');
+    const hasEntityType = auditCols.some((col: any) => col.name === 'entity_type');
+    const hasEntityId = auditCols.some((col: any) => col.name === 'entity_id');
+    const hasActorId = auditCols.some((col: any) => col.name === 'actor_id');
+    const hasActorType = auditCols.some((col: any) => col.name === 'actor_type');
+    const hasDetails = auditCols.some((col: any) => col.name === 'details');
+
+    if (!hasAction) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN action TEXT').run();
+      console.log('✅ Added action column to audit_logs');
+    }
+    if (!hasEntityType) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN entity_type TEXT').run();
+      console.log('✅ Added entity_type column to audit_logs');
+    }
+    if (!hasEntityId) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN entity_id INTEGER').run();
+      console.log('✅ Added entity_id column to audit_logs');
+    }
+    if (!hasActorId) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN actor_id INTEGER').run();
+      console.log('✅ Added actor_id column to audit_logs');
+    }
+    if (!hasActorType) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN actor_type TEXT').run();
+      console.log('✅ Added actor_type column to audit_logs');
+    }
+    if (!hasDetails) {
+      db.prepare('ALTER TABLE audit_logs ADD COLUMN details TEXT').run();
+      console.log('✅ Added details column to audit_logs');
+    }
+
+    // Create indexes for audit_logs (only after columns exist)
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
+    `);
+  } catch (error: any) {
+    console.error('Migration error (audit_logs columns):', error.message);
+  }
 
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_meal_logs_profile ON meal_logs(profile_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
-    CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
     CREATE INDEX IF NOT EXISTS idx_meal_logs_date ON meal_logs(logged_at);
     CREATE INDEX IF NOT EXISTS idx_tasks_profile ON tasks(profile_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
