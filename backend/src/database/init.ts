@@ -302,9 +302,29 @@ export function initDatabase() {
     )
   `);
 
+  // Audit logs table for tracking important actions (especially parent creation)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id INTEGER,
+      actor_id INTEGER,
+      actor_type TEXT,
+      details TEXT,
+      ip_address TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (actor_id) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_meal_logs_profile ON meal_logs(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
     CREATE INDEX IF NOT EXISTS idx_meal_logs_date ON meal_logs(logged_at);
     CREATE INDEX IF NOT EXISTS idx_tasks_profile ON tasks(profile_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
@@ -331,7 +351,9 @@ export function initDatabase() {
       { key: 'grok_api_enabled', value: 'false' },
       { key: 'norwegian_food_api', value: 'matvaretabellen' },
       { key: 'parent_pin', value: '' },
-      { key: 'school_only_mode', value: 'false' }
+      { key: 'school_only_mode', value: 'false' },
+      { key: 'allow_parent_creation', value: 'true' },
+      { key: 'max_parents_per_family', value: '4' }
     ];
 
     const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)');
@@ -745,6 +767,7 @@ export function initDatabase() {
       points_reward INTEGER DEFAULT 0,
       requirement_type TEXT NOT NULL,
       requirement_value INTEGER NOT NULL,
+      is_hidden BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -3358,6 +3381,39 @@ export function initDatabase() {
   `);
 
   console.log('✅ Families table created');
+
+  // Migration: Add accumulated_points to countdown_challenges for accurate multiplier calculation
+  try {
+    const countdownInfo: any[] = db.prepare('PRAGMA table_info(countdown_challenges)').all();
+    const hasAccumulatedPoints = countdownInfo.some((col: any) => col.name === 'accumulated_points');
+
+    if (!hasAccumulatedPoints) {
+      console.log('🔄 Migrating countdown_challenges: adding accumulated_points column...');
+      db.prepare('ALTER TABLE countdown_challenges ADD COLUMN accumulated_points INTEGER DEFAULT 0').run();
+      console.log('✅ Added accumulated_points column to countdown_challenges');
+    }
+  } catch (error: any) {
+    console.error('Migration error (countdown accumulated_points):', error.message);
+  }
+
+  // Migration: Add admin control settings for parent profile creation (for existing databases)
+  try {
+    const existingAllowParent: any = db.prepare("SELECT value FROM settings WHERE key = 'allow_parent_creation'").get();
+    if (!existingAllowParent) {
+      console.log('🔄 Migrating settings: adding allow_parent_creation...');
+      db.prepare("INSERT INTO settings (key, value) VALUES ('allow_parent_creation', 'true')").run();
+      console.log('✅ Added allow_parent_creation setting (default: true)');
+    }
+
+    const existingMaxParents: any = db.prepare("SELECT value FROM settings WHERE key = 'max_parents_per_family'").get();
+    if (!existingMaxParents) {
+      console.log('🔄 Migrating settings: adding max_parents_per_family...');
+      db.prepare("INSERT INTO settings (key, value) VALUES ('max_parents_per_family', '4')").run();
+      console.log('✅ Added max_parents_per_family setting (default: 4)');
+    }
+  } catch (error: any) {
+    console.error('Migration error (parent creation settings):', error.message);
+  }
 
   // Run production-ready migrations
   runProductionReadyMigrations();

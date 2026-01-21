@@ -505,6 +505,27 @@ function checkAchievements(profileId: number) {
     )
   `).all(profileId);
 
+  // Get additional stats for hidden achievements
+  const earlyTasks: any = db.prepare(`
+    SELECT COUNT(*) as count FROM tasks
+    WHERE profile_id = ? AND completed = 1 AND TIME(completed_at) < '08:00:00'
+  `).get(profileId);
+
+  const weekendTasks: any = db.prepare(`
+    SELECT COUNT(*) as count FROM tasks
+    WHERE profile_id = ? AND completed = 1
+    AND (strftime('%w', completed_at) = '0' OR strftime('%w', completed_at) = '6')
+  `).get(profileId);
+
+  const countdownsCompleted: any = db.prepare(`
+    SELECT COUNT(*) as count FROM countdown_challenges WHERE profile_id = ? AND completed = 1
+  `).get(profileId);
+
+  const jackpotWins: any = db.prepare(`
+    SELECT COUNT(*) as count FROM spin_wheel_history
+    WHERE profile_id = ? AND reward_type = 'jackpot'
+  `).get(profileId);
+
   // Check each achievement
   unearnedAchievements.forEach((achievement: any) => {
     let earned = false;
@@ -530,10 +551,36 @@ function checkAchievements(profileId: number) {
         const waterStreak = streaks.find((s: any) => s.streak_type === 'water');
         earned = (waterStreak?.current_streak || 0) >= achievement.requirement_value;
         break;
+      // Hidden achievement types
+      case 'early_tasks':
+        earned = (earlyTasks?.count || 0) >= achievement.requirement_value;
+        break;
+      case 'weekend_tasks':
+        earned = (weekendTasks?.count || 0) >= achievement.requirement_value;
+        break;
+      case 'countdown_completed':
+        earned = (countdownsCompleted?.count || 0) >= achievement.requirement_value;
+        break;
+      case 'jackpot_win':
+        earned = (jackpotWins?.count || 0) >= achievement.requirement_value;
+        break;
+      // Note: speed_tasks is checked in real-time during task completion (checkHiddenAchievementsOnTaskComplete)
+      // as it requires checking tasks completed within the last 30 minutes
     }
 
     if (earned) {
-      try {
+      // FIX: Use transaction to prevent race condition where achievement could be awarded twice
+      // The UNIQUE constraint provides second-level protection, but transaction ensures atomic award
+      const awardAchievementTransaction = db.transaction(() => {
+        // Check if already earned within transaction (race condition protection)
+        const alreadyEarned: any = db.prepare(`
+          SELECT id FROM profile_achievements WHERE profile_id = ? AND achievement_id = ?
+        `).get(profileId, achievement.id);
+
+        if (alreadyEarned) {
+          return { awarded: false };
+        }
+
         db.prepare(`
           INSERT INTO profile_achievements (profile_id, achievement_id)
           VALUES (?, ?)
@@ -555,9 +602,16 @@ function checkAchievements(profileId: number) {
           }
         }
 
-        console.log(`[Gamification] ${profileId} earned achievement: ${achievement.name}`);
+        return { awarded: true };
+      });
+
+      try {
+        const result = awardAchievementTransaction();
+        if (result.awarded) {
+          console.log(`[Gamification] ${profileId} earned achievement: ${achievement.name}`);
+        }
       } catch (e) {
-        // Already earned, ignore
+        // Transaction failed (likely UNIQUE constraint), ignore
       }
     }
   });
@@ -574,11 +628,37 @@ const CHALLENGE_TYPES = [
   { type: 'streak_keeper', description: 'Keep your task streak going', bonusPoints: 5 }
 ];
 
+// FIX: Cleanup old daily challenges to prevent database bloat
+// Keeps challenges from the last 7 days for history, deletes older ones
+function cleanupOldDailyChallenges(profileId: number): void {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoffDate = sevenDaysAgo.toISOString().split('T')[0];
+
+    const result = db.prepare(`
+      DELETE FROM daily_challenges
+      WHERE profile_id = ? AND DATE(created_at) < DATE(?)
+    `).run(profileId, cutoffDate);
+
+    if (result.changes > 0) {
+      console.log(`[Gamification] Cleaned up ${result.changes} old daily challenges for profile ${profileId}`);
+    }
+  } catch (error: any) {
+    // Non-critical error, just log it
+    console.error('[Gamification] Cleanup error:', error.message);
+  }
+}
+
 // Get daily challenges for a profile
 router.get('/challenges/:profileId', (req, res) => {
   try {
     const { profileId } = req.params;
     const today = new Date().toISOString().split('T')[0];
+
+    // FIX: Cleanup old challenges (older than 7 days) to prevent database bloat
+    // This runs opportunistically when fetching challenges
+    cleanupOldDailyChallenges(parseInt(profileId));
 
     // Check if challenges exist for today
     let challenges: any[] = db.prepare(`
@@ -1114,6 +1194,20 @@ router.post('/streak-freeze/:profileId', (req, res) => {
       VALUES (?, ?, 0, ?, ?, ?)
     `).run(profileId, -freezeCost, newLevel, newPoints, progress.total_stars);
 
+    // Check if streak exists first
+    const existingStreak: any = db.prepare(`
+      SELECT * FROM streaks WHERE profile_id = ? AND streak_type = ?
+    `).get(profileId, streak_type);
+
+    if (!existingStreak) {
+      // Create the streak record if it doesn't exist (user is trying to protect a non-existent streak)
+      // This is a safety net - we create it with current_streak = 1 so they don't waste points
+      db.prepare(`
+        INSERT INTO streaks (profile_id, streak_type, current_streak, longest_streak, last_activity_date)
+        VALUES (?, ?, 1, 1, ?)
+      `).run(profileId, streak_type, today);
+    }
+
     // Record the freeze
     db.prepare(`
       INSERT INTO streak_freezes (profile_id, freeze_date, streak_type)
@@ -1130,7 +1224,8 @@ router.post('/streak-freeze/:profileId', (req, res) => {
       success: true,
       message: `${streak_type} streak protected!`,
       points_spent: freezeCost,
-      remaining_points: newPoints
+      remaining_points: newPoints,
+      streak_created: !existingStreak // Let the client know if we created a new streak
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -1540,7 +1635,8 @@ router.post('/countdown/:profileId/start', (req, res) => {
 });
 
 // Update countdown challenge progress (called when task is completed)
-export function updateCountdownProgress(profileId: number, pointsEarned: number): { bonusPoints: number; challengeCompleted: boolean } | null {
+// FIX: Now accumulates ALL points earned during the challenge and applies multiplier to the total
+export function updateCountdownProgress(profileId: number, pointsEarned: number): { bonusPoints: number; challengeCompleted: boolean; accumulatedPoints: number } | null {
   const now = new Date().toISOString();
 
   // Get active countdown challenge
@@ -1555,17 +1651,20 @@ export function updateCountdownProgress(profileId: number, pointsEarned: number)
   }
 
   const newCompletedTasks = active.completed_tasks + 1;
+  // Accumulate points earned during the challenge (new column: accumulated_points)
+  const newAccumulatedPoints = (active.accumulated_points || 0) + pointsEarned;
   const isComplete = newCompletedTasks >= active.target_tasks;
 
   if (isComplete) {
-    // Calculate bonus points
-    const bonusPoints = Math.round(pointsEarned * (active.bonus_multiplier - 1));
+    // Calculate bonus points based on ALL accumulated points, not just the final task
+    // This fixes the misleading multiplier - now all tasks contribute to the bonus
+    const bonusPoints = Math.round(newAccumulatedPoints * (active.bonus_multiplier - 1));
 
     db.prepare(`
       UPDATE countdown_challenges
-      SET completed_tasks = ?, completed = 1, completed_at = CURRENT_TIMESTAMP, bonus_points_awarded = ?
+      SET completed_tasks = ?, accumulated_points = ?, completed = 1, completed_at = CURRENT_TIMESTAMP, bonus_points_awarded = ?
       WHERE id = ?
-    `).run(newCompletedTasks, bonusPoints, active.id);
+    `).run(newCompletedTasks, newAccumulatedPoints, bonusPoints, active.id);
 
     // Award bonus points
     const currentProgress: any = db.prepare(`
@@ -1590,13 +1689,14 @@ export function updateCountdownProgress(profileId: number, pointsEarned: number)
       checkHiddenAchievement(profileId, 'countdown_completed', countdownCount.count);
     }
 
-    return { bonusPoints, challengeCompleted: true };
+    return { bonusPoints, challengeCompleted: true, accumulatedPoints: newAccumulatedPoints };
   } else {
+    // Update both completed tasks AND accumulated points
     db.prepare(`
-      UPDATE countdown_challenges SET completed_tasks = ? WHERE id = ?
-    `).run(newCompletedTasks, active.id);
+      UPDATE countdown_challenges SET completed_tasks = ?, accumulated_points = ? WHERE id = ?
+    `).run(newCompletedTasks, newAccumulatedPoints, active.id);
 
-    return { bonusPoints: 0, challengeCompleted: false };
+    return { bonusPoints: 0, challengeCompleted: false, accumulatedPoints: newAccumulatedPoints };
   }
 }
 
@@ -1695,11 +1795,15 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
     }
 
     // ===== DAILY CAP CHECK =====
-    const capCheck = canEarnPoints(profileIdNum, 100); // Check if can earn at least some points
+    // FIX: Check if user can earn at least 1 point - if completely capped, don't consume the spin
+    // This prevents users from "wasting" a spin when they'd get 0 points
+    const capCheck = canEarnPoints(profileIdNum, 1);
     if (!capCheck.allowed) {
+      // Completely capped - don't consume the spin, let them try tomorrow
       return res.status(400).json({
-        error: capCheck.reason,
-        code: 'EARNING_CAP_REACHED'
+        error: 'You have reached your daily earning limit. Save your spin for tomorrow when you can earn points again!',
+        code: 'EARNING_CAP_REACHED',
+        spinPreserved: true // Let the client know the spin wasn't consumed
       });
     }
 

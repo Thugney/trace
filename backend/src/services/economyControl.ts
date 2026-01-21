@@ -344,11 +344,36 @@ export function checkTaskTimeElapsed(task: any): { allowed: boolean; reason?: st
 }
 
 /**
- * Apply points multiplier from economy settings
+ * Get active power-up multiplier for a profile (e.g., from spin wheel)
+ * Returns the multiplier value if an active, non-expired power-up exists
+ */
+export function getActivePowerUpMultiplier(profileId: number): number {
+  const now = new Date().toISOString();
+
+  const powerUp: any = db.prepare(`
+    SELECT * FROM power_ups
+    WHERE profile_id = ? AND power_up_type = 'spin_multiplier' AND expires_at > ?
+    ORDER BY expires_at DESC LIMIT 1
+  `).get(profileId, now);
+
+  if (powerUp && powerUp.quantity > 1) {
+    return powerUp.quantity; // quantity stores the multiplier value (e.g., 2 for 2x)
+  }
+
+  return 1; // No active power-up
+}
+
+/**
+ * Apply points multiplier from economy settings AND active power-ups
+ * Power-ups stack multiplicatively with economy settings
  */
 export function applyPointsMultiplier(profileId: number, basePoints: number): number {
   const settings = getEconomySettings(profileId);
-  return Math.round(basePoints * settings.points_multiplier);
+  const powerUpMultiplier = getActivePowerUpMultiplier(profileId);
+
+  // Apply both multipliers: economy setting * power-up
+  const totalMultiplier = settings.points_multiplier * powerUpMultiplier;
+  return Math.round(basePoints * totalMultiplier);
 }
 
 /**
@@ -409,6 +434,7 @@ export default {
   recordEarnings,
   checkTaskTimeElapsed,
   applyPointsMultiplier,
+  getActivePowerUpMultiplier,
   getEarningSummary,
   areBonusesEnabled,
   isSpinWheelEnabled,
