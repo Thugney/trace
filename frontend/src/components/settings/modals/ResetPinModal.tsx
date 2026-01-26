@@ -47,8 +47,9 @@ export default function ResetPinModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full my-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
           <div className="flex items-center gap-3">
@@ -157,6 +158,7 @@ export default function ResetPinModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

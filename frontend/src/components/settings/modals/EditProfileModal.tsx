@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Edit2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Edit2, Loader2, Eye, EyeOff, Baby, Users, Crown, GraduationCap } from 'lucide-react';
 import { Profile } from '../../../types';
 import { profilesAPI } from '../../../services/api';
 
@@ -9,6 +9,13 @@ interface EditProfileModalProps {
   onSuccess: (message: string) => void;
   onRefresh: () => Promise<void>;
 }
+
+const profileTypes = [
+  { value: 'child', label: 'Child', icon: Baby, color: 'orange' },
+  { value: 'parent', label: 'Parent', icon: Users, color: 'blue' },
+  { value: 'teacher', label: 'Teacher', icon: GraduationCap, color: 'emerald' },
+  { value: 'admin', label: 'Admin', icon: Crown, color: 'violet' }
+] as const;
 
 export default function EditProfileModal({
   profile,
@@ -69,17 +76,18 @@ export default function EditProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full my-4">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-xl">
-              <Edit2 className="text-blue-600" size={22} />
+              <Edit2 className="text-blue-600" size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Edit Profile</h2>
-              <p className="text-sm text-slate-500">{profile.name}</p>
+              <h2 className="text-lg font-semibold text-slate-900">Edit Profile</h2>
+              <p className="text-xs text-slate-500">{profile.name}</p>
             </div>
           </div>
           <button
@@ -91,38 +99,42 @@ export default function EditProfileModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Profile Type */}
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* Profile Type - Visual Cards */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
               Profile Type
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { value: 'child' as const, label: 'Child', emoji: '' },
-                { value: 'parent' as const, label: 'Parent', emoji: '' },
-                { value: 'admin' as const, label: 'Admin', emoji: '' }
-              ]).map(type => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, profileType: type.value }))}
-                  className={`p-3 rounded-xl border-2 transition-all text-center ${
-                    formData.profileType === type.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-slate-200 hover:border-slate-300'
-                  }`}
-                >
-                  <span className="text-2xl block mb-1">{type.emoji}</span>
-                  <span className={`text-sm font-medium ${
-                    formData.profileType === type.value
-                      ? 'text-blue-700'
-                      : 'text-slate-600'
-                  }`}>
-                    {type.label}
-                  </span>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-2">
+              {profileTypes.map((type) => {
+                const Icon = type.icon;
+                const isSelected = formData.profileType === type.value;
+                const colorClasses: Record<string, string> = {
+                  orange: isSelected ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 hover:border-orange-300',
+                  blue: isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-300',
+                  emerald: isSelected ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20' : 'border-slate-200 hover:border-emerald-300',
+                  violet: isSelected ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20' : 'border-slate-200 hover:border-violet-300'
+                };
+                const textColors: Record<string, string> = {
+                  orange: isSelected ? 'text-orange-600' : 'text-slate-500',
+                  blue: isSelected ? 'text-blue-600' : 'text-slate-500',
+                  emerald: isSelected ? 'text-emerald-600' : 'text-slate-500',
+                  violet: isSelected ? 'text-violet-600' : 'text-slate-500'
+                };
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, profileType: type.value }))}
+                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${colorClasses[type.color]}`}
+                  >
+                    <Icon size={22} className={textColors[type.color]} />
+                    <span className={`text-sm font-medium ${isSelected ? textColors[type.color] : 'text-slate-700'}`}>
+                      {type.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
             <p className="text-xs text-amber-600 mt-2">
               Change profile type with caution
@@ -131,7 +143,7 @@ export default function EditProfileModal({
 
           {/* Name */}
           <div>
-            <label htmlFor="edit-name" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="edit-name" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -139,16 +151,48 @@ export default function EditProfileModal({
               type="text"
               value={formData.name}
               onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
               placeholder="Enter name"
               required
             />
           </div>
 
-          {/* Age & Gender Row */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Gender Selection - Visual */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Gender
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'male', label: 'Male', emoji: '' },
+                { value: 'female', label: 'Female', emoji: '' },
+                { value: 'other', label: 'Other', emoji: '' }
+              ].map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, gender: g.value }))}
+                  className={`p-2.5 rounded-xl border-2 transition-all text-center ${
+                    formData.gender === g.value
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-lg block">{g.emoji}</span>
+                  <span className={`text-xs font-medium ${
+                    formData.gender === g.value ? 'text-blue-600' : 'text-slate-600'
+                  }`}>
+                    {g.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Age (only for children) */}
+          {formData.profileType === 'child' && (
             <div>
-              <label htmlFor="edit-age" className="block text-sm font-medium text-slate-700 mb-2">
+              <label htmlFor="edit-age" className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Age
               </label>
               <input
@@ -156,34 +200,17 @@ export default function EditProfileModal({
                 type="number"
                 value={formData.age}
                 onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                placeholder="Age"
+                className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                placeholder="Enter age"
                 min="1"
-                max="100"
+                max="18"
               />
             </div>
-
-            <div>
-              <label htmlFor="edit-gender" className="block text-sm font-medium text-slate-700 mb-2">
-                Gender
-              </label>
-              <select
-                id="edit-gender"
-                value={formData.gender}
-                onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              >
-                <option value="">Select...</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
+          )}
 
           {/* Avatar */}
           <div>
-            <label htmlFor="edit-avatar" className="block text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="edit-avatar" className="block text-sm font-semibold text-slate-700 mb-1.5">
               Avatar Emoji
             </label>
             <input
@@ -191,19 +218,20 @@ export default function EditProfileModal({
               type="text"
               value={formData.avatar}
               onChange={(e) => setFormData(prev => ({ ...prev, avatar: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+              className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-center text-xl"
               placeholder=""
+              maxLength={2}
             />
           </div>
 
           {/* Change PIN Section */}
-          <div className="border-t border-slate-200 pt-5">
-            <p className="text-sm font-medium text-slate-700 mb-1">Change PIN</p>
-            <p className="text-xs text-slate-500 mb-4">Leave blank to keep current PIN</p>
+          <div className="border-t border-slate-200 pt-4">
+            <p className="text-sm font-semibold text-slate-700 mb-1">Change PIN</p>
+            <p className="text-xs text-slate-500 mb-3">Leave blank to keep current PIN</p>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="edit-new-pin" className="block text-sm font-medium text-slate-700 mb-2">
+                <label htmlFor="edit-new-pin" className="block text-sm font-semibold text-slate-700 mb-1.5">
                   New PIN
                 </label>
                 <div className="relative">
@@ -212,8 +240,8 @@ export default function EditProfileModal({
                     type={showPin ? 'text' : 'password'}
                     value={formData.newPin}
                     onChange={(e) => setFormData(prev => ({ ...prev, newPin: e.target.value }))}
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                    placeholder="Min 4 digits (optional)"
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                    placeholder="4-8 digits"
                     pattern="[0-9]*"
                     inputMode="numeric"
                     minLength={4}
@@ -223,24 +251,24 @@ export default function EditProfileModal({
                   <button
                     type="button"
                     onClick={() => setShowPin(!showPin)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
-                    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                    {showPin ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label htmlFor="edit-confirm-pin" className="block text-sm font-medium text-slate-700 mb-2">
-                  Confirm New PIN
+                <label htmlFor="edit-confirm-pin" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Confirm PIN
                 </label>
                 <input
                   id="edit-confirm-pin"
                   type={showPin ? 'text' : 'password'}
                   value={formData.confirmNewPin}
                   onChange={(e) => setFormData(prev => ({ ...prev, confirmNewPin: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-                  placeholder="Re-enter new PIN"
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  placeholder="Confirm"
                   pattern="[0-9]*"
                   inputMode="numeric"
                   minLength={4}
@@ -252,28 +280,29 @@ export default function EditProfileModal({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <Edit2 size={18} />
-              )}
-              Save Changes
-            </button>
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 text-slate-700 font-medium bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+              className="flex-1 px-4 py-3 text-slate-700 font-semibold bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors text-sm"
             >
               Cancel
             </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              {saving ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Edit2 size={16} />
+              )}
+              Save Changes
+            </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, User, Loader2 } from 'lucide-react';
+import { X, User, Loader2, Baby, Users, GraduationCap, Crown } from 'lucide-react';
 import { Profile } from '../../../types';
 
 interface CreateProfileModalProps {
@@ -8,6 +8,13 @@ interface CreateProfileModalProps {
   editingProfile?: Profile | null;
   availableParents: Profile[];
 }
+
+const profileTypes = [
+  { value: 'child', label: 'Child', icon: Baby, color: 'orange' },
+  { value: 'parent', label: 'Parent', icon: Users, color: 'blue' },
+  { value: 'teacher', label: 'Teacher', icon: GraduationCap, color: 'emerald' },
+  { value: 'admin', label: 'Admin', icon: Crown, color: 'violet' }
+] as const;
 
 export default function CreateProfileModal({
   onClose,
@@ -60,21 +67,22 @@ export default function CreateProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 text-white sticky top-0">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl my-4">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 text-white rounded-t-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-xl">
-                <User size={22} />
+                <User size={20} />
               </div>
               <div>
                 <h2 className="text-lg font-bold">
                   {editingProfile ? 'Edit Profile' : 'Create Profile'}
                 </h2>
-                <p className="text-sm text-white/80">
+                <p className="text-xs text-white/80">
                   {editingProfile ? 'Update profile details' : 'Add a new family member'}
                 </p>
               </div>
@@ -89,116 +97,157 @@ export default function CreateProfileModal({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder="Full name"
-                required
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Type *
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                required
-              >
-                <option value="child">Child</option>
-                <option value="parent">Parent</option>
-                <option value="teacher">Teacher</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Gender
-              </label>
-              <select
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-              >
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            {formData.type === 'child' && (
-              <>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Age
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    placeholder="Age"
-                    min="1"
-                    max="18"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Parent
-                  </label>
-                  <select
-                    value={formData.parent_id}
-                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {/* Profile Type Selection - Visual Cards */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Profile Type *
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {profileTypes.map((type) => {
+                const Icon = type.icon;
+                const isSelected = formData.type === type.value;
+                const colorClasses = {
+                  orange: isSelected ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-500/20' : 'border-slate-200 hover:border-orange-300',
+                  blue: isSelected ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-blue-300',
+                  emerald: isSelected ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-500/20' : 'border-slate-200 hover:border-emerald-300',
+                  violet: isSelected ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-500/20' : 'border-slate-200 hover:border-violet-300'
+                };
+                const textColors = {
+                  orange: isSelected ? 'text-orange-600' : 'text-slate-500',
+                  blue: isSelected ? 'text-blue-600' : 'text-slate-500',
+                  emerald: isSelected ? 'text-emerald-600' : 'text-slate-500',
+                  violet: isSelected ? 'text-violet-600' : 'text-slate-500'
+                };
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, type: type.value as any })}
+                    className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${colorClasses[type.color]}`}
                   >
-                    <option value="">Select parent (optional)</option>
-                    {availableParents.map(parent => (
-                      <option key={parent.id} value={parent.id}>
-                        {parent.name} ({parent.type})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}
+                    <Icon size={22} className={textColors[type.color]} />
+                    <span className={`text-sm font-medium ${isSelected ? textColors[type.color] : 'text-slate-700'}`}>
+                      {type.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
+          {/* Name Input */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+              placeholder="Full name"
+              required
+              autoFocus
+            />
+          </div>
+
+          {/* Gender Selection */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Gender
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'male', label: 'Male', emoji: '' },
+                { value: 'female', label: 'Female', emoji: '' },
+                { value: 'other', label: 'Other', emoji: '' }
+              ].map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, gender: g.value as any })}
+                  className={`p-2.5 rounded-xl border-2 transition-all text-center ${
+                    formData.gender === g.value
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span className="text-lg block">{g.emoji}</span>
+                  <span className={`text-xs font-medium ${
+                    formData.gender === g.value ? 'text-blue-600' : 'text-slate-600'
+                  }`}>
+                    {g.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Child-specific fields */}
+          {formData.type === 'child' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  placeholder="Age"
+                  min="1"
+                  max="18"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                  Parent
+                </label>
+                <select
+                  value={formData.parent_id}
+                  onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                >
+                  <option value="">Select parent</option>
+                  {availableParents.map(parent => (
+                    <option key={parent.id} value={parent.id}>
+                      {parent.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Avatar and PIN row */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Avatar (emoji)
               </label>
               <input
                 type="text"
                 value={formData.avatar}
                 onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder="e.g., :)"
+                className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-center text-xl"
+                placeholder=""
                 maxLength={2}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                PIN {editingProfile && '(leave empty to keep)'}
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                PIN {editingProfile && <span className="text-xs font-normal text-slate-400">(keep empty)</span>}
               </label>
               <input
                 type="password"
                 value={formData.pin}
                 onChange={(e) => setFormData({ ...formData, pin: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder="Optional PIN"
+                className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                placeholder="4-8 digits"
                 maxLength={8}
                 pattern="[0-9]*"
                 inputMode="numeric"
@@ -207,24 +256,26 @@ export default function CreateProfileModal({
             </div>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={loading || !formData.name.trim()}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg"
-            >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : null}
-              {editingProfile ? 'Update Profile' : 'Create Profile'}
-            </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all"
+              className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-semibold rounded-xl hover:bg-slate-200 transition-all text-sm"
             >
               Cancel
             </button>
+            <button
+              type="submit"
+              disabled={loading || !formData.name.trim()}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg text-sm"
+            >
+              {loading && <Loader2 size={16} className="animate-spin" />}
+              {editingProfile ? 'Update' : 'Create'}
+            </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
