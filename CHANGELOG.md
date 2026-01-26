@@ -1,83 +1,111 @@
 # Changelog
 
-## [Unreleased] - 2025-01-18
+All notable changes to Family Hub will be documented in this file.
 
-### Added
-- **Split AI Provider Selection**: Parents can choose different AI providers for text vs images in Quiz Builder (e.g., Gemini for questions, OpenAI for images)
-- **Admin Family Feature Controls**: Admins can enable/disable features per family from AdminPanel (overrides individual profile settings)
-- **Parent Reward Customization**: Parents can target rewards to specific children or all family children
-- **Book Feedback for Parents**: Parents can see star ratings and feedback on books their children read
-- **Cost Estimates**: AI features now show estimated costs before generation
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Fixed
-- **Critical Points Loss Bug**: Fixed quiz completion inserting progress records without total_points/total_stars, causing kids to appear to lose all points
-- **Mobile Book Display**: Books now display properly on mobile with flexible height and smaller images
-- **Quiz Title/Points Visibility**: Made quiz title larger and score display more prominent for kids
-- **Quiz Timer Visibility**: Added animated "START TIMER TO BEGIN!" button that's impossible to miss
-- **Quiz Image Generation**: Made question images required (not optional) with robust fallback generation
-- **AI Economy Compliance**: AI-generated tasks now respect parent's points multiplier and caps
-- **Reward Claims Display**: Pending claims now show child name with avatar instead of profile ID
+## [1.0.0] - 2026-01-26
 
-### Changed
-- **Quiz AI Provider Choice**: Quiz Builder can select Grok or OpenAI for image generation.
-- **OpenAI Image Support**: Added OpenAI image generation (gpt-image-1) with base64 handling and storage.
-- **Async AI Quiz Jobs**: AI quiz generation now runs as background jobs with status polling to avoid Cloudflare timeouts.
+### 🎉 Initial Release
 
-### Fixed
-- **Docker Access Issues**: Backend now explicitly binds to 0.0.0.0 for external accessibility
-- **API Connection**: Frontend now uses nginx proxy with relative `/api` paths instead of hardcoded localhost URLs
-- **Network Configuration**: Fixed docker-compose environment variables for proper container-to-container communication
-- **Quiz Media Auth**: Public quiz media route to prevent 401s for AI-generated images during play.
-- **Quiz Theme Crash**: Fallback theme merge prevents undefined theme fields from crashing the player.
-- **Quiz Readability**: Header, score, and feedback text now adapt to light themes for visibility.
-- **Quiz Audio**: Replaced buzzing ambient pad with a softer chime.
-- **AI Generation Timeouts**: Job polling prevents 524 errors when AI takes too long.
-- **AI Rate Limits**: Retry/backoff and clearer error messaging on 429 responses.
+This is the first official versioned release of Family Hub, a comprehensive multi-family management platform.
 
-### Changed
-- **AI Image Prompts**: Improved kid-friendly prompt template, with retries/backoff for reliability.
-- **AI Images Scope**: Option images disabled; generate question-only images for higher success rate.
-- **Docker Env**: Added `OPENAI_API_KEY` pass-through in docker-compose.
+### Core Features
 
-### Updated
-- **Frontend Dependencies**: Updated all packages to latest stable versions
-  - React: 18.2.0 → 18.3.1
-  - React Router: 6.21.1 → 6.28.0
-  - Vite: 5.0.11 → 6.0.5
-  - TypeScript: 5.3.3 → 5.7.2
-  - Axios: 1.6.5 → 1.7.9
-  - Recharts: 2.10.3 → 2.15.0
-  - lucide-react: 0.303.0 → 0.469.0
-  - date-fns: 3.0.6 → 4.1.0
-  - ESLint: 8.56.0 → 9.18.0
-  - And more...
+#### Family Management
+- Multi-family support with two access tiers (Family A: Full Access, Family B: Church School Only)
+- Parent and child profile management
+- Family-specific settings and preferences
+- Admin panel for system-wide management
 
-- **Backend Dependencies**: Updated all packages to latest stable versions
-  - Express: 4.18.2 → 4.21.2
-  - Helmet: 7.1.0 → 8.0.0
-  - better-sqlite3: 9.2.2 → 11.8.1
-  - TypeScript: 5.3.3 → 5.7.2
-  - Axios: 1.6.5 → 1.7.9
-  - express-rate-limit: 7.1.5 → 7.5.0
-  - @types/node: 20.10.6 → 22.10.5
-  - tsx: 4.7.0 → 4.19.2
-  - And more...
+#### Task Management
+- Create, assign, and track tasks for family members
+- Photo proof system for task completion
+- Timer support for timed tasks
+- Recurring task scheduling
+- Task categories and priorities
 
-### Added
-- **DOCKER_TROUBLESHOOTING.md**: Comprehensive guide for debugging Docker deployment issues
-- **Enhanced Logging**: Backend now shows bind address and environment on startup
-- **Better Documentation**: Updated QUICKSTART.md with troubleshooting references
+#### Gamification & Rewards
+- Points system for task completion
+- Economy controls to prevent abuse
+- Achievement badges and milestones
+- Leaderboards (family and school levels)
+- Streak tracking and bonuses
 
-### Changed
-- **API Configuration**: Frontend API client now intelligently uses relative paths in production
-- **Docker Environment**: Simplified VITE_API_URL configuration in docker-compose.yml
+#### Church School Module
+- Teacher portal with class management
+- Student enrollment and tracking
+- Assignment creation and grading
+- Attendance tracking
+- Parent progress views
+- Teacher-parent communication
 
-## [1.0.0] - 2024-12-XX
+#### AI-Powered Features
+- Book creation with AI (Ollama, Gemini, Grok, OpenAI)
+- Custom book generation instructions
+- AI-generated quizzes
+- Multiple AI provider fallback support
 
-### Added
-- Initial release
-- Family Management PWA with diet tracking
-- Kids task management system
-- Grok AI integration
-- Docker deployment support
-- Synology NAS compatibility
+#### Book Library
+- Digital book library with reading progress
+- Physical book tracking
+- Reading history and stats
+- Parent view of children's reading
+
+#### Calendar & Scheduling
+- Family calendar with event management
+- Task-specific scheduled reminders
+- Morning, evening, and weekly notification schedules
+
+#### Push Notifications
+- Web push notification support
+- Profile-based reminder preferences
+- Task reminder notifications
+- Sound effects for notifications
+
+#### Shopping Lists
+- Family shopping list management
+- Permission-based list creation for children
+- Shopping helper assignment
+
+#### Settings & Administration
+- User settings and preferences
+- Security settings
+- Admin controls for family and profile creation
+- Feature toggles per family
+- Ollama AI configuration
+
+### Technical Features
+- Progressive Web App (PWA) support
+- Responsive design for mobile and desktop
+- SQLite database with migrations
+- Express.js backend with TypeScript
+- React frontend with Vite
+- Docker containerization support
+
+---
+
+## Version History Format
+
+Future releases will follow this format:
+
+### [X.Y.Z] - YYYY-MM-DD
+
+#### Added
+- New features
+
+#### Changed
+- Changes to existing functionality
+
+#### Deprecated
+- Features to be removed in future versions
+
+#### Removed
+- Removed features
+
+#### Fixed
+- Bug fixes
+
+#### Security
+- Security updates

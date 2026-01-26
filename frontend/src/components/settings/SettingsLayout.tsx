@@ -3,23 +3,24 @@ import {
   User,
   Shield,
   Users,
-  Info,
   Settings,
   Menu,
-  X
+  X,
+  Info
 } from 'lucide-react';
+import { APP_VERSION, APP_NAME } from '../../version';
 
 export type SettingsSection =
   | 'profile'
   | 'security'
-  | 'family'
-  | 'about';
+  | 'family';
 
 interface SettingsLayoutProps {
   activeSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
   children: ReactNode;
-  isAdmin: boolean;
+  isAdmin?: boolean;
+  isTeacher?: boolean;
 }
 
 interface NavItem {
@@ -28,7 +29,7 @@ interface NavItem {
   icon: typeof User;
   gradient: string;
   lightBg: string;
-  adminOnly?: boolean;
+  hideForTeacher?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -51,14 +52,8 @@ const navItems: NavItem[] = [
     label: 'Family',
     icon: Users,
     gradient: 'from-pink-500 to-rose-500',
-    lightBg: 'bg-pink-50'
-  },
-  {
-    id: 'about',
-    label: 'About',
-    icon: Info,
-    gradient: 'from-slate-500 to-slate-600',
-    lightBg: 'bg-slate-50'
+    lightBg: 'bg-pink-50',
+    hideForTeacher: true
   }
 ];
 
@@ -66,10 +61,11 @@ export default function SettingsLayout({
   activeSection,
   onSectionChange,
   children,
-  isAdmin
+  isTeacher = false
 }: SettingsLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const filteredItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  // Teachers only see Profile and Security, not Family
+  const filteredItems = navItems.filter(item => !isTeacher || !item.hideForTeacher);
   const activeItem = filteredItems.find(item => item.id === activeSection);
 
   return (
@@ -199,12 +195,20 @@ export default function SettingsLayout({
                 </div>
               </nav>
 
-              {/* Quick Info Card */}
-              <div className="mt-4 p-4 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl text-white">
-                <p className="text-sm font-semibold">Need Help?</p>
-                <p className="text-xs text-white/80 mt-1">
-                  Click any section to manage your settings and preferences.
+              {/* Version Info Card */}
+              <div className="mt-4 p-4 bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl text-white">
+                <div className="flex items-center gap-2 mb-2">
+                  <Info size={16} className="text-white/80" />
+                  <p className="text-sm font-semibold">{APP_NAME}</p>
+                </div>
+                <p className="text-xs text-white/60">
+                  Version {APP_VERSION}
                 </p>
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-xs text-white/50">
+                    Multi-family management platform
+                  </p>
+                </div>
               </div>
             </div>
           </aside>
@@ -222,9 +226,8 @@ export default function SettingsLayout({
                     <h2 className="text-xl font-bold">{activeItem.label}</h2>
                     <p className="text-sm text-white/80 mt-0.5">
                       {activeItem.id === 'profile' && 'Manage your personal information and avatar'}
-                      {activeItem.id === 'security' && 'Password, PIN, and API key settings'}
+                      {activeItem.id === 'security' && 'Password, PIN, and security settings'}
                       {activeItem.id === 'family' && 'Manage family members and profiles'}
-                      {activeItem.id === 'about' && 'App information and features'}
                     </p>
                   </div>
                 </div>
@@ -236,6 +239,13 @@ export default function SettingsLayout({
               <div className="p-6 lg:p-8">
                 {children}
               </div>
+            </div>
+
+            {/* Mobile Version Info */}
+            <div className="lg:hidden mt-6 text-center">
+              <p className="text-xs text-slate-400">
+                {APP_NAME} v{APP_VERSION}
+              </p>
             </div>
           </main>
         </div>
