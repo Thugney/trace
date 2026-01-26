@@ -76,8 +76,9 @@ export default function PhotoProof({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full my-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <div>
@@ -200,6 +201,7 @@ export default function PhotoProof({
               </p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

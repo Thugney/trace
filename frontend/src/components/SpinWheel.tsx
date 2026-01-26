@@ -164,8 +164,9 @@ export default function SpinWheel({ profileId, onSpinComplete }: SpinWheelProps)
 
       {/* Full Screen Spin Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-gradient-to-br from-purple-900 to-pink-900 rounded-3xl p-6 max-w-md w-full relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-gradient-to-br from-purple-900 to-pink-900 rounded-3xl p-6 max-w-md w-full my-4 relative overflow-hidden">
             {/* Close button */}
             {!spinning && (
               <button
@@ -317,6 +318,7 @@ export default function SpinWheel({ profileId, onSpinComplete }: SpinWheelProps)
                   {prize.description.split(' ')[0]}
                 </div>
               ))}
+            </div>
             </div>
           </div>
         </div>

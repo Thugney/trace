@@ -1406,8 +1406,9 @@ export default function TasksManager() {
 
       {/* Add Task Modal */}
       {showAddTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="card max-w-2xl w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Add New Task</h2>
 
             <form onSubmit={handleAddTask} className="space-y-4">
@@ -1578,14 +1579,16 @@ export default function TasksManager() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Add Goal Modal */}
       {showAddGoal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="card max-w-lg w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Set Monthly Goal</h2>
 
             <form onSubmit={handleAddGoal} className="space-y-4">
@@ -1648,14 +1651,16 @@ export default function TasksManager() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Award Bonus Points Modal */}
       {showBonusPoints && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="card max-w-lg w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Award Bonus Points</h2>
             <p className="text-gray-600 mb-4">
               Reward good behavior (sammearbeid/cooperation) with bonus points!
@@ -1716,14 +1721,16 @@ export default function TasksManager() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Task Modal */}
       {editingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="card max-w-2xl w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Edit Task</h2>
 
             <form onSubmit={handleEditTask} className="space-y-4">
@@ -1815,14 +1822,16 @@ export default function TasksManager() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Goal Modal */}
       {editingGoal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="card max-w-lg w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Edit Goal</h2>
 
             <form onSubmit={handleEditGoal} className="space-y-4">
@@ -1882,6 +1891,7 @@ export default function TasksManager() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

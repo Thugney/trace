@@ -363,8 +363,9 @@ export default function DietTracking() {
 
       {/* Edit Meal Modal */}
       {editingMeal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full my-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold">Edit Meal Entry</h3>
@@ -437,14 +438,16 @@ export default function DietTracking() {
                 </div>
               </form>
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Manual Entry Modal */}
       {showManualEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full my-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold">Add Food Manually</h3>
@@ -605,6 +608,7 @@ export default function DietTracking() {
                   </button>
                 </div>
               </form>
+            </div>
             </div>
           </div>
         </div>

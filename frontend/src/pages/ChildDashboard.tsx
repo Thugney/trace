@@ -20,6 +20,8 @@ import ChallengeTimerCard from '../components/ChallengeTimerCard';
 import playSounds from '../utils/sounds';
 import ReminderWidget from '../components/kids/ReminderWidget';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
+import NotificationSetup from '../components/NotificationSetup';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import {
   ActiveMissionCard,
   TodaysMissions,
@@ -141,6 +143,30 @@ export default function ChildDashboard() {
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DashboardTab>('home');
+
+  // Push notification setup state
+  const { isSubscribed, isSupported, loading: pushLoading } = usePushNotifications();
+  const [showNotificationSetup, setShowNotificationSetup] = useState(false);
+  const [, setNotificationSetupComplete] = useState(false);
+
+  // Check if notification setup is needed (only for child profiles)
+  useEffect(() => {
+    if (!currentProfile || pushLoading) return;
+
+    // Check if already subscribed or setup was completed/skipped
+    const setupStatus = localStorage.getItem(`notification_setup_${currentProfile.name}`);
+    if (isSubscribed || setupStatus === 'completed' || setupStatus === 'skipped') {
+      setNotificationSetupComplete(true);
+      return;
+    }
+
+    // Show notification setup for child profiles if not already done
+    if (isSupported && currentProfile.type === 'child') {
+      setShowNotificationSetup(true);
+    } else {
+      setNotificationSetupComplete(true);
+    }
+  }, [currentProfile, isSubscribed, isSupported, pushLoading]);
 
   // Tasks with due date info
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -691,6 +717,24 @@ export default function ChildDashboard() {
       return `Due in ${diffDays} days`;
     }
   };
+
+  // Show notification setup overlay if needed
+  if (showNotificationSetup && currentProfile) {
+    return (
+      <NotificationSetup
+        profileName={currentProfile.name}
+        onComplete={() => {
+          setShowNotificationSetup(false);
+          setNotificationSetupComplete(true);
+        }}
+        onSkip={() => {
+          setShowNotificationSetup(false);
+          setNotificationSetupComplete(true);
+        }}
+        required={false}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -1417,8 +1461,9 @@ function SettingsModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full my-4">
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">Settings</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
@@ -1458,6 +1503,7 @@ function SettingsModal({
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -1588,8 +1634,9 @@ function YoungChildDashboard({
 
 function LevelUpModal({ level, onClose }: { level: number; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-pink-500 p-8 rounded-3xl shadow-2xl text-center animate-bounce-slow max-w-sm mx-4">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="relative bg-gradient-to-br from-yellow-400 via-orange-500 to-pink-500 p-8 rounded-3xl shadow-2xl text-center animate-bounce-slow max-w-sm w-full my-4">
         <div className="text-7xl mb-4 animate-pulse">🎉</div>
         <h2 className="text-3xl font-black text-white mb-2">LEVEL UP!</h2>
         <div className="text-6xl font-black text-white mb-4">{level}</div>
@@ -1600,6 +1647,7 @@ function LevelUpModal({ level, onClose }: { level: number; onClose: () => void }
         >
           Awesome! 🌟
         </button>
+        </div>
       </div>
     </div>
   );
@@ -1619,8 +1667,9 @@ function LoginBonusModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-      <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="relative bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full my-4">
         <button onClick={onClose} className="absolute top-3 right-3 text-white/70 hover:text-white">
           <X size={24} />
         </button>
@@ -1671,6 +1720,7 @@ function LoginBonusModal({
             </button>
           </>
         )}
+        </div>
       </div>
     </div>
   );
@@ -1684,8 +1734,9 @@ function SurpriseBonusModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-      <div className="relative bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full animate-bounce-slow">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="relative bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 p-6 rounded-3xl shadow-2xl text-center max-w-sm w-full my-4 animate-bounce-slow">
         <div className="text-6xl mb-4 animate-bounce">🎁</div>
         <h2 className="text-2xl font-black text-white mb-2">Surprise Bonus!</h2>
         <p className="text-white/90 mb-3">{data.awardedBy} sent you a gift!</p>
@@ -1706,6 +1757,7 @@ function SurpriseBonusModal({
         >
           <Gift size={20} /> Awesome! Thanks!
         </button>
+        </div>
       </div>
     </div>
   );
@@ -1729,8 +1781,9 @@ function AvatarPickerModal({
   const [categoryIndex, setCategoryIndex] = useState(0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full my-4">
         <div className={`p-4 ${isYoungChild ? 'bg-gradient-to-r from-purple-500 to-pink-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'} text-white`}>
           <div className="flex items-center justify-between">
             <div>
@@ -1802,6 +1855,7 @@ function AvatarPickerModal({
             {AVATAR_CATEGORIES.flatMap(c => c.avatars).filter(a => level >= a.minLevel).length} of{' '}
             {AVATAR_CATEGORIES.flatMap(c => c.avatars).length} unlocked
           </p>
+        </div>
         </div>
       </div>
     </div>

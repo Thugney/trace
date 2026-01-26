@@ -993,8 +993,9 @@ export default function BookLibrary() {
 
       {/* Feedback Modal */}
       {showFeedbackModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-4">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1055,14 +1056,16 @@ export default function BookLibrary() {
                 </div>
               )}
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Create Book Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -1340,14 +1343,16 @@ export default function BookLibrary() {
                 </div>
               )}
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Add Physical Book Modal */}
       {showPhysicalBookModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md my-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -1474,14 +1479,16 @@ export default function BookLibrary() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Notes Modal */}
       {showNotesModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4 flex flex-col max-h-[calc(100vh-2rem)]">
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1610,14 +1617,16 @@ export default function BookLibrary() {
                 </>
               )}
             </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Book Generation Instructions Modal */}
       {showInstructionsModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -1705,6 +1714,7 @@ Example:
                   Clear all instructions
                 </button>
               )}
+            </div>
             </div>
           </div>
         </div>

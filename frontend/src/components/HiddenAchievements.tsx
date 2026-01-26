@@ -185,8 +185,9 @@ export default function HiddenAchievements({ profileId, showAll = false }: Hidde
 
       {/* Secret Achievement Unlocked Modal */}
       {showUnlockModal && newlyUnlocked && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="relative bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 p-8 rounded-3xl shadow-2xl text-center max-w-sm mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="relative bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-500 p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full my-4 overflow-hidden">
             {/* Sparkle effects */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
               {[...Array(15)].map((_, i) => (
@@ -248,6 +249,7 @@ export default function HiddenAchievements({ profileId, showAll = false }: Hidde
             >
               Amazing!
             </button>
+            </div>
           </div>
         </div>
       )}
