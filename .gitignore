@@ -34,3 +34,27 @@ NUL
 
 # Docker
 docker-compose.override.yml
+
+# BMAD and development tools (local only)
+.claude/commands/bmad/
+.roo/
+_bmad/
+_bmad-output/
+
+# Debug/utility scripts (local only)
+backend/check-*.js
+backend/test-*.js
+backend/fix-*.js
+backend/diagnose-*.js
+backend/cleanup-*.js
+backend/seed-database.js
+backend/run-fix-*.js
+
+# Development docs (not needed in production)
+CRITICAL_FIXES_REQUIRED.md
+FLOW_IMPROVEMENT_PLAN.md
+IMPLEMENTATION_STATUS.md
+SECURITY_AND_FEATURES_FIX_PLAN.md
+SETUP_AND_TROUBLESHOOTING.md
+workflow-init-plan.md
+todo.md
