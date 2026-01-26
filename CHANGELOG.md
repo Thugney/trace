@@ -5,6 +5,36 @@ All notable changes to Family Hub will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-26
+
+### Added
+
+#### Activity Builder (Restored)
+- Full activity builder for parents to create custom learning sessions
+- 12 activity types: Multiple Choice, True/False, Fill in the Blanks, Matching, Sorting, Flashcards, Memory Game, Arithmetic, Drag & Drop, Word Search, Crossword, Image Hotspots
+- AI-powered activity generation with multiple providers (Ollama, Gemini, Grok, OpenAI)
+- Manual activity creation wizard
+- Activity assignment to multiple children
+- Activity player with score tracking, hints, and celebrations
+
+#### Quiz Builder (Restored)
+- Custom quiz builder for parents to create family quizzes
+- 7 quiz categories: Alphabet, Math, Geography, History, Science, Language, Colors & Shapes
+- AI-powered quiz generation with image support
+- Question editor with image, audio, and hint support
+- Quiz player with timer, leaderboards, and competition mode
+
+#### Navigation Updates
+- Added Quiz Builder and Activity Builder to parent sidebar navigation
+- Added Family Quizzes and Activities to child navigation
+- Children can now access custom quizzes and activities from their dashboard
+
+### Fixed
+- Family Leaderboard now properly isolates data by family (critical privacy fix)
+- Parents no longer see other families' members on their leaderboard
+
+---
+
 ## [1.0.0] - 2026-01-26
 
 ### 🎉 Initial Release

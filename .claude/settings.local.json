@@ -97,7 +97,8 @@
       "mcp__mcp-registry__search_mcp_registry",
       "Bash(sudo docker-compose exec:*)",
       "Bash(sudo docker-compose build:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
