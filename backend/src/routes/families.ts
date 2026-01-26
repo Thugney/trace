@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, adminOnly } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
+import { authorizationService } from '../services/authorization';
 
 const router = express.Router();
 
@@ -58,21 +59,27 @@ router.get('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response) =>
 // Create a new family (admin only)
 router.post('/', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, family_type } = req.body;
     const adminId = req.profile!.id;
 
     if (!name || name.trim() === '') {
       return res.status(400).json({ error: 'Family name is required' });
     }
 
+    // Validate family_type if provided
+    const familyType = family_type || 'A'; // Default to Type A (Full Access)
+    if (!['A', 'B'].includes(familyType)) {
+      return res.status(400).json({ error: 'Invalid family_type. Must be A (Full Access) or B (Church School Only)' });
+    }
+
     const result = db.prepare(`
-      INSERT INTO families (name, description, created_by)
-      VALUES (?, ?, ?)
-    `).run(name.trim(), description || null, adminId);
+      INSERT INTO families (name, description, family_type, created_by)
+      VALUES (?, ?, ?, ?)
+    `).run(name.trim(), description || null, familyType, adminId);
 
     const newFamily = db.prepare('SELECT * FROM families WHERE id = ?').get(result.lastInsertRowid);
 
-    console.log(`[Families] Admin ${adminId} created family "${name}" (ID: ${result.lastInsertRowid})`);
+    console.log(`[Families] Admin ${adminId} created family "${name}" (ID: ${result.lastInsertRowid}, Type: ${familyType})`);
     res.status(201).json(newFamily);
   } catch (error: any) {
     console.error('[Families] Create error:', error.message);
@@ -81,10 +88,10 @@ router.post('/', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
 });
 
 // Update family (admin only)
-router.put('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const familyId = parseInt(req.params.id, 10);
-    const { name, description, status } = req.body;
+    const { name, description, status, family_type } = req.body;
 
     const family: any = db.prepare('SELECT * FROM families WHERE id = ?').get(familyId);
     if (!family) {
@@ -93,6 +100,7 @@ router.put('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response) =>
 
     const updates: string[] = [];
     const values: any[] = [];
+    let familyTypeChanged = false;
 
     if (name !== undefined) {
       updates.push('name = ?');
@@ -109,6 +117,16 @@ router.put('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response) =>
       updates.push('status = ?');
       values.push(status);
     }
+    if (family_type !== undefined) {
+      if (!['A', 'B'].includes(family_type)) {
+        return res.status(400).json({ error: 'Invalid family_type. Must be A (Full Access) or B (Church School Only)' });
+      }
+      if (family_type !== family.family_type) {
+        updates.push('family_type = ?');
+        values.push(family_type);
+        familyTypeChanged = true;
+      }
+    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
@@ -118,6 +136,12 @@ router.put('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response) =>
     values.push(familyId);
 
     db.prepare(`UPDATE families SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+
+    // If family type changed, update permissions for all family members
+    if (familyTypeChanged) {
+      await authorizationService.updateFamilyType(familyId, family_type);
+      console.log(`[Families] Family ${familyId} type changed from ${family.family_type} to ${family_type}`);
+    }
 
     const updatedFamily = db.prepare('SELECT * FROM families WHERE id = ?').get(familyId);
     console.log(`[Families] Admin updated family ${familyId}`);
@@ -155,7 +179,7 @@ router.delete('/:id', authenticate, adminOnly, (req: AuthRequest, res: Response)
 // ==================== MEMBER MANAGEMENT ====================
 
 // Assign a profile to a family (admin only)
-router.post('/:id/members', authenticate, adminOnly, (req: AuthRequest, res: Response) => {
+router.post('/:id/members', authenticate, adminOnly, async (req: AuthRequest, res: Response) => {
   try {
     const familyId = parseInt(req.params.id, 10);
     const { profileId } = req.body;
@@ -208,7 +232,10 @@ router.post('/:id/members', authenticate, adminOnly, (req: AuthRequest, res: Res
       }
     }
 
-    console.log(`[Families] Admin added profile ${profileId} to family ${familyId}`);
+    // Initialize module permissions for the newly assigned profile
+    await authorizationService.initializePermissionsForProfile(profileId);
+
+    console.log(`[Families] Admin added profile ${profileId} to family ${familyId} (Type: ${family.family_type})`);
     res.json({ message: 'Profile assigned to family successfully' });
   } catch (error: any) {
     console.error('[Families] Add member error:', error.message);

@@ -94,7 +94,10 @@
       "Bash(sudo docker-compose down:*)",
       "Bash(sudo docker-compose up:*)",
       "mcp__MCP_DOCKER__mcp-find",
-      "mcp__mcp-registry__search_mcp_registry"
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(sudo docker-compose exec:*)",
+      "Bash(sudo docker-compose build:*)",
+      "Bash(git tag:*)"
     ]
   }
 }

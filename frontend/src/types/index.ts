@@ -22,6 +22,7 @@ export interface Family {
   name: string;
   description?: string;
   status: 'active' | 'inactive' | 'suspended';
+  family_type: 'A' | 'B'; // A = Full Access, B = Church School Only
   created_by?: number;
   created_at: string;
   updated_at: string;
@@ -30,6 +31,30 @@ export interface Family {
   child_count?: number;
   parent_names?: string;
   members?: Profile[];
+}
+
+// Module permissions based on family type
+export interface ModulePermissions {
+  coreApp: boolean;       // Access to core app features (tasks, rewards, books, etc.)
+  churchSchool: boolean;  // Access to church school features
+  role: string;           // User's role (admin, parent, teacher, student)
+  familyType?: 'A' | 'B'; // Family type if user belongs to a family
+}
+
+// Family info returned with permissions
+export interface FamilyInfo {
+  id: number;
+  name: string;
+  type: 'A' | 'B';
+  status: string;
+}
+
+// Login response with permissions
+export interface LoginResponse {
+  success: boolean;
+  profile: Profile;
+  permissions: ModulePermissions;
+  family?: FamilyInfo | null;
 }
 
 export interface SchoolClass {
@@ -69,6 +94,7 @@ export interface SchoolAssignment {
   attachment_url?: string;
   linked_quiz_id?: number | null;
   due_date?: string | null;
+  max_points?: number;
   created_at: string;
   updated_at: string;
   class_name?: string;
@@ -87,6 +113,11 @@ export interface SchoolSubmission {
   notes?: string;
   submitted_at: string;
   status: 'submitted' | 'approved' | 'needs_revision';
+  points_earned?: number | null;
+  points_possible?: number | null;
+  on_time_bonus?: number;
+  graded_at?: string | null;
+  graded_by?: number | null;
   student_name?: string;
   assignment_title?: string;
 }

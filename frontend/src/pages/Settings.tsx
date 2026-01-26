@@ -7,7 +7,6 @@ import {
   ProfileSettings,
   SecuritySettings,
   FamilyProfiles,
-  AboutSection,
   ChildSettings,
   SettingsSection
 } from '../components/settings';
@@ -18,6 +17,9 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
+
+  // Teachers have limited access
+  const isTeacher = currentProfile?.type === 'teacher';
 
   // Reminder preferences for child settings
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
@@ -157,6 +159,16 @@ export default function Settings() {
           />
         );
       case 'family':
+        // Teachers don't have access to Family section
+        if (isTeacher) {
+          return (
+            <ProfileSettings
+              profile={currentProfile}
+              onSuccess={showSuccess}
+              onRefresh={refreshProfiles}
+            />
+          );
+        }
         return (
           <FamilyProfiles
             profiles={profiles}
@@ -167,8 +179,6 @@ export default function Settings() {
             onRefresh={refreshProfiles}
           />
         );
-      case 'about':
-        return <AboutSection />;
       default:
         return null;
     }
@@ -190,6 +200,7 @@ export default function Settings() {
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         isAdmin={isAdmin}
+        isTeacher={isTeacher}
       >
         {renderSection()}
       </SettingsLayout>

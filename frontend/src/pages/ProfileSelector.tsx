@@ -56,6 +56,8 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
   const handleLogout = () => {
     localStorage.removeItem('family_auth');
     localStorage.removeItem('parent_profile');
+    localStorage.removeItem('user_permissions');
+    localStorage.removeItem('user_family');
     window.location.reload();
   };
 

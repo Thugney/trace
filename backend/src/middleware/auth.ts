@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../database/init';
+import { authorizationService, ModuleType, ModulePermissions } from '../services/authorization';
 
 /**
  * Extended Request interface to include authenticated profile
@@ -11,6 +12,7 @@ export interface AuthRequest extends Request {
     parent_id?: number;
     family_id?: number;
   };
+  permissions?: ModulePermissions;
 }
 
 /**
@@ -246,5 +248,91 @@ export const adminOnly = [
 export const parentOrAdmin = [
   authenticate,
   requireRole(['parent', 'admin'])
+];
+
+/**
+ * Module Access Middleware
+ * Requires access to a specific module (core_app or church_school)
+ * Based on family type and enrollment status
+ *
+ * Usage: requireModuleAccess('core_app')
+ *
+ * Rules:
+ * - Admin: Access to all modules
+ * - Teacher: Only church_school access
+ * - Family A: core_app always, church_school if enrolled
+ * - Family B: Only church_school access
+ */
+export const requireModuleAccess = (module: ModuleType) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (!req.profile) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const hasAccess = await authorizationService.hasModuleAccess(req.profile.id, module);
+
+      if (!hasAccess) {
+        // Get user's permissions for detailed error
+        const permissions = await authorizationService.getUserPermissions(req.profile.id);
+
+        return res.status(403).json({
+          error: 'Module access denied',
+          module: module,
+          familyType: permissions.familyType,
+          message: module === 'core_app'
+            ? 'Your family does not have access to core app features'
+            : 'You do not have access to church school features'
+        });
+      }
+
+      // Attach permissions to request for use in route handlers
+      if (!req.permissions) {
+        req.permissions = await authorizationService.getUserPermissions(req.profile.id);
+      }
+
+      next();
+    } catch (error: any) {
+      console.error('[AUTH] Module access check error:', error);
+      res.status(500).json({ error: 'Authorization error' });
+    }
+  };
+};
+
+/**
+ * Load Permissions Middleware
+ * Loads user's module permissions and attaches to request
+ * Does not block access, just populates req.permissions
+ *
+ * Usage: router.use(loadPermissions)
+ */
+export const loadPermissions = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.profile && !req.permissions) {
+    try {
+      req.permissions = await authorizationService.getUserPermissions(req.profile.id);
+    } catch (error) {
+      console.error('[AUTH] Error loading permissions:', error);
+      // Don't fail the request, just continue without permissions
+    }
+  }
+  next();
+};
+
+/**
+ * Core App Access Middleware
+ * Shortcut for routes that require core_app module access
+ */
+export const requireCoreApp = [
+  authenticate,
+  requireModuleAccess('core_app')
+];
+
+/**
+ * Church School Access Middleware
+ * Shortcut for routes that require church_school module access
+ */
+export const requireChurchSchool = [
+  authenticate,
+  requireModuleAccess('church_school')
 ];
 

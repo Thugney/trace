@@ -3425,6 +3425,161 @@ export function initDatabase() {
 
   console.log('✅ Families table created');
 
+  // ==================== FAMILY HUB ARCHITECTURE - FAMILY TYPE ====================
+  // Migration: Add family_type column to families table (A = Full Access, B = Church School Only)
+  try {
+    const familyColumns = db.prepare('PRAGMA table_info(families)').all() as any[];
+    const hasFamilyType = familyColumns.some((col: any) => col.name === 'family_type');
+
+    if (!hasFamilyType) {
+      console.log('🔄 Migrating families table: adding family_type column...');
+      // Default to 'A' (Full Access) for existing families
+      db.prepare("ALTER TABLE families ADD COLUMN family_type TEXT DEFAULT 'A' CHECK(family_type IN ('A', 'B'))").run();
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_families_type ON families(family_type)').run();
+      console.log('✅ Migration completed: family_type column added to families (default: A = Full Access)');
+
+      // Ensure all existing families are Type A
+      const updateResult = db.prepare("UPDATE families SET family_type = 'A' WHERE family_type IS NULL").run();
+      if (updateResult.changes > 0) {
+        console.log(`  ✅ Set ${updateResult.changes} existing families to Type A (Full Access)`);
+      }
+    }
+  } catch (error: any) {
+    console.error('Migration error (family_type):', error.message);
+  }
+
+  // ==================== MODULE PERMISSIONS TABLE ====================
+  // Tracks which modules each user has access to (core_app, church_school)
+  // This is computed based on family type and enrollment status
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS module_permissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      module TEXT NOT NULL CHECK(module IN ('core_app', 'church_school')),
+      permission_level TEXT NOT NULL CHECK(permission_level IN ('admin', 'parent', 'teacher', 'student', 'none')),
+      granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      granted_by INTEGER,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (granted_by) REFERENCES profiles(id) ON DELETE SET NULL,
+      UNIQUE(profile_id, module)
+    )
+  `);
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_module_permissions_profile ON module_permissions(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_module_permissions_module ON module_permissions(module);
+  `);
+
+  console.log('✅ Module permissions table created');
+
+  // Migration: Add family_id to school_enrollments for enrollment-based permission triggering
+  try {
+    const enrollmentColumns = db.prepare('PRAGMA table_info(school_enrollments)').all() as any[];
+    const hasEnrollmentFamilyId = enrollmentColumns.some((col: any) => col.name === 'family_id');
+
+    if (!hasEnrollmentFamilyId) {
+      console.log('🔄 Migrating school_enrollments table: adding family_id column...');
+      db.prepare('ALTER TABLE school_enrollments ADD COLUMN family_id INTEGER REFERENCES families(id) ON DELETE SET NULL').run();
+      db.prepare('CREATE INDEX IF NOT EXISTS idx_school_enrollments_family ON school_enrollments(family_id)').run();
+
+      // Backfill family_id from student's profile
+      db.prepare(`
+        UPDATE school_enrollments
+        SET family_id = (SELECT family_id FROM profiles WHERE profiles.id = school_enrollments.student_id)
+        WHERE family_id IS NULL
+      `).run();
+
+      console.log('✅ Migration completed: family_id column added to school_enrollments');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_enrollments family_id):', error.message);
+  }
+
+  // Migration: Initialize module permissions for existing users based on family type
+  try {
+    const migrationKey = 'migration_module_permissions_initial';
+    const migrationRun: any = db.prepare('SELECT value FROM settings WHERE key = ?').get(migrationKey);
+
+    if (!migrationRun) {
+      console.log('🔄 Initializing module permissions for existing users...');
+
+      // Admin gets everything
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT id, 'core_app', 'admin' FROM profiles WHERE type = 'admin'
+      `).run();
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT id, 'church_school', 'admin' FROM profiles WHERE type = 'admin'
+      `).run();
+
+      // Teachers get church_school only
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT id, 'church_school', 'teacher' FROM profiles WHERE type = 'teacher'
+      `).run();
+
+      // Family A parents get core_app, and church_school if they have enrolled children
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT p.id, 'core_app', 'parent'
+        FROM profiles p
+        JOIN families f ON p.family_id = f.id
+        WHERE p.type = 'parent' AND f.family_type = 'A'
+      `).run();
+
+      // Family A parents with enrolled children get church_school
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT DISTINCT p.id, 'church_school', 'parent'
+        FROM profiles p
+        JOIN families f ON p.family_id = f.id
+        JOIN school_enrollments se ON se.family_id = f.id
+        WHERE p.type = 'parent' AND f.family_type = 'A'
+      `).run();
+
+      // Family B parents get church_school only
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT p.id, 'church_school', 'parent'
+        FROM profiles p
+        JOIN families f ON p.family_id = f.id
+        WHERE p.type = 'parent' AND f.family_type = 'B'
+      `).run();
+
+      // Family A children get core_app
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT p.id, 'core_app', 'student'
+        FROM profiles p
+        JOIN families f ON p.family_id = f.id
+        WHERE p.type = 'child' AND f.family_type = 'A'
+      `).run();
+
+      // Enrolled children get church_school
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT DISTINCT se.student_id, 'church_school', 'student'
+        FROM school_enrollments se
+      `).run();
+
+      // Family B children get church_school only
+      db.prepare(`
+        INSERT OR IGNORE INTO module_permissions (profile_id, module, permission_level)
+        SELECT p.id, 'church_school', 'student'
+        FROM profiles p
+        JOIN families f ON p.family_id = f.id
+        WHERE p.type = 'child' AND f.family_type = 'B'
+      `).run();
+
+      // Mark migration as complete
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(migrationKey, 'completed');
+      console.log('✅ Module permissions initialized for existing users');
+    }
+  } catch (error: any) {
+    console.error('Migration error (module_permissions initialization):', error.message);
+  }
+
   // Migration: Add accumulated_points to countdown_challenges for accurate multiplier calculation
   try {
     const countdownInfo: any[] = db.prepare('PRAGMA table_info(countdown_challenges)').all();
@@ -3456,6 +3611,63 @@ export function initDatabase() {
     }
   } catch (error: any) {
     console.error('Migration error (parent creation settings):', error.message);
+  }
+
+  // Migration: Add max_points to school_assignments for grading system
+  try {
+    const assignmentColumns: any[] = db.prepare('PRAGMA table_info(school_assignments)').all();
+    const hasMaxPoints = assignmentColumns.some((col: any) => col.name === 'max_points');
+
+    if (!hasMaxPoints) {
+      console.log('🔄 Migrating school_assignments: adding max_points column...');
+      db.prepare('ALTER TABLE school_assignments ADD COLUMN max_points INTEGER DEFAULT 10').run();
+      console.log('✅ Added max_points column to school_assignments');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_assignments max_points):', error.message);
+  }
+
+  // Migration: Add grading fields to school_submissions for leaderboard
+  try {
+    const submissionColumns: any[] = db.prepare('PRAGMA table_info(school_submissions)').all();
+
+    const hasPointsEarned = submissionColumns.some((col: any) => col.name === 'points_earned');
+    const hasPointsPossible = submissionColumns.some((col: any) => col.name === 'points_possible');
+    const hasOnTimeBonus = submissionColumns.some((col: any) => col.name === 'on_time_bonus');
+    const hasGradedAt = submissionColumns.some((col: any) => col.name === 'graded_at');
+    const hasGradedBy = submissionColumns.some((col: any) => col.name === 'graded_by');
+
+    if (!hasPointsEarned) {
+      console.log('🔄 Migrating school_submissions: adding points_earned column...');
+      db.prepare('ALTER TABLE school_submissions ADD COLUMN points_earned INTEGER DEFAULT NULL').run();
+      console.log('✅ Added points_earned column to school_submissions');
+    }
+
+    if (!hasPointsPossible) {
+      console.log('🔄 Migrating school_submissions: adding points_possible column...');
+      db.prepare('ALTER TABLE school_submissions ADD COLUMN points_possible INTEGER DEFAULT NULL').run();
+      console.log('✅ Added points_possible column to school_submissions');
+    }
+
+    if (!hasOnTimeBonus) {
+      console.log('🔄 Migrating school_submissions: adding on_time_bonus column...');
+      db.prepare('ALTER TABLE school_submissions ADD COLUMN on_time_bonus INTEGER DEFAULT 0').run();
+      console.log('✅ Added on_time_bonus column to school_submissions');
+    }
+
+    if (!hasGradedAt) {
+      console.log('🔄 Migrating school_submissions: adding graded_at column...');
+      db.prepare('ALTER TABLE school_submissions ADD COLUMN graded_at DATETIME DEFAULT NULL').run();
+      console.log('✅ Added graded_at column to school_submissions');
+    }
+
+    if (!hasGradedBy) {
+      console.log('🔄 Migrating school_submissions: adding graded_by column...');
+      db.prepare('ALTER TABLE school_submissions ADD COLUMN graded_by INTEGER REFERENCES profiles(id) DEFAULT NULL').run();
+      console.log('✅ Added graded_by column to school_submissions');
+    }
+  } catch (error: any) {
+    console.error('Migration error (school_submissions grading fields):', error.message);
   }
 
   // Run production-ready migrations

@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authenticate, adminOnly } from '../middleware/auth';
+import { authenticate, adminOnly, loadPermissions } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 import { FEATURE_KEYS } from '../services/feature-keys';
+import { authorizationService } from '../services/authorization';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -191,6 +192,49 @@ router.get('/:parentId/progress', (req, res) => {
   }
 });
 
+// ==================== MODULE PERMISSIONS ENDPOINTS ====================
+// CRITICAL: These routes MUST be before /:id to avoid being caught by the generic parameter route
+
+// Get current user's module permissions
+router.get('/permissions', authenticate, async (req: AuthRequest, res) => {
+  try {
+    if (!req.profile) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const permissions = await authorizationService.getUserPermissions(req.profile.id);
+
+    // Get family info - use familyId from permissions which handles inheritance for children
+    let familyInfo = null;
+    const familyId = permissions.familyId || req.profile.family_id;
+
+    if (familyId) {
+      const family: any = db.prepare('SELECT id, name, family_type, status FROM families WHERE id = ?').get(familyId);
+      if (family) {
+        familyInfo = {
+          id: family.id,
+          name: family.name,
+          type: family.family_type,
+          status: family.status
+        };
+      }
+    }
+
+    res.json({
+      permissions: {
+        coreApp: permissions.coreApp,
+        churchSchool: permissions.churchSchool,
+        role: permissions.role,
+        familyType: permissions.familyType
+      },
+      family: familyInfo
+    });
+  } catch (error: any) {
+    console.error('[Permissions] Get permissions error:', error.message);
+    res.status(500).json({ error: 'Failed to get permissions' });
+  }
+});
+
 // Get all profiles - FILTERED BY USER TYPE FOR SECURITY
 router.get('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
@@ -317,8 +361,19 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       if (userProfile.type === 'parent') {
         finalParentId = userProfile.id; // Link child to the parent creating it
         finalFamilyId = userProfile.family_id; // Assign child to parent's family
-      } else if (userProfile.type === 'admin' && !parent_id) {
-        console.warn('Admin creating child profile without parent_id - child will not be linked to a parent');
+      } else if (userProfile.type === 'admin') {
+        // Admin creating child - if parent_id is specified, inherit family from that parent
+        if (parent_id) {
+          const selectedParent: any = db.prepare('SELECT family_id FROM profiles WHERE id = ? AND type = ?').get(parent_id, 'parent');
+          if (selectedParent && selectedParent.family_id) {
+            finalFamilyId = selectedParent.family_id;
+            console.log(`[Profile] Admin creating child under parent ${parent_id}, inheriting family_id: ${finalFamilyId}`);
+          } else {
+            console.warn(`[Profile] Admin creating child with parent_id ${parent_id}, but parent has no family_id`);
+          }
+        } else {
+          console.warn('[Profile] Admin creating child profile without parent_id - child will not be linked to a parent/family');
+        }
       }
     }
     // If parent is creating another parent (co-parent), assign to same family
@@ -444,6 +499,15 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         VALUES (?, ?)
       `).run(newProfile.id, finalAssignedClassId);
     }
+
+    // Initialize module permissions based on family type (core_app vs church_school)
+    try {
+      await authorizationService.initializePermissionsForProfile(newProfile.id);
+      console.log(`[Profile] Initialized module permissions for ${newProfile.name} (ID: ${newProfile.id})`);
+    } catch (permError: any) {
+      console.error('[Profile] Failed to initialize module permissions:', permError.message);
+    }
+
     res.status(201).json(newProfile);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -758,6 +822,23 @@ router.post('/login', async (req, res) => {
 
     console.log(`[DEBUG] Login successful for ${profile.name}!`);
 
+    // Get user's module permissions
+    const permissions = await authorizationService.getUserPermissions(profile.id);
+
+    // Get family info if user belongs to a family
+    let familyInfo = null;
+    if (profile.family_id) {
+      const family: any = db.prepare('SELECT id, name, family_type, status FROM families WHERE id = ?').get(profile.family_id);
+      if (family) {
+        familyInfo = {
+          id: family.id,
+          name: family.name,
+          type: family.family_type,
+          status: family.status
+        };
+      }
+    }
+
     // Return profile info (exclude sensitive data)
     res.json({
       success: true,
@@ -769,10 +850,18 @@ router.post('/login', async (req, res) => {
         age: profile.age,
         gender: profile.gender,
         parent_id: profile.parent_id,
+        family_id: profile.family_id,
         ai_enabled: profile.ai_enabled,
         diet_enabled: profile.diet_enabled,
         username: profile.username
-      }
+      },
+      permissions: {
+        coreApp: permissions.coreApp,
+        churchSchool: permissions.churchSchool,
+        role: permissions.role,
+        familyType: permissions.familyType
+      },
+      family: familyInfo
     });
   } catch (error: any) {
     console.error('[ERROR] Login failed:', error);
@@ -1295,6 +1384,54 @@ router.get('/admin/families/:parentId/features', authenticate, adminOnly, async 
   } catch (error: any) {
     console.error('[Admin] Get family features error:', error.message);
     res.status(500).json({ error: 'Failed to get family features' });
+  }
+});
+
+// Get permissions for a specific profile (admin only)
+// NOTE: The main /permissions endpoint is defined earlier in the file before /:id route
+router.get('/:id/permissions', ...adminOnly, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const profileId = parseInt(id);
+
+    const profile: any = db.prepare('SELECT id, name, type, family_id FROM profiles WHERE id = ?').get(profileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    const permissions = await authorizationService.getUserPermissions(profileId);
+
+    // Get family info if user belongs to a family
+    let familyInfo = null;
+    if (profile.family_id) {
+      const family: any = db.prepare('SELECT id, name, family_type, status FROM families WHERE id = ?').get(profile.family_id);
+      if (family) {
+        familyInfo = {
+          id: family.id,
+          name: family.name,
+          type: family.family_type,
+          status: family.status
+        };
+      }
+    }
+
+    res.json({
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        type: profile.type
+      },
+      permissions: {
+        coreApp: permissions.coreApp,
+        churchSchool: permissions.churchSchool,
+        role: permissions.role,
+        familyType: permissions.familyType
+      },
+      family: familyInfo
+    });
+  } catch (error: any) {
+    console.error('[Permissions] Get profile permissions error:', error.message);
+    res.status(500).json({ error: 'Failed to get profile permissions' });
   }
 });
 

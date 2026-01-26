@@ -1,104 +1,168 @@
-# Trace Project - Development Tasks
+# Family Hub Architecture Implementation Plan
 
-## Environment: ALPHA (Windows Local Dev with Database)
+## Overview
+Implementing FAMILY_HUB_ARCHITECTURE.md - Two-tier access model (Family Type A/B) with Church School module isolation.
 
-### Kid Engagement Features (Priority: Make App Addictive!)
+**Workflow:** Code -> Build -> Test -> Docker Build -> Mark [x] -> Next Task
 
-#### 1. Daily Engagement Hooks
-- [x] Daily Login Bonus - +5 points for opening app, consecutive day bonuses (Day 7 = 50pts)
-- [x] Streak Protection - One "freeze" per week to protect streak (costs points to use)
-- [x] Countdown Challenges - "Complete 3 tasks in 2 hours for 2x points!"
+---
 
-#### 2. Sound & Feedback
-- [x] Sound effects - Satisfying sounds on task complete, level-up, achievements, bonus claims
-- [ ] Haptic feedback - Phone vibration on achievements
-- [x] Animations - Level-up celebration modal with confetti
+## Phase 1: Database Schema Updates
+### 1.1 Add Family Type Column
+- [x] Add `family_type` column ('A' or 'B') to families table
+- [x] Add index on family_type column
+- [x] Migrate existing families to Type 'A' (full access default)
 
-#### 3. Mystery & Surprise Rewards
-- [x] Random bonus multiplier - AI-generated challenges with 1.5x-2x bonus multipliers
-- [x] Lucky spin wheel - After completing X tasks, spin for bonus rewards
-- [x] Hidden achievements - Secret badges that unlock unexpectedly
+### 1.2 Add Module Permissions Table
+- [x] Create `module_permissions` table (profile_id, module, permission_level, granted_at, granted_by)
+- [x] Add indexes on profile_id and module columns
 
-#### 4. Power-ups System
-- [x] "2x Points" power-up via AI challenges (bonus multipliers)
-- [x] "Streak Shield" - Streak freeze protects streak for a day
-- [ ] "Time Freeze" extends deadline on a task
+### 1.3 Church School Enrollment Enhancement
+- [x] Verify `school_enrollments` table has family_id reference
+- [x] Add family_id column with backfill migration
 
-#### 5. Collectibles
-- [ ] Sticker collection - Earn stickers, complete sets for bonus rewards
-- [ ] Rare items - Special stickers for achievements
-- [ ] Trading between siblings (future feature)
+---
 
-#### 6. Virtual Pet/Companion (Future)
-- [ ] Pet that grows with task completion
-- [ ] Gets sad if no login
-- [ ] Unlockable accessories with points
+## Phase 2: Authorization Service (Backend)
+### 2.1 Create Authorization Service
+- [x] Create `backend/src/services/authorization.ts`
+- [x] Implement `hasModuleAccess(profileId, module)` function
+- [x] Implement `getUserPermissions(profileId)` function
+- [x] Implement `familyHasChurchSchoolEnrollment(familyId)` function
+- [x] Implement `canAccessStudentData(userId, studentId)` function
 
-### AI-Powered Personalization (NEW!)
-- [x] Behavior analysis API - Tracks patterns, strengths, areas to improve
-- [x] AI challenge generator - Creates personalized challenges based on behavior
-- [x] Parent approval workflow - Parents review/approve AI suggestions
-- [x] Custom challenges display - Kids see "Special Challenges For You" section
-- [x] Bonus multipliers for avoided categories - Encourages variety
-- [x] Focus areas - Parents can set priorities for AI to focus on
+### 2.2 Create Module Access Middleware
+- [x] Create `requireModuleAccess(module)` middleware in auth.ts
+- [x] Module types: 'core_app', 'church_school'
+- [x] Integrate with existing authenticate middleware
 
-### School/Teacher Features
-- [x] Teacher dashboard with class management
-- [x] Student progress tracking with responsive design
-- [x] Assignment creation and management
-- [x] Quiz system with multiple choice questions
-- [x] Submission review and feedback system
-- [x] Student enrollment management
+### 2.3 Enrollment Permission Trigger
+- [x] Create function `updatePermissionsOnEnrollment(studentId, familyId)`
+- [x] Grant church_school access to Family A parents when child enrolls
+- [x] Revoke when no active enrollments remain
 
-### Existing Features (Still TODO)
-- [ ] Assign task to specific child - Multiple kids support
-- [ ] Attachments for notes - Add photos, drawings
-- [ ] Meal planning feature
-- [ ] Nutritional goals by age
-- [ ] Recipe builder - Create reusable meals
-- [ ] Meal templates - "Save as typical breakfast"
+---
 
-### UI/UX Polish (TODO)
-- [ ] Modern design system - Consistent spacing, typography, shadows
-- [ ] Premium feel - Subtle gradients, micro-interactions
-- [ ] Dark mode support
-- [ ] Improved mobile navigation
-- [ ] Loading skeletons instead of spinners
-- [ ] Toast notifications instead of alerts
+## Phase 3: API Routes & Endpoints
+### 3.1 Permissions Endpoints
+- [x] Add `GET /api/profiles/permissions` endpoint
+- [x] Add `GET /api/profiles/:id/permissions` (admin only)
+- [x] Return permissions in login response
 
-### Completed Features
-- [x] Notifications (PWA push)
-- [x] AI assistant with limits per child
-- [x] Due dates & recurring tasks
-- [x] Task priorities & time estimates
-- [x] Subtasks/checklists
-- [x] Note categories, tags, templates, rich text, pinning, reminders
-- [x] Water intake tracking
-- [x] Goal system with milestones, categories, progress bars
-- [x] Streaks (task & water)
-- [x] Achievements/badges (12 types)
-- [x] Family leaderboard
-- [x] Avatar customization (40+ avatars, level-locked)
-- [x] Daily challenges
-- [x] Level-up celebrations with confetti
-- [x] Weekly summaries with charts
-- [x] Kid-friendly goal type labels with emojis
-- [x] Responsive note creation modal
-- [x] AI personalized gamification system
-- [x] Teacher dashboard responsive design
-- [x] Countdown Challenges with timer and bonus multipliers
-- [x] Lucky Spin Wheel (earn spins by completing tasks)
-- [x] Hidden/Secret Achievements (10 secret badges)
+### 3.2 Family Type Management
+- [x] Update `POST /api/families` to accept family_type parameter
+- [x] Update `PUT /api/families/:id` to handle family_type change
+- [x] Auto-update member permissions when family type changes
 
-### Local Testing (Alpha Environment)
-- [x] Docker services start correctly
-- [x] Backend responds at http://localhost:3001
-- [x] Frontend loads at http://localhost:3000
-- [x] Database persistence working
-- [x] Login flow verified
-- [x] AI assistant toggle works
+---
 
-### Deployment Notes
-- Local database: ./data/family.db (NOT in git)
-- Test locally before pushing
-- On Synology: `git pull && docker-compose build && docker-compose up -d`
+## Phase 4: Frontend Implementation
+### 4.1 Update TypeScript Types
+- [x] Add `family_type: 'A' | 'B'` to Family interface
+- [x] Add `ModulePermissions` interface
+- [x] Add `LoginResponse` interface with permissions
+
+### 4.2 Create Permissions Context
+- [x] Create `frontend/src/context/PermissionsContext.tsx`
+- [x] Implement `usePermissions()` hook
+- [x] Implement `useModuleAccess(module)` hook
+- [x] Implement `useFamilyType()` hook
+
+### 4.3 Update API Service
+- [x] Add `profilesAPI.getPermissions()` method
+- [x] Add `profilesAPI.getProfilePermissions(id)` method
+- [x] Update `familiesAPI.create()` with family_type
+- [x] Update `familiesAPI.update()` with family_type
+
+---
+
+## Phase 5: Frontend Navigation
+### 5.1 Dynamic Navigation Component
+- [x] Update `Layout.tsx` to import usePermissions
+- [x] Add module access check to isNavPathEnabled
+- [x] Family B users only see church school navigation
+- [x] Family A users see full navigation (with church school if enrolled)
+
+### 5.2 Kid Nav Items
+- [x] Update getKidNavItems to respect module permissions
+- [x] Family B children only see church school items
+
+---
+
+## Phase 6: Build & Testing
+- [x] Backend build successful
+- [x] Frontend build successful
+- [x] Docker build successful
+
+---
+
+## Remaining Work (Future Phases)
+
+### Phase 7: Route Protection in App.tsx
+- [x] Create ModuleProtectedRoute component
+- [x] Protect core app routes with core_app module access
+- [x] Protect church school routes with church_school access
+- [x] Redirect Family B users to /school on unauthorized routes
+
+### Phase 8: Admin Family Management UI
+- [x] Add family type selector in admin family creation form
+- [x] Add family type indicator in family list
+- [x] Add family type change confirmation dialog (info box in modal)
+
+### Phase 9: Church School Enrollment Hooks
+- [x] Update school enrollment route to trigger permission updates
+- [x] Update school unenrollment to check/revoke permissions
+- [x] Add visual indicator when Family A gains church school access (via navigation showing School item)
+
+### Phase 10: Testing & Validation
+- [ ] Test Family A creation and full access
+- [ ] Test Family B creation and church school only access
+- [ ] Test Family A child enrollment grants church school to parents
+- [ ] Test teacher access (church school only)
+- [ ] Test admin access (full access)
+
+---
+
+## Architecture Summary
+
+### Family Type A (Full Access)
+- Core App: YES
+- Church School: IF any child enrolled
+
+### Family Type B (Church School Only)
+- Core App: NO
+- Church School: YES
+
+### Teacher
+- Core App: NO
+- Church School: YES
+
+### Admin
+- Core App: YES
+- Church School: YES
+
+---
+
+## Files Modified
+
+### Backend
+- `backend/src/database/init.ts` - Added family_type column, module_permissions table
+- `backend/src/services/authorization.ts` - NEW - Authorization service
+- `backend/src/middleware/auth.ts` - Added requireModuleAccess middleware
+- `backend/src/routes/profiles.ts` - Added permissions endpoints, updated login
+- `backend/src/routes/families.ts` - Added family_type support in create/update
+
+### Frontend
+- `frontend/src/types/index.ts` - Added ModulePermissions, FamilyInfo, LoginResponse
+- `frontend/src/context/PermissionsContext.tsx` - NEW - Permissions context
+- `frontend/src/services/api.ts` - Added permissions API methods
+- `frontend/src/components/Layout.tsx` - Updated navigation with module access
+- `frontend/src/App.tsx` - Added PermissionsProvider
+
+---
+
+## Current Status
+**Phase:** 9 - Church School Enrollment Hooks
+**Status:** COMPLETE
+
+School enrollment triggers permission updates (grants church_school to Family A parents). School unenrollment checks and revokes church_school when no children remain enrolled. Visual indicator is the School navigation item appearing/disappearing based on permissions.

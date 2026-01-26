@@ -4,6 +4,7 @@ import { ProfileProvider } from './context/ProfileContext';
 import { AgeProvider } from './context/AgeContext';
 import { FeatureFlagsProvider, useFeatureFlags } from './context/FeatureFlagsContext';
 import { ProfileFeaturesProvider } from './context/ProfileFeaturesContext';
+import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -33,7 +34,7 @@ import ActivityBuilder from './pages/ActivityBuilder';
 import H5PManager from './pages/H5PManager';
 import { useProfile } from './context/ProfileContext';
 
-// Protected Route Component
+// Protected Route Component - Role-based
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
   const { currentProfile } = useProfile();
 
@@ -59,9 +60,82 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   return <>{children}</>;
 }
 
+// Module Protected Route Component - Module-based access control
+// Checks both role AND module permissions (core_app vs church_school)
+function ModuleProtectedRoute({
+  children,
+  allowedRoles,
+  requireModule
+}: {
+  children: React.ReactNode;
+  allowedRoles: string[];
+  requireModule?: 'core_app' | 'church_school';
+}) {
+  const { currentProfile } = useProfile();
+  const { hasCoreAppAccess, hasChurchSchoolAccess, family, isLoading } = usePermissions();
+
+  if (!currentProfile) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Wait for permissions to load
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check role first
+  if (!allowedRoles.includes(currentProfile.type)) {
+    if (currentProfile.type === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    } else if (currentProfile.type === 'parent') {
+      return <Navigate to="/parent/dashboard" replace />;
+    } else if (currentProfile.type === 'child') {
+      return <Navigate to="/child/dashboard" replace />;
+    } else if (currentProfile.type === 'teacher') {
+      return <Navigate to="/school" replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
+
+  // Check module access if required
+  if (requireModule) {
+    const isFamilyB = family?.type === 'B';
+
+    if (requireModule === 'core_app' && !hasCoreAppAccess) {
+      // Family B or no core_app access - redirect to church school
+      if (isFamilyB || currentProfile.type === 'teacher') {
+        return <Navigate to="/school" replace />;
+      }
+      return <Navigate to="/" replace />;
+    }
+
+    if (requireModule === 'church_school' && !hasChurchSchoolAccess) {
+      // No church school access - redirect to home
+      if (currentProfile.type === 'admin') {
+        return <Navigate to="/admin/dashboard" replace />;
+      } else if (currentProfile.type === 'parent') {
+        return <Navigate to="/parent/dashboard" replace />;
+      } else if (currentProfile.type === 'child') {
+        return <Navigate to="/child/dashboard" replace />;
+      }
+      return <Navigate to="/" replace />;
+    }
+  }
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   const { currentProfile, setCurrentProfile, isLoading } = useProfile();
   const { flags: featureFlags } = useFeatureFlags();
+  const { family, isLoading: permissionsLoading } = usePermissions();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [parentProfile, setParentProfile] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -118,16 +192,21 @@ function AppRoutes() {
         <Route
           path="/"
           element={
+            // Admin always goes to admin dashboard
             currentProfile?.type === 'admin' ? (
               <Navigate to="/admin/dashboard" replace />
-            ) : featureFlags.school_only_mode ? (
+            ) : // School only mode OR Family B users go to church school
+            featureFlags.school_only_mode || (!permissionsLoading && family?.type === 'B') ? (
               <Navigate to="/school" replace />
-            ) : currentProfile?.type === 'parent' ? (
+            ) : // Teachers always go to school
+            currentProfile?.type === 'teacher' ? (
+              <Navigate to="/school" replace />
+            ) : // Parents with core app access go to parent dashboard
+            currentProfile?.type === 'parent' ? (
               <Navigate to="/parent/dashboard" replace />
-            ) : currentProfile?.type === 'child' ? (
+            ) : // Children with core app access go to child dashboard
+            currentProfile?.type === 'child' ? (
               <Navigate to="/child/dashboard" replace />
-            ) : currentProfile?.type === 'teacher' ? (
-              <Navigate to="/school" replace />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -146,34 +225,26 @@ function AppRoutes() {
         <Route
           path="/parent/dashboard"
           element={
-            featureFlags.school_only_mode ? (
-              <Navigate to="/school" replace />
-            ) : (
-              <ProtectedRoute allowedRoles={['parent']}>
-                <ParentDashboard />
-              </ProtectedRoute>
-            )
+            <ModuleProtectedRoute allowedRoles={['parent']} requireModule="core_app">
+              <ParentDashboard />
+            </ModuleProtectedRoute>
           }
         />
         <Route
           path="/child/dashboard"
           element={
-            featureFlags.school_only_mode ? (
-              <Navigate to="/school" replace />
-            ) : (
-              <ProtectedRoute allowedRoles={['child']}>
-                <ChildDashboard />
-              </ProtectedRoute>
-            )
+            <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
+              <ChildDashboard />
+            </ModuleProtectedRoute>
           }
         />
 
         <Route
           path="/school"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'child']}>
+            <ModuleProtectedRoute allowedRoles={['admin', 'teacher', 'parent', 'child']} requireModule="church_school">
               <School />
-            </ProtectedRoute>
+            </ModuleProtectedRoute>
           }
         />
 
@@ -185,9 +256,9 @@ function AppRoutes() {
               currentProfile?.type === 'child' && currentProfile?.diet_enabled !== 1 ? (
                 <Navigate to="/" replace />
               ) : (
-                <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+                <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                   <DietTracking />
-                </ProtectedRoute>
+                </ModuleProtectedRoute>
               )
             }
           />
@@ -198,9 +269,9 @@ function AppRoutes() {
           <Route
             path="/tasks"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                 <TasksManager />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -214,9 +285,9 @@ function AppRoutes() {
               currentProfile?.type === 'child' && currentProfile?.ai_enabled !== 1 ? (
                 <Navigate to="/" replace />
               ) : (
-                <ProtectedRoute allowedRoles={['child']}>
+                <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
                   <AIAssistant />
-                </ProtectedRoute>
+                </ModuleProtectedRoute>
               )
             }
           />
@@ -227,9 +298,9 @@ function AppRoutes() {
           <Route
             path="/notes"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                 <Notes />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -259,9 +330,9 @@ function AppRoutes() {
           <Route
             path="/journey"
             element={
-              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['child', 'parent', 'admin']} requireModule="core_app">
                 <MyJourney />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -271,9 +342,9 @@ function AppRoutes() {
           <Route
             path="/leaderboard"
             element={
-              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['child', 'parent', 'admin']} requireModule="core_app">
                 <FamilyLeaderboard />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -283,9 +354,9 @@ function AppRoutes() {
           <Route
             path="/shop"
             element={
-              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['child', 'parent', 'admin']} requireModule="core_app">
                 <RewardShop />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -295,9 +366,9 @@ function AppRoutes() {
           <Route
             path="/controls"
             element={
-              <ProtectedRoute allowedRoles={['parent']}>
+              <ModuleProtectedRoute allowedRoles={['parent']} requireModule="core_app">
                 <ControlsPage />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -307,9 +378,9 @@ function AppRoutes() {
           <Route
             path="/calendar"
             element={
-              <ProtectedRoute allowedRoles={['child', 'parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['child', 'parent', 'admin']} requireModule="core_app">
                 <CalendarView />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -319,9 +390,9 @@ function AppRoutes() {
           <Route
             path="/quizzes/builder"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
                 <QuizBuilder />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -331,9 +402,9 @@ function AppRoutes() {
           <Route
             path="/quizzes"
             element={
-              <ProtectedRoute allowedRoles={['child']}>
+              <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
                 <QuizPlayer />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -343,9 +414,9 @@ function AppRoutes() {
           <Route
             path="/books"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                 <BookLibrary />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -355,9 +426,9 @@ function AppRoutes() {
           <Route
             path="/books/read/:bookId"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                 <BookReader />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -367,9 +438,9 @@ function AppRoutes() {
           <Route
             path="/shopping"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
                 <ShoppingList />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -379,9 +450,9 @@ function AppRoutes() {
           <Route
             path="/shopping/help"
             element={
-              <ProtectedRoute allowedRoles={['child']}>
+              <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
                 <ShoppingHelper />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -391,9 +462,9 @@ function AppRoutes() {
           <Route
             path="/activities/builder"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
                 <ActivityBuilder />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -403,9 +474,9 @@ function AppRoutes() {
           <Route
             path="/activities"
             element={
-              <ProtectedRoute allowedRoles={['child']}>
+              <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
                 <ActivityPlayer />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -415,9 +486,9 @@ function AppRoutes() {
           <Route
             path="/h5p"
             element={
-              <ProtectedRoute allowedRoles={['parent', 'admin']}>
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
                 <H5PManager />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -427,9 +498,9 @@ function AppRoutes() {
           <Route
             path="/h5p/play"
             element={
-              <ProtectedRoute allowedRoles={['child']}>
+              <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
                 <H5PManager />
-              </ProtectedRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}
@@ -446,13 +517,15 @@ function App() {
     <Router>
       <FeatureFlagsProvider>
         <ProfileProvider>
-          <ProfileFeaturesProvider>
-            <AgeProvider>
-              <ToastProvider>
-                <AppRoutes />
-              </ToastProvider>
-            </AgeProvider>
-          </ProfileFeaturesProvider>
+          <PermissionsProvider>
+            <ProfileFeaturesProvider>
+              <AgeProvider>
+                <ToastProvider>
+                  <AppRoutes />
+                </ToastProvider>
+              </AgeProvider>
+            </ProfileFeaturesProvider>
+          </PermissionsProvider>
         </ProfileProvider>
       </FeatureFlagsProvider>
     </Router>

@@ -232,16 +232,60 @@ router.get('/stats/:profileId', (req, res) => {
 
 // ==================== LEADERBOARD ====================
 
-// Get family leaderboard (all family members)
-router.get('/family-leaderboard', (req, res) => {
+// Get family leaderboard (only members of the user's own family)
+router.get('/family-leaderboard', (req: AuthRequest, res) => {
   try {
     const { period } = req.query; // 'week', 'month', 'all'
+    const currentUser = req.profile!;
 
-    // Get all profiles (excluding admins from ranking but include them)
-    const profiles: any[] = db.prepare(`
-      SELECT id, name, avatar, type FROM profiles
-      WHERE type IN ('parent', 'child')
-    `).all();
+    // FAMILY ISOLATION: Only show members of the current user's family
+    // 1. Get the user's family_id (resolve through parent if needed for children)
+    let familyId = currentUser.family_id;
+
+    if (!familyId && currentUser.type === 'child' && currentUser.parent_id) {
+      // Child without family_id - inherit from parent
+      const parent: any = db.prepare('SELECT family_id FROM profiles WHERE id = ?').get(currentUser.parent_id);
+      familyId = parent?.family_id;
+    }
+
+    // 2. Get all profiles that belong to this family
+    let profiles: any[];
+
+    if (familyId) {
+      // Family-based query: get all members with the same family_id
+      profiles = db.prepare(`
+        SELECT id, name, avatar, type FROM profiles
+        WHERE family_id = ? AND type IN ('parent', 'child')
+      `).all(familyId);
+    } else {
+      // Fallback for legacy data without family_id: use parent_id relationship
+      if (currentUser.type === 'parent') {
+        // Parent: get self + children linked via parent_id or guardian_students
+        profiles = db.prepare(`
+          SELECT id, name, avatar, type FROM profiles
+          WHERE (id = ? OR parent_id = ? OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?))
+            AND type IN ('parent', 'child')
+        `).all(currentUser.id, currentUser.id, currentUser.id);
+      } else if (currentUser.type === 'child') {
+        // Child: get self + parent + siblings
+        const parentId = currentUser.parent_id;
+        if (parentId) {
+          profiles = db.prepare(`
+            SELECT id, name, avatar, type FROM profiles
+            WHERE (id = ? OR parent_id = ? OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?))
+              AND type IN ('parent', 'child')
+          `).all(parentId, parentId, parentId);
+        } else {
+          // No parent link - show only self
+          profiles = db.prepare(`
+            SELECT id, name, avatar, type FROM profiles WHERE id = ?
+          `).all(currentUser.id);
+        }
+      } else {
+        // Admin viewing - show empty (admin should use admin-specific endpoints)
+        profiles = [];
+      }
+    }
 
     if (profiles.length === 0) {
       return res.json([]);

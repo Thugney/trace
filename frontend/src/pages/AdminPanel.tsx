@@ -146,11 +146,10 @@ export default function AdminPanel() {
   const loadSettings = async () => {
     try {
       const response = await settingsAPI.getAll();
-      const settingsMap: Record<string, any> = {};
-      response.data.forEach((s: any) => {
-        settingsMap[s.key] = s.value;
-      });
-      setSettings(settingsMap);
+      // Backend returns a key-value object directly, not an array
+      if (response.data && typeof response.data === 'object') {
+        setSettings(response.data);
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -181,14 +180,14 @@ export default function AdminPanel() {
   };
 
   // Family Actions
-  const handleCreateFamily = async (name: string, description?: string) => {
-    await familiesAPI.create({ name, description });
+  const handleCreateFamily = async (name: string, description?: string, familyType?: 'A' | 'B') => {
+    await familiesAPI.create({ name, description, family_type: familyType || 'A' });
     await loadFamilies();
   };
 
-  const handleUpdateFamily = async (name: string, description?: string) => {
+  const handleUpdateFamily = async (name: string, description?: string, familyType?: 'A' | 'B') => {
     if (!editingFamily) return;
-    await familiesAPI.update(editingFamily.id, { name, description });
+    await familiesAPI.update(editingFamily.id, { name, description, family_type: familyType });
     setEditingFamily(null);
     await loadFamilies();
   };
@@ -440,7 +439,7 @@ export default function AdminPanel() {
             setEditingFamily(null);
           }}
           onSubmit={editingFamily ? handleUpdateFamily : handleCreateFamily}
-          editingFamily={editingFamily ? { name: editingFamily.name, description: editingFamily.description } : null}
+          editingFamily={editingFamily ? { name: editingFamily.name, description: editingFamily.description, family_type: editingFamily.family_type } : null}
         />
       )}
 

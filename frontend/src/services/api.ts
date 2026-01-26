@@ -99,7 +99,37 @@ export const profilesAPI = {
     featureKeys: string[];
   }>(`/profiles/admin/families/${parentId}/features`),
   updateFamilyFeatures: (parentId: number, features: Record<string, boolean>) =>
-    api.put<{ success: boolean; message: string }>(`/profiles/admin/families/${parentId}/features`, { features })
+    api.put<{ success: boolean; message: string }>(`/profiles/admin/families/${parentId}/features`, { features }),
+  // Module permissions (Family Hub architecture)
+  getPermissions: () => api.get<{
+    permissions: {
+      coreApp: boolean;
+      churchSchool: boolean;
+      role: string;
+      familyType?: 'A' | 'B';
+    };
+    family?: {
+      id: number;
+      name: string;
+      type: 'A' | 'B';
+      status: string;
+    } | null;
+  }>('/profiles/permissions'),
+  getProfilePermissions: (id: number) => api.get<{
+    profile: { id: number; name: string; type: string };
+    permissions: {
+      coreApp: boolean;
+      churchSchool: boolean;
+      role: string;
+      familyType?: 'A' | 'B';
+    };
+    family?: {
+      id: number;
+      name: string;
+      type: 'A' | 'B';
+      status: string;
+    } | null;
+  }>(`/profiles/${id}/permissions`)
 };
 
 // Families (Admin management)
@@ -111,11 +141,11 @@ export const familiesAPI = {
   getOne: (id: number) => api.get<Family>(`/families/${id}`),
 
   // Admin: Create new family
-  create: (data: { name: string; description?: string }) =>
+  create: (data: { name: string; description?: string; family_type?: 'A' | 'B' }) =>
     api.post<Family>('/families', data),
 
-  // Admin: Update family
-  update: (id: number, data: { name?: string; description?: string; status?: 'active' | 'inactive' | 'suspended' }) =>
+  // Admin: Update family (including family_type)
+  update: (id: number, data: { name?: string; description?: string; status?: 'active' | 'inactive' | 'suspended'; family_type?: 'A' | 'B' }) =>
     api.put<Family>(`/families/${id}`, data),
 
   // Admin: Delete family (unassigns members, doesn't delete them)
@@ -474,7 +504,80 @@ export const schoolAPI = {
   deleteSubject: (subjectId: number) =>
     api.delete(`/school/subjects/${subjectId}`),
   seedDefaultSubjects: (classId: number) =>
-    api.post<SchoolSubject[]>(`/school/classes/${classId}/seed-subjects`)
+    api.post<SchoolSubject[]>(`/school/classes/${classId}/seed-subjects`),
+
+  // Grading
+  gradeSubmission: (submissionId: number, data: { points_earned: number; feedback?: string; status?: string }) =>
+    api.post<{
+      submission: SchoolSubmission;
+      totalPointsAwarded: number;
+      studentTotalPoints: number;
+      studentLevel: number;
+    }>(`/school/submissions/${submissionId}/grade`, data),
+  getUngradedSubmissions: (class_id?: number) =>
+    api.get<(SchoolSubmission & {
+      assignment_title: string;
+      max_points: number;
+      class_id: number;
+      student_name: string;
+      student_avatar?: string;
+      class_name: string;
+    })[]>('/school/submissions/ungraded', { params: { class_id } }),
+
+  // Leaderboard
+  getLeaderboard: (class_id: number, period?: 'all' | 'month' | 'week') =>
+    api.get<{
+      class_id: number;
+      class_name: string;
+      period: string;
+      leaderboard: {
+        rank: number;
+        student_id: number;
+        student_name: string;
+        student_avatar?: string;
+        total_points: number;
+        assignments_graded: number;
+        assignments_submitted: number;
+        total_assignments: number;
+        avg_score_percent: number;
+        current_level: number;
+        all_time_points: number;
+      }[];
+      current_user_id: number | null;
+    }>('/school/leaderboard', { params: { class_id, period } }),
+
+  // Student Stats
+  getStudentStats: (studentId: number) =>
+    api.get<{
+      student_id: number;
+      overall: {
+        total_points: number;
+        current_level: number;
+        total_submissions: number;
+        graded_submissions: number;
+        achievements_earned: number;
+      };
+      recent_grades: (SchoolSubmission & {
+        assignment_title: string;
+        max_points: number;
+        class_name: string;
+      })[];
+      achievements: {
+        id: number;
+        name: string;
+        description: string;
+        icon: string;
+        category: string;
+        badge_points: number;
+        earned_at: string;
+      }[];
+      enrolled_classes: {
+        class_id: number;
+        class_name: string;
+        class_rank: number;
+        total_students: number;
+      }[];
+    }>(`/school/students/${studentId}/stats`)
 };
 
 // Regular School (Home tracking)

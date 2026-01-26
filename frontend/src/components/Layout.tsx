@@ -5,6 +5,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { useProfileFeatures } from '../context/ProfileFeaturesContext';
+import { usePermissions } from '../context/PermissionsContext';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
@@ -71,6 +72,7 @@ export default function Layout({ children }: LayoutProps) {
   const { settings } = useAge();
   const { flags } = useFeatureFlags();
   const { isFeatureEnabled } = useProfileFeatures();
+  const { hasCoreAppAccess, hasChurchSchoolAccess, family, isLoading: permissionsLoading } = usePermissions();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -79,10 +81,54 @@ export default function Layout({ children }: LayoutProps) {
   const isActive = (path: string) => location.pathname === path;
   const isChild = currentProfile?.type === 'child';
 
-  // Check if a nav path is enabled based on profile features
+  // Family B users (church school only) should not see core app features
+  // Only consider it Family B if we have loaded permissions and confirmed family type is B
+  const isFamilyB = family?.type === 'B';
+
+  // While permissions are loading, default to showing core app features for non-teachers
+  // This prevents a flash of wrong UI - the correct nav will show after permissions load
+  const effectiveHasCoreAppAccess = permissionsLoading
+    ? (currentProfile?.type === 'admin' || currentProfile?.type === 'parent' || currentProfile?.type === 'child')
+    : hasCoreAppAccess;
+
+  // Check if a nav path is enabled based on profile features AND module permissions
   const isNavPathEnabled = (path: string): boolean => {
     const featureKey = NAV_PATH_FEATURES[path];
-    if (!featureKey) return true; // No feature restriction
+
+    // Core app paths require core_app module access
+    const coreAppPaths = ['/tasks', '/notes', '/shop', '/calendar', '/leaderboard', '/journey',
+                          '/ai', '/shopping', '/shopping/help', '/books', '/activities',
+                          '/activities/builder', '/h5p', '/h5p/play', '/diet', '/quizzes',
+                          '/quizzes/builder', '/parent/dashboard', '/child/dashboard', '/controls'];
+
+    // Check if this is a core app path
+    if (coreAppPaths.some(p => path.startsWith(p))) {
+      // Family B cannot access core app features (only check when not loading)
+      // Use effectiveHasCoreAppAccess which handles the loading state
+      if (!permissionsLoading && (isFamilyB || !effectiveHasCoreAppAccess)) {
+        return false;
+      }
+    }
+
+    // Check if this is a church school path
+    if (path === '/school') {
+      // Church school access rules:
+      // - Family B always has access
+      // - Family A parents can always access (to enroll children)
+      // - Family A children need enrollment to access
+      // - Teachers always have access
+      if (!permissionsLoading) {
+        const isParentOrTeacher = currentProfile?.type === 'parent' || currentProfile?.type === 'teacher';
+        // Parents and teachers always see School nav (to manage enrollments)
+        // Children need churchSchool access (granted when enrolled)
+        if (!isParentOrTeacher && !hasChurchSchoolAccess) {
+          return false;
+        }
+      }
+    }
+
+    // Check feature flag restriction
+    if (!featureKey) return true;
     return isFeatureEnabled(featureKey);
   };
 
@@ -90,21 +136,31 @@ export default function Layout({ children }: LayoutProps) {
     if (!currentProfile) return [];
     const { type } = currentProfile;
 
-    if (flags.school_only_mode) {
+    // School only mode or Family B - show church school navigation only
+    // Important: Only apply Family B restriction when we've confirmed family type (not while loading)
+    const showChurchSchoolOnly = flags.school_only_mode || (!permissionsLoading && isFamilyB);
+    if (showChurchSchoolOnly) {
       if (type === 'admin') {
         return [
           { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
           { path: '/admin', icon: Users, label: 'Users' },
-          { path: '/school', icon: BookOpen, label: 'School' },
+          { path: '/school', icon: BookOpen, label: 'Church School' },
           { path: '/settings', icon: Settings, label: 'Settings' }
-        ];
+        ].filter(item => isNavPathEnabled(item.path));
       }
 
       if (type === 'parent' || type === 'teacher') {
         return [
-          { path: '/school', icon: BookOpen, label: 'School' },
+          { path: '/school', icon: BookOpen, label: 'Church School' },
           { path: '/settings', icon: Settings, label: 'Settings' }
-        ];
+        ].filter(item => isNavPathEnabled(item.path));
+      }
+
+      if (type === 'child') {
+        return [
+          { path: '/school', icon: BookOpen, label: 'Church School' },
+          { path: '/settings', icon: Settings, label: 'Settings' }
+        ].filter(item => isNavPathEnabled(item.path));
       }
     }
 
@@ -115,18 +171,15 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
         { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
-      ];
+      ].filter(item => isNavPathEnabled(item.path));
     }
 
     if (type === 'parent') {
       const items = [
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
-        { path: '/school', icon: BookOpen, label: 'School' },
+        { path: '/school', icon: BookOpen, label: 'Church School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/h5p', icon: Puzzle, label: 'H5P Quizzes' },
-        // Activities builder disabled - using H5P quizzes only
-        // { path: '/quizzes/builder', icon: BookOpen, label: 'Quizzes' },
-        // { path: '/activities/builder', icon: Brain, label: 'Activities' },
         { path: '/books', icon: BookOpen, label: 'Books' },
         { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -142,19 +195,17 @@ export default function Layout({ children }: LayoutProps) {
 
     if (type === 'teacher') {
       return [
-        { path: '/school', icon: BookOpen, label: 'School' },
+        { path: '/school', icon: BookOpen, label: 'Church School' },
         { path: '/settings', icon: Settings, label: 'Settings' }
-      ];
+      ].filter(item => isNavPathEnabled(item.path));
     }
 
     if (type === 'child') {
       const items = [
         { path: '/child/dashboard', icon: Home, label: 'Home' },
-        { path: '/school', icon: BookOpen, label: 'School' },
+        { path: '/school', icon: BookOpen, label: 'Church School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
         { path: '/h5p/play', icon: Puzzle, label: 'Fun Games' },
-        // Activities disabled - using H5P quizzes only
-        // { path: '/activities', icon: Brain, label: 'Activities' },
         { path: '/shopping/help', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
@@ -167,7 +218,7 @@ export default function Layout({ children }: LayoutProps) {
         items.push({ path: '/ai', icon: Bot, label: 'AI Helper' });
       }
       items.push({ path: '/settings', icon: Settings, label: 'Settings' });
-      // Filter items based on feature access
+      // Filter items based on feature access AND module permissions
       return items.filter(item => isNavPathEnabled(item.path));
     }
 
@@ -183,15 +234,20 @@ export default function Layout({ children }: LayoutProps) {
         ? ageGroup
         : undefined;
 
-    const baseItems = flags.school_only_mode
-      ? [
-          { path: '/school', emoji: '📖', label: 'School', labels: { young: 'School', middle: 'School', older: 'School' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
-          { path: '/settings', emoji: '⚙️', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' }
-        ]
+    // Family B or school_only_mode: only show church school navigation
+    // Important: Only apply Family B restriction when we've confirmed family type (not while loading)
+    const showChurchSchoolOnly = flags.school_only_mode || (!permissionsLoading && isFamilyB);
+    const churchSchoolOnlyItems: KidNavItem[] = [
+      { path: '/school', emoji: '📖', label: 'Church School', labels: { young: 'School', middle: 'Church School', older: 'Church School' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
+      { path: '/settings', emoji: '⚙️', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' }
+    ];
+
+    const baseItems = showChurchSchoolOnly
+      ? churchSchoolOnlyItems
       : KID_NAV_ITEMS;
 
     const available = baseItems.filter(item => {
-      // Check feature access
+      // Check feature access AND module permissions
       if (!isNavPathEnabled(item.path)) return false;
       // Special check for AI
       if (item.path === '/ai') {
@@ -212,6 +268,8 @@ export default function Layout({ children }: LayoutProps) {
     localStorage.removeItem('family_auth');
     localStorage.removeItem('parent_profile');
     localStorage.removeItem('currentProfileId');
+    localStorage.removeItem('user_permissions');
+    localStorage.removeItem('user_family');
     setCurrentProfile(null);
     navigate('/');
     window.location.reload();

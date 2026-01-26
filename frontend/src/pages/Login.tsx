@@ -44,6 +44,14 @@ export default function Login({ onAuthenticated }: LoginProps) {
         localStorage.setItem('family_auth', 'true');
         localStorage.setItem('parent_profile', JSON.stringify(response.data.profile));
 
+        // Store permissions and family info for PermissionsContext
+        if (response.data.permissions) {
+          localStorage.setItem('user_permissions', JSON.stringify(response.data.permissions));
+        }
+        if (response.data.family) {
+          localStorage.setItem('user_family', JSON.stringify(response.data.family));
+        }
+
         // Call onAuthenticated with parent profile
         onAuthenticated(response.data.profile);
       }

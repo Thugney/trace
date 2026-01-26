@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, schoolAPI, regularSchoolAPI } from '../services/api';
-import type { Profile, SchoolSubject, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
+import type { Profile, SchoolSubject, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, SchoolAttachment, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
 
 type AssignmentFormState = {
   title: string;
@@ -12,6 +12,7 @@ type AssignmentFormState = {
   youtube_link: string;
   due_date: string;
   subject_id: number | null;
+  max_points: number;
 };
 
 type ClassFormState = {
@@ -29,7 +30,8 @@ const emptyAssignmentForm: AssignmentFormState = {
   type: 'homework',
   youtube_link: '',
   due_date: '',
-  subject_id: null
+  subject_id: null,
+  max_points: 10
 };
 
 const emptyClassForm: ClassFormState = {
@@ -77,17 +79,37 @@ export default function School() {
   const [submissionNotes, setSubmissionNotes] = useState<Record<number, string>>({});
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<number | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackRating, setFeedbackRating] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('');
-  const [teacherTab, setTeacherTab] = useState<'assignments' | 'students' | 'submissions'>('assignments');
+  const [gradePoints, setGradePoints] = useState<number>(0);
+  const [teacherTab, setTeacherTab] = useState<'assignments' | 'students' | 'submissions' | 'leaderboard'>('assignments');
   const [showCreateClass, setShowCreateClass] = useState(false);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(null);
+  const [expandedAssignmentId, setExpandedAssignmentId] = useState<number | null>(null);
+  const [assignmentAttachments, setAssignmentAttachments] = useState<Record<number, SchoolAttachment[]>>({});
+  const [loadingAttachments, setLoadingAttachments] = useState<Record<number, boolean>>({});
 
   // Church School subjects
   const [classSubjects, setClassSubjects] = useState<SchoolSubject[]>([]);
   const [showCreateChurchSubject, setShowCreateChurchSubject] = useState(false);
   const [churchSubjectForm, setChurchSubjectForm] = useState({ name: '', icon: '📚', color: 'indigo' });
+
+  // Leaderboard
+  const [leaderboard, setLeaderboard] = useState<{
+    rank: number;
+    student_id: number;
+    student_name: string;
+    student_avatar?: string;
+    total_points: number;
+    assignments_graded: number;
+    assignments_submitted: number;
+    total_assignments: number;
+    avg_score_percent: number;
+    current_level: number;
+    all_time_points: number;
+  }[]>([]);
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<'all' | 'month' | 'week'>('all');
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   // School type toggle (church vs regular)
   const [schoolMode, setSchoolMode] = useState<'church' | 'regular'>('church');
@@ -214,6 +236,18 @@ export default function School() {
         setSubmissions(submissionsRes.data as SubmissionWithClass[]);
         setFeedback(feedbackRes.data);
         setEnrolledClasses(enrollmentsRes.data);
+
+        // Load leaderboard for the first enrolled class
+        if (enrollmentsRes.data.length > 0 && !selectedClassId) {
+          const firstClass = enrollmentsRes.data[0];
+          setSelectedClassId(firstClass.id);
+          try {
+            const leaderboardRes = await schoolAPI.getLeaderboard(firstClass.id, leaderboardPeriod);
+            setLeaderboard(leaderboardRes.data.leaderboard);
+          } catch (e) {
+            console.error('Failed to load leaderboard:', e);
+          }
+        }
       } catch (error) {
         console.error('Failed to load student data:', error);
         if (showError) showToast('Failed to load assignments', 'error');
@@ -482,7 +516,8 @@ export default function School() {
         type: assignmentForm.type,
         youtube_link: assignmentForm.youtube_link.trim() || undefined,
         due_date: assignmentForm.due_date || undefined,
-        subject_id: assignmentForm.subject_id || undefined
+        subject_id: assignmentForm.subject_id || undefined,
+        max_points: assignmentForm.max_points || 10
       });
 
       if (assignmentFile) {
@@ -519,35 +554,87 @@ export default function School() {
     }
   };
 
-  const handleSendFeedback = async () => {
-    if (!selectedSubmissionId) {
-      showToast('Select a submission', 'error');
-      return;
-    }
-    if (!feedbackText.trim()) {
-      showToast('Feedback is required', 'error');
+
+  // Grade submission with points
+  const handleGradeSubmission = async (submissionId: number, maxPoints: number) => {
+    if (gradePoints < 0 || gradePoints > maxPoints) {
+      showToast(`Points must be between 0 and ${maxPoints}`, 'error');
       return;
     }
 
     try {
-      await schoolAPI.createFeedback({
-        submission_id: selectedSubmissionId,
-        comment: feedbackText.trim(),
-        rating: feedbackRating || undefined,
-        status: feedbackStatus || undefined
+      const result = await schoolAPI.gradeSubmission(submissionId, {
+        points_earned: gradePoints,
+        feedback: feedbackText.trim() || undefined,
+        status: feedbackStatus || 'approved'
       });
+
       setFeedbackText('');
-      setFeedbackRating('');
       setFeedbackStatus('');
+      setGradePoints(0);
       setSelectedSubmissionId(null);
+
+      // Refresh submissions
       const refreshed = await schoolAPI.getSubmissions();
       setSubmissions(refreshed.data as SubmissionWithClass[]);
-      showToast('Feedback sent', 'success');
+
+      // Refresh leaderboard if viewing it
+      if (selectedClassId) {
+        loadLeaderboard(selectedClassId);
+      }
+
+      showToast(`Graded! Student earned ${result.data.totalPointsAwarded} points (Level ${result.data.studentLevel})`, 'success');
     } catch (error) {
-      console.error('Failed to save feedback:', error);
-      showToast('Failed to send feedback', 'error');
+      console.error('Failed to grade submission:', error);
+      showToast('Failed to grade submission', 'error');
     }
   };
+
+  // Toggle assignment details and fetch attachments
+  const handleToggleAssignment = async (assignmentId: number) => {
+    if (expandedAssignmentId === assignmentId) {
+      // Collapse
+      setExpandedAssignmentId(null);
+      return;
+    }
+
+    // Expand and fetch attachments if not already loaded
+    setExpandedAssignmentId(assignmentId);
+
+    if (!assignmentAttachments[assignmentId] && !loadingAttachments[assignmentId]) {
+      setLoadingAttachments(prev => ({ ...prev, [assignmentId]: true }));
+      try {
+        const studentId = isChild ? currentProfile?.id : selectedStudentId;
+        const response = await schoolAPI.getAssignmentAttachments(assignmentId, studentId || undefined);
+        setAssignmentAttachments(prev => ({ ...prev, [assignmentId]: response.data }));
+      } catch (error) {
+        console.error('Failed to load attachments:', error);
+      } finally {
+        setLoadingAttachments(prev => ({ ...prev, [assignmentId]: false }));
+      }
+    }
+  };
+
+  // Load leaderboard
+  const loadLeaderboard = async (classId: number) => {
+    try {
+      setLoadingLeaderboard(true);
+      const response = await schoolAPI.getLeaderboard(classId, leaderboardPeriod);
+      setLeaderboard(response.data.leaderboard);
+    } catch (error) {
+      console.error('Failed to load leaderboard:', error);
+      showToast('Failed to load leaderboard', 'error');
+    } finally {
+      setLoadingLeaderboard(false);
+    }
+  };
+
+  // Load leaderboard when tab changes or period changes
+  useEffect(() => {
+    if (teacherTab === 'leaderboard' && selectedClassId) {
+      loadLeaderboard(selectedClassId);
+    }
+  }, [teacherTab, selectedClassId, leaderboardPeriod]);
 
   const availableClasses = useMemo(() => {
     if (!selectedStudentId) return allClasses;
@@ -747,21 +834,23 @@ export default function School() {
               </div>
 
               {/* Tab Navigation */}
-              <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl w-fit">
+              <div className="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl w-fit flex-wrap">
                 {[
-                  { id: 'assignments' as const, label: 'Assignments' },
-                  { id: 'students' as const, label: 'Students' },
-                  { id: 'submissions' as const, label: 'Submissions' }
+                  { id: 'assignments' as const, label: 'Assignments', icon: '📝' },
+                  { id: 'students' as const, label: 'Students', icon: '👥' },
+                  { id: 'submissions' as const, label: 'Grade', icon: '✏️' },
+                  { id: 'leaderboard' as const, label: 'Leaderboard', icon: '🏆' }
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setTeacherTab(tab.id)}
-                    className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-all ${
+                    className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-all flex items-center gap-1.5 ${
                       teacherTab === tab.id
                         ? 'bg-white text-slate-900 shadow-sm'
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
+                    <span>{tab.icon}</span>
                     {tab.label}
                   </button>
                 ))}
@@ -909,6 +998,17 @@ export default function School() {
                             className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 outline-none text-sm"
                             value={assignmentForm.due_date}
                             onChange={(e) => setAssignmentForm(prev => ({ ...prev, due_date: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 mb-1">Max Points</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100 outline-none text-sm"
+                            value={assignmentForm.max_points}
+                            onChange={(e) => setAssignmentForm(prev => ({ ...prev, max_points: Math.max(1, Math.min(100, parseInt(e.target.value) || 10)) }))}
                           />
                         </div>
                       </div>
@@ -1102,84 +1202,292 @@ export default function School() {
                 </div>
               )}
 
-              {/* Submissions Tab */}
+              {/* Submissions Tab - Grading */}
               {teacherTab === 'submissions' && (
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900 mb-6">Submissions to Review</h2>
-                  {teacherSubmissions.filter(s => s.status === 'submitted').length === 0 ? (
+                  <h2 className="text-xl font-semibold text-slate-900 mb-6">Grade Submissions</h2>
+                  {teacherSubmissions.filter(s => !s.graded_at).length === 0 ? (
                     <div className="text-center py-16">
                       <div className="text-5xl mb-4">✅</div>
-                      <p className="text-slate-500">All caught up! No submissions to review.</p>
+                      <p className="text-slate-500">All caught up! No submissions to grade.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {teacherSubmissions.filter(s => s.status === 'submitted').map(submission => {
+                    <div className="space-y-4">
+                      {teacherSubmissions.filter(s => !s.graded_at).map(submission => {
                         const assignment = assignments.find(a => a.id === submission.assignment_id);
                         const student = classStudents.find(s => s.id === submission.student_id);
+                        const maxPoints = assignment?.max_points || 10;
+                        const isSelected = selectedSubmissionId === submission.id;
+
                         return (
-                          <div key={submission.id} className={`bg-white p-5 rounded-2xl border transition-all ${selectedSubmissionId === submission.id ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-100'}`}>
+                          <div key={submission.id} className={`bg-white p-5 rounded-2xl border transition-all ${isSelected ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-100 hover:border-slate-200'}`}>
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-semibold">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
                                   {student?.name?.charAt(0) || '?'}
                                 </div>
                                 <div>
-                                  <div className="font-medium text-slate-900">{student?.name || 'Unknown'}</div>
-                                  <div className="text-sm text-slate-500">{assignment?.title}</div>
+                                  <div className="font-semibold text-slate-900">{student?.name || 'Unknown'}</div>
+                                  <div className="text-sm text-slate-500 flex items-center gap-2">
+                                    <span>{assignment?.title}</span>
+                                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                                      Max: {maxPoints} pts
+                                    </span>
+                                  </div>
                                   {submission.notes && (
-                                    <div className="mt-2 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                                    <div className="mt-2 p-3 bg-slate-50 rounded-lg text-sm text-slate-600 italic">
                                       "{submission.notes}"
                                     </div>
                                   )}
+                                  <div className="text-xs text-slate-400 mt-1">
+                                    Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                                  </div>
                                 </div>
                               </div>
                               <button
-                                onClick={() => setSelectedSubmissionId(selectedSubmissionId === submission.id ? null : submission.id)}
-                                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                  selectedSubmissionId === submission.id
-                                    ? 'bg-indigo-100 text-indigo-700'
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedSubmissionId(null);
+                                    setGradePoints(0);
+                                  } else {
+                                    setSelectedSubmissionId(submission.id);
+                                    setGradePoints(maxPoints); // Default to full points
+                                  }
+                                }}
+                                className={`px-4 py-2 rounded-xl font-medium transition-colors ${
+                                  isSelected
+                                    ? 'bg-indigo-600 text-white'
                                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                 }`}
                               >
-                                {selectedSubmissionId === submission.id ? 'Selected' : 'Review'}
+                                {isSelected ? 'Grading...' : 'Grade'}
                               </button>
                             </div>
 
-                            {/* Feedback Form */}
-                            {selectedSubmissionId === submission.id && (
+                            {/* Grading Form */}
+                            {isSelected && (
                               <div className="mt-4 pt-4 border-t border-slate-100">
-                                <div className="flex flex-wrap gap-4 items-end">
-                                  <div className="flex-1 min-w-[200px]">
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Feedback</label>
-                                    <textarea
-                                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
-                                      rows={2}
-                                      placeholder="Write feedback..."
-                                      value={feedbackText}
-                                      onChange={(e) => setFeedbackText(e.target.value)}
-                                    />
+                                <div className="grid gap-4 md:grid-cols-[1fr,auto,auto,auto]">
+                                  {/* Points Input */}
+                                  <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                      Points Earned
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        max={maxPoints}
+                                        className="w-20 px-3 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none text-center text-lg font-semibold"
+                                        value={gradePoints}
+                                        onChange={(e) => setGradePoints(Math.max(0, Math.min(maxPoints, parseInt(e.target.value) || 0)))}
+                                      />
+                                      <span className="text-slate-500 text-lg">/ {maxPoints}</span>
+                                      <div className="flex gap-1 ml-2">
+                                        {[0, Math.floor(maxPoints * 0.5), Math.floor(maxPoints * 0.75), maxPoints].map(pts => (
+                                          <button
+                                            key={pts}
+                                            onClick={() => setGradePoints(pts)}
+                                            className={`px-2 py-1 text-xs rounded-lg transition-colors ${
+                                              gradePoints === pts
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                            }`}
+                                          >
+                                            {pts}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="w-36">
+
+                                  {/* Status */}
+                                  <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
                                     <select
-                                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white"
+                                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-white"
                                       value={feedbackStatus}
                                       onChange={(e) => setFeedbackStatus(e.target.value)}
                                     >
-                                      <option value="">Select...</option>
                                       <option value="approved">Approve</option>
                                       <option value="needs_revision">Needs Revision</option>
                                     </select>
                                   </div>
-                                  <button
-                                    onClick={handleSendFeedback}
-                                    className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
-                                  >
-                                    Send Feedback
-                                  </button>
+
+                                  {/* Submit Button */}
+                                  <div className="flex items-end">
+                                    <button
+                                      onClick={() => handleGradeSubmission(submission.id, maxPoints)}
+                                      className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                                    >
+                                      <span>✓</span> Submit Grade
+                                    </button>
+                                  </div>
                                 </div>
+
+                                {/* Feedback (optional) */}
+                                <div className="mt-3">
+                                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    Feedback (optional)
+                                  </label>
+                                  <textarea
+                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none"
+                                    rows={2}
+                                    placeholder="Great work! Keep it up..."
+                                    value={feedbackText}
+                                    onChange={(e) => setFeedbackText(e.target.value)}
+                                  />
+                                </div>
+
+                                {/* On-time bonus indicator */}
+                                {assignment?.due_date && new Date(submission.submitted_at) <= new Date(assignment.due_date) && (
+                                  <div className="mt-2 text-sm text-emerald-600 flex items-center gap-1">
+                                    <span>⭐</span> On-time bonus: +{Math.round(maxPoints * 0.1)} points will be added automatically!
+                                  </div>
+                                )}
                               </div>
                             )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Recently Graded Section */}
+                  {teacherSubmissions.filter(s => s.graded_at).length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold text-slate-700 mb-4">Recently Graded</h3>
+                      <div className="space-y-2">
+                        {teacherSubmissions.filter(s => s.graded_at).slice(0, 5).map(submission => {
+                          const assignment = assignments.find(a => a.id === submission.assignment_id);
+                          const student = classStudents.find(s => s.id === submission.student_id);
+                          const totalPoints = (submission.points_earned || 0) + (submission.on_time_bonus || 0);
+
+                          return (
+                            <div key={submission.id} className="bg-slate-50 p-3 rounded-xl flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-medium">
+                                  {student?.name?.charAt(0) || '?'}
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-slate-700">{student?.name}</div>
+                                  <div className="text-xs text-slate-500">{assignment?.title}</div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-semibold text-emerald-600">
+                                  {submission.points_earned}/{submission.points_possible}
+                                  {(submission.on_time_bonus || 0) > 0 && (
+                                    <span className="text-xs text-emerald-500 ml-1">+{submission.on_time_bonus}</span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-slate-400">
+                                  {totalPoints} total pts
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Leaderboard Tab */}
+              {teacherTab === 'leaderboard' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-slate-900">Class Leaderboard</h2>
+                    <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                      {[
+                        { id: 'all' as const, label: 'All Time' },
+                        { id: 'month' as const, label: 'This Month' },
+                        { id: 'week' as const, label: 'This Week' }
+                      ].map(period => (
+                        <button
+                          key={period.id}
+                          onClick={() => setLeaderboardPeriod(period.id)}
+                          className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                            leaderboardPeriod === period.id
+                              ? 'bg-white text-slate-900 shadow-sm'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          {period.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {loadingLeaderboard ? (
+                    <div className="text-center py-16">
+                      <div className="text-4xl mb-4 animate-bounce">🏆</div>
+                      <p className="text-slate-500">Loading leaderboard...</p>
+                    </div>
+                  ) : leaderboard.length === 0 ? (
+                    <div className="text-center py-16">
+                      <div className="text-5xl mb-4">📊</div>
+                      <p className="text-slate-500">No data yet. Grade some submissions to see the leaderboard!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {leaderboard.map((student, index) => {
+                        const isTopThree = index < 3;
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+
+                        return (
+                          <div
+                            key={student.student_id}
+                            className={`p-4 rounded-xl border transition-all ${
+                              isTopThree
+                                ? index === 0
+                                  ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200'
+                                  : index === 1
+                                  ? 'bg-gradient-to-r from-slate-50 to-gray-50 border-gray-200'
+                                  : 'bg-gradient-to-r from-orange-50 to-amber-50 border-orange-200'
+                                : 'bg-white border-slate-100 hover:border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              {/* Rank */}
+                              <div className={`w-10 text-center font-bold text-lg ${
+                                isTopThree ? 'text-2xl' : 'text-slate-400'
+                              }`}>
+                                {medal || student.rank}
+                              </div>
+
+                              {/* Avatar */}
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+                                isTopThree
+                                  ? 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                                  : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                              }`}>
+                                {student.student_avatar || student.student_name?.charAt(0) || '?'}
+                              </div>
+
+                              {/* Name & Stats */}
+                              <div className="flex-1">
+                                <div className="font-semibold text-slate-900">{student.student_name}</div>
+                                <div className="flex items-center gap-3 text-sm text-slate-500">
+                                  <span>Level {student.current_level || 1}</span>
+                                  <span>•</span>
+                                  <span>{student.assignments_graded}/{student.total_assignments} graded</span>
+                                  <span>•</span>
+                                  <span>{student.avg_score_percent}% avg</span>
+                                </div>
+                              </div>
+
+                              {/* Points */}
+                              <div className="text-right">
+                                <div className={`text-2xl font-bold ${
+                                  isTopThree ? 'text-indigo-600' : 'text-slate-700'
+                                }`}>
+                                  {student.total_points}
+                                </div>
+                                <div className="text-xs text-slate-400">points</div>
+                              </div>
+                            </div>
                           </div>
                         );
                       })}
@@ -1301,6 +1609,128 @@ export default function School() {
             </div>
           </div>
 
+          {/* Class Leaderboard for Students */}
+          {enrolledClasses.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <span>🏆</span> Class Leaderboard
+                </h2>
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                  {[
+                    { id: 'all' as const, label: 'All' },
+                    { id: 'month' as const, label: 'Month' },
+                    { id: 'week' as const, label: 'Week' }
+                  ].map(period => (
+                    <button
+                      key={period.id}
+                      onClick={() => setLeaderboardPeriod(period.id)}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        leaderboardPeriod === period.id
+                          ? 'bg-white text-slate-900 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {period.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Class Tabs if enrolled in multiple classes */}
+              {enrolledClasses.length > 1 && (
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  {enrolledClasses.map(cls => (
+                    <button
+                      key={cls.id}
+                      onClick={() => {
+                        setSelectedClassId(cls.id);
+                        loadLeaderboard(cls.id);
+                      }}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+                        selectedClassId === cls.id
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-300'
+                      }`}
+                    >
+                      {cls.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Leaderboard Display */}
+              <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+                {loadingLeaderboard ? (
+                  <div className="text-center py-12">
+                    <div className="text-3xl mb-2 animate-bounce">🏆</div>
+                    <p className="text-sm text-slate-500">Loading...</p>
+                  </div>
+                ) : leaderboard.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-3xl mb-2">📊</div>
+                    <p className="text-sm text-slate-500">No rankings yet</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {leaderboard.slice(0, 10).map((student, index) => {
+                      // For children: highlight their own entry
+                      // For parents: highlight their selected child's entry
+                      const targetStudentId = isChild ? currentProfile?.id : selectedStudentId;
+                      const isCurrentUser = targetStudentId != null && student.student_id === targetStudentId;
+                      const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null;
+
+                      return (
+                        <div
+                          key={student.student_id}
+                          className={`flex items-center gap-3 p-4 ${
+                            isCurrentUser
+                              ? 'bg-indigo-50 border-l-4 border-indigo-500'
+                              : index < 3 ? 'bg-gradient-to-r from-yellow-50/50 to-transparent' : ''
+                          }`}
+                        >
+                          {/* Rank */}
+                          <div className={`w-8 text-center font-bold ${index < 3 ? 'text-xl' : 'text-slate-400'}`}>
+                            {medal || student.rank}
+                          </div>
+
+                          {/* Avatar */}
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
+                            index === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500' :
+                            index === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-400' :
+                            index === 2 ? 'bg-gradient-to-br from-orange-400 to-amber-600' :
+                            'bg-gradient-to-br from-slate-400 to-slate-500'
+                          }`}>
+                            {student.student_avatar || student.student_name?.charAt(0) || '?'}
+                          </div>
+
+                          {/* Name */}
+                          <div className="flex-1">
+                            <div className={`font-medium ${isCurrentUser ? 'text-indigo-700' : 'text-slate-900'}`}>
+                              {student.student_name}
+                              {isCurrentUser && <span className="text-xs ml-2 text-indigo-500">{isChild ? '(You)' : '⭐'}</span>}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              Level {student.current_level || 1} • {student.avg_score_percent}% avg
+                            </div>
+                          </div>
+
+                          {/* Points */}
+                          <div className="text-right">
+                            <div className={`text-lg font-bold ${isCurrentUser ? 'text-indigo-600' : 'text-slate-700'}`}>
+                              {student.total_points}
+                            </div>
+                            <div className="text-xs text-slate-400">pts</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Enrolled Classes & Enrollment (Parent only) */}
           {isParent && (
             <div className="mb-8 bg-white p-5 rounded-2xl border border-slate-100">
@@ -1387,47 +1817,130 @@ export default function School() {
                       const isPending = submission?.status === 'submitted';
                       const typeInfo = assignmentTypes.find(t => t.value === assignment.type);
 
+                      const isExpanded = expandedAssignmentId === assignment.id;
+                      const attachments = assignmentAttachments[assignment.id] || [];
+                      const isLoadingAtt = loadingAttachments[assignment.id];
+
                       return (
                         <div
                           key={assignment.id}
-                          className={`bg-white p-5 rounded-2xl border transition-all ${
+                          className={`bg-white rounded-2xl border transition-all ${
                             isApproved ? 'border-emerald-200 bg-emerald-50/50' :
                             needsRevision ? 'border-amber-200 bg-amber-50/50' :
                             overdueStatus ? 'border-red-200 bg-red-50/50' :
                             'border-slate-100 hover:border-slate-200'
                           }`}
                         >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-start gap-4">
-                              <div className="text-2xl">{typeInfo?.icon || '📋'}</div>
-                              <div>
-                                <h3 className="font-semibold text-slate-900">{assignment.title}</h3>
-                                {assignment.description && (
-                                  <p className="text-sm text-slate-500 mt-1">{assignment.description}</p>
-                                )}
-                                <div className="flex items-center gap-3 mt-2 text-sm">
-                                  <span className="text-slate-400">{typeInfo?.label}</span>
-                                  {assignment.due_date && (
-                                    <span className={overdueStatus ? 'text-red-500 font-medium' : 'text-slate-400'}>
-                                      {overdueStatus ? 'Overdue' : `Due ${formatDate(assignment.due_date)}`}
-                                    </span>
+                          {/* Clickable Header */}
+                          <button
+                            onClick={() => handleToggleAssignment(assignment.id)}
+                            className="w-full p-5 text-left"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start gap-4">
+                                <div className="text-2xl">{typeInfo?.icon || '📋'}</div>
+                                <div>
+                                  <h3 className="font-semibold text-slate-900">{assignment.title}</h3>
+                                  {!isExpanded && assignment.description && (
+                                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">{assignment.description}</p>
                                   )}
+                                  <div className="flex items-center gap-3 mt-2 text-sm">
+                                    <span className="text-slate-400">{typeInfo?.label}</span>
+                                    {assignment.due_date && (
+                                      <span className={overdueStatus ? 'text-red-500 font-medium' : 'text-slate-400'}>
+                                        {overdueStatus ? 'Overdue' : `Due ${formatDate(assignment.due_date)}`}
+                                      </span>
+                                    )}
+                                    {assignment.max_points && (
+                                      <span className="text-slate-400">{assignment.max_points} pts</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                                  isApproved ? 'bg-emerald-100 text-emerald-700' :
+                                  isPending ? 'bg-blue-100 text-blue-700' :
+                                  needsRevision ? 'bg-amber-100 text-amber-700' :
+                                  'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {isApproved ? 'Approved' : isPending ? 'Pending' : needsRevision ? 'Revise' : 'Todo'}
+                                </div>
+                                <svg
+                                  className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
                             </div>
-                            <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                              isApproved ? 'bg-emerald-100 text-emerald-700' :
-                              isPending ? 'bg-blue-100 text-blue-700' :
-                              needsRevision ? 'bg-amber-100 text-amber-700' :
-                              'bg-slate-100 text-slate-600'
-                            }`}>
-                              {isApproved ? 'Approved' : isPending ? 'Pending' : needsRevision ? 'Revise' : 'Todo'}
-                            </div>
-                          </div>
+                          </button>
 
-                          {/* Feedback */}
+                          {/* Expanded Details */}
+                          {isExpanded && (
+                            <div className="px-5 pb-5 border-t border-slate-100">
+                              {/* Full Description */}
+                              {assignment.description && (
+                                <div className="mt-4">
+                                  <h4 className="text-sm font-medium text-slate-700 mb-1">Description</h4>
+                                  <p className="text-sm text-slate-600 whitespace-pre-wrap">{assignment.description}</p>
+                                </div>
+                              )}
+
+                              {/* YouTube Link */}
+                              {assignment.youtube_link && (
+                                <div className="mt-4">
+                                  <h4 className="text-sm font-medium text-slate-700 mb-2">Video</h4>
+                                  <a
+                                    href={assignment.youtube_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700"
+                                  >
+                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                                    </svg>
+                                    Watch Video
+                                  </a>
+                                </div>
+                              )}
+
+                              {/* Attachments (Teacher Uploads) */}
+                              <div className="mt-4">
+                                <h4 className="text-sm font-medium text-slate-700 mb-2">
+                                  Materials from Teacher
+                                  {isLoadingAtt && <span className="ml-2 text-xs text-slate-400">Loading...</span>}
+                                </h4>
+                                {!isLoadingAtt && attachments.length === 0 && (
+                                  <p className="text-sm text-slate-400">No attachments</p>
+                                )}
+                                {attachments.length > 0 && (
+                                  <div className="space-y-2">
+                                    {attachments.map(att => (
+                                      <a
+                                        key={att.id}
+                                        href={att.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
+                                      >
+                                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span className="text-sm text-slate-700">{att.file_name || 'Download'}</span>
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Feedback - always visible if exists */}
                           {assignmentFeedback.length > 0 && (
-                            <div className={`mt-4 p-4 rounded-xl border-l-4 ${
+                            <div className={`mx-5 mb-4 p-4 rounded-xl border-l-4 ${
                               isApproved
                                 ? 'bg-emerald-50 border-emerald-500'
                                 : needsRevision
@@ -1465,9 +1978,9 @@ export default function School() {
                             </div>
                           )}
 
-                          {/* Submit Area */}
-                          {!isApproved && (
-                            <div className="mt-4 pt-4 border-t border-slate-100 flex gap-3 items-end">
+                          {/* Submit Area - show when expanded or always for pending assignments */}
+                          {!isApproved && (isExpanded || !submission?.status) && (
+                            <div className="mx-5 mb-5 pt-4 border-t border-slate-100 flex gap-3 items-end">
                               <div className="flex-1">
                                 <textarea
                                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none text-sm"

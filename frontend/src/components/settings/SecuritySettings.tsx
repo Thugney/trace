@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Lock, Eye, EyeOff, Save, Loader2, Key, CheckCircle, AlertCircle, Users, UserPlus, ClipboardList } from 'lucide-react';
+import { Shield, Lock, Eye, EyeOff, Save, Loader2, Key, CheckCircle, AlertCircle, Users, UserPlus, ClipboardList, GraduationCap } from 'lucide-react';
 import { Profile } from '../../types';
 import { profilesAPI, settingsAPI } from '../../services/api';
 
@@ -170,10 +170,13 @@ export default function SecuritySettings({
     }
   };
 
+  // Teachers need password access too
+  const isTeacher = profile.type === 'teacher';
+
   return (
     <div className="space-y-6">
-      {/* Password Management */}
-      {(isParent || isAdmin) && (
+      {/* Password Management - Available for parents, admins, and teachers */}
+      {(isParent || isAdmin || isTeacher) && (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 p-[2px]">
           <div className="bg-white rounded-[14px] p-6">
             <div className="flex items-center gap-4 mb-6">
@@ -235,6 +238,33 @@ export default function SecuritySettings({
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Update Password
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Teacher Role Info - Only for teachers */}
+      {isTeacher && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-[2px]">
+          <div className="bg-white rounded-[14px] p-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/25">
+                <GraduationCap className="text-white" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-900">Your Role</h3>
+                <p className="text-sm text-slate-500">Church School Teacher</p>
+              </div>
+              <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                <CheckCircle size={14} />
+                Active
+              </span>
+            </div>
+            <div className="mt-4 p-4 bg-emerald-50 rounded-xl">
+              <p className="text-sm text-emerald-800">
+                As a teacher, you have access to Church School features including class management,
+                assignments, grading, and attendance. You can update your profile photo and password from the settings above.
+              </p>
+            </div>
           </div>
         </div>
       )}
