@@ -491,6 +491,31 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
         .h5p-content .h5p-joubelui-score-numeric {
           color: #333 !important;
         }
+        /* Fix QuestionSet intro page title visibility */
+        .h5p-content .h5p-question-set-intro-title,
+        .h5p-content .intro-page .title,
+        .h5p-content .h5p-joubelui-intro-title,
+        .h5p-content .h5p-question-introduction h2,
+        .h5p-content .intro-page h2,
+        .h5p-content .h5p-intro-page-title {
+          color: #1e40af !important;
+          background: none !important;
+          background-clip: unset !important;
+          -webkit-background-clip: unset !important;
+          -webkit-text-fill-color: unset !important;
+          text-shadow: none !important;
+        }
+        /* Override any gradient text effects that H5P might apply */
+        .h5p-content [class*="title"],
+        .h5p-content [class*="Title"] {
+          color: #1e40af !important;
+          -webkit-text-fill-color: #1e40af !important;
+        }
+        /* Ensure intro page content is visible */
+        .h5p-content .intro-page,
+        .h5p-content .h5p-intro-page {
+          background: white !important;
+        }
       `}</style>
     </div>
   );

@@ -611,6 +611,36 @@ export interface QuizQuestion {
 }
 
 /**
+ * Clean up AI-generated text by converting Markdown asterisks to HTML bold tags.
+ * This prevents asterisks from being displayed literally or misinterpreted as blanks.
+ * @param text The AI-generated text that may contain *asterisk* emphasis
+ * @returns Cleaned text with asterisks converted to <strong> tags
+ */
+function cleanAiGeneratedText(text: string): string {
+  if (!text) return text;
+
+  // Convert Markdown bold (**text** or *text*) to HTML <strong> tags
+  // Handle double asterisks first: **bold** -> <strong>bold</strong>
+  let cleaned = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Handle single asterisks: *emphasis* -> <strong>emphasis</strong>
+  // But be careful not to match already converted tags or standalone asterisks
+  cleaned = cleaned.replace(/\*([^*<>]+)\*/g, '<strong>$1</strong>');
+
+  return cleaned;
+}
+
+/**
+ * Remove all asterisks from text (for fill_blank where we need clean text before adding answer markers)
+ * @param text The text to clean
+ * @returns Text with all asterisks removed
+ */
+function stripAsterisks(text: string): string {
+  if (!text) return text;
+  return text.replace(/\*+/g, '');
+}
+
+/**
  * Convert AI-generated QuizSpec to H5P Question Set params
  */
 export function convertQuizSpecToH5P(quizSpec: QuizSpec): {
@@ -678,18 +708,22 @@ export function convertQuizSpecToH5P(quizSpec: QuizSpec): {
  * Convert MCQ question to H5P MultiChoice format
  */
 function convertMCQToH5P(q: QuizQuestion, index: number): any {
+  // Clean the prompt text to convert Markdown asterisks to HTML bold
+  const cleanedPrompt = cleanAiGeneratedText(q.prompt);
+  const cleanedExplanation = cleanAiGeneratedText(q.explanation || '');
+
   const answers = (q.choices || []).map((choice, i) => ({
     correct: i === q.answerIndex,
-    text: `<div>${choice}</div>`,
+    text: `<div>${cleanAiGeneratedText(choice)}</div>`,
     tpiMSG: i === q.answerIndex
-      ? (q.explanation || 'Correct!')
+      ? (cleanedExplanation || 'Correct!')
       : 'Try again!'
   }));
 
   return {
     library: 'H5P.MultiChoice 1.16',
     params: {
-      question: `<p>${q.prompt}</p>`,
+      question: `<p>${cleanedPrompt}</p>`,
       answers,
       behaviour: {
         enableRetry: true,
@@ -744,10 +778,14 @@ function convertMCQToH5P(q: QuizQuestion, index: number): any {
  * Convert True/False question to H5P TrueFalse format
  */
 function convertTrueFalseToH5P(q: QuizQuestion, index: number): any {
+  // Clean the prompt text to convert Markdown asterisks to HTML bold
+  const cleanedPrompt = cleanAiGeneratedText(q.prompt);
+  const cleanedExplanation = cleanAiGeneratedText(q.explanation || '');
+
   return {
     library: 'H5P.TrueFalse 1.8',
     params: {
-      question: `<p>${q.prompt}</p>`,
+      question: `<p>${cleanedPrompt}</p>`,
       correct: q.correctAnswer === true ? 'true' : 'false',
       behaviour: {
         enableRetry: true,
@@ -764,7 +802,7 @@ function convertTrueFalseToH5P(q: QuizQuestion, index: number): any {
         checkAnswer: 'Check',
         showSolutionButton: 'Show solution',
         tryAgain: 'Retry',
-        wrongAnswerMessage: q.explanation || 'Wrong answer',
+        wrongAnswerMessage: cleanedExplanation || 'Wrong answer',
         correctAnswerMessage: 'Correct!'
       },
       media: {
@@ -794,62 +832,79 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
   // Clean up the prompt and convert to H5P format
   let textWithBlanks = q.prompt;
 
-  // Remove any asterisks that AI might have incorrectly added
+  // STEP 1: Remove off-topic content patterns FIRST (before any processing)
+  // Common AI hallucination patterns that sneak into responses
+  const offTopicPatterns = [
+    /\.\s*Oslo\s+is\s+the\s+capital\s+of[^.]*\./gi,
+    /\.\s*Example:[^.]*\./gi,
+    /\.\s*For\s+instance:[^.]*\./gi,
+    /\.\s*Sample:[^.]*\./gi,
+    /\.\s*E\.g\.:[^.]*\./gi,
+    /\.\s*For\s+example[^.]*\./gi,
+  ];
+
+  for (const pattern of offTopicPatterns) {
+    const before = textWithBlanks;
+    textWithBlanks = textWithBlanks.replace(pattern, '.');
+    if (textWithBlanks !== before) {
+      console.warn(`[H5P] Fill-blank question ${index}: Removed off-topic content`);
+    }
+  }
+
+  // STEP 2: Strip ALL asterisks (AI might use *bold* for emphasis which would become extra blanks)
   textWithBlanks = textWithBlanks.replace(/\*+/g, '');
 
-  // If prompt has ___ blanks, replace with *answer*
+  // STEP 3: If prompt has ___ blanks, replace with *answer*
+  // Only replace the FIRST ___ to ensure we have exactly one blank
   if (textWithBlanks.includes('___')) {
-    textWithBlanks = textWithBlanks.replace(/___+/g, `*${q.correctAnswer}*`);
+    textWithBlanks = textWithBlanks.replace(/___+/, `*${q.correctAnswer}*`);
+    // If there were multiple ___ patterns, remove additional ones
+    textWithBlanks = textWithBlanks.replace(/___+/g, '____'); // Mark extras with 4 underscores
+    if (textWithBlanks.includes('____')) {
+      console.warn(`[H5P] Fill-blank question ${index}: Multiple blanks detected, keeping only first`);
+      // Remove extra blank patterns entirely (they would create unwanted input fields)
+      textWithBlanks = textWithBlanks.replace(/\s*____\s*/g, ' ');
+    }
   } else {
     // If no blanks in prompt, AI might have generated incorrectly
-    // Try to create a proper fill-in-the-blank by appending the answer
-    // This is a fallback - ideally the AI generates correct format
     console.warn(`[H5P] Fill-blank question ${index} has no ___ in prompt, using fallback`);
     textWithBlanks = `${textWithBlanks.trim().replace(/[.!?]$/, '')} *${q.correctAnswer}*.`;
   }
 
-  // Split into sentences and filter
+  // STEP 4: Keep only the sentence with the answer marker
   const sentences = textWithBlanks.split(/(?<=[.!?])\s+/).filter(s => s.trim());
 
   if (sentences.length > 1) {
-    // Multiple sentences detected - keep only the one with the answer marker
     const sentenceWithAnswer = sentences.find(s => s.includes('*'));
     if (sentenceWithAnswer) {
       textWithBlanks = sentenceWithAnswer.trim();
     } else {
-      // No sentence has the marker, just use the first sentence
       textWithBlanks = sentences[0].trim();
     }
   }
 
-  // Additional cleanup: if there are still multiple sentences (common AI error pattern)
-  // where AI appends unrelated example sentences, only keep up to the first period after the answer
-  const answerMatch = textWithBlanks.match(/\*[^*]+\*/);
-  if (answerMatch) {
-    const answerEnd = textWithBlanks.indexOf(answerMatch[0]) + answerMatch[0].length;
-    const textAfterAnswer = textWithBlanks.slice(answerEnd);
-    const firstPeriodAfterAnswer = textAfterAnswer.search(/[.!?]/);
-    if (firstPeriodAfterAnswer !== -1) {
-      // Only keep up to the first sentence ending after the answer
-      textWithBlanks = textWithBlanks.slice(0, answerEnd + firstPeriodAfterAnswer + 1).trim();
+  // STEP 5: Final safety check - ensure ONLY ONE *answer* pattern exists
+  const asteriskPairs = textWithBlanks.match(/\*[^*]+\*/g);
+  if (asteriskPairs && asteriskPairs.length > 1) {
+    console.warn(`[H5P] Fill-blank question ${index}: Multiple asterisk pairs found, keeping only first`);
+    // Keep only the text up to and including the first *answer* pattern
+    const firstMatch = asteriskPairs[0];
+    const firstMatchEnd = textWithBlanks.indexOf(firstMatch) + firstMatch.length;
+    // Find the end of the sentence containing the answer
+    const remainingText = textWithBlanks.slice(firstMatchEnd);
+    const sentenceEnd = remainingText.search(/[.!?]/);
+    if (sentenceEnd !== -1) {
+      textWithBlanks = textWithBlanks.slice(0, firstMatchEnd + sentenceEnd + 1).trim();
+    } else {
+      textWithBlanks = textWithBlanks.slice(0, firstMatchEnd).trim() + '.';
     }
   }
 
-  // Final cleanup - ensure no stray text patterns that indicate AI bleeding
-  // Common patterns: "Oslo is the capital of", "Example:", "For instance:"
-  const offTopicPatterns = [
-    /\bOslo\b/i,
-    /\bExample:/i,
-    /\bFor instance:/i,
-    /\bSample:/i,
-    /\bE\.g\.:/i,
-  ];
-
-  for (const pattern of offTopicPatterns) {
-    if (pattern.test(textWithBlanks) && !textWithBlanks.includes('*')) {
-      // This sentence is likely off-topic and doesn't have our answer
-      console.warn(`[H5P] Fill-blank question ${index} contains off-topic content, attempting recovery`);
-      // Try to use just the answer in a simple format
+  // STEP 6: Final off-topic check on the cleaned text
+  const finalOffTopicCheck = [/\bOslo\b/i, /\bExample:/i, /\bFor\s+instance:/i];
+  for (const pattern of finalOffTopicCheck) {
+    if (pattern.test(textWithBlanks)) {
+      console.warn(`[H5P] Fill-blank question ${index}: Off-topic content still present, using simple format`);
       textWithBlanks = `The answer is *${q.correctAnswer}*.`;
       break;
     }
@@ -916,10 +971,14 @@ function convertDragTextToH5P(q: QuizQuestion, index: number): any {
     });
   }
 
+  // Clean the task description (instructions shown above the activity)
+  // This should NOT have asterisks since it's just instruction text
+  const cleanedPrompt = cleanAiGeneratedText(q.prompt);
+
   return {
     library: 'H5P.DragText 1.10',
     params: {
-      taskDescription: `<p>${q.prompt}</p>`,
+      taskDescription: `<p>${cleanedPrompt}</p>`,
       textField: textContent,
       overallFeedback: [
         { from: 0, to: 50, feedback: 'Keep practicing!' },
@@ -970,10 +1029,14 @@ function convertMarkWordsToH5P(q: QuizQuestion, index: number): any {
     });
   }
 
+  // Clean the task description (instructions shown above the activity)
+  // This should NOT have asterisks since it's just instruction text
+  const cleanedPrompt = cleanAiGeneratedText(q.prompt);
+
   return {
     library: 'H5P.MarkTheWords 1.11',
     params: {
-      taskDescription: `<p>${q.prompt}</p>`,
+      taskDescription: `<p>${cleanedPrompt}</p>`,
       textField: textContent,
       overallFeedback: [
         { from: 0, to: 50, feedback: 'Keep practicing!' },
