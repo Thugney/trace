@@ -872,8 +872,9 @@ export default function ShoppingList() {
 
       {/* Create Trip Modal */}
       {showTripModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-xl max-w-md w-full p-6 my-4">
             <h3 className="font-bold text-lg mb-4">Start Shopping Trip</h3>
             <p className="text-slate-600 mb-4">
               List: <span className="font-medium">{showTripModal.name}</span>
@@ -932,14 +933,16 @@ export default function ShoppingList() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Complete Trip Modal */}
       {showCompleteTripModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-xl max-w-md w-full p-6 my-4">
             <h3 className="font-bold text-lg mb-4">Complete Shopping Trip</h3>
             <p className="text-slate-600 mb-4">
               List: <span className="font-medium">{showCompleteTripModal.list_name}</span>
@@ -1023,6 +1026,7 @@ export default function ShoppingList() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

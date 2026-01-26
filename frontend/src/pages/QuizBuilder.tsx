@@ -1038,8 +1038,9 @@ export default function QuizBuilder() {
       <div className="space-y-6">
         {/* Settings Modal */}
         {showSettingsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+            <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-4">
               <div className="p-6 border-b">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">Quiz Settings</h2>
@@ -1179,6 +1180,7 @@ export default function QuizBuilder() {
                 >
                   Save Settings
                 </button>
+              </div>
               </div>
             </div>
           </div>
