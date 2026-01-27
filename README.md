@@ -2,7 +2,7 @@
 
 A comprehensive multi-family management platform with an optional Church School module. Built as a Progressive Web App for seamless access across all devices.
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)
 ![License](https://img.shields.io/badge/license-Private-gray.svg)
 
 ## Overview

@@ -1,6 +1,6 @@
 {
   "name": "family-learning-hub-backend",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Backend API for Family Learning Hub",
   "main": "dist/index.js",
   "scripts": {
