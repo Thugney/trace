@@ -9,6 +9,7 @@ import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
+import { awardPoints } from '../services/economyControl';
 
 const router = Router();
 
@@ -828,21 +829,21 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       passed ? 1 : 0, competitionRank, competitionBonus, attemptId
     );
 
-    // Award progress points
+    // Award progress points using centralized economy-controlled system
     if (pointsEarned > 0 || starsEarned > 0) {
-      const currentProgress: any = db.prepare(`
-        SELECT total_points, total_stars, level FROM progress
-        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-      `).get(attempt.profile_id);
+      const awardResult = awardPoints({
+        profileId: attempt.profile_id,
+        basePoints: pointsEarned,
+        stars: starsEarned,
+        source: 'activity',
+        applyMultiplier: false,  // Activity already calculated points based on score
+        enforceRateLimit: false  // No cooldown for activities
+      });
 
-      const newTotalPoints = (currentProgress?.total_points || 0) + pointsEarned;
-      const newTotalStars = (currentProgress?.total_stars || 0) + starsEarned;
-      const newLevel = Math.floor(newTotalPoints / 100) + 1;
-
-      db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(attempt.profile_id, pointsEarned, starsEarned, newLevel, newTotalPoints, newTotalStars);
+      // Update pointsEarned to reflect any capping
+      if (awardResult.capped) {
+        pointsEarned = awardResult.awarded;
+      }
     }
 
     // Notify parent

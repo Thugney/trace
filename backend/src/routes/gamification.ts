@@ -10,7 +10,9 @@ import {
   updateRateLimit,
   canEarnPoints,
   recordEarnings,
-  isSpinWheelEnabled
+  isSpinWheelEnabled,
+  awardPoints,
+  getCurrentTotalPoints
 } from '../services/economyControl';
 import {
   getAiLimits,
@@ -291,48 +293,66 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
       return res.json([]);
     }
 
-    // Calculate date range for period
-    let dateFilter = '';
+    // Calculate date range for period using UTC dates to avoid timezone issues
     const now = new Date();
+    let periodStartDate: string | null = null;
+
     if (period === 'week') {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      dateFilter = `AND DATE(logged_at) >= DATE('${weekStart.toISOString().split('T')[0]}')`;
+      // Start of week (Sunday) in UTC
+      const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - now.getUTCDay()));
+      periodStartDate = weekStart.toISOString().split('T')[0];
     } else if (period === 'month') {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      dateFilter = `AND DATE(logged_at) >= DATE('${monthStart.toISOString().split('T')[0]}')`;
+      // Start of month in UTC
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      periodStartDate = monthStart.toISOString().split('T')[0];
     }
 
     // Get stats for each family member
     const leaderboard = profiles.map((profile: any) => {
-      // Get points for period
-      const points: any = period === 'all' || !period
-        ? db.prepare(`
-            SELECT total_points as points, total_stars as stars, level FROM progress
-            WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-          `).get(profile.id)
-        : db.prepare(`
-            SELECT SUM(points_earned) as points FROM progress
-            WHERE profile_id = ? ${dateFilter}
-          `).get(profile.id);
-
-      // Get total progress for level/stars (always use all-time for these)
-      const totalProgress: any = db.prepare(`
+      // Get current total points (most recent record)
+      const currentProgress: any = db.prepare(`
         SELECT total_points, total_stars, level FROM progress
         WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
       `).get(profile.id);
 
+      const currentTotalPoints = currentProgress?.total_points || 0;
+
+      let periodPoints = currentTotalPoints; // Default to all-time
+
+      if (periodStartDate && (period === 'week' || period === 'month')) {
+        // RELIABLE METHOD: Get total_points at start of period, calculate difference
+        // This avoids the bug where SUM(points_earned) can be incorrect due to data issues
+        const startOfPeriodProgress: any = db.prepare(`
+          SELECT total_points FROM progress
+          WHERE profile_id = ? AND DATE(logged_at) < ?
+          ORDER BY logged_at DESC LIMIT 1
+        `).get(profile.id, periodStartDate);
+
+        const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
+        periodPoints = currentTotalPoints - pointsAtPeriodStart;
+
+        // Ensure we don't show negative points (can happen if deductions were made)
+        // Actually, we SHOULD show negative if they had net deductions in the period
+        // But cap at reasonable display value
+      }
+
+      // Get total progress for level/stars (always use all-time for these)
+      const totalProgress: any = currentProgress;
+
       // Get tasks completed for period
-      const tasks: any = period === 'all' || !period
-        ? db.prepare(`
-            SELECT COUNT(*) as count FROM tasks
-            WHERE profile_id = ? AND completed = 1
-          `).get(profile.id)
-        : db.prepare(`
-            SELECT COUNT(*) as count FROM tasks
-            WHERE profile_id = ? AND completed = 1
-            ${dateFilter.replace('logged_at', 'completed_at')}
-          `).get(profile.id);
+      let tasks: any;
+      if (period === 'all' || !period) {
+        tasks = db.prepare(`
+          SELECT COUNT(*) as count FROM tasks
+          WHERE profile_id = ? AND completed = 1
+        `).get(profile.id);
+      } else {
+        tasks = db.prepare(`
+          SELECT COUNT(*) as count FROM tasks
+          WHERE profile_id = ? AND completed = 1
+          AND DATE(completed_at) >= DATE(?)
+        `).get(profile.id, periodStartDate);
+      }
 
       // Get current streak
       const streak: any = db.prepare(`
@@ -358,7 +378,7 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
         name: profile.name,
         avatar: profile.avatar || '👤',
         type: profile.type,
-        points: points?.points || 0,
+        points: periodPoints,
         stars: totalProgress?.total_stars || 0,
         level: totalProgress?.level || 1,
         tasksCompleted: tasks?.count || 0,
@@ -383,149 +403,6 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
     });
 
     res.json(leaderboard);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// DIAGNOSTIC: Investigate leaderboard data integrity
-router.get('/leaderboard-diagnostic', (req: AuthRequest, res) => {
-  try {
-    const currentUser = req.profile!;
-
-    // Only allow parents/admins to access diagnostics
-    if (currentUser.type !== 'parent' && currentUser.type !== 'admin') {
-      return res.status(403).json({ error: 'Only parents/admins can access diagnostics' });
-    }
-
-    // Get family members
-    const familyId = currentUser.family_id;
-
-    let profiles: any[];
-    if (familyId) {
-      profiles = db.prepare(`
-        SELECT id, name, type FROM profiles
-        WHERE family_id = ? AND type IN ('parent', 'child')
-      `).all(familyId);
-    } else {
-      profiles = db.prepare(`
-        SELECT id, name, type FROM profiles
-        WHERE (id = ? OR parent_id = ?)
-          AND type IN ('parent', 'child')
-      `).all(currentUser.id, currentUser.id);
-    }
-
-    // Calculate date ranges
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const diagnostic: any = {
-      serverTime: now.toISOString(),
-      weekStartDate: weekStart.toISOString().split('T')[0],
-      monthStartDate: monthStart.toISOString().split('T')[0],
-      profiles: []
-    };
-
-    for (const profile of profiles) {
-      // Get ALL progress records for this profile
-      const allProgress: any[] = db.prepare(`
-        SELECT id, task_id, points_earned, total_points, logged_at,
-               DATE(logged_at) as log_date
-        FROM progress
-        WHERE profile_id = ?
-        ORDER BY logged_at DESC
-      `).all(profile.id);
-
-      // Get latest total_points (what "All Time" uses)
-      const latestRecord = allProgress[0];
-
-      // Sum points_earned for this week
-      const weekRecords = allProgress.filter((r: any) =>
-        r.log_date >= weekStart.toISOString().split('T')[0]
-      );
-      const weekSum = weekRecords.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
-
-      // Sum points_earned for this month
-      const monthRecords = allProgress.filter((r: any) =>
-        r.log_date >= monthStart.toISOString().split('T')[0]
-      );
-      const monthSum = monthRecords.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
-
-      // Sum ALL points_earned (should equal total_points if data is consistent)
-      const allTimeSum = allProgress.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
-
-      // Find any suspicious records (points_earned > 100 or negative large values)
-      const suspiciousRecords = allProgress.filter((r: any) =>
-        r.points_earned > 100 || r.points_earned < -100
-      );
-
-      // Find records where total_points decreased unexpectedly
-      const inconsistentRecords: any[] = [];
-      for (let i = 0; i < allProgress.length - 1; i++) {
-        const current = allProgress[i];
-        const previous = allProgress[i + 1];
-        const expectedTotal = previous.total_points + current.points_earned;
-        if (current.total_points !== expectedTotal) {
-          inconsistentRecords.push({
-            id: current.id,
-            logged_at: current.logged_at,
-            points_earned: current.points_earned,
-            total_points: current.total_points,
-            previous_total: previous.total_points,
-            expected_total: expectedTotal,
-            discrepancy: current.total_points - expectedTotal
-          });
-        }
-      }
-
-      diagnostic.profiles.push({
-        id: profile.id,
-        name: profile.name,
-        type: profile.type,
-        totalRecords: allProgress.length,
-        latestTotalPoints: latestRecord?.total_points || 0,
-        calculations: {
-          allTime_fromLatestRecord: latestRecord?.total_points || 0,
-          allTime_fromSumPointsEarned: allTimeSum,
-          discrepancy: (latestRecord?.total_points || 0) - allTimeSum,
-          thisWeek_sumPointsEarned: weekSum,
-          thisWeek_recordCount: weekRecords.length,
-          thisMonth_sumPointsEarned: monthSum,
-          thisMonth_recordCount: monthRecords.length
-        },
-        issues: {
-          hasTotalMismatch: (latestRecord?.total_points || 0) !== allTimeSum,
-          monthHigherThanAllTime: monthSum > (latestRecord?.total_points || 0),
-          weekHigherThanMonth: weekSum > monthSum,
-          suspiciousRecordCount: suspiciousRecords.length,
-          inconsistentRecordCount: inconsistentRecords.length
-        },
-        suspiciousRecords: suspiciousRecords.slice(0, 10),
-        inconsistentRecords: inconsistentRecords.slice(0, 10),
-        recentRecords: allProgress.slice(0, 20).map((r: any) => ({
-          id: r.id,
-          task_id: r.task_id,
-          points_earned: r.points_earned,
-          total_points: r.total_points,
-          logged_at: r.logged_at
-        }))
-      });
-    }
-
-    // Summary
-    diagnostic.summary = {
-      totalProfiles: diagnostic.profiles.length,
-      profilesWithIssues: diagnostic.profiles.filter((p: any) =>
-        p.issues.hasTotalMismatch ||
-        p.issues.monthHigherThanAllTime ||
-        p.issues.suspiciousRecordCount > 0 ||
-        p.issues.inconsistentRecordCount > 0
-      ).length
-    };
-
-    res.json(diagnostic);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -773,20 +650,15 @@ function checkAchievements(profileId: number) {
           VALUES (?, ?)
         `).run(profileId, achievement.id);
 
-        // Award bonus points for achievement
+        // Award bonus points for achievement using centralized system
         if (achievement.points_reward > 0) {
-          const currentProgress: any = db.prepare(`
-            SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-          `).get(profileId);
-
-          if (currentProgress) {
-            const newPoints = currentProgress.total_points + achievement.points_reward;
-            const newLevel = Math.floor(newPoints / 100) + 1;
-            db.prepare(`
-              INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-              VALUES (?, ?, 0, ?, ?, ?)
-            `).run(profileId, achievement.points_reward, newLevel, newPoints, currentProgress.total_stars);
-          }
+          awardPoints({
+            profileId,
+            basePoints: achievement.points_reward,
+            source: 'achievement',
+            applyMultiplier: false,
+            enforceRateLimit: false
+          });
         }
 
         return { awarded: true };
@@ -890,21 +762,21 @@ router.post('/challenges/:challengeId/complete', (req, res) => {
       UPDATE daily_challenges SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?
     `).run(challengeId);
 
-    // Award bonus points
-    const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(challenge.profile_id);
+    // Award bonus points using centralized system
+    const awardResult = awardPoints({
+      profileId: challenge.profile_id,
+      basePoints: challenge.bonus_points,
+      source: 'challenge',
+      applyMultiplier: false,
+      enforceRateLimit: false
+    });
 
-    if (currentProgress) {
-      const newPoints = currentProgress.total_points + challenge.bonus_points;
-      const newLevel = Math.floor(newPoints / 100) + 1;
-      db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, 0, ?, ?, ?)
-      `).run(challenge.profile_id, challenge.bonus_points, newLevel, newPoints, currentProgress.total_stars);
-    }
-
-    res.json({ message: 'Challenge completed!', bonusPoints: challenge.bonus_points });
+    res.json({
+      message: 'Challenge completed!',
+      bonusPoints: awardResult.awarded,
+      capped: awardResult.capped,
+      dailyRemaining: awardResult.dailyRemaining
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -1185,28 +1057,25 @@ router.post('/login-bonus/:profileId/claim', (req, res) => {
         throw insertError;
       }
 
-      // Get current progress and calculate new totals atomically
-      const currentProgress: any = db.prepare(`
-        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-      `).get(profileId);
-
-      const currentPoints = currentProgress?.total_points || 0;
-      const currentStars = currentProgress?.total_stars || 0;
-      const newPoints = currentPoints + pointsToEarn;
-      const newLevel = Math.floor(newPoints / 100) + 1;
-
-      db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, 0, ?, ?, ?)
-      `).run(profileId, pointsToEarn, newLevel, newPoints, currentStars);
+      // Award points using centralized system (inside transaction)
+      const awardResult = awardPoints({
+        profileId: parseInt(profileId),
+        basePoints: pointsToEarn,
+        source: 'login_bonus',
+        applyMultiplier: false,
+        enforceRateLimit: false,
+        actionType: 'bonus'
+      });
 
       return {
         success: true,
-        points_earned: pointsToEarn,
+        points_earned: awardResult.awarded,
         consecutive_days: consecutiveDays,
-        total_points: newPoints,
+        total_points: awardResult.newTotal,
         next_bonus: DAILY_BONUS_POINTS[consecutiveDays % 7],
-        is_week_complete: consecutiveDays === 7
+        is_week_complete: consecutiveDays === 7,
+        capped: awardResult.capped,
+        dailyRemaining: awardResult.dailyRemaining
       };
     });
 
@@ -1363,23 +1232,28 @@ router.post('/streak-freeze/:profileId', (req, res) => {
       return res.status(400).json({ error: 'Already used streak freeze this week' });
     }
 
-    // Check points
+    // Check points and deduct using centralized system
     const freezeCost = 50;
-    const progress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
+    const currentTotal = getCurrentTotalPoints(parseInt(profileId));
 
-    if ((progress?.total_points || 0) < freezeCost) {
-      return res.status(400).json({ error: 'Not enough points', required: freezeCost, current: progress?.total_points || 0 });
+    if (currentTotal < freezeCost) {
+      return res.status(400).json({ error: 'Not enough points', required: freezeCost, current: currentTotal });
     }
 
-    // Deduct points
-    const newPoints = progress.total_points - freezeCost;
-    const newLevel = Math.floor(newPoints / 100) + 1;
-    db.prepare(`
-      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-      VALUES (?, ?, 0, ?, ?, ?)
-    `).run(profileId, -freezeCost, newLevel, newPoints, progress.total_stars);
+    // Deduct points using centralized system
+    const awardResult = awardPoints({
+      profileId: parseInt(profileId),
+      basePoints: -freezeCost,
+      source: 'streak_freeze',
+      bypassCaps: true,  // Deductions bypass earning caps
+      enforceRateLimit: false
+    });
+
+    if (!awardResult.success) {
+      return res.status(400).json({ error: awardResult.reason || 'Failed to deduct points' });
+    }
+
+    const newPoints = awardResult.newTotal;
 
     // Check if streak exists first
     const existingStreak: any = db.prepare(`
@@ -1610,27 +1484,6 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
       return res.status(403).json({ error: 'Only parents can adjust points' });
     }
 
-    // Get current progress
-    const progress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
-
-    const currentPoints = progress?.total_points || 0;
-    const currentStars = progress?.total_stars || 0;
-
-    // For deductions, ensure child has enough points
-    if (amount < 0 && currentPoints + amount < 0) {
-      return res.status(400).json({
-        error: 'Cannot deduct more points than the child has',
-        current_points: currentPoints,
-        requested_deduction: Math.abs(amount)
-      });
-    }
-
-    // Calculate new totals
-    const newPoints = currentPoints + amount;
-    const newLevel = Math.floor(newPoints / 100) + 1;
-
     // Get related task title if provided
     let relatedTaskTitle: string | undefined;
     if (related_task_id) {
@@ -1638,29 +1491,48 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
       relatedTaskTitle = task?.title;
     }
 
-    // Insert adjustment record
-    db.prepare(`
-      INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-      VALUES (?, ?, 0, ?, ?, ?)
-    `).run(profileId, amount, newLevel, newPoints, currentStars);
+    // Capture current points before adjustment for response
+    const currentPoints = child.total_points || 0;
 
-    // Log the adjustment for audit
+    // Award/deduct points using centralized system
+    // Parent adjustments bypass caps but still go through the central system for consistency
+    const awardResult = awardPoints({
+      profileId: parseInt(profileId),
+      basePoints: amount,
+      source: 'adjustment',
+      bypassCaps: true,  // Parent adjustments bypass earning caps
+      applyMultiplier: false,
+      enforceRateLimit: false,
+      reason: reason.trim()
+    });
+
+    if (!awardResult.success) {
+      return res.status(400).json({
+        error: awardResult.reason || 'Failed to adjust points',
+        current_points: awardResult.newTotal
+      });
+    }
+
+    // Log the adjustment for audit (additional record beyond what awardPoints logs)
     try {
       db.prepare(`
         INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, related_task_id, created_at)
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `).run(profileId, parentId, amount, reason.trim(), related_task_id || null);
+      `).run(profileId, parentId, awardResult.awarded, reason.trim(), related_task_id || null);
     } catch (insertError: any) {
       // If related_task_id column doesn't exist, try without it
       if (insertError.message.includes('related_task_id')) {
         db.prepare(`
           INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).run(profileId, parentId, amount, reason.trim());
+        `).run(profileId, parentId, awardResult.awarded, reason.trim());
       } else if (!insertError.message.includes('no such table')) {
         throw insertError;
       }
     }
+
+    const newPoints = awardResult.newTotal;
+    const newLevel = awardResult.newLevel;
 
     // Send notification to the child
     try {
@@ -1853,19 +1725,17 @@ export function updateCountdownProgress(profileId: number, pointsEarned: number)
       WHERE id = ?
     `).run(newCompletedTasks, newAccumulatedPoints, bonusPoints, active.id);
 
-    // Award bonus points
-    const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
+    // Award bonus points using centralized system
+    const awardResult = awardPoints({
+      profileId,
+      basePoints: bonusPoints,
+      source: 'challenge',
+      applyMultiplier: false,
+      enforceRateLimit: false
+    });
 
-    if (currentProgress) {
-      const newPoints = currentProgress.total_points + bonusPoints;
-      const newLevel = Math.floor(newPoints / 100) + 1;
-      db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, 0, ?, ?, ?)
-      `).run(profileId, bonusPoints, newLevel, newPoints, currentProgress.total_stars);
-    }
+    // Update bonusPoints to reflect any capping
+    const actualBonusPoints = awardResult.awarded;
 
     // Check for hidden achievement
     const countdownCount: any = db.prepare(`
@@ -2034,28 +1904,30 @@ router.post('/spin-wheel/:profileId/spin', (req, res) => {
     let starsAwarded = 0;
 
     if (selectedPrize.type === 'points' || selectedPrize.type === 'jackpot') {
-      // Cap the points earned
-      const prizeCap = canEarnPoints(profileIdNum, selectedPrize.value);
-      pointsAwarded = prizeCap.cappedAmount !== undefined
-        ? Math.min(selectedPrize.value, prizeCap.cappedAmount)
-        : selectedPrize.value;
+      // Award points using centralized system (handles capping)
+      const awardResult = awardPoints({
+        profileId: profileIdNum,
+        basePoints: selectedPrize.value,
+        source: 'spin_wheel',
+        applyMultiplier: false,
+        enforceRateLimit: false,
+        actionType: 'spin'
+      });
+      pointsAwarded = awardResult.awarded;
     } else if (selectedPrize.type === 'stars') {
+      // Award stars using centralized system
+      const awardResult = awardPoints({
+        profileId: profileIdNum,
+        basePoints: 0,
+        stars: selectedPrize.value,
+        source: 'spin_wheel',
+        applyMultiplier: false,
+        enforceRateLimit: false,
+        actionType: 'spin'
+      });
       starsAwarded = selectedPrize.value;
     }
     // multiplier type is stored and applied on next task completion
-
-    if (currentProgress && (pointsAwarded > 0 || starsAwarded > 0)) {
-      const newPoints = currentProgress.total_points + pointsAwarded;
-      const newStars = currentProgress.total_stars + starsAwarded;
-      const newLevel = Math.floor(newPoints / 100) + 1;
-      db.prepare(`
-        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(profileId, pointsAwarded, starsAwarded, newLevel, newPoints, newStars);
-
-      // Record in daily tracker
-      recordEarnings(profileIdNum, pointsAwarded, starsAwarded, false, true);
-    }
 
     // Store multiplier as a power-up if won
     if (selectedPrize.type === 'multiplier') {
@@ -2175,20 +2047,15 @@ export function checkHiddenAchievement(profileId: number, achievementType: strin
       VALUES (?, ?)
     `).run(profileId, achievement.id);
 
-    // Award bonus points
+    // Award bonus points using centralized system
     if (achievement.points_reward > 0) {
-      const currentProgress: any = db.prepare(`
-        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-      `).get(profileId);
-
-      if (currentProgress) {
-        const newPoints = currentProgress.total_points + achievement.points_reward;
-        const newLevel = Math.floor(newPoints / 100) + 1;
-        db.prepare(`
-          INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars)
-          VALUES (?, ?, 0, ?, ?, ?)
-        `).run(profileId, achievement.points_reward, newLevel, newPoints, currentProgress.total_stars);
-      }
+      awardPoints({
+        profileId,
+        basePoints: achievement.points_reward,
+        source: 'achievement',
+        applyMultiplier: false,
+        enforceRateLimit: false
+      });
     }
 
     console.log(`[Hidden Achievement] ${profileId} unlocked: ${achievement.name}`);

@@ -423,6 +423,262 @@ export function areCountdownChallengesEnabled(profileId: number): boolean {
   return settings.countdown_challenges_enabled;
 }
 
+/**
+ * Point source types for tracking and auditing
+ */
+export type PointSource =
+  | 'task'           // Task completion
+  | 'quiz'           // Quiz/activity completion
+  | 'activity'       // Activity session
+  | 'shopping'       // Shopping helper
+  | 'achievement'    // Achievement unlock bonus
+  | 'challenge'      // Daily/custom challenge
+  | 'login_bonus'    // Daily login bonus
+  | 'spin_wheel'     // Spin wheel prize
+  | 'bonus'          // Manual bonus from parent
+  | 'adjustment'     // Manual adjustment (add/deduct)
+  | 'streak_freeze'; // Streak freeze purchase (deduction)
+
+export interface AwardPointsResult {
+  success: boolean;
+  awarded: number;
+  stars: number;
+  capped: boolean;
+  newTotal: number;
+  newLevel: number;
+  dailyRemaining: number;
+  weeklyRemaining: number;
+  reason?: string;
+}
+
+export interface AwardPointsOptions {
+  profileId: number;
+  basePoints: number;
+  stars?: number;
+  source: PointSource;
+  taskId?: number;
+  applyMultiplier?: boolean;      // Apply economy multiplier (default: true for tasks)
+  applyPowerUps?: boolean;        // Apply power-up multipliers (default: true)
+  bypassCaps?: boolean;           // For parent adjustments only (default: false)
+  enforceRateLimit?: boolean;     // Check cooldown (default: true for tasks)
+  actionType?: 'task' | 'bonus' | 'spin';  // For rate limiting
+  reason?: string;                // Audit trail for adjustments
+}
+
+/**
+ * CENTRALIZED POINT AWARDING FUNCTION
+ *
+ * All point awards MUST go through this function to ensure:
+ * 1. Economy caps are enforced (daily/weekly limits)
+ * 2. Rate limits are checked (cooldowns)
+ * 3. Multipliers are applied consistently
+ * 4. Progress records are created correctly
+ * 5. Earning tracker is updated
+ * 6. Audit trail is maintained
+ *
+ * @param options - Award configuration
+ * @returns Result with awarded amount and new totals
+ */
+export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
+  const {
+    profileId,
+    basePoints,
+    stars = 0,
+    source,
+    taskId,
+    applyMultiplier = source === 'task',
+    applyPowerUps = true,
+    bypassCaps = false,
+    enforceRateLimit = source === 'task',
+    actionType = 'task',
+    reason
+  } = options;
+
+  // Get current settings and progress
+  const settings = getEconomySettings(profileId);
+  const todayEarnings = getTodayEarnings(profileId);
+  const weekEarnings = getWeekEarnings(profileId);
+
+  // Check rate limit if enforced
+  if (enforceRateLimit && basePoints > 0) {
+    const rateCheck = checkRateLimit(profileId, actionType);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        awarded: 0,
+        stars: 0,
+        capped: false,
+        newTotal: getCurrentTotalPoints(profileId),
+        newLevel: getCurrentLevel(profileId),
+        dailyRemaining: settings.daily_points_cap - todayEarnings.points_earned,
+        weeklyRemaining: settings.weekly_points_cap - weekEarnings,
+        reason: `Please wait ${rateCheck.waitSeconds} seconds before your next action`
+      };
+    }
+  }
+
+  // Calculate points with multipliers
+  let calculatedPoints = basePoints;
+
+  if (applyMultiplier && basePoints > 0) {
+    calculatedPoints = Math.round(basePoints * settings.points_multiplier);
+  }
+
+  if (applyPowerUps && basePoints > 0) {
+    const powerUpMultiplier = getActivePowerUpMultiplier(profileId);
+    if (powerUpMultiplier > 1) {
+      calculatedPoints = Math.round(calculatedPoints * powerUpMultiplier);
+    }
+  }
+
+  // Apply caps unless bypassed (parent adjustments)
+  let finalPoints = calculatedPoints;
+  let wasCapped = false;
+  let capReason: string | undefined;
+
+  if (!bypassCaps && basePoints > 0) {
+    const dailyRemaining = settings.daily_points_cap - todayEarnings.points_earned;
+    const weeklyRemaining = settings.weekly_points_cap - weekEarnings;
+    const maxAllowed = Math.min(dailyRemaining, weeklyRemaining);
+
+    if (maxAllowed <= 0) {
+      return {
+        success: false,
+        awarded: 0,
+        stars: 0,
+        capped: true,
+        newTotal: getCurrentTotalPoints(profileId),
+        newLevel: getCurrentLevel(profileId),
+        dailyRemaining: Math.max(0, dailyRemaining),
+        weeklyRemaining: Math.max(0, weeklyRemaining),
+        reason: dailyRemaining <= 0
+          ? `Daily limit reached (${settings.daily_points_cap} points). Try again tomorrow!`
+          : `Weekly limit reached (${settings.weekly_points_cap} points). Resets on Sunday!`
+      };
+    }
+
+    if (finalPoints > maxAllowed) {
+      finalPoints = maxAllowed;
+      wasCapped = true;
+      capReason = `Points capped to ${maxAllowed} (approaching limit)`;
+    }
+  }
+
+  // For negative points (deductions), ensure child has enough
+  if (finalPoints < 0) {
+    const currentTotal = getCurrentTotalPoints(profileId);
+    if (currentTotal + finalPoints < 0) {
+      return {
+        success: false,
+        awarded: 0,
+        stars: 0,
+        capped: false,
+        newTotal: currentTotal,
+        newLevel: getCurrentLevel(profileId),
+        dailyRemaining: settings.daily_points_cap - todayEarnings.points_earned,
+        weeklyRemaining: settings.weekly_points_cap - weekEarnings,
+        reason: `Cannot deduct ${Math.abs(finalPoints)} points. Current balance: ${currentTotal}`
+      };
+    }
+  }
+
+  // Get current progress for calculating new totals
+  const currentProgress: any = db.prepare(`
+    SELECT total_points, total_stars, level FROM progress
+    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+  `).get(profileId);
+
+  const currentTotalPoints = currentProgress?.total_points || 0;
+  const currentTotalStars = currentProgress?.total_stars || 0;
+
+  const newTotalPoints = currentTotalPoints + finalPoints;
+  const newTotalStars = currentTotalStars + stars;
+  const newLevel = Math.floor(newTotalPoints / 100) + 1;
+
+  // Insert progress record
+  db.prepare(`
+    INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(profileId, taskId || null, finalPoints, stars, newLevel, newTotalPoints, newTotalStars);
+
+  // Update earning tracker (only for positive points)
+  if (finalPoints > 0) {
+    recordEarnings(
+      profileId,
+      finalPoints,
+      stars,
+      source === 'task',
+      ['bonus', 'achievement', 'spin_wheel', 'login_bonus'].includes(source)
+    );
+  }
+
+  // Update rate limit if applicable
+  if (enforceRateLimit && finalPoints !== 0) {
+    updateRateLimit(profileId, actionType);
+  }
+
+  // Log adjustment for audit trail if it's a manual adjustment
+  if ((source === 'adjustment' || source === 'bonus') && reason) {
+    try {
+      db.prepare(`
+        INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `).run(profileId, profileId, finalPoints, reason);
+    } catch (e) {
+      // Table might not exist in older setups, ignore
+    }
+  }
+
+  // Calculate remaining caps
+  const newDailyRemaining = Math.max(0, settings.daily_points_cap - (todayEarnings.points_earned + (finalPoints > 0 ? finalPoints : 0)));
+  const newWeeklyRemaining = Math.max(0, settings.weekly_points_cap - (weekEarnings + (finalPoints > 0 ? finalPoints : 0)));
+
+  return {
+    success: true,
+    awarded: finalPoints,
+    stars,
+    capped: wasCapped,
+    newTotal: newTotalPoints,
+    newLevel,
+    dailyRemaining: newDailyRemaining,
+    weeklyRemaining: newWeeklyRemaining,
+    reason: capReason
+  };
+}
+
+/**
+ * Helper: Get current total points for a profile
+ */
+export function getCurrentTotalPoints(profileId: number): number {
+  const progress: any = db.prepare(`
+    SELECT total_points FROM progress
+    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+  `).get(profileId);
+  return progress?.total_points || 0;
+}
+
+/**
+ * Helper: Get current level for a profile
+ */
+export function getCurrentLevel(profileId: number): number {
+  const progress: any = db.prepare(`
+    SELECT level FROM progress
+    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+  `).get(profileId);
+  return progress?.level || 1;
+}
+
+/**
+ * Helper: Get current total stars for a profile
+ */
+export function getCurrentTotalStars(profileId: number): number {
+  const progress: any = db.prepare(`
+    SELECT total_stars FROM progress
+    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+  `).get(profileId);
+  return progress?.total_stars || 0;
+}
+
 export default {
   getEconomySettings,
   updateEconomySettings,
@@ -438,5 +694,9 @@ export default {
   getEarningSummary,
   areBonusesEnabled,
   isSpinWheelEnabled,
-  areCountdownChallengesEnabled
+  areCountdownChallengesEnabled,
+  awardPoints,
+  getCurrentTotalPoints,
+  getCurrentLevel,
+  getCurrentTotalStars
 };

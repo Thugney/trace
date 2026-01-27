@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { db } from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { awardPoints } from '../services/economyControl';
 
 const router = Router();
 
@@ -758,7 +759,7 @@ router.post('/trips/:tripId/complete', authenticate, (req: AuthRequest, res: Res
         bonus += trip.bonus_for_good_behavior;
       }
 
-      const totalPoints = points + bonus;
+      let totalPoints = points + bonus;
       totalPointsAwarded += totalPoints;
 
       // Update helper record
@@ -772,23 +773,20 @@ router.post('/trips/:tripId/complete', authenticate, (req: AuthRequest, res: Res
         WHERE id = ?
       `).run(points, bonus, rating || null, helper.id);
 
-      // Award points to profile using existing progress system
+      // Award points using centralized economy-controlled system
       if (totalPoints > 0) {
-        const currentProgress: any = db.prepare(`
-          SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-        `).get(helper.profile_id);
+        const awardResult = awardPoints({
+          profileId: helper.profile_id,
+          basePoints: totalPoints,
+          source: 'shopping',
+          applyMultiplier: false,  // Shopping points are already calculated
+          enforceRateLimit: false  // No cooldown for shopping completion
+        });
 
-        const newTotalPoints = (currentProgress?.total_points || 0) + totalPoints;
-
-        db.prepare(`
-          INSERT INTO progress (profile_id, points_earned, total_points, source, notes)
-          VALUES (?, ?, ?, 'shopping', ?)
-        `).run(
-          helper.profile_id,
-          totalPoints,
-          newTotalPoints,
-          `Shopping trip: ${helper.items_found} items found`
-        );
+        // Update totalPoints to reflect any capping
+        if (awardResult.capped) {
+          totalPoints = awardResult.awarded;
+        }
       }
 
       pointsAwarded.push({
