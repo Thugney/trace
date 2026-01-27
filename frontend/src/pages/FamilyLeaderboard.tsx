@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Trophy, Flame, Star, Medal, Crown, TrendingUp, Award, Users } from 'lucide-react';
+import { Trophy, Flame, Star, Medal, Crown, TrendingUp, Award, Users, Bug } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import Avatar from '../components/Avatar';
 import { gamificationAPI } from '../services/api';
@@ -27,6 +27,8 @@ export default function FamilyLeaderboard() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('all');
+  const [diagnosticData, setDiagnosticData] = useState<any>(null);
+  const [showDiagnostic, setShowDiagnostic] = useState(false);
 
   useEffect(() => {
     loadLeaderboard();
@@ -41,6 +43,17 @@ export default function FamilyLeaderboard() {
       console.error('Failed to load leaderboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runDiagnostic = async () => {
+    try {
+      const response = await gamificationAPI.getLeaderboardDiagnostic();
+      setDiagnosticData(response.data);
+      setShowDiagnostic(true);
+      console.log('Diagnostic Data:', response.data);
+    } catch (error) {
+      console.error('Failed to run diagnostic:', error);
     }
   };
 
@@ -104,7 +117,91 @@ export default function FamilyLeaderboard() {
             </button>
           ))}
         </div>
+
+        {/* Diagnostic Button - Parents only */}
+        {currentProfile?.type === 'parent' && (
+          <button
+            onClick={runDiagnostic}
+            className="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-sm"
+          >
+            <Bug className="w-4 h-4" />
+            Run Diagnostic
+          </button>
+        )}
       </div>
+
+      {/* Diagnostic Panel */}
+      {showDiagnostic && diagnosticData && (
+        <div className="bg-slate-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-auto max-h-96">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-white font-bold">Leaderboard Diagnostic</h3>
+            <button
+              onClick={() => setShowDiagnostic(false)}
+              className="text-slate-400 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="mb-4 text-yellow-400">
+            Server Time: {diagnosticData.serverTime}<br />
+            Week Start: {diagnosticData.weekStartDate}<br />
+            Month Start: {diagnosticData.monthStartDate}
+          </div>
+
+          <div className="mb-4 text-cyan-400">
+            Summary: {diagnosticData.summary?.profilesWithIssues} of {diagnosticData.summary?.totalProfiles} profiles have issues
+          </div>
+
+          {diagnosticData.profiles?.map((p: any) => (
+            <div key={p.id} className="mb-6 border-t border-slate-700 pt-4">
+              <div className="text-white font-bold mb-2">{p.name} ({p.type})</div>
+
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>All Time (latest record): <span className="text-white">{p.calculations?.allTime_fromLatestRecord}</span></div>
+                <div>All Time (sum): <span className="text-white">{p.calculations?.allTime_fromSumPointsEarned}</span></div>
+                <div>This Week: <span className="text-white">{p.calculations?.thisWeek_sumPointsEarned}</span> ({p.calculations?.thisWeek_recordCount} records)</div>
+                <div>This Month: <span className="text-white">{p.calculations?.thisMonth_sumPointsEarned}</span> ({p.calculations?.thisMonth_recordCount} records)</div>
+              </div>
+
+              {/* Issues */}
+              <div className="mt-2">
+                {p.issues?.hasTotalMismatch && <div className="text-red-400">Total Mismatch! Discrepancy: {p.calculations?.discrepancy}</div>}
+                {p.issues?.monthHigherThanAllTime && <div className="text-red-400">BUG: Month ({p.calculations?.thisMonth_sumPointsEarned}) &gt; All Time ({p.calculations?.allTime_fromLatestRecord})</div>}
+                {p.issues?.suspiciousRecordCount > 0 && <div className="text-orange-400">Suspicious records: {p.issues?.suspiciousRecordCount}</div>}
+                {p.issues?.inconsistentRecordCount > 0 && <div className="text-orange-400">Inconsistent records: {p.issues?.inconsistentRecordCount}</div>}
+                {!p.issues?.hasTotalMismatch && !p.issues?.monthHigherThanAllTime && p.issues?.suspiciousRecordCount === 0 && (
+                  <div className="text-green-400">No issues detected</div>
+                )}
+              </div>
+
+              {/* Suspicious Records */}
+              {p.suspiciousRecords?.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-orange-400 font-bold">Suspicious Records:</div>
+                  {p.suspiciousRecords.map((r: any) => (
+                    <div key={r.id} className="text-orange-300 ml-2">
+                      ID:{r.id} | points_earned:{r.points_earned} | total:{r.total_points} | {r.logged_at}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recent Records */}
+              <details className="mt-2">
+                <summary className="cursor-pointer text-slate-400">Recent Records ({p.recentRecords?.length})</summary>
+                <div className="ml-2 mt-1">
+                  {p.recentRecords?.slice(0, 10).map((r: any) => (
+                    <div key={r.id} className="text-slate-300">
+                      +{r.points_earned} → {r.total_points} | task:{r.task_id || 'n/a'} | {r.logged_at}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Podium for Top 3 (only if we have at least 3 members) */}
       {leaderboard.length >= 3 && (

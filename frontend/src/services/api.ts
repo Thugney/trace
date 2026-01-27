@@ -811,6 +811,10 @@ export const gamificationAPI = {
       rank: number;
     }[]>('/gamification/family-leaderboard', { params: { period } }),
 
+  // Diagnostic endpoint for investigating leaderboard data
+  getLeaderboardDiagnostic: () =>
+    api.get<any>('/gamification/leaderboard-diagnostic'),
+
   getLeaderboard: (parentId: number, period?: 'week' | 'month' | 'all') =>
     api.get<{
       id: number;

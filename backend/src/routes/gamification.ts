@@ -388,6 +388,149 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
   }
 });
 
+// DIAGNOSTIC: Investigate leaderboard data integrity
+router.get('/leaderboard-diagnostic', (req: AuthRequest, res) => {
+  try {
+    const currentUser = req.profile!;
+
+    // Only allow parents/admins to access diagnostics
+    if (currentUser.type !== 'parent' && currentUser.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents/admins can access diagnostics' });
+    }
+
+    // Get family members
+    const familyId = currentUser.family_id;
+
+    let profiles: any[];
+    if (familyId) {
+      profiles = db.prepare(`
+        SELECT id, name, type FROM profiles
+        WHERE family_id = ? AND type IN ('parent', 'child')
+      `).all(familyId);
+    } else {
+      profiles = db.prepare(`
+        SELECT id, name, type FROM profiles
+        WHERE (id = ? OR parent_id = ?)
+          AND type IN ('parent', 'child')
+      `).all(currentUser.id, currentUser.id);
+    }
+
+    // Calculate date ranges
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const diagnostic: any = {
+      serverTime: now.toISOString(),
+      weekStartDate: weekStart.toISOString().split('T')[0],
+      monthStartDate: monthStart.toISOString().split('T')[0],
+      profiles: []
+    };
+
+    for (const profile of profiles) {
+      // Get ALL progress records for this profile
+      const allProgress: any[] = db.prepare(`
+        SELECT id, task_id, points_earned, total_points, logged_at,
+               DATE(logged_at) as log_date
+        FROM progress
+        WHERE profile_id = ?
+        ORDER BY logged_at DESC
+      `).all(profile.id);
+
+      // Get latest total_points (what "All Time" uses)
+      const latestRecord = allProgress[0];
+
+      // Sum points_earned for this week
+      const weekRecords = allProgress.filter((r: any) =>
+        r.log_date >= weekStart.toISOString().split('T')[0]
+      );
+      const weekSum = weekRecords.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
+
+      // Sum points_earned for this month
+      const monthRecords = allProgress.filter((r: any) =>
+        r.log_date >= monthStart.toISOString().split('T')[0]
+      );
+      const monthSum = monthRecords.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
+
+      // Sum ALL points_earned (should equal total_points if data is consistent)
+      const allTimeSum = allProgress.reduce((sum: number, r: any) => sum + (r.points_earned || 0), 0);
+
+      // Find any suspicious records (points_earned > 100 or negative large values)
+      const suspiciousRecords = allProgress.filter((r: any) =>
+        r.points_earned > 100 || r.points_earned < -100
+      );
+
+      // Find records where total_points decreased unexpectedly
+      const inconsistentRecords: any[] = [];
+      for (let i = 0; i < allProgress.length - 1; i++) {
+        const current = allProgress[i];
+        const previous = allProgress[i + 1];
+        const expectedTotal = previous.total_points + current.points_earned;
+        if (current.total_points !== expectedTotal) {
+          inconsistentRecords.push({
+            id: current.id,
+            logged_at: current.logged_at,
+            points_earned: current.points_earned,
+            total_points: current.total_points,
+            previous_total: previous.total_points,
+            expected_total: expectedTotal,
+            discrepancy: current.total_points - expectedTotal
+          });
+        }
+      }
+
+      diagnostic.profiles.push({
+        id: profile.id,
+        name: profile.name,
+        type: profile.type,
+        totalRecords: allProgress.length,
+        latestTotalPoints: latestRecord?.total_points || 0,
+        calculations: {
+          allTime_fromLatestRecord: latestRecord?.total_points || 0,
+          allTime_fromSumPointsEarned: allTimeSum,
+          discrepancy: (latestRecord?.total_points || 0) - allTimeSum,
+          thisWeek_sumPointsEarned: weekSum,
+          thisWeek_recordCount: weekRecords.length,
+          thisMonth_sumPointsEarned: monthSum,
+          thisMonth_recordCount: monthRecords.length
+        },
+        issues: {
+          hasTotalMismatch: (latestRecord?.total_points || 0) !== allTimeSum,
+          monthHigherThanAllTime: monthSum > (latestRecord?.total_points || 0),
+          weekHigherThanMonth: weekSum > monthSum,
+          suspiciousRecordCount: suspiciousRecords.length,
+          inconsistentRecordCount: inconsistentRecords.length
+        },
+        suspiciousRecords: suspiciousRecords.slice(0, 10),
+        inconsistentRecords: inconsistentRecords.slice(0, 10),
+        recentRecords: allProgress.slice(0, 20).map((r: any) => ({
+          id: r.id,
+          task_id: r.task_id,
+          points_earned: r.points_earned,
+          total_points: r.total_points,
+          logged_at: r.logged_at
+        }))
+      });
+    }
+
+    // Summary
+    diagnostic.summary = {
+      totalProfiles: diagnostic.profiles.length,
+      profilesWithIssues: diagnostic.profiles.filter((p: any) =>
+        p.issues.hasTotalMismatch ||
+        p.issues.monthHigherThanAllTime ||
+        p.issues.suspiciousRecordCount > 0 ||
+        p.issues.inconsistentRecordCount > 0
+      ).length
+    };
+
+    res.json(diagnostic);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get family leaderboard (all kids for a parent) - legacy endpoint
 router.get('/leaderboard/:parentId', (req, res) => {
   try {
