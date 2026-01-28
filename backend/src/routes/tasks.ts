@@ -717,16 +717,28 @@ router.get('/progress/:profileId', (req, res) => {
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(profileId);
 
-    // Get weekly stats
-    const weeklyStats = db.prepare(`
-      SELECT
-        SUM(points_earned) as points_this_week,
-        SUM(stars_earned) as stars_this_week,
-        COUNT(DISTINCT task_id) as tasks_completed_this_week
+    // Get weekly stats (use difference method for points reliability)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+
+    const weekStartProgress: any = db.prepare(`
+      SELECT total_points, total_stars FROM progress
+      WHERE profile_id = ? AND DATE(logged_at) < DATE(?)
+      ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId, weekAgoStr);
+
+    const tasksThisWeek: any = db.prepare(`
+      SELECT COUNT(DISTINCT task_id) as count
       FROM progress
-      WHERE profile_id = ?
-        AND DATE(logged_at) >= DATE('now', '-7 days')
-    `).get(profileId);
+      WHERE profile_id = ? AND DATE(logged_at) >= DATE(?)
+    `).get(profileId, weekAgoStr);
+
+    const weeklyStats = {
+      points_this_week: (current?.total_points || 0) - (weekStartProgress?.total_points || 0),
+      stars_this_week: (current?.total_stars || 0) - (weekStartProgress?.total_stars || 0),
+      tasks_completed_this_week: tasksThisWeek?.count || 0
+    };
 
     res.json({
       current: current || { total_points: 0, total_stars: 0, level: 1 },

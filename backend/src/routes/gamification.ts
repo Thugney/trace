@@ -425,41 +425,52 @@ router.get('/leaderboard/:parentId', (req, res) => {
     }
 
     // Calculate date range for period
-    let dateFilter = '';
+    let periodStartDate: string | null = null;
     const now = new Date();
     if (period === 'week') {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      dateFilter = `AND DATE(logged_at) >= DATE('${weekStart.toISOString().split('T')[0]}')`;
+      const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - now.getUTCDay()));
+      periodStartDate = weekStart.toISOString().split('T')[0];
     } else if (period === 'month') {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      dateFilter = `AND DATE(logged_at) >= DATE('${monthStart.toISOString().split('T')[0]}')`;
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+      periodStartDate = monthStart.toISOString().split('T')[0];
     }
 
     // Get stats for each kid
     const leaderboard = kids.map((kid: any) => {
-      // Get points for period
-      const points: any = period === 'all'
-        ? db.prepare(`
-            SELECT total_points as points FROM progress
-            WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-          `).get(kid.id)
-        : db.prepare(`
-            SELECT SUM(points_earned) as points FROM progress
-            WHERE profile_id = ? ${dateFilter}
-          `).get(kid.id);
+      // Get current total points
+      const currentProgress: any = db.prepare(`
+        SELECT total_points FROM progress
+        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      `).get(kid.id);
+      const currentTotalPoints = currentProgress?.total_points || 0;
+
+      let periodPoints = currentTotalPoints;
+      if (periodStartDate && (period === 'week' || period === 'month')) {
+        // Use reliable method: difference between total_points at period start vs now
+        const startOfPeriodProgress: any = db.prepare(`
+          SELECT total_points FROM progress
+          WHERE profile_id = ? AND DATE(logged_at) < ?
+          ORDER BY logged_at DESC LIMIT 1
+        `).get(kid.id, periodStartDate);
+        const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
+        periodPoints = currentTotalPoints - pointsAtPeriodStart;
+      }
+      const points = { points: periodPoints };
 
       // Get tasks completed for period
-      const tasks: any = period === 'all'
-        ? db.prepare(`
-            SELECT COUNT(*) as count FROM tasks
-            WHERE profile_id = ? AND completed = 1
-          `).get(kid.id)
-        : db.prepare(`
-            SELECT COUNT(*) as count FROM tasks
-            WHERE profile_id = ? AND completed = 1
-            ${dateFilter.replace('logged_at', 'completed_at')}
-          `).get(kid.id);
+      let tasks: any;
+      if (period === 'all' || !periodStartDate) {
+        tasks = db.prepare(`
+          SELECT COUNT(*) as count FROM tasks
+          WHERE profile_id = ? AND completed = 1
+        `).get(kid.id);
+      } else {
+        tasks = db.prepare(`
+          SELECT COUNT(*) as count FROM tasks
+          WHERE profile_id = ? AND completed = 1
+          AND DATE(completed_at) >= DATE(?)
+        `).get(kid.id, periodStartDate);
+      }
 
       // Get current streak
       const streak: any = db.prepare(`
@@ -901,11 +912,19 @@ router.get('/weekly-summary/:profileId', (req, res) => {
       AND DATE(completed_at) BETWEEN DATE(?) AND DATE(?)
     `).get(profileId, weekStartStr, weekEndStr);
 
-    // Points earned this week
-    const pointsEarned: any = db.prepare(`
-      SELECT SUM(points_earned) as total FROM progress
-      WHERE profile_id = ? AND DATE(logged_at) BETWEEN DATE(?) AND DATE(?)
-    `).get(profileId, weekStartStr, weekEndStr);
+    // Points earned this week (use difference method for reliability)
+    const weekStartProgress: any = db.prepare(`
+      SELECT total_points FROM progress
+      WHERE profile_id = ? AND DATE(logged_at) < DATE(?)
+      ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId, weekStartStr);
+    const currentProgress: any = db.prepare(`
+      SELECT total_points FROM progress
+      WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    `).get(profileId);
+    const pointsEarned = {
+      total: (currentProgress?.total_points || 0) - (weekStartProgress?.total_points || 0)
+    };
 
     // Challenges completed this week
     const challengesCompleted: any = db.prepare(`

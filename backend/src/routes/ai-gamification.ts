@@ -175,10 +175,19 @@ function collectBehaviorData(profileId: number) {
     SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
   `).get(profileId);
 
-  const weeklyPoints: any = db.prepare(`
-    SELECT SUM(points_earned) as total FROM progress
-    WHERE profile_id = ? AND DATE(logged_at) >= DATE(?)
+  // Get weekly points by comparing total_points at start of week vs now
+  const weekStartProgress: any = db.prepare(`
+    SELECT total_points FROM progress
+    WHERE profile_id = ? AND DATE(logged_at) < DATE(?)
+    ORDER BY logged_at DESC LIMIT 1
   `).get(profileId, weekAgo);
+  const currentProgress: any = db.prepare(`
+    SELECT total_points FROM progress
+    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+  `).get(profileId);
+  const weeklyPoints = {
+    total: (currentProgress?.total_points || 0) - (weekStartProgress?.total_points || 0)
+  };
 
   // Water intake patterns
   const waterData: any[] = db.prepare(`

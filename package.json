@@ -1,6 +1,6 @@
 {
   "name": "family-hub",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Family Hub - Multi-family management platform with Church School module",
   "private": true,
   "workspaces": [

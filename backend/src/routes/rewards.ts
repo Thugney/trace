@@ -29,11 +29,13 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
       ORDER BY r.points_required ASC
     `).all(profileId, profileId);
 
-    // Get user's current points
+    // Get user's current points (use latest total_points, not SUM of points_earned)
     const progress = db.prepare(`
-      SELECT COALESCE(SUM(points_earned), 0) as total_points
+      SELECT total_points
       FROM progress
       WHERE profile_id = ?
+      ORDER BY logged_at DESC
+      LIMIT 1
     `).get(profileId) as { total_points: number } | undefined;
 
     const totalPoints = progress?.total_points || 0;
@@ -107,11 +109,13 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
       }
     }
 
-    // Get user's available points
+    // Get user's available points (use latest total_points, not SUM of points_earned)
     const progress = db.prepare(`
-      SELECT COALESCE(SUM(points_earned), 0) as total_points
+      SELECT total_points
       FROM progress
       WHERE profile_id = ?
+      ORDER BY logged_at DESC
+      LIMIT 1
     `).get(profileId) as { total_points: number } | undefined;
 
     const totalPoints = progress?.total_points || 0;
