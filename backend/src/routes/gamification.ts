@@ -331,9 +331,11 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
         const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
         periodPoints = currentTotalPoints - pointsAtPeriodStart;
 
-        // Ensure we don't show negative points (can happen if deductions were made)
-        // Actually, we SHOULD show negative if they had net deductions in the period
-        // But cap at reasonable display value
+        // Cap at 0 - negative points happen when there were more deductions than earnings
+        // (e.g., streak freezes, parent deductions) but we don't want to show negative on leaderboard
+        if (periodPoints < 0) {
+          periodPoints = 0;
+        }
       }
 
       // Get total progress for level/stars (always use all-time for these)
@@ -454,6 +456,11 @@ router.get('/leaderboard/:parentId', (req, res) => {
         `).get(kid.id, periodStartDate);
         const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
         periodPoints = currentTotalPoints - pointsAtPeriodStart;
+
+        // Cap at 0 - don't show negative on leaderboard
+        if (periodPoints < 0) {
+          periodPoints = 0;
+        }
       }
       const points = { points: periodPoints };
 
