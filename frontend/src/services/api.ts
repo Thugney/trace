@@ -13,7 +13,8 @@ import type {
   AIConversation,
   Note,
   MonthlyGoal,
-  Message
+  Message,
+  Notification
 } from '../types';
 import type {
   SchoolClass,
@@ -257,6 +258,27 @@ export const messagesAPI = {
     api.delete(`/messages/${messageId}`),
   getParents: () =>
     api.get<Profile[]>('/messages/parents')
+};
+
+// Notifications
+export const notificationsAPI = {
+  getAll: (profileId: number, unreadOnly = false) =>
+    api.get<Notification[]>(`/notifications/${profileId}${unreadOnly ? '?unread_only=true' : ''}`),
+  getUnreadCount: (profileId: number) =>
+    api.get<{ count: number }>(`/notifications/${profileId}/unread-count`),
+  markAsRead: (notificationId: number) =>
+    api.put<Notification>(`/notifications/${notificationId}/read`, {}),
+  markAllAsRead: (profileId: number) =>
+    api.put(`/notifications/${profileId}/read-all`, {}),
+  deleteNotification: (notificationId: number) =>
+    api.delete(`/notifications/${notificationId}`),
+  // Push notifications
+  subscribePush: (profileId: number, subscription: PushSubscriptionJSON) =>
+    api.post('/notifications/push/subscribe', { profile_id: profileId, subscription }),
+  unsubscribePush: (endpoint: string) =>
+    api.post('/notifications/push/unsubscribe', { endpoint }),
+  getVapidKey: () =>
+    api.get<{ key: string }>('/notifications/push/vapid-key')
 };
 
 export default api;

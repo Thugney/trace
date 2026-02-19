@@ -237,6 +237,42 @@ export function initDatabase() {
     )
   `);
 
+  // Notifications table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipient_id INTEGER NOT NULL,
+      sender_id INTEGER,
+      type TEXT NOT NULL CHECK(type IN (
+        'task_assigned', 'task_completed', 'task_overdue',
+        'reward_created', 'reward_claimed',
+        'message_received', 'goal_achieved',
+        'general'
+      )),
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      icon TEXT,
+      data TEXT DEFAULT '{}',
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (recipient_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (sender_id) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Push subscriptions table (for Web Push notifications)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indexes for better performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_meal_logs_profile ON meal_logs(profile_id);
@@ -249,6 +285,9 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_notes_profile ON notes(profile_id);
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_profile_month ON monthly_goals(profile_id, month);
     CREATE INDEX IF NOT EXISTS idx_ai_settings_profile ON ai_settings(profile_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
+    CREATE INDEX IF NOT EXISTS idx_push_subscriptions_profile ON push_subscriptions(profile_id);
   `);
 
   // Insert default settings if none exist

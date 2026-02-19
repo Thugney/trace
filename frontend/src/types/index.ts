@@ -201,3 +201,19 @@ export interface Message {
   recipient_type?: string;
   recipient_avatar?: string;
 }
+
+export interface Notification {
+  id: number;
+  recipient_id: number;
+  sender_id?: number;
+  type: 'task_assigned' | 'task_completed' | 'task_overdue' | 'reward_created' | 'reward_claimed' | 'message_received' | 'goal_achieved' | 'general';
+  title: string;
+  body: string;
+  icon?: string;
+  data?: string;
+  is_read: boolean;
+  created_at: string;
+  sender_name?: string;
+  sender_avatar?: string;
+  sender_type?: string;
+}

@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../database/init';
+import { createNotification, notifyParentOfChild } from '../services/notifications';
 
 const router = express.Router();
 
@@ -89,7 +90,25 @@ router.post('/', (req, res) => {
       created_by || null
     );
 
-    const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+    const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+
+    // Notify the child that a new task was assigned
+    try {
+      const creator: any = created_by ? db.prepare('SELECT name FROM profiles WHERE id = ?').get(created_by) : null;
+      const senderName = creator?.name || 'Parent';
+      createNotification({
+        recipient_id: profile_id,
+        sender_id: created_by || undefined,
+        type: 'task_assigned',
+        title: 'New Task!',
+        body: `${senderName} assigned you: "${title}"`,
+        icon: '📋',
+        data: { task_id: newTask.id }
+      });
+    } catch (e) {
+      console.error('Failed to send task notification:', e);
+    }
+
     res.status(201).json(newTask);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -214,6 +233,22 @@ router.post('/:id/complete', (req, res) => {
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(task.profile_id);
 
+    // Notify parent(s) that child completed a task
+    try {
+      const child: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(task.profile_id);
+      const childName = child?.name || 'Your child';
+      notifyParentOfChild(task.profile_id, {
+        sender_id: task.profile_id,
+        type: 'task_completed',
+        title: 'Task Completed!',
+        body: `${childName} completed "${task.title}" and earned ${points} points!`,
+        icon: '✅',
+        data: { task_id: task.id, points_earned: points, stars_earned: stars }
+      });
+    } catch (e) {
+      console.error('Failed to send task completion notification:', e);
+    }
+
     res.json({
       task: completedTask,
       progress,
@@ -313,7 +348,22 @@ router.post('/rewards', (req, res) => {
       icon || null
     );
 
-    const reward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(result.lastInsertRowid);
+    const reward: any = db.prepare('SELECT * FROM rewards WHERE id = ?').get(result.lastInsertRowid);
+
+    // Notify the child about the new reward
+    try {
+      createNotification({
+        recipient_id: profile_id,
+        type: 'reward_created',
+        title: 'New Reward Available!',
+        body: `"${title}" is now available for ${points_required} points!`,
+        icon: '🎁',
+        data: { reward_id: reward.id }
+      });
+    } catch (e) {
+      console.error('Failed to send reward notification:', e);
+    }
+
     res.status(201).json(reward);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -349,6 +399,23 @@ router.post('/rewards/:id/claim', (req, res) => {
     `).run(id);
 
     const claimedReward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(id);
+
+    // Notify parent(s) that child claimed a reward
+    try {
+      const child: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(reward.profile_id);
+      const childName = child?.name || 'Your child';
+      notifyParentOfChild(reward.profile_id, {
+        sender_id: reward.profile_id,
+        type: 'reward_claimed',
+        title: 'Reward Claimed!',
+        body: `${childName} claimed the reward "${reward.title}" (${reward.points_required} points)`,
+        icon: '🏆',
+        data: { reward_id: reward.id }
+      });
+    } catch (e) {
+      console.error('Failed to send reward claimed notification:', e);
+    }
+
     res.json(claimedReward);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

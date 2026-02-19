@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ProfileProvider } from './context/ProfileContext';
+import { NotificationProvider } from './context/NotificationContext';
+import NotificationToast from './components/NotificationToast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -98,6 +100,7 @@ function AppRoutes() {
 
   return (
     <Layout>
+      <NotificationToast />
       <Routes>
         {/* Home - Redirect to role-specific dashboard */}
         <Route
@@ -254,7 +257,9 @@ function App() {
   return (
     <Router>
       <ProfileProvider>
-        <AppRoutes />
+        <NotificationProvider>
+          <AppRoutes />
+        </NotificationProvider>
       </ProfileProvider>
     </Router>
   );

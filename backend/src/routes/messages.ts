@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, requireRole } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
+import { createNotification } from '../services/notifications';
 
 const router = express.Router();
 
@@ -34,6 +35,24 @@ router.post('/', authenticate, requireRole(['teacher', 'parent']), (req: AuthReq
     `).run(sender_id, recipient_id, subject, message);
 
     const newMessage = db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
+
+    // Send notification to recipient
+    try {
+      const senderProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(sender_id);
+      const senderName = senderProfile?.name || 'Someone';
+      createNotification({
+        recipient_id,
+        sender_id,
+        type: 'message_received',
+        title: 'New Message',
+        body: `${senderName}: ${subject || message.substring(0, 80)}`,
+        icon: '💬',
+        data: { message_id: result.lastInsertRowid }
+      });
+    } catch (e) {
+      console.error('Failed to send message notification:', e);
+    }
+
     res.status(201).json(newMessage);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
