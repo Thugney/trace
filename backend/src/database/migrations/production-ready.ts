@@ -155,6 +155,30 @@ export function runProductionReadyMigrations() {
 
   console.log('✅ Reward claims table created');
 
+  // Migration: Add stars_spent column to reward_claims for star discount feature
+  try {
+    const claimColumns = db.prepare("PRAGMA table_info(reward_claims)").all() as any[];
+    const hasStarsSpent = claimColumns.some((c: any) => c.name === 'stars_spent');
+
+    if (!hasStarsSpent) {
+      console.log('🔄 Migrating reward_claims table: adding stars_spent column...');
+      db.prepare('ALTER TABLE reward_claims ADD COLUMN stars_spent INTEGER DEFAULT 0').run();
+      console.log('✅ Added stars_spent column to reward_claims');
+    }
+  } catch (error: any) {
+    console.error('Migration error (reward_claims stars_spent):', error.message);
+  }
+
+  // Migration: Normalize duplicate categories in rewards table (lowercase + trim)
+  try {
+    db.prepare(`
+      UPDATE rewards SET category = LOWER(TRIM(category))
+      WHERE category IS NOT NULL AND category != LOWER(TRIM(category))
+    `).run();
+  } catch (error: any) {
+    console.error('Migration error (normalize categories):', error.message);
+  }
+
   // Migration: Fix any proof_photo_url that has /api prefix (should be just /tasks/...)
   try {
     const result = db.prepare(`

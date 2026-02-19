@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save } from 'lucide-react';
 import { rewardsAPI, Reward, RewardClaim } from '../services/api';
 import playSounds from '../utils/sounds';
@@ -12,11 +12,14 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const toast = useToast();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [pendingClaims, setPendingClaims] = useState<RewardClaim[]>([]);
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
   const [activeTab, setActiveTab] = useState<'rewards' | 'claims'>('rewards');
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
+  const categoryInputRef = useRef<HTMLInputElement>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -24,6 +27,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
     description: '',
     pointsRequired: 100,
     icon: '🎁',
+    category: '',
     stock: -1 // -1 = unlimited
   });
 
@@ -34,12 +38,14 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [rewardsRes, claimsRes] = await Promise.all([
+      const [rewardsRes, claimsRes, categoriesRes] = await Promise.all([
         rewardsAPI.getAll(),
-        rewardsAPI.getPending()
+        rewardsAPI.getPending(),
+        rewardsAPI.getCategories().catch(() => ({ data: [] }))
       ]);
       setRewards(rewardsRes.data);
       setPendingClaims(claimsRes.data);
+      setExistingCategories(categoriesRes.data);
     } catch (error: any) {
       console.error('Failed to load rewards data:', error);
       toast.error('Failed to load rewards');
@@ -69,6 +75,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           description: formData.description,
           points_required: formData.pointsRequired,
           icon: formData.icon,
+          category: formData.category || 'general',
           stock: formData.stock
         });
         toast.success('Reward updated!');
@@ -78,6 +85,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           description: formData.description,
           pointsRequired: formData.pointsRequired,
           icon: formData.icon,
+          category: formData.category || 'general',
           stock: formData.stock,
           createdBy: parentId
         });
@@ -118,9 +126,10 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', stock: -1 });
+    setFormData({ title: '', description: '', pointsRequired: 100, icon: '🎁', category: '', stock: -1 });
     setEditingReward(null);
     setShowForm(false);
+    setShowCategorySuggestions(false);
   };
 
   const startEdit = (reward: Reward) => {
@@ -129,13 +138,19 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
       description: reward.description || '',
       pointsRequired: reward.points_required,
       icon: reward.icon || '🎁',
+      category: reward.category || '',
       stock: reward.stock ?? -1
     });
     setEditingReward(reward);
     setShowForm(true);
   };
 
-  const commonIcons = ['🎁', '🎮', '🍦', '🎬', '📱', '🎨', '⚽', '🎵', '📚', '🧸', '🎪', '🏆'];
+  const commonIcons = ['🎁', '🎮', '🍦', '🎬', '📱', '🎨', '⚽', '🎵', '📚', '🧸', '🎪', '🏆', '🍕', '🎯', '🎟️', '🧩', '🎸', '🏖️', '🎂', '🛍️'];
+
+  // Filter category suggestions based on input
+  const filteredCategories = existingCategories.filter(
+    c => c.toLowerCase().includes(formData.category.toLowerCase()) && c.toLowerCase() !== formData.category.toLowerCase()
+  );
 
   if (loading) {
     return (
@@ -230,25 +245,76 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
-              <div className="flex flex-wrap gap-2">
-                {commonIcons.map(icon => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, icon })}
-                    className={`w-10 h-10 text-xl rounded-lg border-2 transition-all ${
-                      formData.icon === icon
-                        ? 'border-purple-500 bg-purple-100'
-                        : 'border-slate-200 hover:border-purple-300'
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
+          {/* Icon picker: quick-select grid + freeform input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 text-2xl rounded-xl border-2 border-purple-400 bg-purple-50 flex items-center justify-center">
+                {formData.icon || '🎁'}
               </div>
+              <input
+                type="text"
+                value={formData.icon}
+                onChange={e => setFormData({ ...formData, icon: e.target.value })}
+                className="w-24 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-center text-lg"
+                placeholder="🎁"
+                maxLength={4}
+              />
+              <span className="text-xs text-slate-400">Type any emoji or pick below</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {commonIcons.map(icon => (
+                <button
+                  key={icon}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, icon })}
+                  className={`w-9 h-9 text-lg rounded-lg border transition-all ${
+                    formData.icon === icon
+                      ? 'border-purple-500 bg-purple-100 scale-110'
+                      : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Category: freeform with autocomplete from existing */}
+            <div className="relative">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+              <input
+                ref={categoryInputRef}
+                type="text"
+                value={formData.category}
+                onChange={e => {
+                  setFormData({ ...formData, category: e.target.value });
+                  setShowCategorySuggestions(true);
+                }}
+                onFocus={() => setShowCategorySuggestions(true)}
+                onBlur={() => setTimeout(() => setShowCategorySuggestions(false), 150)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                placeholder="e.g., treats, activities, toys..."
+              />
+              {showCategorySuggestions && filteredCategories.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                  {filteredCategories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => {
+                        setFormData({ ...formData, category: cat });
+                        setShowCategorySuggestions(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-purple-50 transition-colors capitalize"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -370,11 +436,16 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-slate-800">{claim.title}</h3>
                   <p className="text-sm text-slate-500">
-                    Profile ID: <span className="font-medium">#{claim.profile_id}</span>
+                    {(claim as any).child_name || `Profile #${claim.profile_id}`}
                   </p>
-                  <p className="text-sm text-purple-600 font-medium">
-                    {claim.points_spent} points spent
-                  </p>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-purple-600 font-medium">
+                      {claim.points_spent} pts
+                    </span>
+                    {claim.stars_spent ? (
+                      <span className="text-amber-600 font-medium">+ {claim.stars_spent} stars</span>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button

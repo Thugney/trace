@@ -144,9 +144,6 @@ export const tasksAPI = {
         tasks_completed_this_week: number;
       };
     }>(`/tasks/progress/${profileId}`, { params: { limit } }),
-  getRewards: (profileId: number) => api.get<Reward[]>(`/tasks/rewards/${profileId}`),
-  createReward: (data: Partial<Reward>) => api.post<Reward>('/tasks/rewards', data),
-  claimReward: (id: number) => api.post<Reward>(`/tasks/rewards/${id}/claim`),
   // Subtasks
   getSubtasks: (taskId: number) => api.get<any[]>(`/tasks/${taskId}/subtasks`),
   addSubtask: (taskId: number, title: string) => api.post<any>(`/tasks/${taskId}/subtasks`, { title }),
@@ -988,15 +985,35 @@ export const notificationsAPI = {
 };
 
 
+// Star tier type
+export interface StarTier {
+  name: string;
+  minStars: number;
+  icon: string;
+  discount: number;
+  nextTier?: { name: string; icon: string; starsNeeded: number } | null;
+}
+
 // Reward Shop API
 export const rewardsAPI = {
   // Get rewards available in the shop for a profile
   getShop: (profileId: number) =>
-    api.get<{ rewards: Reward[]; availablePoints: number; totalPoints: number }>(`/rewards/shop/${profileId}`),
+    api.get<{
+      rewards: Reward[];
+      availablePoints: number;
+      totalPoints: number;
+      availableStars: number;
+      totalStarsEarned: number;
+      starTier: StarTier;
+      starTiers: StarTier[];
+    }>(`/rewards/shop/${profileId}`),
 
-  // Purchase a reward
-  purchase: (rewardId: number, profileId: number) =>
-    api.post<{ success: boolean; claim: RewardClaim; newBalance: number }>(`/rewards/${rewardId}/purchase`, { profileId }),
+  // Purchase a reward (optionally spend stars for a discount)
+  purchase: (rewardId: number, profileId: number, starsToSpend?: number) =>
+    api.post<{ success: boolean; claim: RewardClaim; newBalance: number; starsUsed: number; starDiscount: number }>(
+      `/rewards/${rewardId}/purchase`,
+      { profileId, starsToSpend: starsToSpend || 0 }
+    ),
 
   // Get claimed rewards history
   getClaimed: (profileId: number) =>
@@ -1009,6 +1026,10 @@ export const rewardsAPI = {
   // Update claim status (approve/reject/given)
   updateClaimStatus: (claimId: number, status: string, approvedBy: number, notes?: string) =>
     api.put<RewardClaim>(`/rewards/claims/${claimId}/status`, { status, approvedBy, notes }),
+
+  // Get distinct categories
+  getCategories: () =>
+    api.get<string[]>('/rewards/categories'),
 
   // Create a new reward (parent/admin)
   create: (reward: {

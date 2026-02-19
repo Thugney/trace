@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Gift, Star, ShoppingBag, Check, Clock, Sparkles, AlertCircle } from 'lucide-react';
+import { Gift, Star, ShoppingBag, Check, Clock, Sparkles, AlertCircle, Zap, Package } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
-import { rewardsAPI, Reward, RewardClaim } from '../services/api';
+import { rewardsAPI, Reward, RewardClaim, StarTier } from '../services/api';
 import playSounds from '../utils/sounds';
 import confetti from 'canvas-confetti';
 
@@ -12,6 +12,8 @@ export default function RewardShop() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [claimedRewards, setClaimedRewards] = useState<RewardClaim[]>([]);
   const [availablePoints, setAvailablePoints] = useState(0);
+  const [availableStars, setAvailableStars] = useState(0);
+  const [starTier, setStarTier] = useState<StarTier | null>(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<number | null>(null);
   const [showClaimed, setShowClaimed] = useState(false);
@@ -30,6 +32,8 @@ export default function RewardShop() {
       const response = await rewardsAPI.getShop(currentProfile.id);
       setRewards(response.data.rewards);
       setAvailablePoints(response.data.availablePoints);
+      setAvailableStars(response.data.availableStars);
+      setStarTier(response.data.starTier);
     } catch (error) {
       console.error('Failed to load shop:', error);
     } finally {
@@ -47,15 +51,17 @@ export default function RewardShop() {
     }
   };
 
-  const handlePurchase = async (reward: Reward) => {
+  const handlePurchase = async (reward: Reward, starsToSpend: number = 0) => {
     if (!currentProfile?.id || purchasing) return;
-    if (availablePoints < reward.points_required) return;
+
+    const starDiscount = starsToSpend * 2;
+    const effectiveCost = reward.points_required - starDiscount;
+    if (availablePoints < effectiveCost) return;
 
     setPurchasing(reward.id);
     try {
-      const response = await rewardsAPI.purchase(reward.id, currentProfile.id);
+      const response = await rewardsAPI.purchase(reward.id, currentProfile.id, starsToSpend);
       if (response.data.success) {
-        // Celebration!
         playSounds.levelUp();
         confetti({
           particleCount: 150,
@@ -65,9 +71,10 @@ export default function RewardShop() {
         });
 
         setAvailablePoints(response.data.newBalance);
+        if (response.data.starsUsed > 0) {
+          setAvailableStars(prev => prev - response.data.starsUsed);
+        }
         loadClaimedRewards();
-
-        // Remove from available rewards if stock depleted
         loadShop();
       }
     } catch (error: any) {
@@ -93,7 +100,7 @@ export default function RewardShop() {
       case 'given':
         return { color: 'bg-green-100 text-green-700', icon: Gift, label: 'Received!' };
       case 'rejected':
-        return { color: 'bg-red-100 text-red-700', icon: AlertCircle, label: 'Rejected' };
+        return { color: 'bg-red-100 text-red-700', icon: AlertCircle, label: 'Rejected (Refunded)' };
       default:
         return { color: 'bg-slate-100 text-slate-700', icon: Clock, label: status };
     }
@@ -112,7 +119,7 @@ export default function RewardShop() {
 
   return (
     <div className={`space-y-6 ${settings.themeClass}`}>
-      {/* Header with Points Balance */}
+      {/* Header with Points & Stars Balance */}
       <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
@@ -122,14 +129,51 @@ export default function RewardShop() {
             </h1>
             <p className="text-purple-100 mt-1">Spend your hard-earned points!</p>
           </div>
-          <div className="text-right">
-            <div className={`flex items-center gap-2 ${isYoungChild ? 'text-4xl' : 'text-3xl'} font-bold`}>
+          <div className="text-right space-y-1">
+            <div className={`flex items-center justify-end gap-2 ${isYoungChild ? 'text-4xl' : 'text-3xl'} font-bold`}>
               <Star className={`${isYoungChild ? 'w-10 h-10' : 'w-8 h-8'} fill-yellow-300 text-yellow-300`} />
               {availablePoints.toLocaleString()}
             </div>
             <p className="text-purple-200 text-sm">points to spend</p>
           </div>
         </div>
+
+        {/* Star Tier & Star Balance */}
+        {starTier && (
+          <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{starTier.icon}</span>
+              <div>
+                <span className="font-semibold text-sm">{starTier.name}</span>
+                {starTier.discount > 0 && (
+                  <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs font-medium">
+                    {starTier.discount}% tier discount
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-amber-200">
+              <Zap className="w-5 h-5 fill-current" />
+              <span className="font-bold text-lg">{availableStars}</span>
+              <span className="text-sm text-purple-200">stars</span>
+            </div>
+          </div>
+        )}
+
+        {/* Next tier progress */}
+        {starTier?.nextTier && (
+          <div className="mt-2 text-xs text-purple-200">
+            {starTier.nextTier.starsNeeded} more stars to {starTier.nextTier.icon} {starTier.nextTier.name}
+          </div>
+        )}
+
+        {/* Star power tip */}
+        {availableStars > 0 && (
+          <div className="mt-3 bg-white/10 rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+            <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+            <span>Use your stars when buying items to save points! (1 star = 2 pts off)</span>
+          </div>
+        )}
       </div>
 
       {/* Tab Toggle */}
@@ -172,6 +216,8 @@ export default function RewardShop() {
                     onPurchase={handlePurchase}
                     isPurchasing={purchasing === reward.id}
                     isYoungChild={isYoungChild}
+                    availableStars={availableStars}
+                    availablePoints={availablePoints}
                   />
                 ))}
               </div>
@@ -194,6 +240,7 @@ export default function RewardShop() {
                     onPurchase={handlePurchase}
                     isPurchasing={false}
                     isYoungChild={isYoungChild}
+                    availableStars={availableStars}
                   />
                 ))}
               </div>
@@ -260,7 +307,12 @@ export default function RewardShop() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-slate-800 truncate">{claim.title}</h3>
-                      <p className="text-sm text-slate-500">{claim.points_spent} points</p>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span>{claim.points_spent} pts</span>
+                        {claim.stars_spent ? (
+                          <span className="text-amber-600">+ {claim.stars_spent} stars</span>
+                        ) : null}
+                      </div>
                     </div>
                     <div className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm font-medium ${status.color}`}>
                       <StatusIcon className="w-4 h-4" />
@@ -287,13 +339,25 @@ interface RewardCardProps {
   reward: Reward;
   canAfford: boolean;
   availablePoints?: number;
-  onPurchase: (reward: Reward) => void;
+  onPurchase: (reward: Reward, starsToSpend: number) => void;
   isPurchasing: boolean;
   isYoungChild: boolean;
+  availableStars: number;
 }
 
-function RewardCard({ reward, canAfford, availablePoints, onPurchase, isPurchasing, isYoungChild }: RewardCardProps) {
+function RewardCard({ reward, canAfford, availablePoints, onPurchase, isPurchasing, isYoungChild, availableStars }: RewardCardProps) {
+  const [starsToUse, setStarsToUse] = useState(0);
   const pointsNeeded = availablePoints !== undefined ? reward.points_required - availablePoints : 0;
+
+  // Max stars allowed: each star = 2 points off, can cover up to 50% of cost
+  const maxStarsAllowed = Math.min(
+    Math.floor(reward.points_required / 4),
+    availableStars
+  );
+  const starDiscount = starsToUse * 2;
+  const effectiveCost = reward.points_required - starDiscount;
+
+  const stockDisplay = reward.stock !== undefined && reward.stock !== -1 ? reward.stock : null;
 
   return (
     <div
@@ -303,11 +367,21 @@ function RewardCard({ reward, canAfford, availablePoints, onPurchase, isPurchasi
       `}
     >
       {/* Reward Image/Icon */}
-      <div className={`${isYoungChild ? 'h-32' : 'h-24'} bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center`}>
+      <div className={`${isYoungChild ? 'h-32' : 'h-24'} bg-gradient-to-br from-purple-50 to-indigo-50 flex items-center justify-center relative`}>
         {reward.image_url ? (
           <img src={reward.image_url} alt={reward.title} className="h-full w-full object-cover" />
         ) : (
           <span className={`${isYoungChild ? 'text-6xl' : 'text-4xl'}`}>{reward.icon || '🎁'}</span>
+        )}
+
+        {/* Stock badge */}
+        {stockDisplay !== null && (
+          <div className={`absolute top-2 left-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+            stockDisplay <= 2 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+          }`}>
+            <Package className="w-3 h-3" />
+            {stockDisplay} left
+          </div>
         )}
       </div>
 
@@ -320,40 +394,70 @@ function RewardCard({ reward, canAfford, availablePoints, onPurchase, isPurchasi
           <p className="text-sm text-slate-500 mb-3 line-clamp-2">{reward.description}</p>
         )}
 
-        {/* Points and Action */}
-        <div className="flex items-center justify-between">
+        {/* Points cost (with star discount if active) */}
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1 text-purple-600 font-bold">
             <Star className="w-4 h-4 fill-current" />
-            {reward.points_required.toLocaleString()}
-          </div>
-
-          {canAfford ? (
-            <button
-              onClick={() => onPurchase(reward)}
-              disabled={isPurchasing}
-              className={`
-                px-4 py-2 rounded-xl font-medium transition-all
-                ${isPurchasing
-                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600'
-                }
-              `}
-            >
-              {isPurchasing ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Getting...
+            {starsToUse > 0 ? (
+              <span>
+                <span className="line-through text-slate-400 font-normal text-sm mr-1">
+                  {reward.points_required.toLocaleString()}
                 </span>
-              ) : (
-                'Get it!'
-              )}
-            </button>
-          ) : (
-            <div className="text-sm text-slate-400">
-              Need {pointsNeeded.toLocaleString()} more
-            </div>
-          )}
+                {effectiveCost.toLocaleString()}
+              </span>
+            ) : (
+              reward.points_required.toLocaleString()
+            )}
+          </div>
         </div>
+
+        {/* Star discount slider (only show if affordable and stars available) */}
+        {canAfford && maxStarsAllowed > 0 && (
+          <div className="mb-3 bg-amber-50 rounded-lg p-2">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-amber-700 font-medium flex items-center gap-1">
+                <Zap className="w-3 h-3" /> Use stars
+              </span>
+              <span className="text-amber-600">{starsToUse} stars = -{starDiscount} pts</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={maxStarsAllowed}
+              value={starsToUse}
+              onChange={e => setStarsToUse(parseInt(e.target.value))}
+              className="w-full h-1.5 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+            />
+          </div>
+        )}
+
+        {/* Action */}
+        {canAfford ? (
+          <button
+            onClick={() => onPurchase(reward, starsToUse)}
+            disabled={isPurchasing}
+            className={`
+              w-full px-4 py-2 rounded-xl font-medium transition-all
+              ${isPurchasing
+                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600'
+              }
+            `}
+          >
+            {isPurchasing ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Getting...
+              </span>
+            ) : (
+              starsToUse > 0 ? `Get it! (${effectiveCost} pts + ${starsToUse} stars)` : 'Get it!'
+            )}
+          </button>
+        ) : (
+          <div className="text-sm text-slate-400 text-center py-2">
+            Need {pointsNeeded.toLocaleString()} more points
+          </div>
+        )}
       </div>
     </div>
   );

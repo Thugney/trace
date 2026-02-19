@@ -203,6 +203,7 @@ export interface RewardClaim {
   profile_id: number;
   status: 'pending' | 'approved' | 'given' | 'rejected';
   points_spent: number;
+  stars_spent?: number;
   claimed_at: string;
   approved_by?: number;
   approved_at?: string;

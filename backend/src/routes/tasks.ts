@@ -685,82 +685,8 @@ router.get('/progress/:profileId', (req, res) => {
   }
 });
 
-// Get rewards
-router.get('/rewards/:profileId', (req, res) => {
-  try {
-    const { profileId } = req.params;
-    const rewards = db.prepare(`
-      SELECT * FROM rewards WHERE profile_id = ? ORDER BY points_required ASC
-    `).all(profileId);
-
-    res.json(rewards);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Create reward
-router.post('/rewards', (req, res) => {
-  try {
-    const { profile_id, title, description, type, points_required, icon } = req.body;
-
-    if (!profile_id || !title || !points_required) {
-      return res.status(400).json({ error: 'profile_id, title, and points_required are required' });
-    }
-
-    const result = db.prepare(`
-      INSERT INTO rewards (profile_id, title, description, type, points_required, icon)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      profile_id,
-      title,
-      description || null,
-      type || 'virtual',
-      points_required,
-      icon || null
-    );
-
-    const reward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(result.lastInsertRowid);
-    res.status(201).json(reward);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Claim reward
-router.post('/rewards/:id/claim', (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const reward: any = db.prepare('SELECT * FROM rewards WHERE id = ?').get(id);
-    if (!reward) {
-      return res.status(404).json({ error: 'Reward not found' });
-    }
-
-    if (reward.is_claimed) {
-      return res.status(400).json({ error: 'Reward already claimed' });
-    }
-
-    // Check if profile has enough points
-    const progress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(reward.profile_id);
-
-    if (!progress || progress.total_points < reward.points_required) {
-      return res.status(400).json({ error: 'Not enough points to claim this reward' });
-    }
-
-    // Claim reward
-    db.prepare(`
-      UPDATE rewards SET is_claimed = 1, claimed_at = CURRENT_TIMESTAMP WHERE id = ?
-    `).run(id);
-
-    const claimedReward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(id);
-    res.json(claimedReward);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
+// Legacy reward endpoints removed - use /api/rewards/* routes instead
+// The old endpoints had bugs: no point deduction tracking, no spent-points accounting
 
 // Approve task (parent/admin only)
 router.post('/:id/approve', (req, res) => {
