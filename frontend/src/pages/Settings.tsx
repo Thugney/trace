@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { settingsAPI, profilesAPI, aiAPI } from '../services/api';
-import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle } from 'lucide-react';
+import { settingsAPI, profilesAPI, aiAPI, remindersAPI, ReminderPreferences } from '../services/api';
+import { Settings as SettingsIcon, Lock, Users, Shield, Save, Plus, X, Brain, AlertTriangle, Camera } from 'lucide-react';
+import Avatar from '../components/Avatar';
+import ReminderWidget from '../components/kids/ReminderWidget';
 
 export default function Settings() {
   const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
@@ -30,9 +32,67 @@ export default function Settings() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<any>(null);
 
+  // Avatar upload state
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  // State for child PIN change
+  const [childNewPin, setChildNewPin] = useState('');
+  const [childConfirmPin, setChildConfirmPin] = useState('');
+
+  // State for reminder preferences
+  const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
+  const [savingReminders, setSavingReminders] = useState(false);
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Load reminder preferences
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadReminderPreferences();
+    }
+  }, [currentProfile?.id]);
+
+  const loadReminderPreferences = async () => {
+    if (!currentProfile?.id) return;
+    try {
+      const response = await remindersAPI.getPreferences(currentProfile.id);
+      setReminderPrefs(response.data);
+    } catch (error) {
+      console.error('Failed to load reminder preferences:', error);
+    }
+  };
+
+  const handleReminderToggle = async () => {
+    if (!currentProfile?.id || !reminderPrefs) return;
+    setSavingReminders(true);
+    try {
+      const response = await remindersAPI.updatePreferences(currentProfile.id, {
+        enabled: !reminderPrefs.reminder_enabled
+      });
+      setReminderPrefs(response.data);
+      setSuccessMessage('Reminder settings updated!');
+    } catch (error) {
+      console.error('Failed to update reminder preferences:', error);
+    } finally {
+      setSavingReminders(false);
+    }
+  };
+
+  const handleReminderTimeChange = async (time: string) => {
+    if (!currentProfile?.id) return;
+    setSavingReminders(true);
+    try {
+      const response = await remindersAPI.updatePreferences(currentProfile.id, { time });
+      setReminderPrefs(response.data);
+      setSuccessMessage('Reminder time updated!');
+    } catch (error) {
+      console.error('Failed to update reminder time:', error);
+    } finally {
+      setSavingReminders(false);
+    }
+  };
 
   // Load AI settings when profiles are loaded
   useEffect(() => {
@@ -317,6 +377,69 @@ export default function Settings() {
     return gender === 'male' ? '👦' : gender === 'female' ? '👧' : '🧒';
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>, profileId: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Maximum size is 5MB.');
+      return;
+    }
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) {
+      alert('Invalid file type. Please upload JPEG, PNG, GIF, or WebP.');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      await profilesAPI.uploadAvatar(profileId, file);
+      setSuccessMessage('Avatar uploaded successfully!');
+      await refreshProfiles();
+    } catch (error: any) {
+      console.error('Failed to upload avatar:', error);
+      // Show detailed error message
+      const errorMsg = error.response?.data?.error
+        || error.message
+        || 'Failed to upload avatar. Please try again.';
+      alert(`Upload failed: ${errorMsg}`);
+    } finally {
+      setUploadingAvatar(false);
+      // Clear the file input
+      e.target.value = '';
+    }
+  };
+
+  const handleChildPinChange = async () => {
+    if (!currentProfile) return;
+
+    if (!childNewPin || childNewPin.length < 4) {
+      alert('PIN must be at least 4 digits');
+      return;
+    }
+
+    if (childNewPin !== childConfirmPin) {
+      alert('PINs do not match');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Verify current PIN first, then update
+      await profilesAPI.update(currentProfile.id, { pin: childNewPin });
+      setSuccessMessage('PIN updated successfully!');
+      setChildNewPin('');
+      setChildConfirmPin('');
+    } catch (error: any) {
+      console.error('Failed to change PIN:', error);
+      alert(error.response?.data?.error || 'Failed to change PIN');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (currentProfile?.type === 'child') {
     // Kids only see limited settings
     return (
@@ -326,7 +449,66 @@ export default function Settings() {
           <p className="text-gray-600 mt-1">Update your profile information</p>
         </div>
 
+        {/* Success Toast */}
+        {successMessage && (
+          <div className="fixed top-4 right-4 z-50 animate-fade-in">
+            <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center space-x-2">
+              <Shield size={20} />
+              <span>{successMessage}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Reminder Settings - Kid-Friendly - PROMINENT PLACEMENT */}
+        <div className="card bg-gradient-to-br from-cyan-50 to-blue-50 border-2 border-cyan-200 mb-6">
+          <div className="text-center mb-4">
+            <span className="text-4xl animate-bounce inline-block">🔔</span>
+            <h2 className="text-xl font-bold text-cyan-800 mt-2">My Reminders</h2>
+            <p className="text-sm text-cyan-600">Never forget your tasks!</p>
+          </div>
+
+          {reminderPrefs ? (
+            <ReminderWidget
+              enabled={reminderPrefs.reminder_enabled}
+              time={reminderPrefs.morning_reminder_time}
+              onToggle={handleReminderToggle}
+              onTimeChange={handleReminderTimeChange}
+              saving={savingReminders}
+            />
+          ) : (
+            <div className="flex justify-center py-4">
+              <div className="spinner"></div>
+            </div>
+          )}
+        </div>
+
         <div className="card">
+          {/* Avatar Upload Section */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative">
+              <div className="border-4 border-primary-200 rounded-full">
+                <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
+              </div>
+              <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+                <Camera size={16} />
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => handleAvatarUpload(e, currentProfile.id)}
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                />
+              </label>
+            </div>
+            {uploadingAvatar && (
+              <div className="mt-2 flex items-center text-sm text-gray-600">
+                <div className="spinner mr-2"></div>
+                Uploading...
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-2">Click the camera to upload a photo</p>
+          </div>
+
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
               <label htmlFor="child-name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -344,13 +526,13 @@ export default function Settings() {
 
             <div>
               <label htmlFor="child-avatar" className="block text-sm font-medium text-gray-700 mb-1">
-                Avatar (Emoji)
+                Avatar (Emoji) - or upload a photo above
               </label>
               <input
                 id="child-avatar"
                 type="text"
                 name="avatar"
-                defaultValue={currentProfile?.avatar}
+                defaultValue={currentProfile?.avatar?.startsWith('/api/') ? '' : currentProfile?.avatar}
                 className="input"
                 placeholder="👦"
               />
@@ -361,6 +543,67 @@ export default function Settings() {
               Save Changes
             </button>
           </form>
+        </div>
+
+        {/* PIN Change Section for Kids */}
+        <div className="card mt-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Lock className="mr-2 text-orange-600" size={20} />
+            Change My PIN
+          </h2>
+
+          <p className="text-sm text-gray-600 mb-4">
+            Change your login PIN. Make sure to remember it!
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="child-new-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                New PIN *
+              </label>
+              <input
+                id="child-new-pin"
+                type="password"
+                value={childNewPin}
+                onChange={e => setChildNewPin(e.target.value)}
+                className="input"
+                placeholder="Enter new PIN (min 4 digits)"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                minLength={4}
+                maxLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="child-confirm-pin" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm New PIN *
+              </label>
+              <input
+                id="child-confirm-pin"
+                type="password"
+                value={childConfirmPin}
+                onChange={e => setChildConfirmPin(e.target.value)}
+                className="input"
+                placeholder="Re-enter new PIN"
+                pattern="[0-9]*"
+                inputMode="numeric"
+                minLength={4}
+                maxLength={8}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <button
+              onClick={handleChildPinChange}
+              disabled={saving || !childNewPin || !childConfirmPin}
+              className="btn btn-primary w-full"
+            >
+              {saving ? <div className="spinner"></div> : <Save size={20} className="mr-2" />}
+              Change PIN
+            </button>
+          </div>
         </div>
 
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -407,6 +650,32 @@ export default function Settings() {
               Profile Settings
             </h2>
 
+            {/* Avatar Upload Section */}
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <div className="border-4 border-primary-200 rounded-full">
+                  <Avatar avatar={currentProfile?.avatar} size="xl" alt={currentProfile?.name || 'Avatar'} />
+                </div>
+                <label className="absolute bottom-0 right-0 bg-primary-600 text-white p-2 rounded-full cursor-pointer hover:bg-primary-700 transition-colors">
+                  <Camera size={16} />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={(e) => currentProfile && handleAvatarUpload(e, currentProfile.id)}
+                    className="hidden"
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
+              {uploadingAvatar && (
+                <div className="mt-2 flex items-center text-sm text-gray-600">
+                  <div className="spinner mr-2"></div>
+                  Uploading...
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-2">Click the camera to upload a photo</p>
+            </div>
+
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
                 <label htmlFor="parent-name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -424,13 +693,13 @@ export default function Settings() {
 
               <div>
                 <label htmlFor="parent-avatar" className="block text-sm font-medium text-gray-700 mb-1">
-                  Avatar (Emoji)
+                  Avatar (Emoji) - or upload a photo above
                 </label>
                 <input
                   id="parent-avatar"
                   type="text"
                   name="avatar"
-                  defaultValue={currentProfile?.avatar}
+                  defaultValue={currentProfile?.avatar?.startsWith('/api/') ? '' : currentProfile?.avatar}
                   className="input"
                   placeholder="👨‍👩‍👧‍👦"
                 />
@@ -443,8 +712,8 @@ export default function Settings() {
             </form>
           </div>
 
-          {/* Password Management - Parents, Teachers, and Admin */}
-          {(isParent || isAdmin || currentProfile?.type === 'teacher') && (
+          {/* Password Management - Parents and Admin */}
+          {(isParent || isAdmin) && (
           <div className="card">
             <h2 className="text-xl font-semibold mb-4 flex items-center">
               <Lock className="mr-2 text-orange-600" size={20} />
@@ -468,6 +737,7 @@ export default function Settings() {
                   className="input"
                   placeholder="Enter new password (min 6 characters)"
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -483,6 +753,7 @@ export default function Settings() {
                   className="input"
                   placeholder="Re-enter new password"
                   minLength={6}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -531,6 +802,7 @@ export default function Settings() {
                   onChange={e => setGrokApiKey(e.target.value)}
                   className="input"
                   placeholder="Enter your Grok API key"
+                  autoComplete="off"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Get your API key from{' '}
@@ -588,7 +860,7 @@ export default function Settings() {
                         className="w-full p-4 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
                       >
                         <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{profile.avatar || '👤'}</span>
+                          <Avatar avatar={profile.avatar} size="md" alt={profile.name} />
                           <div className="text-left">
                             <p className="font-semibold">{profile.name}</p>
                             <p className="text-xs text-gray-600">
@@ -760,6 +1032,7 @@ Context: Tasks, Points, Level, Progress`}
                     onChange={e => setParentPin(e.target.value)}
                     className="input"
                     placeholder="Enter current PIN"
+                    autoComplete="current-password"
                   />
                 </div>
               )}
@@ -776,6 +1049,7 @@ Context: Tasks, Points, Level, Progress`}
                   className="input"
                   placeholder="Enter new PIN (min 4 characters)"
                   minLength={4}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -808,11 +1082,11 @@ Context: Tasks, Points, Level, Progress`}
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                 >
                   <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{profile.avatar || '👤'}</span>
+                    <Avatar avatar={profile.avatar} size="lg" alt={profile.name} />
                     <div>
                       <p className="font-medium">{profile.name}</p>
                       <p className="text-sm text-gray-600">
-                        {profile.type === 'parent' ? 'Parent' : profile.type === 'teacher' ? 'Teacher' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
+                        {profile.type === 'parent' ? 'Parent' : profile.type === 'admin' ? 'Admin' : `Child${profile.age ? ` (${profile.age} years)` : ''}`}
                       </p>
                     </div>
                   </div>
@@ -918,7 +1192,6 @@ Context: Tasks, Points, Level, Progress`}
                   {isAdmin && (
                     <>
                       <option value="parent">Parent</option>
-                      <option value="teacher">Teacher</option>
                       <option value="admin">Admin</option>
                     </>
                   )}
@@ -986,6 +1259,7 @@ Context: Tasks, Points, Level, Progress`}
                   placeholder="Enter 4-8 digit PIN"
                   pattern="[0-9]*"
                   inputMode="numeric"
+                  autoComplete="new-password"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   This PIN will protect the profile
@@ -1007,6 +1281,7 @@ Context: Tasks, Points, Level, Progress`}
                   placeholder="Re-enter PIN"
                   pattern="[0-9]*"
                   inputMode="numeric"
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1069,6 +1344,7 @@ Context: Tasks, Points, Level, Progress`}
                   inputMode="numeric"
                   minLength={4}
                   maxLength={8}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1087,6 +1363,7 @@ Context: Tasks, Points, Level, Progress`}
                   inputMode="numeric"
                   minLength={4}
                   maxLength={8}
+                  autoComplete="new-password"
                 />
               </div>
 
@@ -1146,7 +1423,6 @@ Context: Tasks, Points, Level, Progress`}
                 >
                   <option value="child">Child</option>
                   <option value="parent">Parent</option>
-                  <option value="teacher">Teacher</option>
                   <option value="admin">Admin</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
@@ -1237,6 +1513,7 @@ Context: Tasks, Points, Level, Progress`}
                       placeholder="Enter new PIN (optional)"
                       pattern="[0-9]*"
                       inputMode="numeric"
+                      autoComplete="new-password"
                     />
                   </div>
 
@@ -1254,6 +1531,7 @@ Context: Tasks, Points, Level, Progress`}
                       placeholder="Re-enter new PIN"
                       pattern="[0-9]*"
                       inputMode="numeric"
+                      autoComplete="new-password"
                     />
                   </div>
                 </div>

@@ -13,6 +13,68 @@ export interface Profile {
   updated_at: string;
   parent_id?: number;
   ai_enabled?: number; // 0 = disabled, 1 = enabled (controlled by admin)
+  diet_enabled?: number; // 0 = disabled, 1 = enabled (hidden feature)
+}
+
+export interface SchoolClass {
+  id: number;
+  name: string;
+  description?: string;
+  age_min?: number;
+  age_max?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SchoolAssignment {
+  id: number;
+  class_id: number;
+  teacher_id: number;
+  title: string;
+  description?: string;
+  type: 'homework' | 'psalm' | 'alphabet' | 'video' | 'quiz' | 'other';
+  youtube_link?: string;
+  attachment_url?: string;
+  linked_quiz_id?: number | null;
+  due_date?: string | null;
+  created_at: string;
+  updated_at: string;
+  class_name?: string;
+  teacher_name?: string;
+  submission_status?: string;
+  submitted_at?: string;
+}
+
+export interface SchoolSubmission {
+  id: number;
+  assignment_id: number;
+  student_id: number;
+  notes?: string;
+  submitted_at: string;
+  status: 'submitted' | 'approved' | 'needs_revision';
+  student_name?: string;
+  assignment_title?: string;
+}
+
+export interface SchoolAttachment {
+  id: number;
+  assignment_id?: number;
+  submission_id?: number;
+  uploaded_by?: number;
+  file_url: string;
+  file_name?: string;
+  file_type?: string;
+  created_at: string;
+}
+
+export interface SchoolFeedback {
+  id: number;
+  submission_id: number;
+  teacher_id: number;
+  comment: string;
+  rating?: 'excellent' | 'very_good' | 'good' | 'needs_improvement';
+  created_at: string;
+  teacher_name?: string;
 }
 
 export interface DietGoal {
@@ -78,17 +140,29 @@ export interface Task {
   profile_id: number;
   title: string;
   description?: string;
-  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'other';
+  category: 'read-book' | 'tigrinya' | 'clean-room' | 'clean-kitchen' | 'school' | 'watch-movies' | 'homework' | 'exercise' | 'chore' | 'other';
   points: number;
   difficulty: 'easy' | 'medium' | 'hard';
   earns_points: boolean;
-  is_recurring: boolean;
-  recurrence_pattern?: string;
+  is_recurring: boolean | number;
+  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | string; // string allows custom patterns like 'specific_days:mon,wed,fri'
   due_date?: string;
   completed: boolean;
   completed_at?: string;
-  created_at: string;
+  parent_approved: boolean;
   created_by?: number;
+  approved_by?: number;
+  created_at: string;
+  child_name?: string;
+  child_avatar?: string;
+  priority?: 'high' | 'medium' | 'low';
+  estimated_minutes?: number;
+  // Photo proof fields
+  proof_required?: boolean | number;
+  proof_photo_url?: string | null;
+  // Timer fields
+  requires_timer?: boolean | number;
+  timer_duration_minutes?: number | null;
 }
 
 export interface Progress {
@@ -106,15 +180,38 @@ export interface Progress {
 
 export interface Reward {
   id: number;
-  profile_id: number;
+  profile_id: number | null;
   title: string;
   description?: string;
   type: 'virtual' | 'real';
   points_required: number;
   icon?: string;
-  is_claimed: boolean;
+  image_url?: string;
+  category?: string;
+  available_for_all?: boolean;
+  stock?: number;
+  is_claimed?: boolean;
   claimed_at?: string;
+  created_by?: number;
   created_at: string;
+  user_claim_status?: 'pending' | 'approved' | null; // If user already claimed this reward
+}
+
+export interface RewardClaim {
+  id: number;
+  reward_id: number;
+  profile_id: number;
+  status: 'pending' | 'approved' | 'given' | 'rejected';
+  points_spent: number;
+  stars_spent?: number;
+  claimed_at: string;
+  approved_by?: number;
+  approved_at?: string;
+  notes?: string;
+  // Joined from reward
+  title?: string;
+  icon?: string;
+  image_url?: string;
 }
 
 export interface AIConversation {
@@ -132,6 +229,10 @@ export interface Note {
   title: string;
   content: string;
   color: string;
+  category?: string;
+  is_pinned?: boolean | number;
+  reminder_at?: string;
+  tags?: string; // JSON array string
   created_at: string;
   updated_at: string;
 }
@@ -146,8 +247,13 @@ export interface MonthlyGoal {
   achieved: boolean;
   reward_given: boolean;
   notes?: string;
+  parent_approved: boolean;
+  created_by?: number;
+  approved_by?: number;
   created_at: string;
   updated_at: string;
+  child_name?: string;
+  child_avatar?: string;
 }
 
 export interface ProfileStats {
@@ -186,18 +292,50 @@ export interface NutritionSummary {
   goals?: DietGoal | null;
 }
 
-export interface Message {
+
+// My Journey types
+export interface JourneyEvent {
+  type: 'task_completed' | 'goal_achieved';
+  title: string;
+  points?: number;
+  category?: string;
+  date: string;
+}
+
+export interface JourneyData {
+  summary: {
+    total_points: number;
+    total_stars: number;
+    tasks_completed: number;
+    goals_achieved: number;
+    meals_logged: number;
+  };
+  timeline: JourneyEvent[];
+  period: {
+    start: string;
+    end: string;
+    type: string;
+  };
+}
+
+// Push Notification types
+export interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
+
+export interface Notification {
   id: number;
-  sender_id: number;
-  recipient_id: number;
-  subject?: string;
+  profile_id: number;
+  type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
+        'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
+        'message_received' | 'reminder' | 'achievement' | 'general';
+  title: string;
   message: string;
+  data?: any;
   is_read: boolean;
   created_at: string;
-  sender_name?: string;
-  sender_type?: string;
-  sender_avatar?: string;
-  recipient_name?: string;
-  recipient_type?: string;
-  recipient_avatar?: string;
 }

@@ -7,30 +7,46 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "db:init": "tsx src/database/init.ts"
+    "db:init": "tsx src/database/init.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "keywords": ["family", "pwa", "diet", "tasks"],
+  "keywords": [
+    "family",
+    "pwa",
+    "diet",
+    "tasks"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.21.2",
+    "axios": "^1.7.9",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.8.1",
+    "compression": "^1.7.5",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "better-sqlite3": "^11.8.1",
-    "axios": "^1.7.9",
-    "helmet": "^8.0.0",
-    "compression": "^1.7.5",
+    "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
-    "bcrypt": "^5.1.1"
+    "helmet": "^8.0.0",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/cors": "^2.8.17",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node-cron": "^3.0.11",
     "@types/better-sqlite3": "^7.6.12",
     "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^2.0.0",
     "@types/node": "^22.10.5",
-    "@types/bcrypt": "^5.0.2",
+    "@types/supertest": "^6.0.2",
+    "@types/web-push": "^3.6.4",
+    "supertest": "^6.3.4",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "tsx": "^4.19.2"
+    "vitest": "^2.1.8"
   }
 }

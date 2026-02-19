@@ -1,8 +1,11 @@
 import express from 'express';
 import axios from 'axios';
 import db from '../database/init';
+import { authenticate } from '../middleware/auth';
+import { requireFeature } from '../middleware/feature-access';
 
 const router = express.Router();
+router.use(authenticate, requireFeature('diet'));
 
 // Search Norwegian foods (Matvaretabellen API or OpenFoodFacts)
 router.get('/foods/search', async (req, res) => {
@@ -193,6 +196,110 @@ router.post('/log', (req, res) => {
     `).get(result.lastInsertRowid);
 
     res.status(201).json(mealLog);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update meal log
+router.put('/log/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      meal_type,
+      portion_size,
+      portion_unit,
+      notes
+    } = req.body;
+
+    // Get existing log
+    const existingLog: any = db.prepare(`
+      SELECT ml.*, fi.calories, fi.protein, fi.carbs, fi.fat, fi.serving_size
+      FROM meal_logs ml
+      JOIN food_items fi ON ml.food_id = fi.id
+      WHERE ml.id = ?
+    `).get(id);
+
+    if (!existingLog) {
+      return res.status(404).json({ error: 'Meal log not found' });
+    }
+
+    // Recalculate nutrition if portion changed
+    let calories = existingLog.calories_consumed;
+    let protein = existingLog.protein_consumed;
+    let carbs = existingLog.carbs_consumed;
+    let fat = existingLog.fat_consumed;
+
+    if (portion_size !== undefined && portion_size !== existingLog.portion_size) {
+      const multiplier = portion_size / parseFloat(existingLog.serving_size || 100);
+      calories = Math.round(existingLog.calories * multiplier);
+      protein = (existingLog.protein * multiplier).toFixed(1);
+      carbs = (existingLog.carbs * multiplier).toFixed(1);
+      fat = (existingLog.fat * multiplier).toFixed(1);
+    }
+
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (meal_type !== undefined) {
+      updates.push('meal_type = ?');
+      values.push(meal_type);
+    }
+    if (portion_size !== undefined) {
+      updates.push('portion_size = ?');
+      values.push(portion_size);
+      updates.push('calories_consumed = ?');
+      values.push(calories);
+      updates.push('protein_consumed = ?');
+      values.push(protein);
+      updates.push('carbs_consumed = ?');
+      values.push(carbs);
+      updates.push('fat_consumed = ?');
+      values.push(fat);
+    }
+    if (portion_unit !== undefined) {
+      updates.push('portion_unit = ?');
+      values.push(portion_unit);
+    }
+    if (notes !== undefined) {
+      updates.push('notes = ?');
+      values.push(notes);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    values.push(id);
+    db.prepare(`
+      UPDATE meal_logs SET ${updates.join(', ')} WHERE id = ?
+    `).run(...values);
+
+    const updatedLog = db.prepare(`
+      SELECT ml.*, fi.name as food_name, fi.name_no
+      FROM meal_logs ml
+      JOIN food_items fi ON ml.food_id = fi.id
+      WHERE ml.id = ?
+    `).get(id);
+
+    res.json(updatedLog);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete meal log
+router.delete('/log/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = db.prepare('DELETE FROM meal_logs WHERE id = ?').run(id);
+
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Meal log not found' });
+    }
+
+    res.json({ message: 'Meal log deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

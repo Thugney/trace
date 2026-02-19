@@ -6,8 +6,8 @@ yarn-error.log*
 
 # Environment variables
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 
 # Database
 data/
@@ -30,6 +30,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+NUL
 
 # Docker
 docker-compose.override.yml

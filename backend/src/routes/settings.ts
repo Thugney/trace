@@ -134,4 +134,20 @@ router.delete('/:key', (req, res) => {
   }
 });
 
+// Get feature flags - public endpoint for UI configuration
+router.get('/features/flags', (req, res) => {
+  try {
+    // Diet feature is hidden by default (can be enabled in settings later)
+    const dietSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'diet_feature_enabled'").get();
+    const schoolOnlySetting: any = db.prepare("SELECT value FROM settings WHERE key = 'school_only_mode'").get();
+
+    res.json({
+      diet_enabled: dietSetting?.value === 'true',
+      school_only_mode: schoolOnlySetting?.value === 'true'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -12,13 +12,23 @@ import aiRoutes from './routes/ai';
 import settingsRoutes from './routes/settings';
 import notesRoutes from './routes/notes';
 import goalsRoutes from './routes/goals';
+import notificationsRoutes from './routes/notifications';
+import gamificationRoutes from './routes/gamification';
+import aiGamificationRoutes from './routes/ai-gamification';
+import rewardsRoutes from './routes/rewards';
+import remindersRoutes from './routes/reminders';
+import familyQuizzesRoutes from './routes/family-quizzes';
 import schoolRoutes from './routes/school';
-import messagesRoutes from './routes/messages';
+import { initScheduler } from './services/scheduler';
 
 dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+
+// Trust proxy - required when behind nginx/reverse proxy (e.g., Synology)
+// This allows express-rate-limit to correctly identify users by IP
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
@@ -28,12 +38,19 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+// Rate limiting - only on login to prevent brute force attacks
+// Authenticated endpoints have no rate limit (scalable for many users)
+const loginLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 30, // 30 failed login attempts per minute per IP (prevents brute force)
+  message: { error: 'Too many login attempts, please wait a minute' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful logins against limit
 });
-app.use('/api/', limiter);
+
+// Only apply rate limit to login endpoint
+app.use('/api/profiles/login', loginLimiter);
 
 // Body parsing middleware
 app.use(express.json());
@@ -50,8 +67,16 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/goals', goalsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/gamification', gamificationRoutes);
+app.use('/api/ai-gamification', aiGamificationRoutes);
+app.use('/api/rewards', rewardsRoutes);
+app.use('/api/reminders', remindersRoutes);
+app.use('/api/family-quizzes', familyQuizzesRoutes);
 app.use('/api/school', schoolRoutes);
-app.use('/api/messages', messagesRoutes);
+
+// Initialize scheduler after database
+initScheduler();
 
 // Health check
 app.get('/health', (req, res) => {

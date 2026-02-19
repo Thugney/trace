@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { dietAPI } from '../services/api';
 import { FoodItem, MealLog, NutritionSummary } from '../types';
-import { Search, Plus, Calendar, PlusCircle, X } from 'lucide-react';
+import { Search, Plus, Calendar, PlusCircle, X, Edit2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function DietTracking() {
@@ -15,6 +15,7 @@ export default function DietTracking() {
   const [loading, setLoading] = useState(false);
   const [selectedMealType, setSelectedMealType] = useState<string>('breakfast');
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
 
   useEffect(() => {
     if (currentProfile) {
@@ -115,6 +116,41 @@ export default function DietTracking() {
     } catch (error) {
       console.error('Failed to add manual entry:', error);
       alert('Failed to add food. Please try again.');
+    }
+  };
+
+  const handleEditMeal = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingMeal) return;
+
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      await dietAPI.updateMealLog(editingMeal.id, {
+        meal_type: formData.get('meal_type') as string,
+        portion_size: parseFloat(formData.get('portion_size') as string),
+        notes: formData.get('notes') as string || undefined
+      });
+
+      setEditingMeal(null);
+      await loadMealLogs();
+      await loadNutrition();
+    } catch (error) {
+      console.error('Failed to update meal:', error);
+      alert('Failed to update meal. Please try again.');
+    }
+  };
+
+  const handleDeleteMeal = async (mealId: number) => {
+    if (!confirm('Are you sure you want to delete this meal entry?')) return;
+
+    try {
+      await dietAPI.deleteMealLog(mealId);
+      await loadMealLogs();
+      await loadNutrition();
+    } catch (error) {
+      console.error('Failed to delete meal:', error);
+      alert('Failed to delete meal. Please try again.');
     }
   };
 
@@ -288,14 +324,30 @@ export default function DietTracking() {
                       {mealsOfType.map(meal => (
                         <div key={meal.id} className="p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center justify-between">
-                            <div>
+                            <div className="flex-1">
                               <p className="font-medium">{meal.food_name}</p>
                               <p className="text-sm text-gray-600">
                                 {meal.portion_size}{meal.portion_unit} • {meal.calories_consumed} cal
                               </p>
                             </div>
-                            <div className="text-xs text-gray-500">
-                              {format(new Date(meal.logged_at), 'HH:mm')}
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-500">
+                                {format(new Date(meal.logged_at), 'HH:mm')}
+                              </span>
+                              <button
+                                onClick={() => setEditingMeal(meal)}
+                                className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMeal(meal.id)}
+                                className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -308,6 +360,86 @@ export default function DietTracking() {
           )}
         </div>
       </div>
+
+      {/* Edit Meal Modal */}
+      {editingMeal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold">Edit Meal Entry</h3>
+                <button
+                  onClick={() => setEditingMeal(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditMeal} className="space-y-4">
+                <div>
+                  <p className="text-gray-700 font-medium mb-2">{editingMeal.food_name}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Meal Type
+                  </label>
+                  <select
+                    name="meal_type"
+                    defaultValue={editingMeal.meal_type}
+                    className="input w-full"
+                  >
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Portion Size ({editingMeal.portion_unit})
+                  </label>
+                  <input
+                    type="number"
+                    name="portion_size"
+                    defaultValue={editingMeal.portion_size}
+                    min="0"
+                    step="0.1"
+                    className="input w-full"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    defaultValue={editingMeal.notes || ''}
+                    className="input w-full"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMeal(null)}
+                    className="btn btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary flex-1">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manual Entry Modal */}
       {showManualEntry && (

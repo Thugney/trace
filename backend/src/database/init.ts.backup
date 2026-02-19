@@ -1,0 +1,692 @@
+// Database initialization for Trace app
+import Database from 'better-sqlite3';
+import { join } from 'path';
+
+const __dirname = process.cwd(); // root directory
+
+export function initDatabase(dbPath: string = join(__dirname, 'database.sqlite')): Database.Database {
+  console.log(`📊 Initializing database at ${dbPath}`);
+
+  const db = new Database(dbPath, { verbose: console.log });
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+
+  // =============================================
+  // CORE TABLES - User profiles and authentication
+  // =============================================
+
+  // User profiles
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profiles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      display_name TEXT NOT NULL,
+      email TEXT UNIQUE,
+      password_hash TEXT,
+      role TEXT NOT NULL DEFAULT 'child',
+      age INTEGER,
+      avatar_url TEXT,
+      parent_id INTEGER,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // User sessions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // TASK MANAGEMENT SYSTEM
+  // =============================================
+
+  // Task categories
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      icon TEXT NOT NULL,
+      color TEXT NOT NULL,
+      points INTEGER DEFAULT 10,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Tasks
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      category_id INTEGER NOT NULL,
+      points INTEGER DEFAULT 10,
+      difficulty TEXT DEFAULT 'medium',
+      estimated_minutes INTEGER DEFAULT 15,
+      requires_proof BOOLEAN DEFAULT 0,
+      proof_type TEXT DEFAULT 'photo',
+      proof_instructions TEXT,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER NOT NULL,
+      due_date DATETIME,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      approved_by INTEGER,
+      approved_at DATETIME,
+      rejection_reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES task_categories(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Task proofs (photos, etc.)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_proofs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      proof_url TEXT NOT NULL,
+      proof_type TEXT NOT NULL DEFAULT 'photo',
+      uploaded_by INTEGER NOT NULL,
+      uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'pending',
+      reviewed_by INTEGER,
+      reviewed_at DATETIME,
+      comments TEXT,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (uploaded_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
+    )
+  `);
+
+  // =============================================
+  // TIMER & PRODUCTIVITY SYSTEM
+  // =============================================
+
+  // Timer logs for tasks and quizzes
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS timer_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      activity_type TEXT NOT NULL, -- 'task', 'quiz', 'break'
+      activity_id INTEGER, -- task_id or quiz_id
+      start_time DATETIME NOT NULL,
+      end_time DATETIME,
+      duration_seconds INTEGER,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // GAMIFICATION & PROGRESS SYSTEM
+  // =============================================
+
+  // Progress tracking
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      points_earned INTEGER DEFAULT 0,
+      stars_earned INTEGER DEFAULT 0,
+      level INTEGER DEFAULT 1,
+      total_points INTEGER DEFAULT 0,
+      total_stars INTEGER DEFAULT 0,
+      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Streaks
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS streaks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      streak_type TEXT NOT NULL,
+      current_streak INTEGER DEFAULT 0,
+      longest_streak INTEGER DEFAULT 0,
+      quality_score INTEGER DEFAULT 0,
+      quality_bonus_awarded INTEGER DEFAULT 0,
+      last_activity_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, streak_type)
+    )
+  `);
+
+  // Gamification: Quality streak tracking for achievements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quality_streak_days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      streak_type TEXT NOT NULL,
+      quality_score INTEGER NOT NULL,
+      is_high_quality BOOLEAN DEFAULT 0,
+      activity_date TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, streak_type, activity_date)
+    )
+  `);
+
+  // Gamification: Achievements definitions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      points_reward INTEGER DEFAULT 0,
+      requirement_type TEXT NOT NULL,
+      requirement_value INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Gamification: Profile achievements (earned)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profile_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, achievement_id)
+    )
+  `);
+
+  // Milestone rewards for streaks
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS milestone_rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      milestone_days INTEGER NOT NULL,
+      points_awarded INTEGER NOT NULL,
+      message TEXT NOT NULL,
+      awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, milestone_days)
+    )
+  `);
+
+  // Gamification: Daily challenges
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      challenge_type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      bonus_points INTEGER DEFAULT 10,
+      completed BOOLEAN DEFAULT 0,
+      completed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Insert default gamification achievements
+  const gamificationAchievements = [
+    { name: 'First Task', description: 'Complete your first task', icon: '🌟', points_reward: 10, requirement_type: 'tasks_completed', requirement_value: 1 },
+    { name: 'Task Master', description: 'Complete 10 tasks', icon: '🏆', points_reward: 50, requirement_type: 'tasks_completed', requirement_value: 10 },
+    { name: 'Super Achiever', description: 'Complete 50 tasks', icon: '👑', points_reward: 100, requirement_type: 'tasks_completed', requirement_value: 50 },
+    { name: 'Week Warrior', description: 'Complete tasks 7 days in a row', icon: '🔥', points_reward: 75, requirement_type: 'streak_days', requirement_value: 7 },
+    { name: 'Month Champion', description: 'Complete tasks 30 days in a row', icon: '💎', points_reward: 200, requirement_type: 'streak_days', requirement_value: 30 },
+    { name: 'Hydration Hero', description: 'Log water intake 7 days in a row', icon: '💧', points_reward: 50, requirement_type: 'water_streak', requirement_value: 7 },
+    { name: 'Goal Getter', description: 'Achieve your first monthly goal', icon: '🎯', points_reward: 100, requirement_type: 'goals_achieved', requirement_value: 1 },
+    { name: 'Point Collector', description: 'Earn 500 total points', icon: '💰', points_reward: 50, requirement_type: 'total_points', requirement_value: 500 },
+    { name: 'Star Student', description: 'Earn 100 stars', icon: '⭐', points_reward: 75, requirement_type: 'total_stars', requirement_value: 100 }
+  ];
+
+  const insertGamificationAchievement = db.prepare(`
+    INSERT OR IGNORE INTO achievements (name, description, icon, points_reward, requirement_type, requirement_value)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of gamificationAchievements) {
+    insertGamificationAchievement.run(ach.name, ach.description, ach.icon, ach.points_reward, ach.requirement_type, ach.requirement_value);
+  }
+
+
+
+  // =============================================
+  // REWARDS & ECONOMY SYSTEM
+  // =============================================
+
+  // Reward logs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS reward_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      reward_type TEXT NOT NULL,
+      points INTEGER DEFAULT 0,
+      stars INTEGER DEFAULT 0,
+      metadata TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // QUIZ SYSTEM
+  // =============================================
+
+  // Quiz attempts
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quiz_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      quiz_id INTEGER NOT NULL,
+      score INTEGER NOT NULL,
+      total_questions INTEGER NOT NULL,
+      time_spent_seconds INTEGER,
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // WATER INTAKE TRACKING
+  // =============================================
+
+  // Water intake logs
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS water_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      amount_ml INTEGER NOT NULL,
+      logged_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // GOALS SYSTEM
+  // =============================================
+
+  // Monthly goals
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS monthly_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      goal_type TEXT NOT NULL,
+      target_value INTEGER NOT NULL,
+      current_value INTEGER DEFAULT 0,
+      achieved BOOLEAN DEFAULT 0,
+      month_year TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, goal_type, month_year)
+    )
+  `);
+
+  // =============================================
+  // NOTES & COMMUNICATION
+  // =============================================
+
+  // Notes (parent to child)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_profile_id INTEGER NOT NULL,
+      to_profile_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (from_profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (to_profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // SCHOOL MANAGEMENT (Optional module)
+  // =============================================
+
+  // School classes
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_classes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      age_min INTEGER,
+      age_max INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Insert default school classes
+  const defaultClasses = [
+    { name: 'First Class', description: 'Youngest students learning basics', age_min: 5, age_max: 7 },
+    { name: 'Second Class', description: 'Intermediate students', age_min: 8, age_max: 10 },
+    { name: 'Third Class', description: 'Advanced students', age_min: 11, age_max: 14 }
+  ];
+
+  const existingClasses = db.prepare('SELECT COUNT(*) as count FROM school_classes').get() as { count: number };
+  if (existingClasses.count === 0) {
+    console.log('📚 Creating default school classes...');
+    const insertClass = db.prepare('INSERT INTO school_classes (name, description, age_min, age_max) VALUES (?, ?, ?, ?)');
+    defaultClasses.forEach(cls => {
+      insertClass.run(cls.name, cls.description, cls.age_min, cls.age_max);
+    });
+  }
+
+  // School assignments
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      class_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      due_date DATETIME,
+      points INTEGER DEFAULT 10,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES school_classes(id) ON DELETE CASCADE
+    )
+  `);
+
+  // School achievements/badges definitions
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS school_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      category TEXT NOT NULL,
+      points INTEGER NOT NULL,
+      requirement_type TEXT NOT NULL,
+      requirement_value INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Insert default achievements
+  const defaultAchievements = [
+    { name: 'First Steps', description: 'Complete your first assignment', icon: '🎯', category: 'assignment', points: 5, requirement_type: 'assignments_completed', requirement_value: 1 },
+    { name: 'Quiz Master', description: 'Score 100% on a quiz', icon: '🏆', category: 'quiz', points: 20, requirement_type: 'quiz_score', requirement_value: 100 },
+    { name: 'Consistent Learner', description: 'Complete 5 assignments', icon: '📚', category: 'assignment', points: 25, requirement_type: 'assignments_completed', requirement_value: 5 },
+    { name: 'Psalm Singer', description: 'Complete 3 psalm assignments', icon: '🎵', category: 'assignment', points: 15, requirement_type: 'special', requirement_value: 3 },
+    { name: 'Geez Scholar', description: 'Complete 5 alphabet assignments', icon: '✍️', category: 'assignment', points: 20, requirement_type: 'special', requirement_value: 5 },
+    { name: 'Video Watcher', description: 'Complete 3 video lessons', icon: '🎬', category: 'assignment', points: 10, requirement_type: 'special', requirement_value: 3 },
+    { name: 'Perfect Week', description: 'Submit all assignments in a week', icon: '⭐', category: 'streak', points: 30, requirement_type: 'streak', requirement_value: 7 },
+    { name: 'Rising Star', description: 'Earn 50 points', icon: '🌟', category: 'special', points: 10, requirement_type: 'special', requirement_value: 50 },
+    { name: 'Super Student', description: 'Earn 100 points', icon: '💫', category: 'special', points: 25, requirement_type: 'special', requirement_value: 100 },
+    { name: 'Church Scholar', description: 'Earn 200 points', icon: '👑', category: 'special', points: 50, requirement_type: 'special', requirement_value: 200 }
+  ];
+
+  const insertAchievement = db.prepare(`
+    INSERT OR IGNORE INTO school_achievements (name, description, icon, category, points, requirement_type, requirement_value)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of defaultAchievements) {
+    insertAchievement.run(ach.name, ach.description, ach.icon, ach.category, ach.points, ach.requirement_type, ach.requirement_value);
+  }
+
+  // Student earned achievements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS student_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES school_achievements(id) ON DELETE CASCADE,
+      UNIQUE(student_id, achievement_id)
+    )
+  `);
+
+  // =============================================
+  // NOTIFICATIONS
+  // =============================================
+
+  // Notifications
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_read BOOLEAN DEFAULT 0,
+      metadata TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // AI & PERSONALIZATION
+  // =============================================
+
+  // AI-generated content
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS ai_content (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      content_type TEXT NOT NULL,
+      prompt TEXT NOT NULL,
+      response TEXT NOT NULL,
+      metadata TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Personalization settings
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS personalization_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL UNIQUE,
+      theme TEXT DEFAULT 'light',
+      font_size TEXT DEFAULT 'medium',
+      sound_enabled BOOLEAN DEFAULT 1,
+      notifications_enabled BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // FAMILY MANAGEMENT
+  // =============================================
+
+  // Family connections
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_connections (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL,
+      child_id INTEGER NOT NULL,
+      relationship_type TEXT DEFAULT 'parent-child',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (parent_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (child_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(parent_id, child_id)
+    )
+  `);
+
+  // =============================================
+  // MIGRATIONS & UPDATES
+  // =============================================
+
+  // Migration history
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migrations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      migration_name TEXT NOT NULL UNIQUE,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // =============================================
+  // CUSTOM ACHIEVEMENTS
+  // =============================================
+
+  // Custom achievements (parent-created or AI-suggested)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      points_reward INTEGER DEFAULT 0,
+      requirement_type TEXT NOT NULL,
+      requirement_value INTEGER NOT NULL,
+      is_hidden BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Track earned custom achievements
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS custom_achievements_earned (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      achievement_id INTEGER NOT NULL,
+      earned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (achievement_id) REFERENCES custom_achievements(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, achievement_id)
+    )
+  `);
+
+  // Create indexes for performance
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_timer_logs_profile ON timer_logs(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_progress_profile ON progress(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_streaks_profile ON streaks(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_quiz_attempts_profile ON quiz_attempts(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_water_logs_profile ON water_logs(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_notes_to_profile ON notes(to_profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_profile ON notifications(profile_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_family_connections_parent ON family_connections(parent_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_family_connections_child ON family_connections(child_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_custom_achievements_profile ON custom_achievements(profile_id)');
+
+  // =============================================
+  // ADDITIONAL COLUMNS & MIGRATIONS
+  // =============================================
+
+  // Add is_hidden column to achievements table if not exists
+  try {
+    const achievementColumns = db.prepare("PRAGMA table_info(achievements)").all() as { name: string }[];
+    const hasIsHidden = achievementColumns.some(col => col.name === 'is_hidden');
+    if (!hasIsHidden) {
+      console.log('Adding is_hidden column to achievements table...');
+      db.prepare('ALTER TABLE achievements ADD COLUMN is_hidden BOOLEAN DEFAULT 0').run();
+      console.log('Added is_hidden column to achievements');
+    }
+  } catch (error: any) {
+    console.error('Migration error (is_hidden):', error.message);
+  }
+
+  // Insert hidden achievements
+  const hiddenAchievements = [
+    { name: 'Early Bird Master', description: 'Complete 5 tasks before 8 AM', icon: '🌅', points_reward: 75, requirement_type: 'early_tasks', requirement_value: 5, is_hidden: 1 },
+    { name: 'Night Owl', description: 'Complete a task after 9 PM', icon: '🦉', points_reward: 25, requirement_type: 'late_task', requirement_value: 1, is_hidden: 1 },
+    { name: 'Weekend Warrior', description: 'Complete 10 tasks on weekends', icon: '🎮', points_reward: 100, requirement_type: 'weekend_tasks', requirement_value: 10, is_hidden: 1 },
+    { name: 'Speed Demon', description: 'Complete 3 tasks in 30 minutes', icon: '⚡', points_reward: 50, requirement_type: 'speed_tasks', requirement_value: 3, is_hidden: 1 },
+    { name: 'Perfectionist', description: 'Complete all daily challenges 7 days in a row', icon: '💫', points_reward: 150, requirement_type: 'perfect_week', requirement_value: 7, is_hidden: 1 },
+    { name: 'Lucky Spinner', description: 'Win the jackpot on the spin wheel', icon: '🎰', points_reward: 100, requirement_type: 'jackpot_win', requirement_value: 1, is_hidden: 1 },
+    { name: 'Countdown Champion', description: 'Complete 5 countdown challenges', icon: '⏱️', points_reward: 100, requirement_type: 'countdown_completed', requirement_value: 5, is_hidden: 1 },
+    { name: 'Hydration Hero Plus', description: 'Drink 3L of water in a single day', icon: '💦', points_reward: 50, requirement_type: 'super_hydration', requirement_value: 3000, is_hidden: 1 },
+    { name: 'Century Club', description: 'Complete 100 tasks total', icon: '💯', points_reward: 200, requirement_type: 'tasks_completed', requirement_value: 100, is_hidden: 1 },
+    { name: 'Point Millionaire', description: 'Earn 1000 total points', icon: '🤑', points_reward: 100, requirement_type: 'total_points', requirement_value: 1000, is_hidden: 1 },
+    { name: 'Quality Streaker', description: 'Maintain high-quality streaks (80+ score) for 3 consecutive days', icon: '🏆', points_reward: 100, requirement_type: 'streak_quality', requirement_value: 3, is_hidden: 1 }
+  ];
+
+  const insertHiddenAchievement = db.prepare(`
+    INSERT OR IGNORE INTO achievements (name, description, icon, points_reward, requirement_type, requirement_value, is_hidden)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  for (const ach of hiddenAchievements) {
+    insertHiddenAchievement.run(ach.name, ach.description, ach.icon, ach.points_reward, ach.requirement_type, ach.requirement_value, ach.is_hidden);
+  }
+
+  // =============================================
+  // FAMILY QUIZ SYSTEM - Educational quizzes for kids
+  // =============================================
+
+  // Quiz Categories with theme configuration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quiz_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      description TEXT,
+      theme_config TEXT NOT NULL,
+      input_config TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Family Quizzes - Parent-created quizzes for their kids
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quizzes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      category_id INTEGER NOT NULL,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER NOT NULL,
+      difficulty TEXT DEFAULT 'medium',
+      questions TEXT NOT NULL, -- JSON array of questions
+      time_limit_seconds INTEGER DEFAULT 300,
+      passing_score INTEGER DEFAULT 70,
+      attempts_allowed INTEGER DEFAULT 3,
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES quiz_categories(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE CASCADE,
+      FOREIGN KEY (assigned_to) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Quiz Attempts for family quizzes
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS family_quiz_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      quiz_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      score INTEGER NOT NULL,
+      total_questions INTEGER NOT NULL,
+      time_spent_seconds INTEGER,
+      answers TEXT NOT NULL, -- JSON array of user answers
+      completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (quiz_id) REFERENCES family_quizzes(id) ON DELETE CASCADE,
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  // =============================================
+  // COMPLETION
+  // =============================================
+
+  console.log('✅ Database initialization complete');
+  return db;
+}
+
+const db: Database.Database = initDatabase();
+export default db;

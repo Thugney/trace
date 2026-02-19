@@ -143,6 +143,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 placeholder="Enter 4-8 digit PIN"
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoComplete="new-password"
               />
               <p className="text-xs text-gray-500 mt-1">
                 This PIN will protect your account
@@ -163,6 +164,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 placeholder="Re-enter PIN"
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoComplete="new-password"
               />
             </div>
 
@@ -261,6 +263,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 placeholder="Enter 4-8 digit PIN"
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoComplete="new-password"
               />
               <p className="text-xs text-gray-500 mt-1">
                 This PIN will protect the child's account
@@ -281,6 +284,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 placeholder="Re-enter PIN"
                 pattern="[0-9]*"
                 inputMode="numeric"
+                autoComplete="new-password"
               />
             </div>
 
