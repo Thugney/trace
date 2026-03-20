@@ -5,8 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
-import { authenticate } from '../middleware/auth';
+import { authenticate, type AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { canAccessOwnOrManagedChild, canViewFamilyProfile, getManagedChildIdsForParent } from '../services/familyAccess';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 
 const router = Router();
@@ -164,6 +165,101 @@ class HttpError extends Error {
     this.status = status;
   }
 }
+
+type ViewerProfile = NonNullable<AuthRequest['profile']>;
+type BookAccessRow = {
+  id: number;
+  title: string;
+  created_by: number | null;
+  assigned_to: number | null;
+};
+type NoteAccessRow = {
+  id: number;
+  book_id: number;
+  profile_id: number;
+};
+
+const parsePositiveInt = (value: unknown): number | null => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const normalizeTextInput = (value: unknown, maxLength: number) => {
+  const normalized = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return '';
+  }
+
+  return normalized.length > maxLength
+    ? normalized.slice(0, maxLength).trim()
+    : normalized;
+};
+
+const getBookAccessRow = (bookId: number) =>
+  db.prepare('SELECT id, title, created_by, assigned_to FROM books WHERE id = ?').get(bookId) as BookAccessRow | undefined;
+
+const getNoteAccessRow = (noteId: number) =>
+  db.prepare('SELECT id, book_id, profile_id FROM book_reading_notes WHERE id = ?').get(noteId) as NoteAccessRow | undefined;
+
+const canViewBookProfileData = (viewer: ViewerProfile, profileId: number) => {
+  if (viewer.type === 'admin') {
+    return true;
+  }
+
+  return canViewFamilyProfile(viewer, profileId);
+};
+
+const canManageBookProfileData = (viewer: ViewerProfile, profileId: number) => {
+  if (viewer.type === 'admin') {
+    return true;
+  }
+
+  return canAccessOwnOrManagedChild(viewer, profileId);
+};
+
+const isBookLinkedToProfile = (book: BookAccessRow, profileId: number) =>
+  book.created_by === profileId || book.assigned_to === profileId;
+
+const canViewerAccessBook = (viewer: ViewerProfile, book: BookAccessRow) => {
+  if (viewer.type === 'admin') {
+    return true;
+  }
+
+  const relatedProfileIds = [book.created_by, book.assigned_to].filter(
+    (profileId): profileId is number => typeof profileId === 'number' && Number.isInteger(profileId) && profileId > 0
+  );
+
+  if (relatedProfileIds.includes(viewer.id)) {
+    return true;
+  }
+
+  if (viewer.type === 'parent') {
+    return relatedProfileIds.some((profileId) => canViewFamilyProfile(viewer, profileId));
+  }
+
+  return false;
+};
+
+const canViewerManageBook = (viewer: ViewerProfile, book: BookAccessRow) => {
+  if (viewer.type === 'admin') {
+    return true;
+  }
+
+  if (book.created_by === viewer.id) {
+    return true;
+  }
+
+  if (viewer.type === 'parent') {
+    return [book.created_by, book.assigned_to].some(
+      (profileId) => !!profileId && canViewFamilyProfile(viewer, profileId)
+    );
+  }
+
+  return book.assigned_to === viewer.id;
+};
 
 const saveBase64ImageToBookMedia = (data: string, prefix: string) => {
   const buffer = Buffer.from(data, 'base64');
@@ -416,12 +512,19 @@ const generateBookImage = async (prompt: string, errors: string[], label: string
 type BookJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 type BookJob = {
   id: string;
+  ownerProfileId: number;
   status: BookJobStatus;
   createdAt: number;
   updatedAt: number;
   progress?: { current: number; total: number; message: string };
   result?: any;
   error?: string;
+  usage?: {
+    profileId: number;
+    estimatedCost: number;
+    predictedProvider: string;
+    imagesGenerated: number;
+  };
 };
 
 const BOOK_JOB_TTL_MS = 2 * 60 * 60 * 1000;
@@ -455,9 +558,19 @@ const scheduleBookJob = (jobId: string, payload: BookGeneratePayload) => {
   else setTimeout(runner, 0);
 };
 
-const createBookJob = (payload: BookGeneratePayload) => {
+const createBookJob = (
+  payload: BookGeneratePayload,
+  usage?: BookJob['usage']
+) => {
   pruneBookJobs();
-  const job: BookJob = { id: createBookJobId(), status: 'queued', createdAt: Date.now(), updatedAt: Date.now() };
+  const job: BookJob = {
+    id: createBookJobId(),
+    ownerProfileId: payload.createdBy,
+    status: 'queued',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    usage
+  };
   bookJobs.set(job.id, job);
   scheduleBookJob(job.id, payload);
   return job;
@@ -476,9 +589,24 @@ const processBookJob = async (jobId: string, payload: BookGeneratePayload) => {
       job.updatedAt = Date.now();
     });
     job.status = 'completed';
+    if (job.usage) {
+      logAiUsage(job.usage.profileId, 'book', job.result?.provider || job.usage.predictedProvider, {
+        estimatedCost: job.usage.estimatedCost,
+        imagesGenerated: job.usage.imagesGenerated,
+        success: true
+      });
+    }
   } catch (error: any) {
     job.error = error?.message || 'Failed to generate book';
     job.status = 'failed';
+    if (job.usage) {
+      logAiUsage(job.usage.profileId, 'book', job.usage.predictedProvider, {
+        estimatedCost: job.usage.estimatedCost,
+        imagesGenerated: job.usage.imagesGenerated,
+        success: false,
+        errorMessage: job.error
+      });
+    }
   } finally {
     job.updatedAt = Date.now();
   }
@@ -501,7 +629,12 @@ const generateBookInternal = async (
     customInstructions = ''
   } = payload;
 
-  if (!prompt || !createdBy) {
+  const normalizedPrompt = normalizeTextInput(prompt, 600);
+  const normalizedCustomInstructions = normalizeTextInput(customInstructions, 1600);
+  const normalizedLanguage = normalizeTextInput(language, 32) || 'en';
+  const normalizedGenre = normalizeTextInput(genre, 48) || 'story';
+
+  if (!normalizedPrompt || !createdBy) {
     throw new HttpError(400, 'Prompt and createdBy are required');
   }
 
@@ -510,27 +643,28 @@ const generateBookInternal = async (
   onProgress?.({ current: 1, total: 3, message: 'Generating story content...' });
 
   // Build custom instructions section if provided
-  const customInstructionsSection = customInstructions?.trim()
+  const customInstructionsSection = normalizedCustomInstructions
     ? `
 PARENT'S CUSTOM INSTRUCTIONS (MUST FOLLOW):
-${customInstructions.trim()}
+${normalizedCustomInstructions}
 `
     : '';
 
   // Detect if this is an educational book (alphabet, numbers, colors, shapes)
   const educationalKeywords = ['alphabet', 'abc', 'abcs', 'letters', 'numbers', 'counting', 'colors', 'shapes', '123', 'a to z', 'a-z'];
-  const isEducational = educationalKeywords.some(kw => prompt.toLowerCase().includes(kw));
+  const detectionText = `${normalizedPrompt} ${normalizedGenre}`.toLowerCase();
+  const isEducational = normalizedGenre === 'educational' || educationalKeywords.some(kw => detectionText.includes(kw));
 
   const bookPrompt = `
 You are an expert children's book author. Create a complete children's book that STRICTLY follows the parent's request.
 
 CRITICAL INSTRUCTION: Follow the parent's request EXACTLY. Read it carefully and deliver what they asked for.
 
-Parent's Request: "${prompt}"
+Parent's Request: "${normalizedPrompt}"
 Target age range: ${ageRange} years old
-Language: ${language}
-Genre: ${genre}
-Number of pages: ${normalizedPageCount}
+Language: ${normalizedLanguage}
+Genre: ${normalizedGenre}
+Number of pages: ${normalizedPageCount} (exactly ${normalizedPageCount} pages required)
 Book Type Detected: ${isEducational ? 'EDUCATIONAL (alphabet/numbers/learning)' : 'NARRATIVE STORY'}
 ${customInstructionsSection}
 
@@ -598,6 +732,8 @@ Return ONLY valid JSON (no markdown, no extra text):
     }
   ]
 }
+
+The "pages" array must contain exactly ${normalizedPageCount} pages.
 `;
 
   const { response, provider } = await requestAiBookContent(bookPrompt);
@@ -617,20 +753,38 @@ Return ONLY valid JSON (no markdown, no extra text):
 
   onProgress?.({ current: 2, total: 3, message: 'Saving book...' });
 
+  const pages = (Array.isArray(aiBook.pages) ? aiBook.pages : [])
+    .slice(0, normalizedPageCount)
+    .map((page: any, index: number) => ({
+      page_number: index + 1,
+      title: normalizeTextInput(page?.title, 120) || null,
+      content: normalizeTextInput(page?.content, 1200),
+      image_prompt: normalizeTextInput(page?.image_prompt, 400) || null
+    }))
+    .filter((page: any) => page.content || page.image_prompt || page.title);
+
+  if (pages.length === 0) {
+    throw new HttpError(500, 'AI returned a book with no pages');
+  }
+
+  const bookTitle = normalizeTextInput(aiBook.title, 120) || 'Untitled Book';
+  const bookDescription = normalizeTextInput(aiBook.description, 280) || normalizedPrompt;
+  const coverImagePrompt = normalizeTextInput(aiBook.cover_image_prompt, 500);
+
   // Create the book record
   const bookResult = db.prepare(`
     INSERT INTO books (title, description, created_by, assigned_to, age_range, language, genre, theme, total_pages, is_ai_generated, ai_provider)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
   `).run(
-    aiBook.title || 'Untitled Book',
-    aiBook.description || prompt,
+    bookTitle,
+    bookDescription,
     createdBy,
     assignedTo || createdBy,
     ageRange,
-    language,
-    genre,
-    prompt,
-    aiBook.pages?.length || 0,
+    normalizedLanguage,
+    normalizedGenre,
+    normalizedPrompt,
+    pages.length,
     provider
   );
 
@@ -639,8 +793,8 @@ Return ONLY valid JSON (no markdown, no extra text):
 
   // Generate cover image
   let coverImage: string | null = null;
-  if (includeImages && aiBook.cover_image_prompt) {
-    const coverPrompt = `Children's book cover illustration: ${aiBook.cover_image_prompt}. Style: colorful, whimsical, child-friendly, high quality, no text.`;
+  if (includeImages && coverImagePrompt) {
+    const coverPrompt = `Children's book cover illustration: ${coverImagePrompt}. Style: colorful, whimsical, child-friendly, high quality, no text.`;
     coverImage = await generateBookImage(coverPrompt, imageErrors, 'Cover');
     if (coverImage) {
       db.prepare('UPDATE books SET cover_image = ? WHERE id = ?').run(coverImage, bookId);
@@ -655,7 +809,6 @@ Return ONLY valid JSON (no markdown, no extra text):
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  const pages = Array.isArray(aiBook.pages) ? aiBook.pages : [];
   const savedPages: any[] = [];
 
   for (let i = 0; i < pages.length; i++) {
@@ -669,7 +822,7 @@ Return ONLY valid JSON (no markdown, no extra text):
 
     const pageResult = insertPage.run(
       bookId,
-      page.page_number || i + 1,
+      page.page_number,
       page.title || null,
       page.content || '',
       page.image_prompt || null,
@@ -696,7 +849,7 @@ Return ONLY valid JSON (no markdown, no extra text):
     sendPushNotification(assignedTo, {
       type: 'new_book' as any,
       title: 'New Book Ready!',
-      message: `A new book "${aiBook.title}" is waiting for you to read!`,
+      message: `A new book "${bookTitle}" is waiting for you to read!`,
       data: { bookId }
     });
   }
@@ -723,18 +876,30 @@ router.get('/categories', (req: Request, res: Response) => {
 });
 
 // Generate AI book (async job)
-router.post('/ai-generate', authenticate, async (req: Request, res: Response) => {
+router.post('/ai-generate', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const viewer = req.profile!;
     const { prompt, pageCount, createdBy, assignedTo, ageRange, language, genre, categoryIds, includeImages, customInstructions } = req.body;
+    const createdById = parsePositiveInt(createdBy);
+    const assignedToId = parsePositiveInt(assignedTo) || createdById;
+    const normalizedPrompt = normalizeTextInput(prompt, 600);
 
-    if (!prompt || !createdBy) {
+    if (!normalizedPrompt || !createdById || !assignedToId) {
       return res.status(400).json({ error: 'Prompt and createdBy are required' });
+    }
+
+    if (viewer.type !== 'admin' && createdById !== viewer.id) {
+      return res.status(403).json({ error: 'Access denied: createdBy must match the authenticated profile' });
+    }
+
+    if (!canManageBookProfileData(viewer, assignedToId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot assign books to that profile' });
     }
 
     // Fetch saved book generation instructions from parent's profile settings
     let savedInstructions = '';
     try {
-      const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(createdBy);
+      const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(createdById);
       if (profile?.settings) {
         const settings = JSON.parse(profile.settings || '{}');
         savedInstructions = settings.book_generation_instructions || '';
@@ -744,7 +909,7 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
     }
 
     // Combine saved instructions with request-specific instructions
-    const combinedInstructions = [savedInstructions, customInstructions].filter(Boolean).join('\n\n');
+    const combinedInstructions = normalizeTextInput([savedInstructions, customInstructions].filter(Boolean).join('\n\n'), 1600);
 
     // ===== AI USAGE CONTROL: Check if generation is allowed =====
     const imageCount = includeImages !== false ? (pageCount || 8) + 1 : 0; // +1 for cover
@@ -753,7 +918,7 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
     const imageProvider = getGrokApiKey() ? 'grok' : (getOpenAiApiKey() ? 'openai' : null);
     const estimatedCostValue = estimateCost(textProvider, imageProvider, imageCount);
 
-    const usageCheck = canGenerateAi(createdBy, 'book', estimatedCostValue);
+    const usageCheck = canGenerateAi(createdById, 'book', estimatedCostValue);
     if (!usageCheck.allowed) {
       return res.status(429).json({
         error: usageCheck.reason,
@@ -764,30 +929,30 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
     }
 
     const job = createBookJob({
-      prompt,
+      prompt: normalizedPrompt,
       pageCount: pageCount || 8,
-      createdBy,
-      assignedTo,
+      createdBy: createdById,
+      assignedTo: assignedToId,
       ageRange: ageRange || '4-8',
       language: language || 'en',
       genre: genre || 'story',
-      categoryIds: categoryIds || [],
+      categoryIds: Array.isArray(categoryIds)
+        ? categoryIds.map((id: unknown) => parsePositiveInt(id)).filter((id): id is number => !!id)
+        : [],
       includeImages: includeImages !== false,
       customInstructions: combinedInstructions
-    });
-
-    // Log the AI usage (will be marked success/failure when job completes)
-    logAiUsage(createdBy, 'book', textProvider, {
+    }, {
+      profileId: createdById,
       estimatedCost: estimatedCostValue,
-      imagesGenerated: imageCount,
-      success: true // Optimistically mark as success, job may fail later
+      predictedProvider: textProvider,
+      imagesGenerated: imageCount
     });
 
     res.json({
       jobId: job.id,
       status: job.status,
       estimatedCost: estimatedCostValue,
-      remaining: (usageCheck.remaining || 1) - 1
+      remaining: Math.max((usageCheck.remaining || 1) - 1, 0)
     });
   } catch (error: any) {
     console.error('[AI Book] Job creation failed:', error);
@@ -796,12 +961,17 @@ router.post('/ai-generate', authenticate, async (req: Request, res: Response) =>
 });
 
 // Get AI book generation job status
-router.get('/ai-generate/status/:jobId', authenticate, (req: Request, res: Response) => {
+router.get('/ai-generate/status/:jobId', authenticate, (req: AuthRequest, res: Response) => {
   const { jobId } = req.params;
   const job = bookJobs.get(jobId);
+  const viewer = req.profile!;
 
   if (!job) {
     return res.status(404).json({ error: 'Job not found or expired' });
+  }
+
+  if (viewer.type !== 'admin' && job.ownerProfileId !== viewer.id) {
+    return res.status(403).json({ error: 'Access denied: You cannot view this book job' });
   }
 
   res.json({
@@ -814,9 +984,19 @@ router.get('/ai-generate/status/:jobId', authenticate, (req: Request, res: Respo
 });
 
 // Get books for a profile (created by or assigned to)
-router.get('/profile/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/profile/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (!canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view books for this profile' });
+    }
+
     const books = db.prepare(`
       SELECT b.*,
         p.name as creator_name,
@@ -841,9 +1021,19 @@ router.get('/profile/:profileId', authenticate, (req: Request, res: Response) =>
 // ==================== ROUTES THAT MUST BE BEFORE /:bookId ====================
 
 // Get book generation instructions for a profile
-router.get('/generation-instructions/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/generation-instructions/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (viewer.type !== 'admin' && viewer.id !== profileId) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own book instructions' });
+    }
+
     const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(profileId);
 
     if (!profile) {
@@ -860,10 +1050,19 @@ router.get('/generation-instructions/:profileId', authenticate, (req: Request, r
 });
 
 // Save book generation instructions for a profile
-router.put('/generation-instructions/:profileId', authenticate, (req: Request, res: Response) => {
+router.put('/generation-instructions/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
-    const { instructions } = req.body;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+    const instructions = normalizeTextInput(req.body.instructions, 1600);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (viewer.type !== 'admin' && viewer.id !== profileId) {
+      return res.status(403).json({ error: 'Access denied: You can only save your own book instructions' });
+    }
 
     const profile: any = db.prepare('SELECT settings FROM profiles WHERE id = ?').get(profileId);
     if (!profile) {
@@ -871,7 +1070,7 @@ router.put('/generation-instructions/:profileId', authenticate, (req: Request, r
     }
 
     const settings = JSON.parse(profile.settings || '{}');
-    settings.book_generation_instructions = instructions || '';
+    settings.book_generation_instructions = instructions;
 
     db.prepare('UPDATE profiles SET settings = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run(JSON.stringify(settings), profileId);
@@ -886,9 +1085,19 @@ router.put('/generation-instructions/:profileId', authenticate, (req: Request, r
 });
 
 // Get reading progress for a profile
-router.get('/progress/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/progress/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (!canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view reading progress for this profile' });
+    }
+
     const progress = db.prepare(`
       SELECT brp.*, b.title as book_title, b.cover_image
       FROM book_reading_progress brp
@@ -904,9 +1113,19 @@ router.get('/progress/:profileId', authenticate, (req: Request, res: Response) =
 });
 
 // Get completed books for a profile ("Books I've Read")
-router.get('/completed/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/completed/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (!canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view completed books for this profile' });
+    }
+
     const books = db.prepare(`
       SELECT b.*, brp.completed_at, brp.reading_status, brp.pages_read,
              (SELECT COUNT(*) FROM book_reading_notes WHERE book_id = b.id AND profile_id = ?) as notes_count
@@ -924,19 +1143,28 @@ router.get('/completed/:profileId', authenticate, (req: Request, res: Response) 
 });
 
 // Get children's reading history (for parents)
-router.get('/children-history/:parentId', authenticate, (req: Request, res: Response) => {
+router.get('/children-history/:parentId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.params;
+    const viewer = req.profile!;
+    const parentId = parsePositiveInt(req.params.parentId);
 
-    // Get children linked to this parent
-    const children = db.prepare(`
-      SELECT id, name, avatar FROM profiles
-      WHERE parent_id = ? OR id IN (
-        SELECT student_id FROM guardian_students WHERE guardian_id = ?
-      )
-    `).all(parentId, parentId) as { id: number; name: string; avatar: string }[];
+    if (!parentId) {
+      return res.status(400).json({ error: 'Invalid parent ID' });
+    }
 
-    const childIds = children.map(c => c.id);
+    if (viewer.type !== 'admin' && (viewer.type !== 'parent' || viewer.id !== parentId)) {
+      return res.status(403).json({ error: 'Access denied: Parent access required' });
+    }
+
+    const childIds = getManagedChildIdsForParent(parentId);
+    const children = childIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar FROM profiles
+          WHERE id IN (${childIds.map(() => '?').join(', ')})
+          ORDER BY name ASC
+        `).all(...childIds) as { id: number; name: string; avatar: string }[]
+      : [];
+
     if (childIds.length === 0) {
       return res.json({ children: [], history: [] });
     }
@@ -994,9 +1222,19 @@ router.get('/lookup', authenticate, async (req: Request, res: Response) => {
 });
 
 // Get all feedback from a child (for parents to see)
-router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/feedback/profile/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const viewer = req.profile!;
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!profileId) {
+      return res.status(400).json({ error: 'Invalid profile ID' });
+    }
+
+    if (!canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view feedback for this profile' });
+    }
+
     const feedback = db.prepare(`
       SELECT bf.*, b.title as book_title, b.cover_image
       FROM book_feedback bf
@@ -1012,20 +1250,29 @@ router.get('/feedback/profile/:profileId', authenticate, (req: Request, res: Res
 });
 
 // Get all reading notes from children (for parents)
-router.get('/notes/children/:parentId', authenticate, (req: Request, res: Response) => {
+router.get('/notes/children/:parentId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.params;
-    const bookId = req.query.book_id ? Number(req.query.book_id) : null;
+    const viewer = req.profile!;
+    const parentId = parsePositiveInt(req.params.parentId);
+    const bookId = req.query.book_id ? parsePositiveInt(req.query.book_id) : null;
 
-    // Get children linked to this parent
-    const children = db.prepare(`
-      SELECT id, name, avatar FROM profiles
-      WHERE parent_id = ? OR id IN (
-        SELECT student_id FROM guardian_students WHERE guardian_id = ?
-      )
-    `).all(parentId, parentId) as { id: number; name: string; avatar: string }[];
+    if (!parentId) {
+      return res.status(400).json({ error: 'Invalid parent ID' });
+    }
 
-    const childIds = children.map(c => c.id);
+    if (viewer.type !== 'admin' && (viewer.type !== 'parent' || viewer.id !== parentId)) {
+      return res.status(403).json({ error: 'Access denied: Parent access required' });
+    }
+
+    const childIds = getManagedChildIdsForParent(parentId);
+    const children = childIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar FROM profiles
+          WHERE id IN (${childIds.map(() => '?').join(', ')})
+          ORDER BY name ASC
+        `).all(...childIds) as { id: number; name: string; avatar: string }[]
+      : [];
+
     if (childIds.length === 0) {
       return res.json({ children: [], notes: [] });
     }
@@ -1061,10 +1308,24 @@ router.get('/notes/children/:parentId', authenticate, (req: Request, res: Respon
 // ==================== READING NOTES (must be before :bookId routes) ====================
 
 // Update a reading note
-router.put('/notes/:noteId', authenticate, (req: Request, res: Response) => {
+router.put('/notes/:noteId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const noteId = Number(req.params.noteId);
+    const viewer = req.profile!;
+    const noteId = parsePositiveInt(req.params.noteId);
     const { note_type, content, page_reference } = req.body;
+
+    if (!noteId) {
+      return res.status(400).json({ error: 'Invalid note ID' });
+    }
+
+    const noteRecord = getNoteAccessRow(noteId);
+    if (!noteRecord) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    if (!canManageBookProfileData(viewer, noteRecord.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You cannot edit this note' });
+    }
 
     db.prepare(`
       UPDATE book_reading_notes
@@ -1073,7 +1334,12 @@ router.put('/notes/:noteId', authenticate, (req: Request, res: Response) => {
           page_reference = COALESCE(?, page_reference),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `).run(note_type, content, page_reference, noteId);
+    `).run(
+      normalizeTextInput(note_type, 40) || null,
+      normalizeTextInput(content, 1200) || null,
+      page_reference,
+      noteId
+    );
 
     const note = db.prepare('SELECT * FROM book_reading_notes WHERE id = ?').get(noteId);
     res.json(note);
@@ -1084,9 +1350,24 @@ router.put('/notes/:noteId', authenticate, (req: Request, res: Response) => {
 });
 
 // Delete a reading note
-router.delete('/notes/:noteId', authenticate, (req: Request, res: Response) => {
+router.delete('/notes/:noteId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const noteId = Number(req.params.noteId);
+    const viewer = req.profile!;
+    const noteId = parsePositiveInt(req.params.noteId);
+
+    if (!noteId) {
+      return res.status(400).json({ error: 'Invalid note ID' });
+    }
+
+    const noteRecord = getNoteAccessRow(noteId);
+    if (!noteRecord) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    if (!canManageBookProfileData(viewer, noteRecord.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You cannot delete this note' });
+    }
+
     db.prepare('DELETE FROM book_reading_notes WHERE id = ?').run(noteId);
     res.json({ success: true });
   } catch (error: any) {
@@ -1098,9 +1379,15 @@ router.delete('/notes/:noteId', authenticate, (req: Request, res: Response) => {
 // ==================== ROUTES WITH :bookId PARAM ====================
 
 // Get single book with pages
-router.get('/:bookId', authenticate, (req: Request, res: Response) => {
+router.get('/:bookId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
+
+    if (!bookId) {
+      return res.status(400).json({ error: 'Invalid book ID' });
+    }
+
     const book = db.prepare(`
       SELECT b.*,
         p.name as creator_name,
@@ -1109,10 +1396,14 @@ router.get('/:bookId', authenticate, (req: Request, res: Response) => {
       LEFT JOIN profiles p ON b.created_by = p.id
       LEFT JOIN profiles ap ON b.assigned_to = ap.id
       WHERE b.id = ?
-    `).get(bookId);
+    `).get(bookId) as any;
 
     if (!book) {
       return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view this book' });
     }
 
     const pages = db.prepare('SELECT * FROM book_pages WHERE book_id = ? ORDER BY page_number').all(bookId);
@@ -1129,16 +1420,31 @@ router.get('/:bookId', authenticate, (req: Request, res: Response) => {
 });
 
 // Update reading progress
-router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => {
+router.post('/:bookId/progress', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
     const { profileId, currentPage, completed } = req.body;
+    const targetProfileId = parsePositiveInt(profileId);
 
-    if (!profileId) {
+    if (!bookId || !targetProfileId) {
       return res.status(400).json({ error: 'profileId is required' });
     }
 
-    const existing: any = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    if (!canManageBookProfileData(viewer, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot update progress for this profile' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!isBookLinkedToProfile(book, targetProfileId) && !canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: This book is not linked to the selected profile' });
+    }
+
+    const existing: any = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
     const wasAlreadyCompleted = existing?.completed === 1;
 
     if (existing) {
@@ -1148,31 +1454,31 @@ router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => 
             completed_at = CASE WHEN ? = 1 AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
             last_read_at = CURRENT_TIMESTAMP
         WHERE book_id = ? AND profile_id = ?
-      `).run(currentPage, currentPage, completed ? 1 : 0, completed ? 1 : 0, bookId, profileId);
+      `).run(currentPage, currentPage, completed ? 1 : 0, completed ? 1 : 0, bookId, targetProfileId);
     } else {
       db.prepare(`
         INSERT INTO book_reading_progress (book_id, profile_id, current_page, pages_read, completed, completed_at)
         VALUES (?, ?, ?, ?, ?, CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END)
-      `).run(bookId, profileId, currentPage, currentPage, completed ? 1 : 0, completed ? 1 : 0);
+      `).run(bookId, targetProfileId, currentPage, currentPage, completed ? 1 : 0, completed ? 1 : 0);
     }
 
     // Notify parent when book is completed for the first time
     if (completed && !wasAlreadyCompleted) {
-      const reader: any = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(profileId);
-      const book: any = db.prepare('SELECT title FROM books WHERE id = ?').get(bookId);
+      const reader: any = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(targetProfileId);
+      const completedBook: any = db.prepare('SELECT title FROM books WHERE id = ?').get(bookId);
 
-      if (reader?.parent_id && book) {
+      if (reader?.parent_id && completedBook) {
         sendPushNotification(reader.parent_id, {
           type: 'book_completed' as any,
           title: 'Book Finished! 📖',
-          message: `${reader.name} finished reading "${book.title}"!`,
-          data: { bookId, profileId },
+          message: `${reader.name} finished reading "${completedBook.title}"!`,
+          data: { bookId, profileId: targetProfileId },
           url: '/books'
         });
       }
     }
 
-    const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
     res.json(progress);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -1180,13 +1486,23 @@ router.post('/:bookId/progress', authenticate, (req: Request, res: Response) => 
 });
 
 // Delete a book
-router.delete('/:bookId', authenticate, (req: Request, res: Response) => {
+router.delete('/:bookId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
-    const book = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
+
+    if (!bookId) {
+      return res.status(400).json({ error: 'Invalid book ID' });
+    }
+
+    const book = getBookAccessRow(bookId);
 
     if (!book) {
       return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!canViewerManageBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: You cannot delete this book' });
     }
 
     db.prepare('DELETE FROM books WHERE id = ?').run(bookId);
@@ -1197,41 +1513,53 @@ router.delete('/:bookId', authenticate, (req: Request, res: Response) => {
 });
 
 // Create manual book (non-AI)
-router.post('/', authenticate, (req: Request, res: Response) => {
+router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
+    const viewer = req.profile!;
     const {
       title, description, createdBy, assignedTo, ageRange, language, genre, categoryIds,
       // Physical book fields
       author, book_source, source_location, isbn, total_pages
     } = req.body;
+    const createdById = parsePositiveInt(createdBy);
+    const assignedToId = parsePositiveInt(assignedTo) || createdById;
+    const normalizedTitle = normalizeTextInput(title, 120);
 
-    if (!title || !createdBy) {
+    if (!normalizedTitle || !createdById || !assignedToId) {
       return res.status(400).json({ error: 'Title and createdBy are required' });
+    }
+
+    if (viewer.type !== 'admin' && createdById !== viewer.id) {
+      return res.status(403).json({ error: 'Access denied: createdBy must match the authenticated profile' });
+    }
+
+    if (!canManageBookProfileData(viewer, assignedToId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot assign books to that profile' });
     }
 
     const result = db.prepare(`
       INSERT INTO books (title, description, created_by, assigned_to, age_range, language, genre, is_ai_generated, author, book_source, source_location, isbn, total_pages)
       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)
     `).run(
-      title,
-      description,
-      createdBy,
-      assignedTo,
+      normalizedTitle,
+      normalizeTextInput(description, 280) || null,
+      createdById,
+      assignedToId,
       ageRange || '4-8',
-      language || 'en',
-      genre || 'story',
-      author || null,
+      normalizeTextInput(language, 32) || 'en',
+      normalizeTextInput(genre, 48) || 'story',
+      normalizeTextInput(author, 120) || null,
       book_source || 'physical',
-      source_location || null,
-      isbn || null,
+      normalizeTextInput(source_location, 40) || null,
+      normalizeTextInput(isbn, 32) || null,
       total_pages || 0
     );
 
     const bookId = result.lastInsertRowid;
 
-    if (categoryIds?.length > 0) {
+    if (Array.isArray(categoryIds) && categoryIds.length > 0) {
       const insertMapping = db.prepare('INSERT OR IGNORE INTO book_category_mapping (book_id, category_id) VALUES (?, ?)');
-      for (const catId of categoryIds) {
+      for (const catId of categoryIds.map((id: unknown) => parsePositiveInt(id)).filter((id: number | null): id is number => !!id)) {
         insertMapping.run(bookId, catId);
       }
     }
@@ -1244,13 +1572,23 @@ router.post('/', authenticate, (req: Request, res: Response) => {
 });
 
 // Add page to book
-router.post('/:bookId/pages', authenticate, (req: Request, res: Response) => {
+router.post('/:bookId/pages', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
     const { pageNumber, title, content, imageUrl } = req.body;
 
-    if (!content) {
+    if (!bookId || !content) {
       return res.status(400).json({ error: 'Content is required' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!canViewerManageBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: You cannot add pages to this book' });
     }
 
     const maxPage: any = db.prepare('SELECT MAX(page_number) as max FROM book_pages WHERE book_id = ?').get(bookId);
@@ -1259,7 +1597,13 @@ router.post('/:bookId/pages', authenticate, (req: Request, res: Response) => {
     const result = db.prepare(`
       INSERT INTO book_pages (book_id, page_number, title, content, image_url)
       VALUES (?, ?, ?, ?, ?)
-    `).run(bookId, newPageNumber, title, content, imageUrl);
+    `).run(
+      bookId,
+      newPageNumber,
+      normalizeTextInput(title, 120) || null,
+      normalizeTextInput(content, 1200),
+      normalizeTextInput(imageUrl, 400) || null
+    );
 
     // Update total pages count
     db.prepare('UPDATE books SET total_pages = (SELECT COUNT(*) FROM book_pages WHERE book_id = ?), updated_at = CURRENT_TIMESTAMP WHERE id = ?')
@@ -1275,12 +1619,14 @@ router.post('/:bookId/pages', authenticate, (req: Request, res: Response) => {
 // ==================== BOOK FEEDBACK/RATINGS ====================
 
 // Submit feedback for a book (kids can rate books)
-router.post('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
+router.post('/:bookId/feedback', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
     const { profileId, rating, liked, comment } = req.body;
+    const targetProfileId = parsePositiveInt(profileId);
 
-    if (!profileId || !rating) {
+    if (!bookId || !targetProfileId || !rating) {
       return res.status(400).json({ error: 'profileId and rating are required' });
     }
 
@@ -1288,8 +1634,21 @@ router.post('/:bookId/feedback', authenticate, (req: Request, res: Response) => 
       return res.status(400).json({ error: 'Rating must be between 1 and 5' });
     }
 
+    if (!canManageBookProfileData(viewer, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot submit feedback for this profile' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!isBookLinkedToProfile(book, targetProfileId) && !canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: This book is not linked to the selected profile' });
+    }
+
     // Check if feedback already exists
-    const existing = db.prepare('SELECT id FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const existing = db.prepare('SELECT id FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
 
     if (existing) {
       // Update existing feedback
@@ -1297,16 +1656,16 @@ router.post('/:bookId/feedback', authenticate, (req: Request, res: Response) => 
         UPDATE book_feedback
         SET rating = ?, liked = ?, comment = ?, created_at = CURRENT_TIMESTAMP
         WHERE book_id = ? AND profile_id = ?
-      `).run(rating, liked ? 1 : 0, comment || null, bookId, profileId);
+      `).run(rating, liked ? 1 : 0, normalizeTextInput(comment, 500) || null, bookId, targetProfileId);
     } else {
       // Insert new feedback
       db.prepare(`
         INSERT INTO book_feedback (book_id, profile_id, rating, liked, comment)
         VALUES (?, ?, ?, ?, ?)
-      `).run(bookId, profileId, rating, liked ? 1 : 0, comment || null);
+      `).run(bookId, targetProfileId, rating, liked ? 1 : 0, normalizeTextInput(comment, 500) || null);
     }
 
-    const feedback = db.prepare('SELECT * FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const feedback = db.prepare('SELECT * FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
     res.json(feedback);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -1314,9 +1673,24 @@ router.post('/:bookId/feedback', authenticate, (req: Request, res: Response) => 
 });
 
 // Get feedback for a specific book
-router.get('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
+router.get('/:bookId/feedback', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
+
+    if (!bookId) {
+      return res.status(400).json({ error: 'Invalid book ID' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view feedback for this book' });
+    }
+
     const feedback = db.prepare(`
       SELECT bf.*, p.name as profile_name, p.avatar as profile_avatar
       FROM book_feedback bf
@@ -1348,9 +1722,20 @@ router.get('/:bookId/feedback', authenticate, (req: Request, res: Response) => {
 });
 
 // Get my feedback for a specific book
-router.get('/:bookId/my-feedback/:profileId', authenticate, (req: Request, res: Response) => {
+router.get('/:bookId/my-feedback/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId, profileId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
+    const profileId = parsePositiveInt(req.params.profileId);
+
+    if (!bookId || !profileId) {
+      return res.status(400).json({ error: 'Invalid ID' });
+    }
+
+    if (!canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view this feedback' });
+    }
+
     const feedback = db.prepare('SELECT * FROM book_feedback WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
     res.json(feedback || null);
   } catch (error: any) {
@@ -1361,12 +1746,14 @@ router.get('/:bookId/my-feedback/:profileId', authenticate, (req: Request, res: 
 // ==================== READING STATUS ====================
 
 // Update reading status
-router.patch('/:bookId/reading-status', authenticate, (req: Request, res: Response) => {
+router.patch('/:bookId/reading-status', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
     const { profileId, reading_status } = req.body;
+    const targetProfileId = parsePositiveInt(profileId);
 
-    if (!profileId || !reading_status) {
+    if (!bookId || !targetProfileId || !reading_status) {
       return res.status(400).json({ error: 'profileId and reading_status are required' });
     }
 
@@ -1375,8 +1762,21 @@ router.patch('/:bookId/reading-status', authenticate, (req: Request, res: Respon
       return res.status(400).json({ error: 'Invalid reading status' });
     }
 
+    if (!canManageBookProfileData(viewer, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot update reading status for this profile' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!isBookLinkedToProfile(book, targetProfileId) && !canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: This book is not linked to the selected profile' });
+    }
+
     // Check if progress record exists
-    const existing: any = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const existing: any = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
 
     if (existing) {
       db.prepare(`
@@ -1386,15 +1786,15 @@ router.patch('/:bookId/reading-status', authenticate, (req: Request, res: Respon
             completed_at = CASE WHEN ? = 'finished' AND completed = 0 THEN CURRENT_TIMESTAMP ELSE completed_at END,
             last_read_at = CURRENT_TIMESTAMP
         WHERE book_id = ? AND profile_id = ?
-      `).run(reading_status, reading_status, reading_status, bookId, profileId);
+      `).run(reading_status, reading_status, reading_status, bookId, targetProfileId);
     } else {
       db.prepare(`
         INSERT INTO book_reading_progress (book_id, profile_id, reading_status, completed, completed_at)
         VALUES (?, ?, ?, ?, CASE WHEN ? = 'finished' THEN CURRENT_TIMESTAMP ELSE NULL END)
-      `).run(bookId, profileId, reading_status, reading_status === 'finished' ? 1 : 0, reading_status);
+      `).run(bookId, targetProfileId, reading_status, reading_status === 'finished' ? 1 : 0, reading_status);
     }
 
-    const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, profileId);
+    const progress = db.prepare('SELECT * FROM book_reading_progress WHERE book_id = ? AND profile_id = ?').get(bookId, targetProfileId);
     res.json(progress);
   } catch (error: any) {
     console.error('[Books] Update reading status error:', error);
@@ -1405,10 +1805,28 @@ router.patch('/:bookId/reading-status', authenticate, (req: Request, res: Respon
 // ==================== READING NOTES ====================
 
 // Get notes for a book
-router.get('/:bookId/notes', authenticate, (req: Request, res: Response) => {
+router.get('/:bookId/notes', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
-    const profileId = req.query.profile_id ? Number(req.query.profile_id) : null;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
+    const profileId = req.query.profile_id ? parsePositiveInt(req.query.profile_id) : null;
+
+    if (!bookId) {
+      return res.status(400).json({ error: 'Invalid book ID' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view notes for this book' });
+    }
+
+    if (profileId && !canViewBookProfileData(viewer, profileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot view notes for this profile' });
+    }
 
     let query = `
       SELECT brn.*, p.name as profile_name, p.avatar as profile_avatar
@@ -1434,19 +1852,40 @@ router.get('/:bookId/notes', authenticate, (req: Request, res: Response) => {
 });
 
 // Create a reading note
-router.post('/:bookId/notes', authenticate, (req: Request, res: Response) => {
+router.post('/:bookId/notes', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { bookId } = req.params;
+    const viewer = req.profile!;
+    const bookId = parsePositiveInt(req.params.bookId);
     const { profileId, note_type, content, page_reference } = req.body;
+    const targetProfileId = parsePositiveInt(profileId);
 
-    if (!profileId || !content) {
+    if (!bookId || !targetProfileId || !content) {
       return res.status(400).json({ error: 'profileId and content are required' });
+    }
+
+    if (!canManageBookProfileData(viewer, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You cannot create notes for this profile' });
+    }
+
+    const book = getBookAccessRow(bookId);
+    if (!book) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    if (!isBookLinkedToProfile(book, targetProfileId) && !canViewerAccessBook(viewer, book)) {
+      return res.status(403).json({ error: 'Access denied: This book is not linked to the selected profile' });
     }
 
     const result = db.prepare(`
       INSERT INTO book_reading_notes (book_id, profile_id, note_type, content, page_reference)
       VALUES (?, ?, ?, ?, ?)
-    `).run(bookId, profileId, note_type || 'learning', content, page_reference || null);
+    `).run(
+      bookId,
+      targetProfileId,
+      normalizeTextInput(note_type, 40) || 'learning',
+      normalizeTextInput(content, 1200),
+      page_reference || null
+    );
 
     const note = db.prepare(`
       SELECT brn.*, p.name as profile_name

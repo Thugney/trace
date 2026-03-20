@@ -22,6 +22,61 @@ const getDisplayAvatar = (avatar: string | undefined): string => {
   return avatar;
 };
 
+type GuidedBookBrief = {
+  mainCharacter: string;
+  setting: string;
+  lesson: string;
+  mustInclude: string;
+  avoid: string;
+};
+
+const MAX_BOOK_IDEA_LENGTH = 240;
+const MAX_BRIEF_FIELD_LENGTH = 120;
+const MAX_REQUEST_INSTRUCTIONS_LENGTH = 600;
+
+const createEmptyBookBrief = (): GuidedBookBrief => ({
+  mainCharacter: '',
+  setting: '',
+  lesson: '',
+  mustInclude: '',
+  avoid: ''
+});
+
+const normalizePromptPart = (value: string, maxLength: number) =>
+  value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+
+const buildBookPromptPreview = (idea: string, brief: GuidedBookBrief) => {
+  const coreIdea = normalizePromptPart(idea, MAX_BOOK_IDEA_LENGTH);
+  if (!coreIdea) {
+    return '';
+  }
+
+  const parts = [coreIdea];
+  const mainCharacter = normalizePromptPart(brief.mainCharacter, MAX_BRIEF_FIELD_LENGTH);
+  const setting = normalizePromptPart(brief.setting, MAX_BRIEF_FIELD_LENGTH);
+  const lesson = normalizePromptPart(brief.lesson, MAX_BRIEF_FIELD_LENGTH);
+  const mustInclude = normalizePromptPart(brief.mustInclude, MAX_BRIEF_FIELD_LENGTH);
+  const avoid = normalizePromptPart(brief.avoid, MAX_BRIEF_FIELD_LENGTH);
+
+  if (mainCharacter) {
+    parts.push(`Main character: ${mainCharacter}.`);
+  }
+  if (setting) {
+    parts.push(`Setting: ${setting}.`);
+  }
+  if (lesson) {
+    parts.push(`Lesson or goal: ${lesson}.`);
+  }
+  if (mustInclude) {
+    parts.push(`Must include: ${mustInclude}.`);
+  }
+  if (avoid) {
+    parts.push(`Avoid: ${avoid}.`);
+  }
+
+  return parts.join(' ');
+};
+
 export default function BookLibrary() {
   const navigate = useNavigate();
   const { currentProfile } = useProfile();
@@ -49,8 +104,10 @@ export default function BookLibrary() {
     message: string;
   } | null>(null);
   const [bookPrompt, setBookPrompt] = useState('');
+  const [guidedBrief, setGuidedBrief] = useState<GuidedBookBrief>(createEmptyBookBrief());
   const [pageCount, setPageCount] = useState(8);
   const [ageRange, setAgeRange] = useState('4-8');
+  const [language, setLanguage] = useState('en');
   const [selectedGenre, setSelectedGenre] = useState('adventure');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [includeImages, setIncludeImages] = useState(true);
@@ -104,6 +161,20 @@ export default function BookLibrary() {
   ];
 
   const isParentOrTeacher = currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin';
+  const promptPreview = buildBookPromptPreview(bookPrompt, guidedBrief);
+
+  const resetBookCreatorForm = () => {
+    setBookPrompt('');
+    setGuidedBrief(createEmptyBookBrief());
+    setPageCount(8);
+    setAgeRange('4-8');
+    setLanguage('en');
+    setSelectedGenre('adventure');
+    setSelectedCategoryIds([]);
+    setIncludeImages(true);
+    setAssignedTo(null);
+    setRequestInstructions('');
+  };
 
   useEffect(() => {
     if (currentProfile?.id) {
@@ -121,9 +192,9 @@ export default function BookLibrary() {
       setBooks(booksRes.data);
       setCategories(categoriesRes.data);
 
-      // Filter to get children (profiles where parent_id matches current user or type is 'child')
+      // The profiles API is already family-scoped for non-admin users.
       const childProfiles = profilesRes.data.filter(
-        (p: Profile) => p.type === 'child' && (p.parent_id === currentProfile!.id || !p.parent_id)
+        (p: Profile) => p.type === 'child'
       );
       setChildren(childProfiles);
 
@@ -175,7 +246,9 @@ export default function BookLibrary() {
   };
 
   const handleGenerateBook = async () => {
-    if (!bookPrompt.trim()) {
+    const requestPrompt = buildBookPromptPreview(bookPrompt, guidedBrief);
+
+    if (!requestPrompt) {
       showToast('Please enter a story idea', 'error');
       return;
     }
@@ -185,11 +258,12 @@ export default function BookLibrary() {
 
     try {
       const { data } = await booksAPI.generateAIBook({
-        prompt: bookPrompt,
+        prompt: requestPrompt,
         pageCount,
         createdBy: currentProfile!.id,
         assignedTo: assignedTo || currentProfile!.id,
         ageRange,
+        language,
         genre: selectedGenre,
         categoryIds: selectedCategoryIds,
         includeImages,
@@ -210,9 +284,7 @@ export default function BookLibrary() {
             setGenerating(false);
             setGenerationProgress(null);
             setShowCreateModal(false);
-            setBookPrompt('');
-            setAssignedTo(null);
-            setSelectedCategoryIds([]);
+            resetBookCreatorForm();
             showToast('Book created successfully!', 'success');
             loadData();
 
@@ -499,7 +571,10 @@ export default function BookLibrary() {
           </button>
           {isParentOrTeacher && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                resetBookCreatorForm();
+                setShowCreateModal(true);
+              }}
               className="btn btn-primary flex items-center gap-2"
             >
               <Sparkles size={20} />
@@ -572,7 +647,10 @@ export default function BookLibrary() {
           </p>
           {isParentOrTeacher && (
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                resetBookCreatorForm();
+                setShowCreateModal(true);
+              }}
               className="btn btn-primary"
             >
               <Sparkles size={20} className="mr-2" />
@@ -1065,7 +1143,7 @@ export default function BookLibrary() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -1073,7 +1151,12 @@ export default function BookLibrary() {
                   Create AI Book
                 </h2>
                 <button
-                  onClick={() => !generating && setShowCreateModal(false)}
+                  onClick={() => {
+                    if (!generating) {
+                      resetBookCreatorForm();
+                      setShowCreateModal(false);
+                    }
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                   disabled={generating}
                 >
@@ -1109,21 +1192,119 @@ export default function BookLibrary() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Story Idea *
-                    </label>
-                    <textarea
-                      value={bookPrompt}
-                      onChange={(e) => setBookPrompt(e.target.value)}
-                      placeholder="e.g., A brave little rabbit who learns to share with friends..."
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none resize-none"
-                      rows={3}
-                    />
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BookText size={18} className="text-slate-700" />
+                      <h3 className="text-sm font-semibold text-slate-900">Prompt Builder</h3>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Keep the core request short. Use the guide fields for specifics instead of writing one long prompt.
+                    </p>
+
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Core Book Idea *
+                      </label>
+                      <textarea
+                        value={bookPrompt}
+                        onChange={(e) => setBookPrompt(e.target.value)}
+                        maxLength={MAX_BOOK_IDEA_LENGTH}
+                        placeholder={
+                          selectedGenre === 'educational'
+                            ? 'e.g., An alphabet book where each page uses one familiar object like A is for Apple.'
+                            : 'e.g., A brave little rabbit learns to share after getting lost in a berry garden.'
+                        }
+                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none resize-none bg-white"
+                        rows={3}
+                      />
+                      <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                        <span>One or two sentences is enough.</span>
+                        <span>{bookPrompt.length}/{MAX_BOOK_IDEA_LENGTH}</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Main Character</label>
+                        <input
+                          type="text"
+                          value={guidedBrief.mainCharacter}
+                          onChange={(e) => setGuidedBrief({ ...guidedBrief, mainCharacter: e.target.value })}
+                          maxLength={MAX_BRIEF_FIELD_LENGTH}
+                          placeholder="Luna the rabbit"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Setting</label>
+                        <input
+                          type="text"
+                          value={guidedBrief.setting}
+                          onChange={(e) => setGuidedBrief({ ...guidedBrief, setting: e.target.value })}
+                          maxLength={MAX_BRIEF_FIELD_LENGTH}
+                          placeholder="A colorful berry garden"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Lesson or Goal</label>
+                        <input
+                          type="text"
+                          value={guidedBrief.lesson}
+                          onChange={(e) => setGuidedBrief({ ...guidedBrief, lesson: e.target.value })}
+                          maxLength={MAX_BRIEF_FIELD_LENGTH}
+                          placeholder="Sharing and teamwork"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Must Include</label>
+                        <input
+                          type="text"
+                          value={guidedBrief.mustInclude}
+                          onChange={(e) => setGuidedBrief({ ...guidedBrief, mustInclude: e.target.value })}
+                          maxLength={MAX_BRIEF_FIELD_LENGTH}
+                          placeholder="A red kite and a kind grandma"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Avoid</label>
+                        <input
+                          type="text"
+                          value={guidedBrief.avoid}
+                          onChange={(e) => setGuidedBrief({ ...guidedBrief, avoid: e.target.value })}
+                          maxLength={MAX_BRIEF_FIELD_LENGTH}
+                          placeholder="Scary scenes, sarcasm, abstract words"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl border border-primary-200 bg-white p-4">
+                      <div className="flex items-center gap-2 mb-2 text-primary-800">
+                        <Lightbulb size={16} />
+                        <span className="text-sm font-semibold">Prompt Sent To AI</span>
+                      </div>
+                      {promptPreview ? (
+                        <>
+                          <p className="text-sm text-slate-700 leading-6">{promptPreview}</p>
+                          {savedInstructions && (
+                            <p className="text-xs text-slate-500 mt-3">
+                              Your saved default instructions are applied separately on top of this request.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-slate-500">
+                          Start with the core book idea and this preview will update automatically.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Age Range
@@ -1157,9 +1338,24 @@ export default function BookLibrary() {
                         <option value={15}>15 pages</option>
                       </select>
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Language
+                      </label>
+                      <select
+                        value={language}
+                        onChange={(e) => setLanguage(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none"
+                      >
+                        <option value="en">English</option>
+                        <option value="no">Norwegian</option>
+                        <option value="ti">Tigrinya</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Genre
@@ -1315,25 +1511,30 @@ export default function BookLibrary() {
                     <textarea
                       value={requestInstructions}
                       onChange={(e) => setRequestInstructions(e.target.value)}
+                      maxLength={MAX_REQUEST_INSTRUCTIONS_LENGTH}
                       placeholder="e.g., Use simple words only. Each page should have max 2 sentences. The main character is a girl named Luna."
                       className="w-full px-3 py-2 text-sm border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none bg-white"
                       rows={2}
                     />
-                    <p className="text-xs text-purple-600 mt-1">
-                      Tell the AI exactly how to write. For alphabet books, say "A is for Apple style, not abstract concepts."
-                    </p>
+                    <div className="mt-1 flex items-center justify-between text-xs text-purple-600">
+                      <span>Tell the AI exactly how to write. For alphabet books, say "A is for Apple style, not abstract concepts."</span>
+                      <span>{requestInstructions.length}/{MAX_REQUEST_INSTRUCTIONS_LENGTH}</span>
+                    </div>
                   </div>
 
                   <div className="flex gap-3 pt-4">
                     <button
-                      onClick={() => setShowCreateModal(false)}
+                      onClick={() => {
+                        resetBookCreatorForm();
+                        setShowCreateModal(false);
+                      }}
                       className="flex-1 btn btn-secondary"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleGenerateBook}
-                      disabled={!bookPrompt.trim()}
+                      disabled={!promptPreview}
                       className="flex-1 btn btn-primary flex items-center justify-center gap-2"
                     >
                       <Sparkles size={20} />
@@ -1666,6 +1867,7 @@ export default function BookLibrary() {
                 <textarea
                   value={instructionsInput}
                   onChange={(e) => setInstructionsInput(e.target.value)}
+                  maxLength={1600}
                   placeholder="Enter your instructions here. The AI will follow these for every book you create.
 
 Example:
@@ -1676,6 +1878,9 @@ Example:
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none resize-none"
                   rows={8}
                 />
+                <div className="mt-1 text-right text-xs text-gray-500">
+                  {instructionsInput.length}/1600
+                </div>
               </div>
 
               <div className="flex gap-3">

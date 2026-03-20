@@ -133,6 +133,102 @@ export function initTestDb() {
     )
   `);
 
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      created_by INTEGER NOT NULL,
+      assigned_to INTEGER,
+      age_range TEXT DEFAULT '4-8',
+      language TEXT DEFAULT 'en',
+      genre TEXT DEFAULT 'story',
+      theme TEXT,
+      total_pages INTEGER DEFAULT 0,
+      cover_image TEXT,
+      author TEXT,
+      book_source TEXT DEFAULT 'ai',
+      source_location TEXT,
+      isbn TEXT,
+      is_ai_generated INTEGER DEFAULT 0,
+      ai_provider TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_pages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      page_number INTEGER NOT NULL,
+      title TEXT,
+      content TEXT NOT NULL,
+      image_prompt TEXT,
+      image_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      icon TEXT DEFAULT '📚',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_category_mapping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      category_id INTEGER NOT NULL,
+      UNIQUE(book_id, category_id)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_reading_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      current_page INTEGER DEFAULT 0,
+      pages_read INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+      completed_at DATETIME,
+      reading_status TEXT DEFAULT 'reading',
+      last_read_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      rating INTEGER NOT NULL,
+      liked INTEGER DEFAULT 0,
+      comment TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(book_id, profile_id)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS book_reading_notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      note_type TEXT DEFAULT 'learning',
+      content TEXT NOT NULL,
+      page_reference INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Settings table
   testDb.exec(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -140,6 +236,36 @@ export function initTestDb() {
       key TEXT UNIQUE NOT NULL,
       value TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS ai_generation_limits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL UNIQUE,
+      daily_book_limit INTEGER DEFAULT 5,
+      daily_quiz_limit INTEGER DEFAULT 10,
+      daily_task_limit INTEGER DEFAULT 20,
+      daily_activity_limit INTEGER DEFAULT 10,
+      monthly_cost_limit REAL DEFAULT 10,
+      require_approval INTEGER DEFAULT 0,
+      enabled INTEGER DEFAULT 1
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS ai_usage_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      parent_id INTEGER,
+      feature_type TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      estimated_cost REAL DEFAULT 0,
+      tokens_used INTEGER DEFAULT 0,
+      images_generated INTEGER DEFAULT 0,
+      success INTEGER DEFAULT 1,
+      error_message TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -459,8 +585,17 @@ export function clearTestDb() {
   testDb.exec('DELETE FROM progress');
   testDb.exec('DELETE FROM tasks');
   testDb.exec('DELETE FROM notes');
+  testDb.exec('DELETE FROM book_category_mapping');
+  testDb.exec('DELETE FROM book_pages');
+  testDb.exec('DELETE FROM book_feedback');
+  testDb.exec('DELETE FROM book_reading_notes');
+  testDb.exec('DELETE FROM book_reading_progress');
+  testDb.exec('DELETE FROM book_categories');
+  testDb.exec('DELETE FROM books');
   testDb.exec('DELETE FROM reward_claims');
   testDb.exec('DELETE FROM rewards');
+  testDb.exec('DELETE FROM ai_usage_logs');
+  testDb.exec('DELETE FROM ai_generation_limits');
   testDb.exec('DELETE FROM settings');
   testDb.exec('DELETE FROM notifications');
   testDb.exec('DELETE FROM push_subscriptions');
