@@ -84,26 +84,41 @@ router.get('/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
     const profileIdNum = parseInt(profileId, 10);
-    const { completed, category } = req.query;
+    const { completed, category, include_deleted } = req.query;
 
     if (!canAccessTaskProfile(req.profile, profileIdNum)) {
       return denyTaskAccess(res);
     }
 
-    let query = 'SELECT * FROM tasks WHERE profile_id = ?';
+    let query = `
+      SELECT t.*,
+             creator.name as creator_name,
+             CASE
+               WHEN t.due_date IS NULL THEN NULL
+               WHEN DATE(t.due_date) < DATE('now') THEN CAST(julianday('now') - julianday(t.due_date) AS INTEGER)
+               ELSE NULL
+             END as days_until_due
+      FROM tasks t
+      LEFT JOIN profiles creator ON t.created_by = creator.id
+      WHERE t.profile_id = ?
+    `;
     const params: any[] = [profileIdNum];
 
+    if (include_deleted !== 'true') {
+      query += ' AND t.deleted_at IS NULL';
+    }
+
     if (completed !== undefined) {
-      query += ' AND completed = ?';
+      query += ' AND t.completed = ?';
       params.push(completed === 'true' ? 1 : 0);
     }
 
     if (category) {
-      query += ' AND category = ?';
+      query += ' AND t.category = ?';
       params.push(category);
     }
 
-    query += ' ORDER BY due_date ASC, created_at DESC';
+    query += ' ORDER BY t.due_date ASC, t.created_at DESC';
 
     const tasks = db.prepare(query).all(...params);
     res.json(tasks);
@@ -720,6 +735,8 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    const taskOwner: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(task.profile_id);
+
     // Authorization: admin can delete any, owner can delete own, parent can delete child's
     let canDelete = false;
     if (userProfile.type === 'admin') {
@@ -735,8 +752,18 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Access denied: You can only delete your own tasks or your children\'s tasks' });
     }
 
-    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
-    res.json({ message: 'Task deleted successfully' });
+    if (taskOwner?.type === 'child') {
+      db.prepare(`
+        UPDATE tasks
+        SET deleted_at = CURRENT_TIMESTAMP, deleted_by = ?
+        WHERE id = ?
+      `).run(userProfile.id, req.params.id);
+
+      return res.json({ message: 'Task archived successfully', soft_deleted: true });
+    }
+
+    db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
+    res.json({ message: 'Task deleted successfully', soft_deleted: false });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -990,7 +1017,9 @@ router.get('/pending/:parentId', (req: AuthRequest, res: Response) => {
         SELECT t.*, p.name as child_name, p.avatar as child_avatar
         FROM tasks t
         JOIN profiles p ON t.profile_id = p.id
-        WHERE p.type = 'child' AND t.parent_approved = 0
+        WHERE p.type = 'child'
+          AND t.parent_approved = 0
+          AND t.deleted_at IS NULL
         ORDER BY t.created_at DESC
       `).all();
 
@@ -1009,6 +1038,7 @@ router.get('/pending/:parentId', (req: AuthRequest, res: Response) => {
       JOIN profiles p ON t.profile_id = p.id
       WHERE p.type = 'child'
         AND t.parent_approved = 0
+        AND t.deleted_at IS NULL
         AND t.profile_id IN (${placeholders})
       ORDER BY t.created_at DESC
     `).all(...childIds);

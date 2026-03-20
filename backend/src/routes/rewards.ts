@@ -8,6 +8,43 @@ import { canAccessOwnOrManagedChild, canParentManageChild, getAccessibleParentId
 const router = Router();
 router.use(authenticate, requireFeature('rewards'));
 
+type StarTier = {
+  name: string;
+  minStars: number;
+  icon: string;
+  discount: number;
+};
+
+const STAR_TIERS: readonly StarTier[] = [
+  { name: 'Rising Star', minStars: 0, icon: '⭐', discount: 0 },
+  { name: 'Bronze Star', minStars: 25, icon: '🥉', discount: 5 },
+  { name: 'Silver Star', minStars: 50, icon: '🥈', discount: 8 },
+  { name: 'Gold Star', minStars: 100, icon: '🥇', discount: 12 },
+  { name: 'Diamond Star', minStars: 200, icon: '💎', discount: 15 },
+  { name: 'Legendary', minStars: 500, icon: '👑', discount: 20 }
+] as const;
+
+function getStarTier(totalStarsEarned: number) {
+  let tier = STAR_TIERS[0];
+  for (const candidate of STAR_TIERS) {
+    if (totalStarsEarned >= candidate.minStars) {
+      tier = candidate;
+    }
+  }
+
+  const nextTier = STAR_TIERS.find((candidate) => candidate.minStars > totalStarsEarned) || null;
+  return {
+    ...tier,
+    nextTier: nextTier
+      ? {
+          name: nextTier.name,
+          icon: nextTier.icon,
+          starsNeeded: nextTier.minStars - totalStarsEarned
+        }
+      : null
+  };
+}
+
 function denyRewardAccess(res: Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own or your children\'s rewards' });
 }
@@ -94,23 +131,22 @@ router.get('/shop/:profileId', (req: AuthRequest, res: Response) => {
     const rewards = db.prepare(`
       SELECT r.*,
              COALESCE(r.stock, -1) as stock,
-             (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected') as times_claimed,
              (SELECT rc2.status FROM reward_claims rc2 WHERE rc2.reward_id = r.id AND rc2.profile_id = ? AND rc2.status IN ('pending', 'approved') LIMIT 1) as user_claim_status
       FROM rewards r
       WHERE (r.available_for_all = 1 OR r.profile_id = ?)
         AND r.is_claimed = 0
-        AND (r.stock = -1 OR r.stock > (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected'))
+        AND (r.stock = -1 OR r.stock > 0)
       ORDER BY r.points_required ASC
     `).all(profileIdNum, profileIdNum);
 
     // Get user's current points (use latest total_points, not SUM of points_earned)
     const progress = db.prepare(`
-      SELECT total_points
+      SELECT total_points, total_stars
       FROM progress
       WHERE profile_id = ?
       ORDER BY logged_at DESC
       LIMIT 1
-    `).get(profileIdNum) as { total_points: number } | undefined;
+    `).get(profileIdNum) as { total_points: number; total_stars: number } | undefined;
 
     const totalPoints = progress?.total_points || 0;
 
@@ -122,11 +158,24 @@ router.get('/shop/:profileId', (req: AuthRequest, res: Response) => {
     `).get(profileIdNum) as { spent: number } | undefined;
 
     const availablePoints = totalPoints - (spentPoints?.spent || 0);
+    const starsSpent = db.prepare(`
+      SELECT COALESCE(SUM(stars_spent), 0) as spent
+      FROM reward_claims
+      WHERE profile_id = ? AND status != 'rejected'
+    `).get(profileIdNum) as { spent: number } | undefined;
+
+    const totalStars = progress?.total_stars || 0;
+    const availableStars = totalStars - (starsSpent?.spent || 0);
+    const starTier = getStarTier(totalStars);
 
     res.json({
       rewards,
       availablePoints,
-      totalPoints
+      totalPoints,
+      availableStars,
+      totalStarsEarned: totalStars,
+      starTier,
+      starTiers: STAR_TIERS
     });
   } catch (error) {
     console.error('Error fetching shop rewards:', error);
@@ -138,7 +187,7 @@ router.get('/shop/:profileId', (req: AuthRequest, res: Response) => {
 router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
   try {
     const { rewardId } = req.params;
-    const { profileId } = req.body;
+    const { profileId, starsToSpend = 0 } = req.body;
 
     if (!profileId) {
       return res.status(400).json({ error: 'Profile ID required' });
@@ -176,15 +225,37 @@ router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Check stock
-    if (reward.stock !== -1) {
-      const claimedCount = db.prepare(`
-        SELECT COUNT(*) as count FROM reward_claims
-        WHERE reward_id = ? AND status != 'rejected'
-      `).get(rewardId) as { count: number };
+    if (reward.stock !== -1 && reward.stock <= 0) {
+      return res.status(400).json({ error: 'Reward out of stock' });
+    }
 
-      if (claimedCount.count >= reward.stock) {
-        return res.status(400).json({ error: 'Reward out of stock' });
+    const maxStarsAllowed = Math.floor(reward.points_required / 4);
+    const validStars = Math.min(Math.max(0, Math.floor(Number(starsToSpend) || 0)), maxStarsAllowed);
+    const starDiscount = validStars * 2;
+    const effectiveCost = reward.points_required - starDiscount;
+
+    if (validStars > 0) {
+      const starProgress = db.prepare(`
+        SELECT total_stars
+        FROM progress
+        WHERE profile_id = ?
+        ORDER BY logged_at DESC
+        LIMIT 1
+      `).get(profileIdNum) as { total_stars: number } | undefined;
+
+      const spentStars = db.prepare(`
+        SELECT COALESCE(SUM(stars_spent), 0) as spent
+        FROM reward_claims
+        WHERE profile_id = ? AND status != 'rejected'
+      `).get(profileIdNum) as { spent: number } | undefined;
+
+      const availableStars = (starProgress?.total_stars || 0) - (spentStars?.spent || 0);
+      if (validStars > availableStars) {
+        return res.status(400).json({
+          error: 'Not enough stars',
+          available: availableStars,
+          requested: validStars
+        });
       }
     }
 
@@ -207,19 +278,23 @@ router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
 
     const availablePoints = totalPoints - (spentPoints?.spent || 0);
 
-    if (availablePoints < reward.points_required) {
+    if (availablePoints < effectiveCost) {
       return res.status(400).json({
         error: 'Not enough points',
-        required: reward.points_required,
+        required: effectiveCost,
         available: availablePoints
       });
     }
 
     // Create the claim
     const result = db.prepare(`
-      INSERT INTO reward_claims (reward_id, profile_id, points_spent, status)
-      VALUES (?, ?, ?, 'pending')
-    `).run(rewardId, profileIdNum, reward.points_required);
+      INSERT INTO reward_claims (reward_id, profile_id, points_spent, stars_spent, status)
+      VALUES (?, ?, ?, ?, 'pending')
+    `).run(rewardId, profileIdNum, effectiveCost, validStars);
+
+    if (reward.stock !== -1) {
+      db.prepare('UPDATE rewards SET stock = stock - 1 WHERE id = ? AND stock > 0').run(rewardId);
+    }
 
     // Get the created claim
     const claim = db.prepare('SELECT * FROM reward_claims WHERE id = ?').get(result.lastInsertRowid);
@@ -230,7 +305,7 @@ router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
       sendPushNotification(child.parent_id, {
         type: 'general',
         title: `${child.name} wants a reward! 🎁`,
-        message: `${child.name} is requesting "${reward.title}" for ${reward.points_required} points`,
+        message: `${child.name} is requesting "${reward.title}" for ${effectiveCost} points${validStars > 0 ? ` (used ${validStars} stars)` : ''}`,
         icon: '🎁',
         url: '/shop'
       }).catch(console.error);
@@ -239,7 +314,9 @@ router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
     res.json({
       success: true,
       claim,
-      newBalance: availablePoints - reward.points_required
+      newBalance: availablePoints - effectiveCost,
+      starsUsed: validStars,
+      starDiscount
     });
   } catch (error) {
     console.error('Error purchasing reward:', error);
@@ -326,6 +403,17 @@ router.put('/claims/:claimId/status', (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid status' });
     }
 
+    const currentClaim = db.prepare(`
+      SELECT rc.*, r.stock as reward_stock
+      FROM reward_claims rc
+      JOIN rewards r ON rc.reward_id = r.id
+      WHERE rc.id = ?
+    `).get(claimId) as any;
+
+    if (!currentClaim) {
+      return res.status(404).json({ error: 'Claim not found' });
+    }
+
     const updateFields: string[] = ['status = ?'];
     const values: any[] = [status];
 
@@ -342,17 +430,7 @@ router.put('/claims/:claimId/status', (req: AuthRequest, res: Response) => {
 
     values.push(claimId);
 
-    const claimOwner: any = db.prepare(`
-      SELECT rc.profile_id
-      FROM reward_claims rc
-      WHERE rc.id = ?
-    `).get(claimId);
-
-    if (!claimOwner) {
-      return res.status(404).json({ error: 'Claim not found' });
-    }
-
-    if (viewer.type === 'parent' && !canParentManageChild(viewer.id, claimOwner.profile_id)) {
+    if (viewer.type === 'parent' && !canParentManageChild(viewer.id, currentClaim.profile_id)) {
       return res.status(403).json({ error: 'Access denied: You can only review your own children\'s reward claims' });
     }
 
@@ -362,8 +440,9 @@ router.put('/claims/:claimId/status', (req: AuthRequest, res: Response) => {
       WHERE id = ?
     `).run(...values);
 
-    // If rejected, the points are effectively refunded (not spent)
-    // No action needed since we calculate available points dynamically
+    if (status === 'rejected' && currentClaim.status !== 'rejected' && currentClaim.reward_stock !== -1) {
+      db.prepare('UPDATE rewards SET stock = stock + 1 WHERE id = ?').run(currentClaim.reward_id);
+    }
 
     const claim = db.prepare(`
       SELECT rc.*, r.title, p.name as child_name

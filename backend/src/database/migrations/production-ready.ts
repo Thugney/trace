@@ -134,6 +134,7 @@ export function runProductionReadyMigrations() {
       reward_id INTEGER NOT NULL,
       profile_id INTEGER NOT NULL,
       points_spent INTEGER NOT NULL,
+      stars_spent INTEGER DEFAULT 0,
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'given', 'rejected')),
       claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       approved_at DATETIME,
@@ -152,6 +153,18 @@ export function runProductionReadyMigrations() {
   db.prepare(`
     CREATE INDEX IF NOT EXISTS idx_reward_claims_status ON reward_claims(status)
   `).run();
+
+  try {
+    const rewardClaimColumns = db.prepare('PRAGMA table_info(reward_claims)').all() as { name: string }[];
+    const hasStarsSpent = rewardClaimColumns.some((column) => column.name === 'stars_spent');
+
+    if (!hasStarsSpent) {
+      db.prepare('ALTER TABLE reward_claims ADD COLUMN stars_spent INTEGER DEFAULT 0').run();
+      console.log('✅ Added stars_spent column to reward_claims');
+    }
+  } catch (error: any) {
+    console.error('Migration error (reward_claims stars_spent):', error.message);
+  }
 
   console.log('✅ Reward claims table created');
 

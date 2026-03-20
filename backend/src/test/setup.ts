@@ -93,6 +93,8 @@ export function initTestDb() {
       estimated_minutes INTEGER,
       proof_required BOOLEAN DEFAULT 0,
       proof_photo_url TEXT,
+      deleted_at DATETIME,
+      deleted_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_by INTEGER
     )
@@ -167,6 +169,7 @@ export function initTestDb() {
       reward_id INTEGER NOT NULL,
       profile_id INTEGER NOT NULL,
       points_spent INTEGER NOT NULL,
+      stars_spent INTEGER DEFAULT 0,
       status TEXT DEFAULT 'pending',
       approved_by INTEGER,
       approved_at DATETIME,

@@ -1961,6 +1961,8 @@ export function initDatabase() {
     const hasRequiresTimer = tasksInfo.some((col: any) => col.name === 'requires_timer');
     const hasTimerDuration = tasksInfo.some((col: any) => col.name === 'timer_duration_minutes');
     const hasLastCompletedDate = tasksInfo.some((col: any) => col.name === 'last_completed_date');
+    const hasDeletedAt = tasksInfo.some((col: any) => col.name === 'deleted_at');
+    const hasDeletedBy = tasksInfo.some((col: any) => col.name === 'deleted_by');
 
     if (!hasRequiresTimer) {
       console.log('🔄 Migrating tasks table: adding requires_timer column...');
@@ -1978,6 +1980,18 @@ export function initDatabase() {
       console.log('🔄 Migrating tasks table: adding last_completed_date column...');
       db.prepare('ALTER TABLE tasks ADD COLUMN last_completed_date TEXT DEFAULT NULL').run();
       console.log('✅ Added last_completed_date column to tasks');
+    }
+
+    if (!hasDeletedAt) {
+      console.log('🔄 Migrating tasks table: adding deleted_at column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN deleted_at DATETIME DEFAULT NULL').run();
+      console.log('✅ Added deleted_at column to tasks');
+    }
+
+    if (!hasDeletedBy) {
+      console.log('🔄 Migrating tasks table: adding deleted_by column...');
+      db.prepare('ALTER TABLE tasks ADD COLUMN deleted_by INTEGER DEFAULT NULL').run();
+      console.log('✅ Added deleted_by column to tasks');
     }
 
     // Add scheduled_time for task-specific reminders (e.g., "08:30" or "15:00")

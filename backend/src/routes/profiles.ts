@@ -25,7 +25,7 @@ const getChildProgressSnapshot = (childId: number) => {
       SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_tasks,
       SUM(CASE WHEN completed = 0 AND due_date IS NOT NULL AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
     FROM tasks
-    WHERE profile_id = ?
+    WHERE profile_id = ? AND deleted_at IS NULL
   `).get(childId) as any;
 
   const progressStats = db.prepare(`
@@ -990,9 +990,9 @@ router.get('/:id/stats', authenticate, (req: AuthRequest, res) => {
       SELECT
         COUNT(*) as total_tasks,
         SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_tasks,
-        SUM(CASE WHEN completed = 0 AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
+        SUM(CASE WHEN completed = 0 AND due_date IS NOT NULL AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
       FROM tasks
-      WHERE profile_id = ?
+      WHERE profile_id = ? AND deleted_at IS NULL
     `).get(requestedId);
 
     // Get progress stats
