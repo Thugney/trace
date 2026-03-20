@@ -41,20 +41,20 @@ export function subscribeToPush(profileId: number, subscription: {
   keys: { p256dh: string; auth: string };
 }): boolean {
   try {
-    // Check if already subscribed with this endpoint
+    // Check if this profile already subscribed with this endpoint
     const existing = db.prepare(
-      'SELECT id FROM push_subscriptions WHERE endpoint = ?'
-    ).get(subscription.endpoint);
+      'SELECT id FROM push_subscriptions WHERE profile_id = ? AND endpoint = ?'
+    ).get(profileId, subscription.endpoint);
 
     if (existing) {
-      // Update existing subscription
+      // Refresh keys for this profile/device pairing
       db.prepare(`
         UPDATE push_subscriptions
-        SET profile_id = ?, p256dh = ?, auth = ?
-        WHERE endpoint = ?
-      `).run(profileId, subscription.keys.p256dh, subscription.keys.auth, subscription.endpoint);
+        SET p256dh = ?, auth = ?
+        WHERE profile_id = ? AND endpoint = ?
+      `).run(subscription.keys.p256dh, subscription.keys.auth, profileId, subscription.endpoint);
     } else {
-      // Create new subscription
+      // Create a profile-specific subscription row so shared devices can notify multiple kids
       db.prepare(`
         INSERT INTO push_subscriptions (profile_id, endpoint, p256dh, auth)
         VALUES (?, ?, ?, ?)
@@ -69,15 +69,31 @@ export function subscribeToPush(profileId: number, subscription: {
   }
 }
 
+export function isProfileSubscribedToEndpoint(profileId: number, endpoint: string): boolean {
+  const existing = db.prepare(
+    'SELECT 1 FROM push_subscriptions WHERE profile_id = ? AND endpoint = ?'
+  ).get(profileId, endpoint);
+
+  return !!existing;
+}
+
 // Unsubscribe from push notifications
-export function unsubscribeFromPush(endpoint: string): boolean {
+export function unsubscribeFromPush(profileId: number, endpoint: string): { success: boolean; endpointStillUsed: boolean } {
   try {
-    db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(endpoint);
-    console.log('[Push] Subscription removed');
-    return true;
+    db.prepare('DELETE FROM push_subscriptions WHERE profile_id = ? AND endpoint = ?').run(profileId, endpoint);
+
+    const remaining: any = db.prepare(
+      'SELECT COUNT(*) as count FROM push_subscriptions WHERE endpoint = ?'
+    ).get(endpoint);
+
+    console.log(`[Push] Subscription removed for profile ${profileId}`);
+    return {
+      success: true,
+      endpointStillUsed: (remaining?.count || 0) > 0
+    };
   } catch (error) {
     console.error('[Push] Error removing subscription:', error);
-    return false;
+    return { success: false, endpointStillUsed: true };
   }
 }
 
@@ -89,7 +105,7 @@ export async function sendPushNotification(
   try {
     // ALWAYS save notification to database for in-app display (regardless of push subscription)
     db.prepare(`
-      INSERT INTO notifications (profile_id, type, title, message, metadata)
+      INSERT INTO notifications (profile_id, type, title, message, data)
       VALUES (?, ?, ?, ?, ?)
     `).run(profileId, payload.type, payload.title, payload.message, JSON.stringify(payload.data || {}));
 
@@ -140,8 +156,8 @@ export async function sendPushNotification(
 
         // Remove invalid subscriptions (410 Gone or 404 Not Found)
         if (error.statusCode === 410 || error.statusCode === 404) {
-          db.prepare('DELETE FROM push_subscriptions WHERE id = ?').run(sub.id);
-          console.log(`[Push] Removed invalid subscription ${sub.id}`);
+          db.prepare('DELETE FROM push_subscriptions WHERE endpoint = ?').run(sub.endpoint);
+          console.log(`[Push] Removed invalid subscription endpoint for all linked profiles: ${sub.endpoint}`);
         }
       }
     }
@@ -441,6 +457,7 @@ export const NotificationHelpers = {
 export default {
   getVapidPublicKey,
   subscribeToPush,
+  isProfileSubscribedToEndpoint,
   unsubscribeFromPush,
   sendPushNotification,
   sendPushToProfiles,

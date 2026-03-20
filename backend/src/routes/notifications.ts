@@ -32,19 +32,42 @@ router.post('/subscribe', authenticate, (req: AuthRequest, res: Response) => {
   }
 });
 
-// Unsubscribe from push notifications
-router.post('/unsubscribe', authenticate, (req: AuthRequest, res: Response) => {
+// Check whether the current profile is linked to a browser subscription endpoint
+router.post('/subscription-status', authenticate, (req: AuthRequest, res: Response) => {
   try {
+    const profileId = req.profile!.id;
     const { endpoint } = req.body;
 
     if (!endpoint) {
       return res.status(400).json({ error: 'Endpoint is required' });
     }
 
-    const success = notifications.unsubscribeFromPush(endpoint);
+    const isSubscribed = notifications.isProfileSubscribedToEndpoint(profileId, endpoint);
 
-    if (success) {
-      res.json({ message: 'Unsubscribed from push notifications' });
+    res.json({ isSubscribed });
+  } catch (error: any) {
+    console.error('[Notifications] Subscription status error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Unsubscribe from push notifications
+router.post('/unsubscribe', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profileId = req.profile!.id;
+    const { endpoint } = req.body;
+
+    if (!endpoint) {
+      return res.status(400).json({ error: 'Endpoint is required' });
+    }
+
+    const result = notifications.unsubscribeFromPush(profileId, endpoint);
+
+    if (result.success) {
+      res.json({
+        message: 'Unsubscribed from push notifications',
+        endpointStillUsed: result.endpointStillUsed
+      });
     } else {
       res.status(500).json({ error: 'Failed to unsubscribe' });
     }

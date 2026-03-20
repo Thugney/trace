@@ -111,11 +111,11 @@ self.addEventListener('push', (event: PushEvent) => {
 
   const options = {
     body: data.body,
-    icon: data.icon,
-    badge: data.badge,
+    icon: resolveNotificationAsset(data.icon, '/pwa-192x192.png'),
+    badge: resolveNotificationAsset(data.badge, '/favicon-32x32.png'),
     vibrate: [100, 50, 100],
     data: data.data,
-    tag: (data.data as any)?.type || 'general',
+    tag: getNotificationTag(data.data),
     requireInteraction: false
   } as NotificationOptions;
 
@@ -169,3 +169,36 @@ self.addEventListener('notificationclick', (event: NotificationEvent) => {
 self.addEventListener('notificationclose', (event: NotificationEvent) => {
   console.log('[SW] Notification closed:', event);
 });
+
+function resolveNotificationAsset(asset: unknown, fallback: string): string {
+  if (typeof asset !== 'string') {
+    return fallback;
+  }
+
+  if (/^(\/|https?:\/\/)/i.test(asset)) {
+    return asset;
+  }
+
+  return fallback;
+}
+
+function getNotificationTag(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') {
+    return undefined;
+  }
+
+  const payload = data as Record<string, unknown>;
+  const explicitTag = typeof payload.notificationTag === 'string' ? payload.notificationTag : null;
+  const taskId = payload.taskId;
+  const type = typeof payload.type === 'string' ? payload.type : 'general';
+
+  if (explicitTag) {
+    return explicitTag;
+  }
+
+  if (typeof taskId === 'number' || typeof taskId === 'string') {
+    return `${type}-${taskId}`;
+  }
+
+  return undefined;
+}

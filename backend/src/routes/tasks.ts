@@ -6,6 +6,12 @@ import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import { NotificationHelpers } from '../services/notifications';
+import {
+  DEFAULT_TASK_TIMER_DURATIONS,
+  TIMED_TASK_CATEGORIES,
+  formatTaskTimerDuration,
+  getRequiredTaskTimerSeconds
+} from '../services/taskTimer';
 import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
 import {
   checkRateLimit,
@@ -1298,17 +1304,8 @@ router.delete('/:id/proof', authenticate, (req: AuthRequest, res: Response) => {
 // ==================== TIMER ENDPOINTS ====================
 
 // Categories that require a timer by default
-const TIMED_CATEGORIES = ['read-book', 'tigrinya', 'clean-room', 'clean-kitchen', 'school'];
-
-// Default timer durations by category (in minutes)
-const DEFAULT_TIMER_DURATIONS: Record<string, number> = {
-  'read-book': 15,
-  'tigrinya': 20,
-  'clean-room': 15,
-  'clean-kitchen': 20,
-  'school': 30,
-  'other': 10
-};
+const TIMED_CATEGORIES = TIMED_TASK_CATEGORIES;
+const DEFAULT_TIMER_DURATIONS = DEFAULT_TASK_TIMER_DURATIONS;
 
 // Get timer state for a task
 router.get('/:id/timer', (req, res) => {
@@ -1336,10 +1333,17 @@ router.get('/:id/timer', (req, res) => {
       currentElapsed = timerState.elapsed_seconds + runningTime;
     }
 
+    const requiredSeconds = getRequiredTaskTimerSeconds(task);
+    const remainingSeconds = task.requires_timer === 1
+      ? Math.max(requiredSeconds - currentElapsed, 0)
+      : 0;
+
     res.json({
       task_id: parseInt(id),
       requires_timer: task.requires_timer === 1,
       timer_duration_minutes: task.timer_duration_minutes,
+      required_seconds: task.requires_timer === 1 ? requiredSeconds : null,
+      remaining_seconds: task.requires_timer === 1 ? remainingSeconds : null,
       timer_state: timerState ? {
         is_running: !!timerState.is_running,
         is_paused: !!timerState.is_paused,
@@ -1347,7 +1351,7 @@ router.get('/:id/timer', (req, res) => {
         start_time: timerState.start_time,
         pause_time: timerState.pause_time
       } : null,
-      can_complete: !task.requires_timer || (timerState && currentElapsed > 0),
+      can_complete: !task.requires_timer || (!!timerState && currentElapsed >= requiredSeconds),
       completed_today: task.last_completed_date === new Date().toISOString().split('T')[0]
     });
   } catch (error: any) {
@@ -1554,13 +1558,15 @@ router.post('/:id/timer/finish', (req, res) => {
       }
     }
 
-    // If task requires timer, check minimum time (at least 60 seconds)
-    if (task.requires_timer && finalElapsed < 60) {
+    const requiredSeconds = getRequiredTaskTimerSeconds(task);
+
+    if (task.requires_timer && finalElapsed < requiredSeconds) {
       return res.status(400).json({
-        error: 'You need to work on this task for at least 1 minute before completing it.',
+        error: `You need to work on this task for ${formatTaskTimerDuration(requiredSeconds)} before completing it.`,
         code: 'MINIMUM_TIME_NOT_MET',
         elapsed_seconds: finalElapsed,
-        minimum_seconds: 60
+        required_seconds: requiredSeconds,
+        remaining_seconds: Math.max(requiredSeconds - finalElapsed, 0)
       });
     }
 

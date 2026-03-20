@@ -96,6 +96,33 @@ export function initTestDb() {
     )
   `);
 
+  // Push subscriptions table
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(profile_id, endpoint)
+    )
+  `);
+
+  // Notifications table
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      data TEXT,
+      is_read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Streaks table
   testDb.exec(`
     CREATE TABLE IF NOT EXISTS streaks (
@@ -258,6 +285,8 @@ export function clearTestDb() {
   testDb.exec('DELETE FROM tasks');
   testDb.exec('DELETE FROM notes');
   testDb.exec('DELETE FROM settings');
+  testDb.exec('DELETE FROM notifications');
+  testDb.exec('DELETE FROM push_subscriptions');
   testDb.exec('DELETE FROM monthly_goals');
   testDb.exec('DELETE FROM water_intake');
   testDb.exec('DELETE FROM timer_logs');

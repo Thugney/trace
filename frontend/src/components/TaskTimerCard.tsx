@@ -175,10 +175,10 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
     setActionLoading(true);
     setError(null);
     try {
-      await tasksAPI.startTimer(task.id);
+      const response = await tasksAPI.startTimer(task.id);
       setIsRunning(true);
       setIsPaused(false);
-      setLocalElapsed(0);
+      setLocalElapsed(response.data.timer_state.elapsed_seconds ?? 0);
       playSounds.click();
     } catch (e: any) {
       const msg = e.response?.data?.error || 'Failed to start timer';
@@ -191,9 +191,10 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
   const handlePause = async () => {
     setActionLoading(true);
     try {
-      await tasksAPI.pauseTimer(task.id);
+      const response = await tasksAPI.pauseTimer(task.id);
       setIsPaused(true);
       setIsRunning(false);
+      setLocalElapsed(response.data.timer_state.elapsed_seconds ?? localElapsed);
       playSounds.click();
     } catch (e: any) {
       setError(e.response?.data?.error || 'Failed to pause timer');
@@ -205,9 +206,10 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
   const handleResume = async () => {
     setActionLoading(true);
     try {
-      await tasksAPI.resumeTimer(task.id);
+      const response = await tasksAPI.resumeTimer(task.id);
       setIsRunning(true);
       setIsPaused(false);
+      setLocalElapsed(response.data.timer_state.elapsed_seconds ?? localElapsed);
       playSounds.click();
     } catch (e: any) {
       setError(e.response?.data?.error || 'Failed to resume timer');
@@ -248,9 +250,10 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
   };
 
   // Calculate progress percentage
-  const progressPercent = targetSeconds ? Math.min((localElapsed / targetSeconds) * 100, 100) : 0;
-  const isMinTimeMet = localElapsed >= 60; // Minimum 1 minute
-  const isTargetMet = targetSeconds ? localElapsed >= targetSeconds : true;
+  const requiredSeconds = timerState?.required_seconds ?? targetSeconds ?? 60;
+  const remainingSeconds = Math.max(requiredSeconds - localElapsed, 0);
+  const progressPercent = requiredSeconds ? Math.min((localElapsed / requiredSeconds) * 100, 100) : 0;
+  const isTargetMet = localElapsed >= requiredSeconds;
 
   // Already completed today
   if (timerState?.completed_today && !task.completed) {
@@ -343,7 +346,7 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
             text-white text-xs font-bold flex items-center gap-1 shadow-md
           `}>
             <Timer size={12} />
-            {targetSeconds ? formatTime(targetSeconds) : 'Timed'}
+            {formatTime(requiredSeconds)}
           </div>
         </div>
 
@@ -397,7 +400,7 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
             </div>
 
             {/* Progress bar */}
-            {targetSeconds && (
+            {requiredSeconds > 0 && (
               <div className="w-full bg-slate-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full transition-all duration-1000 ${
@@ -409,9 +412,9 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
               </div>
             )}
 
-            {targetSeconds && (
+            {requiredSeconds > 0 && (
               <p className="text-xs text-slate-500 mt-1 text-right">
-                {isTargetMet ? 'Target reached!' : `${formatTime(targetSeconds - localElapsed)} remaining`}
+                {isTargetMet ? 'Target reached!' : `${formatTime(remainingSeconds)} remaining`}
               </p>
             )}
           </div>
@@ -458,7 +461,7 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
                   <Play size={18} fill="currentColor" />
                   Resume
                 </button>
-                {isMinTimeMet && (
+                {isTargetMet && (
                   <button
                     onClick={handleFinish}
                     disabled={actionLoading}
@@ -480,7 +483,7 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
                   <Pause size={18} />
                   Pause
                 </button>
-                {isMinTimeMet && (
+                {isTargetMet && (
                   <button
                     onClick={handleFinish}
                     disabled={actionLoading}
@@ -494,10 +497,10 @@ export default function TaskTimerCard({ task, onComplete, index = 0 }: TaskTimer
             )}
           </div>
 
-          {/* Minimum time notice */}
-          {(isRunning || isPaused) && !isMinTimeMet && (
+          {/* Timer notice */}
+          {(isRunning || isPaused) && !isTargetMet && (
             <p className="text-xs text-center text-slate-500 mt-2">
-              Work for at least 1 minute to complete
+              Keep going. {formatTime(remainingSeconds)} left before Done unlocks.
             </p>
           )}
         </div>

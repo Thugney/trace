@@ -22,6 +22,14 @@ interface Profile {
   type: string;
 }
 
+function getLocalDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Parse time string (HH:MM) to hours and minutes
 function parseTime(timeStr: string): { hours: number; minutes: number } {
   const [hours, minutes] = timeStr.split(':').map(Number);
@@ -59,14 +67,14 @@ function getProfilesForReminder(hour: number, minute: number): number[] {
 
 // Get pending tasks for a profile
 function getPendingTasks(profileId: number): Task[] {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   return db.prepare(`
     SELECT id, title, due_date, profile_id
     FROM tasks
     WHERE profile_id = ?
     AND completed = 0
-    AND (due_date IS NULL OR due_date <= ?)
+    AND (due_date IS NULL OR date(due_date) <= date(?))
     ORDER BY due_date ASC
     LIMIT 5
   `).all(profileId, today) as Task[];
@@ -74,14 +82,15 @@ function getPendingTasks(profileId: number): Task[] {
 
 // Get overdue tasks for a profile
 function getOverdueTasks(profileId: number): Task[] {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   return db.prepare(`
     SELECT id, title, due_date, profile_id
     FROM tasks
     WHERE profile_id = ?
     AND completed = 0
-    AND due_date < ?
+    AND due_date IS NOT NULL
+    AND date(due_date) < date(?)
     ORDER BY due_date ASC
     LIMIT 5
   `).all(profileId, today) as Task[];
@@ -166,7 +175,7 @@ interface ScheduledTask {
 
 function getTasksScheduledForTime(hour: number, minute: number): ScheduledTask[] {
   const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
 
   return db.prepare(`
     SELECT id, title, profile_id, scheduled_time, points, category
@@ -197,7 +206,7 @@ async function sendTaskScheduledReminder(task: ScheduledTask): Promise<void> {
   });
 
   // Update last_reminder_sent to today
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   db.prepare('UPDATE tasks SET last_reminder_sent = ? WHERE id = ?').run(today, task.id);
 
   console.log(`[Scheduler] Sent task reminder to ${profile.name}: "${task.title}" at ${task.scheduled_time}`);

@@ -291,6 +291,8 @@ export interface TaskTimerState {
   task_id: number;
   requires_timer: boolean;
   timer_duration_minutes: number | null;
+  required_seconds: number | null;
+  remaining_seconds: number | null;
   timer_state: {
     is_running: boolean;
     is_paused: boolean;
@@ -1293,8 +1295,10 @@ export const notificationsAPI = {
     api.get<{ publicKey: string }>('/notifications/vapid-public-key'),
   subscribe: (subscription: { endpoint: string; keys: { p256dh: string; auth: string } }) =>
     api.post('/notifications/subscribe', { subscription }),
+  getSubscriptionStatus: (endpoint: string) =>
+    api.post<{ isSubscribed: boolean }>('/notifications/subscription-status', { endpoint }),
   unsubscribe: (endpoint: string) =>
-    api.post('/notifications/unsubscribe', { endpoint }),
+    api.post<{ message: string; endpointStillUsed: boolean }>('/notifications/unsubscribe', { endpoint }),
   getNotifications: (limit?: number, unreadOnly?: boolean) =>
     api.get<{ notifications: Notification[]; unreadCount: number }>('/notifications', {
       params: { limit, unread: unreadOnly }

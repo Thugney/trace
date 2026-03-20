@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import FunCard from './FunCard';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 interface ReminderWidgetProps {
   enabled: boolean;
@@ -55,6 +57,17 @@ export default function ReminderWidget({
 }: ReminderWidgetProps) {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [bellRinging, setBellRinging] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const {
+    isSupported,
+    isSubscribed,
+    hasBrowserSubscription,
+    permission,
+    loading: pushLoading,
+    subscribe
+  } = usePushNotifications();
+
+  const isDeviceReadyForPush = isSupported && permission === 'granted' && isSubscribed;
 
   // Bell animation when enabled
   useEffect(() => {
@@ -70,39 +83,109 @@ export default function ReminderWidget({
     setShowTimePicker(false);
   };
 
+  const getPushStatusMessage = () => {
+    if (!isSupported) {
+      return 'This browser cannot receive push notifications.';
+    }
+
+    if (permission === 'denied') {
+      return 'Notifications are blocked in your browser settings.';
+    }
+
+    if (hasBrowserSubscription && !isSubscribed) {
+      return 'Push is already enabled on this device, but not for this profile yet.';
+    }
+
+    if (!isSubscribed) {
+      return 'This device is not connected for push notifications yet.';
+    }
+
+    return 'This device is ready for real push notifications.';
+  };
+
+  const handleEnablePush = async () => {
+    setPushError(null);
+    const success = await subscribe();
+
+    if (!success) {
+      if (!isSupported) {
+        setPushError('This browser cannot receive push notifications.');
+        return false;
+      }
+
+      if (Notification.permission === 'denied' || permission === 'denied') {
+        setPushError('Notifications are blocked. Allow them in your browser settings first.');
+        return false;
+      }
+
+      setPushError('Push notifications could not be enabled on this device.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleToggleClick = async () => {
+    if (saving || pushLoading) {
+      return;
+    }
+
+    setPushError(null);
+
+    if (!enabled && !isDeviceReadyForPush) {
+      const pushEnabled = await handleEnablePush();
+      if (!pushEnabled) {
+        return;
+      }
+    }
+
+    await onToggle();
+  };
+
   // Compact version for dashboard
   if (compact) {
     return (
       <FunCard theme="ocean" size="sm" className="relative overflow-hidden">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`text-3xl ${bellRinging ? 'animate-wiggle' : ''}`}>
               {enabled ? '🔔' : '🔕'}
             </div>
             <div>
-              <p className="font-bold text-white text-sm">Reminders</p>
+              <p className="font-bold text-white text-sm">Daily Alerts</p>
               <p className="text-white/80 text-xs">
-                {enabled ? `${getTimeIcon(time)} ${formatTime(time)}` : 'Off'}
+                {enabled
+                  ? isDeviceReadyForPush
+                    ? `${getTimeIcon(time)} ${formatTime(time)}`
+                    : 'Push not ready on this device'
+                  : 'Off'}
               </p>
             </div>
           </div>
           <button
-            onClick={onToggle}
-            disabled={saving}
+            onClick={() => {
+              void handleToggleClick();
+            }}
+            disabled={saving || pushLoading}
             className={`
               w-12 h-6 rounded-full transition-all duration-300
               ${enabled ? 'bg-green-400' : 'bg-white/30'}
-              ${saving ? 'opacity-50' : ''}
+              ${(saving || pushLoading) ? 'opacity-50' : ''}
             `}
           >
             <span
               className={`
                 block w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300
-                ${enabled ? 'translate-x-6' : 'translate-x-0.5'}
-              `}
+              ${enabled ? 'translate-x-6' : 'translate-x-0.5'}
+            `}
             />
           </button>
         </div>
+        {enabled && !isDeviceReadyForPush && (
+          <p className="mt-2 text-[11px] text-white/80">
+            Turn on push on this device to get the alert here.
+          </p>
+        )}
       </FunCard>
     );
   }
@@ -119,21 +202,48 @@ export default function ReminderWidget({
         <div className={`text-5xl mb-2 ${bellRinging ? 'animate-wiggle' : 'animate-float'}`}>
           {enabled ? '🔔' : '🔕'}
         </div>
-        <h3 className="text-xl font-bold text-white">Daily Reminders</h3>
+        <h3 className="text-xl font-bold text-white">Daily Push Notifications</h3>
         <p className="text-white/80 text-sm">
-          {enabled ? "I'll remind you about your tasks!" : 'Turn on to get reminders'}
+          {enabled ? 'Real task notifications, not just an in-app reminder.' : 'Turn on to schedule a real task notification'}
         </p>
       </div>
+
+      <div className="bg-white/15 rounded-2xl p-4 mb-4 text-left">
+        <p className="text-white font-semibold text-sm">This device</p>
+        <p className="text-white/80 text-sm mt-1">
+          {getPushStatusMessage()}
+        </p>
+        {!isDeviceReadyForPush && isSupported && permission !== 'denied' && (
+          <button
+            onClick={() => {
+              void handleEnablePush();
+            }}
+            disabled={pushLoading}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-50 disabled:opacity-60"
+          >
+            {pushLoading ? <Loader2 size={16} className="animate-spin" /> : <span>🔔</span>}
+            Enable push on this device
+          </button>
+        )}
+      </div>
+
+      {pushError && (
+        <div className="mb-4 rounded-xl bg-rose-100/95 px-4 py-3 text-sm text-rose-700">
+          {pushError}
+        </div>
+      )}
 
       {/* Toggle Switch */}
       <div className="flex justify-center mb-4">
         <button
-          onClick={onToggle}
-          disabled={saving}
+          onClick={() => {
+            void handleToggleClick();
+          }}
+          disabled={saving || pushLoading}
           className={`
             relative w-20 h-10 rounded-full transition-all duration-300 shadow-inner
             ${enabled ? 'bg-green-400' : 'bg-white/30'}
-            ${saving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            ${(saving || pushLoading) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           `}
         >
           <span
@@ -151,7 +261,7 @@ export default function ReminderWidget({
       {/* Time Selection (only show when enabled) */}
       {enabled && (
         <div className="mt-4">
-          <p className="text-white/90 text-center text-sm mb-2">Remind me at:</p>
+          <p className="text-white/90 text-center text-sm mb-2">Send the notification at:</p>
 
           {/* Current Time Display */}
           <button
@@ -201,8 +311,10 @@ export default function ReminderWidget({
       {/* Encouraging message */}
       <p className="text-center text-white/70 text-xs mt-4">
         {enabled
-          ? "Great! I'll help you remember your tasks! 💪"
-          : 'Turn on reminders so you never forget! 🌟'}
+          ? isDeviceReadyForPush
+            ? "Nice. You'll get a real push notification at this time. 💪"
+            : 'The schedule is on, but this device still needs push enabled to receive it. 🌟'
+          : 'Turn this on when you want a real push notification for your tasks. 🌟'}
       </p>
     </FunCard>
   );

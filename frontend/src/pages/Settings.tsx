@@ -72,7 +72,7 @@ export default function Settings() {
         enabled: !reminderPrefs.reminder_enabled
       });
       setReminderPrefs(response.data);
-      setSuccessMessage('Reminder settings updated!');
+      setSuccessMessage('Notification schedule updated!');
     } catch (error) {
       console.error('Failed to update reminder preferences:', error);
     } finally {
@@ -86,7 +86,7 @@ export default function Settings() {
     try {
       const response = await remindersAPI.updatePreferences(currentProfile.id, { time });
       setReminderPrefs(response.data);
-      setSuccessMessage('Reminder time updated!');
+      setSuccessMessage('Notification time updated!');
     } catch (error) {
       console.error('Failed to update reminder time:', error);
     } finally {

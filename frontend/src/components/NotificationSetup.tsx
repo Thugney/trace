@@ -12,7 +12,7 @@ interface NotificationSetupProps {
 /**
  * Mandatory notification setup component for child profiles.
  * Shows a full-screen overlay prompting the user to enable push notifications.
- * This ensures kids receive task reminders on their devices.
+ * This ensures kids receive task notifications on their devices.
  */
 export default function NotificationSetup({
   profileName,
@@ -26,6 +26,7 @@ export default function NotificationSetup({
   const {
     isSupported,
     isSubscribed,
+    hasBrowserSubscription,
     permission,
     loading,
     subscribe
@@ -121,8 +122,9 @@ export default function NotificationSetup({
               </h2>
 
               <p className="text-gray-600 mb-6">
-                Enable notifications so you never miss a task reminder!
-                We'll let you know when it's time to do your tasks.
+                {hasBrowserSubscription
+                  ? 'This device already allows notifications. Enable them for your profile so task alerts come to you at the right time.'
+                  : 'Enable notifications so you get real push alerts for your tasks. We\'ll send them to this device when it\'s time to get started.'}
               </p>
 
               {error && (
@@ -186,7 +188,7 @@ export default function NotificationSetup({
               </h2>
 
               <p className="text-gray-600">
-                You'll now receive reminders for your tasks!
+                This device can now receive your task notifications.
               </p>
             </>
           )}
@@ -203,7 +205,7 @@ export default function NotificationSetup({
 
               <p className="text-gray-600 mb-6">
                 Notifications are blocked in your browser settings.
-                To receive task reminders, you'll need to enable them manually.
+                To receive task notifications, you'll need to enable them manually.
               </p>
 
               <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 text-left mb-6">

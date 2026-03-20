@@ -123,8 +123,8 @@ export default function ChildSettings({
         <div className="bg-white rounded-2xl shadow-lg border-2 border-cyan-200 overflow-hidden">
           <div className="bg-gradient-to-r from-cyan-100 to-blue-100 p-4 text-center">
             <span className="text-4xl animate-bounce inline-block"></span>
-            <h2 className="text-lg font-bold text-cyan-800 mt-2">My Reminders</h2>
-            <p className="text-xs text-cyan-600">Never forget your tasks!</p>
+            <h2 className="text-lg font-bold text-cyan-800 mt-2">My Notifications</h2>
+            <p className="text-xs text-cyan-600">Set up real push notifications for your tasks.</p>
           </div>
           <div className="p-4">
             {reminderPrefs ? (

@@ -1,60 +1,77 @@
 import { useState, useEffect, useCallback } from 'react';
 import { notificationsAPI } from '../services/api';
+import { useProfile } from '../context/ProfileContext';
 
 interface PushNotificationState {
   isSupported: boolean;
   isSubscribed: boolean;
+  hasBrowserSubscription: boolean;
   permission: NotificationPermission;
   loading: boolean;
   error: string | null;
 }
 
 export function usePushNotifications() {
+  const { currentProfile } = useProfile();
   const [state, setState] = useState<PushNotificationState>({
     isSupported: false,
     isSubscribed: false,
+    hasBrowserSubscription: false,
     permission: 'default',
     loading: true,
     error: null
   });
 
+  const refreshSubscriptionState = useCallback(async () => {
+    const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+
+    if (!isSupported) {
+      setState(prev => ({
+        ...prev,
+        isSupported: false,
+        isSubscribed: false,
+        hasBrowserSubscription: false,
+        loading: false
+      }));
+      return;
+    }
+
+    try {
+      const permission = Notification.permission;
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      let isSubscribed = false;
+
+      if (subscription && currentProfile) {
+        const { data } = await notificationsAPI.getSubscriptionStatus(subscription.endpoint);
+        isSubscribed = data.isSubscribed;
+      }
+
+      setState(prev => ({
+        ...prev,
+        isSupported: true,
+        isSubscribed,
+        hasBrowserSubscription: !!subscription,
+        permission,
+        loading: false,
+        error: null
+      }));
+    } catch (error) {
+      console.error('[Push] Error checking support:', error);
+      setState(prev => ({
+        ...prev,
+        isSupported,
+        hasBrowserSubscription: false,
+        loading: false,
+        error: 'Failed to check notification status'
+      }));
+    }
+  }, [currentProfile]);
+
   // Check if push notifications are supported
   useEffect(() => {
-    const checkSupport = async () => {
-      const isSupported = 'serviceWorker' in navigator && 'PushManager' in window;
-
-      if (!isSupported) {
-        setState(prev => ({ ...prev, isSupported: false, loading: false }));
-        return;
-      }
-
-      try {
-        const permission = Notification.permission;
-
-        // Check if already subscribed
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-
-        setState(prev => ({
-          ...prev,
-          isSupported: true,
-          isSubscribed: !!subscription,
-          permission,
-          loading: false
-        }));
-      } catch (error) {
-        console.error('[Push] Error checking support:', error);
-        setState(prev => ({
-          ...prev,
-          isSupported,
-          loading: false,
-          error: 'Failed to check notification status'
-        }));
-      }
-    };
-
-    checkSupport();
-  }, []);
+    refreshSubscriptionState();
+  }, [refreshSubscriptionState]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async () => {
@@ -81,18 +98,20 @@ export function usePushNotifications() {
 
       // Wait for the PWA service worker to be ready
       const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
 
       // Get VAPID public key from server
       const { data: { publicKey } } = await notificationsAPI.getVapidPublicKey();
 
       // Convert VAPID key to Uint8Array
-      const applicationServerKey = urlBase64ToUint8Array(publicKey);
+      const applicationServerKey = urlBase64ToArrayBuffer(publicKey);
 
-      // Subscribe to push
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey.buffer as ArrayBuffer
-      });
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+      }
 
       // Send subscription to server
       const subscriptionJson = subscription.toJSON();
@@ -104,12 +123,7 @@ export function usePushNotifications() {
         }
       });
 
-      setState(prev => ({
-        ...prev,
-        isSubscribed: true,
-        permission: 'granted',
-        loading: false
-      }));
+      await refreshSubscriptionState();
 
       console.log('[Push] Successfully subscribed');
       return true;
@@ -133,18 +147,15 @@ export function usePushNotifications() {
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
-        // Unsubscribe from browser
-        await subscription.unsubscribe();
+        const { data } = await notificationsAPI.unsubscribe(subscription.endpoint);
 
-        // Remove from server
-        await notificationsAPI.unsubscribe(subscription.endpoint);
+        // Only remove the browser subscription when no other profile on this device still uses it
+        if (!data.endpointStillUsed) {
+          await subscription.unsubscribe();
+        }
       }
 
-      setState(prev => ({
-        ...prev,
-        isSubscribed: false,
-        loading: false
-      }));
+      await refreshSubscriptionState();
 
       console.log('[Push] Successfully unsubscribed');
       return true;
@@ -157,7 +168,7 @@ export function usePushNotifications() {
       }));
       return false;
     }
-  }, []);
+  }, [refreshSubscriptionState]);
 
   // Send test notification
   const sendTest = useCallback(async () => {
@@ -176,6 +187,7 @@ export function usePushNotifications() {
 
   return {
     ...state,
+    refreshSubscriptionState,
     subscribe,
     unsubscribe,
     sendTest
@@ -183,18 +195,19 @@ export function usePushNotifications() {
 }
 
 // Helper function to convert VAPID key
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
     .replace(/_/g, '/');
 
   const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
+  const buffer = new ArrayBuffer(rawData.length);
+  const outputArray = new Uint8Array(buffer);
 
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
 
-  return outputArray;
+  return buffer;
 }

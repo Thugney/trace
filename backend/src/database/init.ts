@@ -371,7 +371,6 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_meal_logs_date ON meal_logs(logged_at);
     CREATE INDEX IF NOT EXISTS idx_tasks_profile ON tasks(profile_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
-    CREATE INDEX IF NOT EXISTS idx_tasks_parent_approved ON tasks(parent_approved);
     CREATE INDEX IF NOT EXISTS idx_progress_profile ON progress(profile_id);
     CREATE INDEX IF NOT EXISTS idx_food_items_name ON food_items(name);
     CREATE INDEX IF NOT EXISTS idx_ai_conversations_profile ON ai_conversations(profile_id);
@@ -379,7 +378,6 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_profile_month ON monthly_goals(profile_id, month);
     CREATE INDEX IF NOT EXISTS idx_monthly_goals_parent_approved ON monthly_goals(parent_approved);
     CREATE INDEX IF NOT EXISTS idx_ai_settings_profile ON ai_settings(profile_id);
-    CREATE INDEX IF NOT EXISTS idx_profiles_parent_id ON profiles(parent_id);
     CREATE INDEX IF NOT EXISTS idx_profile_features_profile ON profile_features(profile_id);
     CREATE INDEX IF NOT EXISTS idx_profile_features_feature ON profile_features(feature_key);
   `);
@@ -743,11 +741,12 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       profile_id INTEGER NOT NULL,
-      endpoint TEXT NOT NULL UNIQUE,
+      endpoint TEXT NOT NULL,
       p256dh TEXT NOT NULL,
       auth TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+      FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+      UNIQUE(profile_id, endpoint)
     )
   `);
 
@@ -772,6 +771,70 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_notifications_profile ON notifications(profile_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
   `);
+
+  // Migration: Allow the same browser endpoint to be linked to multiple profiles
+  try {
+    const pushIndexes = db.prepare('PRAGMA index_list(push_subscriptions)').all() as Array<{ name: string; unique: number }>;
+    const uniqueIndexes = pushIndexes.filter(index => index.unique === 1);
+    const hasProfileEndpointUnique = uniqueIndexes.some(index => {
+      const columns = db.prepare(`PRAGMA index_info(${JSON.stringify(index.name)})`).all() as Array<{ name: string }>;
+      return columns.length === 2 &&
+        columns.some(column => column.name === 'profile_id') &&
+        columns.some(column => column.name === 'endpoint');
+    });
+
+    if (!hasProfileEndpointUnique) {
+      console.log('🔄 Migrating push_subscriptions table to profile-specific subscriptions...');
+
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS push_subscriptions_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          profile_id INTEGER NOT NULL,
+          endpoint TEXT NOT NULL,
+          p256dh TEXT NOT NULL,
+          auth TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+          UNIQUE(profile_id, endpoint)
+        );
+
+        INSERT OR IGNORE INTO push_subscriptions_new (profile_id, endpoint, p256dh, auth, created_at)
+        SELECT profile_id, endpoint, p256dh, auth, created_at
+        FROM push_subscriptions;
+
+        DROP TABLE push_subscriptions;
+        ALTER TABLE push_subscriptions_new RENAME TO push_subscriptions;
+        CREATE INDEX IF NOT EXISTS idx_push_subscriptions_profile ON push_subscriptions(profile_id);
+      `);
+
+      console.log('✅ push_subscriptions now supports shared devices across multiple profiles');
+    }
+  } catch (error: any) {
+    console.error('Migration error (push_subscriptions shared device support):', error.message);
+  }
+
+  // Migration: Normalize notifications table to use data column for payload storage
+  try {
+    const notificationColumns = db.prepare('PRAGMA table_info(notifications)').all() as { name: string }[];
+    const hasDataColumn = notificationColumns.some(col => col.name === 'data');
+    const hasMetadataColumn = notificationColumns.some(col => col.name === 'metadata');
+
+    if (!hasDataColumn) {
+      db.prepare("ALTER TABLE notifications ADD COLUMN data TEXT DEFAULT '{}'").run();
+      console.log('✅ Added data column to notifications');
+
+      if (hasMetadataColumn) {
+        db.prepare(`
+          UPDATE notifications
+          SET data = COALESCE(metadata, '{}')
+          WHERE data IS NULL OR data = ''
+        `).run();
+        console.log('✅ Backfilled notifications.data from notifications.metadata');
+      }
+    }
+  } catch (error: any) {
+    console.error('Migration error (notifications data column):', error.message);
+  }
 
   // Gamification: Water intake tracking
   db.exec(`
@@ -1169,6 +1232,8 @@ export function initDatabase() {
       db.prepare('ALTER TABLE tasks ADD COLUMN approved_by INTEGER REFERENCES profiles(id)').run();
       console.log('✅ Added approved_by column to tasks');
     }
+
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_tasks_parent_approved ON tasks(parent_approved)').run();
 
     if (!hasParentApproved || !hasApprovedBy) {
       console.log('✅ Migration completed: tasks table updated with parent approval fields');
