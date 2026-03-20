@@ -78,7 +78,7 @@ export default function ParentDashboard() {
       const allProfiles = response.data;
 
       const myKids = allProfiles.filter(
-        (p: Profile) => p.type === 'child' && p.parent_id === currentProfile.id
+        (p: Profile) => p.type === 'child'
       );
       setChildren(myKids);
 

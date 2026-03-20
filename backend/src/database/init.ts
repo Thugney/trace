@@ -2820,6 +2820,27 @@ export function initDatabase() {
     )
   `);
 
+  try {
+    db.exec(`
+      DELETE FROM reward_categories
+      WHERE is_default = 1
+        AND id NOT IN (
+          SELECT MIN(id)
+          FROM reward_categories
+          WHERE is_default = 1
+          GROUP BY name
+        )
+    `);
+
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_reward_categories_default_name
+      ON reward_categories(name)
+      WHERE is_default = 1
+    `);
+  } catch (error: any) {
+    console.error('Migration error (reward_categories defaults):', error.message);
+  }
+
   // Insert default reward categories
   const defaultRewardCategories = [
     { name: 'general', display_name: 'General', icon: '🎁', description: 'General rewards', color: '#6366f1' },
@@ -2920,11 +2941,54 @@ export function initDatabase() {
       cost_currency TEXT DEFAULT 'USD',
       family_size_multiplier REAL DEFAULT 1.0,
       is_default BOOLEAN DEFAULT 1,
+      is_system BOOLEAN DEFAULT 1,
+      is_active BOOLEAN DEFAULT 1,
       created_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL
     )
   `);
+
+  try {
+    const goalTemplateColumns = db.prepare('PRAGMA table_info(goal_templates)').all() as { name: string }[];
+    const hasIsSystem = goalTemplateColumns.some((column) => column.name === 'is_system');
+    const hasIsActive = goalTemplateColumns.some((column) => column.name === 'is_active');
+
+    if (!hasIsSystem) {
+      db.prepare('ALTER TABLE goal_templates ADD COLUMN is_system BOOLEAN DEFAULT 0').run();
+      db.prepare('UPDATE goal_templates SET is_system = COALESCE(is_default, 0)').run();
+      console.log('✅ Added is_system column to goal_templates');
+    }
+
+    if (!hasIsActive) {
+      db.prepare('ALTER TABLE goal_templates ADD COLUMN is_active BOOLEAN DEFAULT 1').run();
+      db.prepare('UPDATE goal_templates SET is_active = 1 WHERE is_active IS NULL').run();
+      console.log('✅ Added is_active column to goal_templates');
+    }
+  } catch (error: any) {
+    console.error('Migration error (goal_templates flags):', error.message);
+  }
+
+  try {
+    db.exec(`
+      DELETE FROM goal_templates
+      WHERE (is_system = 1 OR is_default = 1)
+        AND id NOT IN (
+          SELECT MIN(id)
+          FROM goal_templates
+          WHERE (is_system = 1 OR is_default = 1)
+          GROUP BY LOWER(name), category
+        )
+    `);
+
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_goal_templates_system_name_category
+      ON goal_templates(name, category)
+      WHERE is_system = 1 OR is_default = 1
+    `);
+  } catch (error: any) {
+    console.error('Migration error (goal_templates defaults):', error.message);
+  }
 
   // Insert default goal templates with cost estimates
   const defaultGoalTemplates = [
@@ -2968,8 +3032,8 @@ export function initDatabase() {
   const insertGoalTemplate = db.prepare(`
     INSERT OR IGNORE INTO goal_templates (
       name, description, category, icon, suggested_points,
-      estimated_cost_min, estimated_cost_max, family_size_multiplier, is_default
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+      estimated_cost_min, estimated_cost_max, family_size_multiplier, is_default, is_system, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1)
   `);
 
   for (const t of defaultGoalTemplates) {

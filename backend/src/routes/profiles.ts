@@ -8,6 +8,12 @@ import { authenticate, adminOnly, loadPermissions } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 import { FEATURE_KEYS } from '../services/feature-keys';
 import { authorizationService } from '../services/authorization';
+import {
+  canAccessOwnOrManagedChild,
+  canViewFamilyProfile,
+  getManagedChildIdsForParent,
+  getVisibleProfileIdsForParent
+} from '../services/familyAccess';
 
 const router = express.Router();
 const SALT_ROUNDS = 10;
@@ -124,12 +130,26 @@ router.get('/family/progress', authenticate, (req: AuthRequest, res: Response) =
       return res.status(403).json({ error: 'Access denied: Parent access required' });
     }
 
-    const children = db.prepare(`
-      SELECT id, name, avatar, age
-      FROM profiles
-      WHERE parent_id = ? AND type = 'child'
-      ORDER BY name ASC
-    `).all(userProfile.id) as any[];
+    let children: any[] = [];
+    if (userProfile.type === 'admin') {
+      children = db.prepare(`
+        SELECT id, name, avatar, age
+        FROM profiles
+        WHERE type = 'child'
+        ORDER BY name ASC
+      `).all() as any[];
+    } else {
+      const childIds = getManagedChildIdsForParent(userProfile.id);
+      if (childIds.length > 0) {
+        const placeholders = childIds.map(() => '?').join(', ');
+        children = db.prepare(`
+          SELECT id, name, avatar, age
+          FROM profiles
+          WHERE type = 'child' AND id IN (${placeholders})
+          ORDER BY name ASC
+        `).all(...childIds) as any[];
+      }
+    }
 
     const childrenWithProgress = children.map(child => ({
       ...child,
@@ -153,22 +173,30 @@ router.get('/family/progress', authenticate, (req: AuthRequest, res: Response) =
   }
 });
 
-// Public: Get family progress by parent ID
-router.get('/:parentId/progress', (req, res) => {
+// Legacy: Get family progress by parent ID
+router.get('/:parentId/progress', authenticate, (req: AuthRequest, res) => {
   try {
     const parentId = parseInt(req.params.parentId);
+    const viewer = req.profile!;
     const parent = db.prepare('SELECT id, type FROM profiles WHERE id = ?').get(parentId) as any;
 
     if (!parent || parent.type !== 'parent') {
       return res.status(404).json({ error: 'Parent not found' });
     }
 
-    const children = db.prepare(`
-      SELECT id, name, avatar, age
-      FROM profiles
-      WHERE parent_id = ? AND type = 'child'
-      ORDER BY name ASC
-    `).all(parentId) as any[];
+    if (viewer.type !== 'admin' && viewer.id !== parentId) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own family progress' });
+    }
+
+    const childIds = getManagedChildIdsForParent(parentId);
+    const children = childIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar, age
+          FROM profiles
+          WHERE type = 'child' AND id IN (${childIds.map(() => '?').join(', ')})
+          ORDER BY name ASC
+        `).all(...childIds) as any[]
+      : [];
 
     const childrenWithProgress = children.map(child => ({
       ...child,
@@ -248,15 +276,17 @@ router.get('/', authenticate, (req: AuthRequest, res: Response) => {
       profiles = db.prepare('SELECT * FROM profiles ORDER BY type DESC, created_at ASC').all();
       console.log(`[DEBUG] Admin view: ${profiles.length} total profiles`);
     } else if (userProfile.type === 'parent') {
-      // Parent sees only themselves and their linked children (guardian_students + legacy parent_id)
-      profiles = db.prepare(`
-        SELECT * FROM profiles
-        WHERE id = ?
-           OR parent_id = ?
-           OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?)
-        ORDER BY type DESC, created_at ASC
-      `).all(userProfile.id, userProfile.id, userProfile.id);
-      console.log(`[DEBUG] Parent view: ${profiles.length} profiles (self + children)`);
+      const visibleIds = getVisibleProfileIdsForParent(userProfile.id);
+      if (visibleIds.length === 0) {
+        profiles = [];
+      } else {
+        profiles = db.prepare(`
+          SELECT * FROM profiles
+          WHERE id IN (${visibleIds.map(() => '?').join(', ')})
+          ORDER BY type DESC, created_at ASC
+        `).all(...visibleIds);
+      }
+      console.log(`[DEBUG] Parent view: ${profiles.length} profiles (family-visible set)`);
     } else {
       // Child sees only themselves
       profiles = db.prepare('SELECT * FROM profiles WHERE id = ?').all(userProfile.id);
@@ -281,25 +311,8 @@ router.get('/:id', authenticate, (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // Authorization: admin can see anyone, parent can see self + kids, others only self
-    if (userProfile.type === 'admin') {
-      // Admin can see anyone
+    if (canViewFamilyProfile(userProfile, requestedId)) {
       return res.json(profile);
-    } else if (userProfile.type === 'parent') {
-      // Parent can see themselves or their children (guardian_students + legacy parent_id)
-      if (profile.id === userProfile.id || profile.parent_id === userProfile.id) {
-        return res.json(profile);
-      }
-
-      const guardianLink = db.prepare('SELECT 1 FROM guardian_students WHERE guardian_id = ? AND student_id = ?').get(userProfile.id, profile.id);
-      if (guardianLink) {
-        return res.json(profile);
-      }
-    } else {
-      // Teacher/Child can only see themselves
-      if (profile.id === userProfile.id) {
-        return res.json(profile);
-      }
     }
 
     return res.status(403).json({ error: 'Access denied: You can only view your own profile or your children\'s profiles' });
@@ -645,14 +658,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     // Authorization: admin can update anyone, parent can update self + kids, others only self
-    let canUpdate = false;
-    if (userProfile.type === 'admin') {
-      canUpdate = true;
-    } else if (userProfile.type === 'parent') {
-      canUpdate = (targetProfile.id === userProfile.id || targetProfile.parent_id === userProfile.id);
-    } else {
-      canUpdate = (targetProfile.id === userProfile.id);
-    }
+    const canUpdate = canAccessOwnOrManagedChild(userProfile, targetProfile.id);
 
     if (!canUpdate) {
       return res.status(403).json({ error: 'Access denied: You can only update your own profile or your children\'s profiles' });
@@ -922,10 +928,11 @@ router.post('/:id/set-pin', (req, res) => {
 });
 
 // Reset password/PIN (admin can reset anyone, parents can reset their kids)
-router.post('/:id/reset-password', async (req, res) => {
+router.post('/:id/reset-password', authenticate, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { newPassword, newPin, adminId, parentId } = req.body;
+    const { newPassword, newPin } = req.body;
+    const requester = req.profile!;
 
     // Get the profile being reset
     const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(id);
@@ -933,24 +940,14 @@ router.post('/:id/reset-password', async (req, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // Authorization check
-    if (adminId) {
-      // Verify admin has permission
-      const admin: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(adminId);
-      if (!admin || admin.type !== 'admin') {
-        return res.status(403).json({ error: 'Unauthorized: Admin access required' });
-      }
-    } else if (parentId) {
-      // Verify parent owns this child
-      const parent: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(parentId);
-      if (!parent || (parent.type !== 'parent' && parent.type !== 'admin')) {
-        return res.status(403).json({ error: 'Unauthorized: Parent/Admin access required' });
-      }
-      if (profile.parent_id !== parseInt(parentId)) {
+    if (requester.type === 'admin') {
+      // Admin can reset any profile
+    } else if (requester.type === 'parent') {
+      if (profile.type !== 'child' || !canAccessOwnOrManagedChild(requester, profile.id)) {
         return res.status(403).json({ error: 'Unauthorized: You can only reset your own children\'s credentials' });
       }
     } else {
-      return res.status(403).json({ error: 'Unauthorized: Admin or parent ID required' });
+      return res.status(403).json({ error: 'Unauthorized: Parent or admin access required' });
     }
 
     // Reset password or PIN based on profile type
@@ -958,9 +955,12 @@ router.post('/:id/reset-password', async (req, res) => {
       const hashedPin = await bcrypt.hash(newPin, SALT_ROUNDS);
       db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(hashedPin, id);
-      console.log(`[DEBUG] PIN reset for child ${profile.name} by ${adminId ? 'admin' : 'parent'}`);
+      console.log(`[DEBUG] PIN reset for child ${profile.name} by ${requester.type}`);
       res.json({ message: 'PIN reset successfully' });
     } else if (profile.type !== 'child' && newPassword) {
+      if (requester.type !== 'admin') {
+        return res.status(403).json({ error: 'Only admins can reset parent, teacher, or admin passwords' });
+      }
       const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
       db.prepare('UPDATE profiles SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(hashedPassword, id);
@@ -976,9 +976,14 @@ router.post('/:id/reset-password', async (req, res) => {
 });
 
 // Get profile statistics
-router.get('/:id/stats', (req, res) => {
+router.get('/:id/stats', authenticate, (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
+    const requestedId = parseInt(id, 10);
+
+    if (!canAccessOwnOrManagedChild(req.profile!, requestedId)) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own or your children\'s statistics' });
+    }
 
     // Get task stats for kids
     const taskStats = db.prepare(`
@@ -988,7 +993,7 @@ router.get('/:id/stats', (req, res) => {
         SUM(CASE WHEN completed = 0 AND due_date < datetime('now') THEN 1 ELSE 0 END) as overdue_tasks
       FROM tasks
       WHERE profile_id = ?
-    `).get(id);
+    `).get(requestedId);
 
     // Get progress stats
     const progressStats = db.prepare(`
@@ -1000,7 +1005,7 @@ router.get('/:id/stats', (req, res) => {
       WHERE profile_id = ?
       ORDER BY logged_at DESC
       LIMIT 1
-    `).get(id);
+    `).get(requestedId);
 
     // Get diet stats
     const dietStats = db.prepare(`
@@ -1011,7 +1016,7 @@ router.get('/:id/stats', (req, res) => {
       FROM meal_logs
       WHERE profile_id = ? AND DATE(logged_at) = DATE('now')
       GROUP BY DATE(logged_at)
-    `).get(id);
+    `).get(requestedId);
 
     res.json({
       tasks: taskStats || { total_tasks: 0, completed_tasks: 0, overdue_tasks: 0 },
@@ -1034,21 +1039,9 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
     // Authorization: children can only see their own history
     // Parents can see their own + their children's history
     // Admins can see anyone's history
-    if (userProfile.type === 'child') {
-      // Children can ONLY see their own journey
-      if (userProfile.id !== requestedId) {
-        return res.status(403).json({ error: 'Access denied: You can only view your own journey' });
-      }
-    } else if (userProfile.type === 'parent') {
-      // Parents can see their own or their children's journey
-      if (userProfile.id !== requestedId) {
-        const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(requestedId);
-        if (!targetProfile || targetProfile.parent_id !== userProfile.id) {
-          return res.status(403).json({ error: 'Access denied: You can only view your own or your children\'s journey' });
-        }
-      }
+    if (!canAccessOwnOrManagedChild(userProfile, requestedId)) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own or your children\'s journey' });
     }
-    // Admins can view anyone's history (no restriction)
 
     // Calculate date range based on period
     let startDate: string;
@@ -1084,7 +1077,7 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
       WHERE profile_id = ? AND completed = 1
         AND completed_at >= ? AND completed_at <= ?
       ORDER BY completed_at DESC
-    `).all(id, startDate, endDate);
+    `).all(requestedId, startDate, endDate);
 
     // Get progress/points earned in period
     const progressEntries: any[] = db.prepare(`
@@ -1093,7 +1086,7 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
       WHERE profile_id = ?
         AND logged_at >= ? AND logged_at <= ?
       ORDER BY logged_at DESC
-    `).all(id, startDate, endDate);
+    `).all(requestedId, startDate, endDate);
 
     // Get achieved goals in period
     const achievedGoals: any[] = db.prepare(`
@@ -1102,7 +1095,7 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
       WHERE profile_id = ? AND achieved = 1
         AND updated_at >= ? AND updated_at <= ?
       ORDER BY updated_at DESC
-    `).all(id, startDate, endDate);
+    `).all(requestedId, startDate, endDate);
 
     // Get meals logged in period
     const mealsLogged: any[] = db.prepare(`
@@ -1111,7 +1104,7 @@ router.get('/:id/history', authenticate, (req: AuthRequest, res: Response) => {
       WHERE profile_id = ?
         AND logged_at >= ? AND logged_at <= ?
       ORDER BY logged_at DESC
-    `).all(id, startDate, endDate);
+    `).all(requestedId, startDate, endDate);
 
     // Calculate summary stats
     const totalPoints = progressEntries.reduce((sum, p) => sum + (p.points_earned || 0), 0);

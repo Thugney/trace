@@ -352,6 +352,9 @@ export interface MonthlyGoal {
   goal_description: string;
   goal_points: number;
   goal_type: string;
+  goal_category?: string;
+  reward_image?: string;
+  current_points?: number;
   achieved: boolean;
   reward_given: boolean;
   notes?: string;

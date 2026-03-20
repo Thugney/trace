@@ -16,11 +16,56 @@ export function initTestDb() {
       avatar TEXT,
       pin TEXT,
       parent_id INTEGER,
+      family_id INTEGER,
       ai_enabled INTEGER DEFAULT 0,
       diet_enabled INTEGER DEFAULT 0,
       settings TEXT DEFAULT '{}',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS families (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      family_type TEXT DEFAULT 'A',
+      status TEXT DEFAULT 'active',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS guardian_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guardian_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      relationship TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(guardian_id, student_id)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS profile_features (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      feature_key TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(profile_id, feature_key)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS family_features (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      parent_id INTEGER NOT NULL,
+      feature_key TEXT NOT NULL,
+      enabled BOOLEAN DEFAULT 1,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(parent_id, feature_key)
     )
   `);
 
@@ -93,6 +138,40 @@ export function initTestDb() {
       key TEXT UNIQUE NOT NULL,
       value TEXT,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER,
+      title TEXT NOT NULL,
+      description TEXT,
+      type TEXT DEFAULT 'real',
+      points_required INTEGER NOT NULL,
+      icon TEXT,
+      image_url TEXT,
+      category TEXT DEFAULT 'general',
+      available_for_all BOOLEAN DEFAULT 1,
+      stock INTEGER DEFAULT -1,
+      is_claimed BOOLEAN DEFAULT 0,
+      claimed_at DATETIME,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS reward_claims (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reward_id INTEGER NOT NULL,
+      profile_id INTEGER NOT NULL,
+      points_spent INTEGER NOT NULL,
+      status TEXT DEFAULT 'pending',
+      approved_by INTEGER,
+      approved_at DATETIME,
+      notes TEXT,
+      claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -172,6 +251,9 @@ export function initTestDb() {
       goal_description TEXT NOT NULL,
       goal_points INTEGER NOT NULL,
       goal_type TEXT DEFAULT 'kroner',
+      goal_category TEXT DEFAULT 'monthly',
+      reward_image TEXT,
+      current_points INTEGER DEFAULT 0,
       achieved BOOLEAN DEFAULT 0,
       reward_given BOOLEAN DEFAULT 0,
       notes TEXT,
@@ -180,6 +262,53 @@ export function initTestDb() {
       approved_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS goal_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      goal_id INTEGER NOT NULL,
+      milestone_points INTEGER NOT NULL,
+      milestone_reward TEXT NOT NULL,
+      achieved BOOLEAN DEFAULT 0,
+      achieved_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS reward_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      icon TEXT DEFAULT '🎁',
+      description TEXT,
+      color TEXT DEFAULT '#9333ea',
+      created_by INTEGER,
+      is_default BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(name, created_by)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS goal_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT NOT NULL,
+      icon TEXT DEFAULT '🎯',
+      suggested_points INTEGER NOT NULL,
+      estimated_cost_min REAL DEFAULT 0,
+      estimated_cost_max REAL DEFAULT 0,
+      cost_currency TEXT DEFAULT 'USD',
+      family_size_multiplier REAL DEFAULT 1.0,
+      is_default BOOLEAN DEFAULT 1,
+      is_system BOOLEAN DEFAULT 1,
+      is_active BOOLEAN DEFAULT 1,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -224,6 +353,45 @@ export function initTestDb() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS earning_tracker (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      points_earned INTEGER DEFAULT 0,
+      stars_earned INTEGER DEFAULT 0,
+      tasks_completed INTEGER DEFAULT 0,
+      bonuses_claimed INTEGER DEFAULT 0,
+      last_action_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(profile_id, date)
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS power_ups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      power_up_type TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      expires_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS points_adjustments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      adjusted_by INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      reason TEXT NOT NULL,
+      related_task_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -278,18 +446,30 @@ export function initTestDb() {
 
 // Clear all data from tables
 export function clearTestDb() {
+  testDb.exec('DELETE FROM family_features');
+  testDb.exec('DELETE FROM profile_features');
+  testDb.exec('DELETE FROM guardian_students');
+  testDb.exec('DELETE FROM families');
   testDb.exec('DELETE FROM profile_achievements');
   testDb.exec('DELETE FROM achievements');
   testDb.exec('DELETE FROM streaks');
   testDb.exec('DELETE FROM progress');
   testDb.exec('DELETE FROM tasks');
   testDb.exec('DELETE FROM notes');
+  testDb.exec('DELETE FROM reward_claims');
+  testDb.exec('DELETE FROM rewards');
   testDb.exec('DELETE FROM settings');
   testDb.exec('DELETE FROM notifications');
   testDb.exec('DELETE FROM push_subscriptions');
+  testDb.exec('DELETE FROM goal_milestones');
   testDb.exec('DELETE FROM monthly_goals');
+  testDb.exec('DELETE FROM goal_templates');
+  testDb.exec('DELETE FROM reward_categories');
   testDb.exec('DELETE FROM water_intake');
   testDb.exec('DELETE FROM timer_logs');
+  testDb.exec('DELETE FROM points_adjustments');
+  testDb.exec('DELETE FROM power_ups');
+  testDb.exec('DELETE FROM earning_tracker');
   testDb.exec('DELETE FROM economy_settings');
   testDb.exec('DELETE FROM family_quiz_attempts');
   testDb.exec('DELETE FROM family_quizzes');

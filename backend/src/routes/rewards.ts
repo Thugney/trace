@@ -1,16 +1,90 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../database/init';
-import { authenticate } from '../middleware/auth';
+import { AuthRequest, authenticate } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import { sendPushNotification } from '../services/notifications';
+import { canAccessOwnOrManagedChild, canParentManageChild, getAccessibleParentIds, getManagedChildIdsForParent } from '../services/familyAccess';
 
 const router = Router();
 router.use(authenticate, requireFeature('rewards'));
 
+function denyRewardAccess(res: Response) {
+  return res.status(403).json({ error: 'Access denied: You can only access your own or your children\'s rewards' });
+}
+
+function normalizeCategoryKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'general';
+}
+
+function getFamilyRewardOwnerIds(viewer: AuthRequest['profile']): number[] {
+  if (!viewer) {
+    return [];
+  }
+
+  return getAccessibleParentIds(viewer);
+}
+
+function canManageFamilyCreatedRecord(viewer: AuthRequest['profile'], createdBy?: number | null) {
+  if (!viewer) {
+    return false;
+  }
+
+  if (viewer.type === 'admin') {
+    return true;
+  }
+
+  if (viewer.type !== 'parent' || !createdBy) {
+    return false;
+  }
+
+  return getFamilyRewardOwnerIds(viewer).includes(createdBy);
+}
+
+function getVisibleRewardCategories(viewer: AuthRequest['profile']) {
+  const ownerIds = getFamilyRewardOwnerIds(viewer);
+  const ownerPlaceholders = ownerIds.map(() => '?').join(', ');
+  const customFilter = ownerIds.length > 0
+    ? ` OR created_by IN (${ownerPlaceholders})`
+    : '';
+
+  const categories = db.prepare(`
+    SELECT *
+    FROM reward_categories
+    WHERE is_default = 1${customFilter}
+    ORDER BY is_default DESC, created_at ASC, display_name ASC
+  `).all(...ownerIds) as any[];
+
+  const deduped = new Map<string, any>();
+
+  for (const category of categories) {
+    const key = normalizeCategoryKey(category.name || category.display_name || '');
+    if (!deduped.has(key)) {
+      deduped.set(key, category);
+    }
+  }
+
+  return Array.from(deduped.values()).sort((left, right) => {
+    if (left.is_default !== right.is_default) {
+      return Number(right.is_default) - Number(left.is_default);
+    }
+
+    return String(left.display_name).localeCompare(String(right.display_name));
+  });
+}
+
 // Get available rewards for the shop (for a specific child or all available)
-router.get('/shop/:profileId', (req: Request, res: Response) => {
+router.get('/shop/:profileId', (req: AuthRequest, res: Response) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessOwnOrManagedChild(req.profile!, profileIdNum)) {
+      return denyRewardAccess(res);
+    }
 
     // Get rewards that are either:
     // 1. Available for all children
@@ -27,7 +101,7 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
         AND r.is_claimed = 0
         AND (r.stock = -1 OR r.stock > (SELECT COUNT(*) FROM reward_claims rc WHERE rc.reward_id = r.id AND rc.status != 'rejected'))
       ORDER BY r.points_required ASC
-    `).all(profileId, profileId);
+    `).all(profileIdNum, profileIdNum);
 
     // Get user's current points (use latest total_points, not SUM of points_earned)
     const progress = db.prepare(`
@@ -36,7 +110,7 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
       WHERE profile_id = ?
       ORDER BY logged_at DESC
       LIMIT 1
-    `).get(profileId) as { total_points: number } | undefined;
+    `).get(profileIdNum) as { total_points: number } | undefined;
 
     const totalPoints = progress?.total_points || 0;
 
@@ -45,7 +119,7 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
       SELECT COALESCE(SUM(points_spent), 0) as spent
       FROM reward_claims
       WHERE profile_id = ? AND status != 'rejected'
-    `).get(profileId) as { spent: number } | undefined;
+    `).get(profileIdNum) as { spent: number } | undefined;
 
     const availablePoints = totalPoints - (spentPoints?.spent || 0);
 
@@ -61,13 +135,18 @@ router.get('/shop/:profileId', (req: Request, res: Response) => {
 });
 
 // Purchase/claim a reward
-router.post('/:rewardId/purchase', (req: Request, res: Response) => {
+router.post('/:rewardId/purchase', (req: AuthRequest, res: Response) => {
   try {
     const { rewardId } = req.params;
     const { profileId } = req.body;
 
     if (!profileId) {
       return res.status(400).json({ error: 'Profile ID required' });
+    }
+
+    const profileIdNum = parseInt(profileId, 10);
+    if (!canAccessOwnOrManagedChild(req.profile!, profileIdNum)) {
+      return denyRewardAccess(res);
     }
 
     // Get the reward
@@ -78,7 +157,7 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
     }
 
     // Check if reward is available for this profile
-    if (!reward.available_for_all && reward.profile_id !== parseInt(profileId)) {
+    if (!reward.available_for_all && reward.profile_id !== profileIdNum) {
       return res.status(403).json({ error: 'Reward not available for this profile' });
     }
 
@@ -86,7 +165,7 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
     const existingClaim = db.prepare(`
       SELECT id, status FROM reward_claims
       WHERE reward_id = ? AND profile_id = ? AND status IN ('pending', 'approved')
-    `).get(rewardId, profileId) as { id: number; status: string } | undefined;
+    `).get(rewardId, profileIdNum) as { id: number; status: string } | undefined;
 
     if (existingClaim) {
       return res.status(400).json({
@@ -116,7 +195,7 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
       WHERE profile_id = ?
       ORDER BY logged_at DESC
       LIMIT 1
-    `).get(profileId) as { total_points: number } | undefined;
+    `).get(profileIdNum) as { total_points: number } | undefined;
 
     const totalPoints = progress?.total_points || 0;
 
@@ -124,7 +203,7 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
       SELECT COALESCE(SUM(points_spent), 0) as spent
       FROM reward_claims
       WHERE profile_id = ? AND status != 'rejected'
-    `).get(profileId) as { spent: number } | undefined;
+    `).get(profileIdNum) as { spent: number } | undefined;
 
     const availablePoints = totalPoints - (spentPoints?.spent || 0);
 
@@ -140,13 +219,13 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
     const result = db.prepare(`
       INSERT INTO reward_claims (reward_id, profile_id, points_spent, status)
       VALUES (?, ?, ?, 'pending')
-    `).run(rewardId, profileId, reward.points_required);
+    `).run(rewardId, profileIdNum, reward.points_required);
 
     // Get the created claim
     const claim = db.prepare('SELECT * FROM reward_claims WHERE id = ?').get(result.lastInsertRowid);
 
     // Notify parent about reward claim
-    const child = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(profileId) as { name: string; parent_id: number } | undefined;
+    const child = db.prepare('SELECT name, parent_id FROM profiles WHERE id = ?').get(profileIdNum) as { name: string; parent_id: number } | undefined;
     if (child?.parent_id) {
       sendPushNotification(child.parent_id, {
         type: 'general',
@@ -169,9 +248,14 @@ router.post('/:rewardId/purchase', (req: Request, res: Response) => {
 });
 
 // Get claimed rewards history for a profile
-router.get('/claimed/:profileId', (req: Request, res: Response) => {
+router.get('/claimed/:profileId', (req: AuthRequest, res: Response) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessOwnOrManagedChild(req.profile!, profileIdNum)) {
+      return denyRewardAccess(res);
+    }
 
     const claims = db.prepare(`
       SELECT rc.*, r.title, r.description, r.icon, r.image_url, r.type
@@ -179,7 +263,7 @@ router.get('/claimed/:profileId', (req: Request, res: Response) => {
       JOIN rewards r ON rc.reward_id = r.id
       WHERE rc.profile_id = ?
       ORDER BY rc.claimed_at DESC
-    `).all(profileId);
+    `).all(profileIdNum);
 
     res.json(claims);
   } catch (error) {
@@ -189,9 +273,13 @@ router.get('/claimed/:profileId', (req: Request, res: Response) => {
 });
 
 // Get all pending claims (for parents to review)
-router.get('/pending', (req: Request, res: Response) => {
+router.get('/pending', (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.query;
+    const viewer = req.profile!;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can review reward claims' });
+    }
 
     let sql = `
       SELECT rc.*, r.title, r.description, r.icon, r.image_url, r.type, r.points_required,
@@ -203,10 +291,14 @@ router.get('/pending', (req: Request, res: Response) => {
     `;
     const params: any[] = [];
 
-    // If parentId is provided, only show claims from this parent's children
-    if (parentId) {
-      sql += ` AND p.parent_id = ?`;
-      params.push(parentId);
+    if (viewer.type === 'parent') {
+      const childIds = getManagedChildIdsForParent(viewer.id);
+      if (childIds.length === 0) {
+        return res.json([]);
+      }
+
+      sql += ` AND p.id IN (${childIds.map(() => '?').join(', ')})`;
+      params.push(...childIds);
     }
 
     sql += ` ORDER BY rc.claimed_at DESC`;
@@ -220,10 +312,15 @@ router.get('/pending', (req: Request, res: Response) => {
 });
 
 // Approve or reject a claim (parent action)
-router.put('/claims/:claimId/status', (req: Request, res: Response) => {
+router.put('/claims/:claimId/status', (req: AuthRequest, res: Response) => {
   try {
     const { claimId } = req.params;
-    const { status, approvedBy, notes } = req.body;
+    const { status, notes } = req.body;
+    const viewer = req.profile!;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can approve reward claims' });
+    }
 
     if (!['approved', 'given', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
@@ -235,7 +332,7 @@ router.put('/claims/:claimId/status', (req: Request, res: Response) => {
     if (status === 'approved' || status === 'given') {
       updateFields.push('approved_at = CURRENT_TIMESTAMP');
       updateFields.push('approved_by = ?');
-      values.push(approvedBy);
+      values.push(viewer.id);
     }
 
     if (notes) {
@@ -244,6 +341,20 @@ router.put('/claims/:claimId/status', (req: Request, res: Response) => {
     }
 
     values.push(claimId);
+
+    const claimOwner: any = db.prepare(`
+      SELECT rc.profile_id
+      FROM reward_claims rc
+      WHERE rc.id = ?
+    `).get(claimId);
+
+    if (!claimOwner) {
+      return res.status(404).json({ error: 'Claim not found' });
+    }
+
+    if (viewer.type === 'parent' && !canParentManageChild(viewer.id, claimOwner.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only review your own children\'s reward claims' });
+    }
 
     db.prepare(`
       UPDATE reward_claims
@@ -291,8 +402,9 @@ router.put('/claims/:claimId/status', (req: Request, res: Response) => {
 });
 
 // Create a new reward (parent/admin)
-router.post('/', (req: Request, res: Response) => {
+router.post('/', (req: AuthRequest, res: Response) => {
   try {
+    const viewer = req.profile!;
     const {
       title,
       description,
@@ -304,20 +416,23 @@ router.post('/', (req: Request, res: Response) => {
       profileId, // null for all, or specific child id
       availableForAll = true,
       stock = -1,
-      createdBy
     } = req.body;
 
     if (!title || !pointsRequired) {
       return res.status(400).json({ error: 'Title and points required' });
     }
 
-    if (!createdBy) {
-      return res.status(400).json({ error: 'Creator ID required' });
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can create rewards' });
     }
 
     // Use createdBy as profile_id if not specified (for legacy schema compatibility)
     // profile_id indicates which child can claim it, or if available_for_all, use createdBy
-    const effectiveProfileId = profileId || createdBy;
+    const effectiveProfileId = profileId || viewer.id;
+
+    if (viewer.type === 'parent' && effectiveProfileId !== viewer.id && !canParentManageChild(viewer.id, effectiveProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You can only create rewards for your own children' });
+    }
 
     const result = db.prepare(`
       INSERT INTO rewards (
@@ -327,7 +442,7 @@ router.post('/', (req: Request, res: Response) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       title, description || null, pointsRequired, icon || null, imageUrl || null, type,
-      category, effectiveProfileId, availableForAll ? 1 : 0, stock, createdBy
+      category, effectiveProfileId, availableForAll ? 1 : 0, stock, viewer.id
     );
 
     const reward = db.prepare('SELECT * FROM rewards WHERE id = ?').get(result.lastInsertRowid);
@@ -340,9 +455,10 @@ router.post('/', (req: Request, res: Response) => {
 });
 
 // Update a reward
-router.put('/:rewardId', (req: Request, res: Response) => {
+router.put('/:rewardId', (req: AuthRequest, res: Response) => {
   try {
     const { rewardId } = req.params;
+    const viewer = req.profile!;
     const {
       title,
       description,
@@ -359,10 +475,27 @@ router.put('/:rewardId', (req: Request, res: Response) => {
       stock
     } = req.body;
 
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can update rewards' });
+    }
+
+    const existingReward: any = db.prepare('SELECT created_by FROM rewards WHERE id = ?').get(rewardId);
+    if (!existingReward) {
+      return res.status(404).json({ error: 'Reward not found' });
+    }
+
+    if (!canManageFamilyCreatedRecord(viewer, existingReward.created_by)) {
+      return res.status(403).json({ error: 'Access denied: You can only update rewards created in your family' });
+    }
+
     // Normalize to handle both naming conventions
     const normalizedPointsRequired = pointsRequired ?? points_required;
     const normalizedAvailableForAll = availableForAll ?? available_for_all;
     const normalizedProfileId = profileId ?? profile_id;
+
+    if (viewer.type === 'parent' && normalizedProfileId !== undefined && normalizedProfileId !== viewer.id && !canParentManageChild(viewer.id, normalizedProfileId)) {
+      return res.status(403).json({ error: 'Access denied: You can only target rewards to your own children' });
+    }
 
     const updateFields: string[] = [];
     const values: any[] = [];
@@ -430,9 +563,23 @@ router.put('/:rewardId', (req: Request, res: Response) => {
 });
 
 // Delete a reward
-router.delete('/:rewardId', (req: Request, res: Response) => {
+router.delete('/:rewardId', (req: AuthRequest, res: Response) => {
   try {
     const { rewardId } = req.params;
+    const viewer = req.profile!;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can delete rewards' });
+    }
+
+    const reward: any = db.prepare('SELECT created_by FROM rewards WHERE id = ?').get(rewardId);
+    if (!reward) {
+      return res.status(404).json({ error: 'Reward not found' });
+    }
+
+    if (!canManageFamilyCreatedRecord(viewer, reward.created_by)) {
+      return res.status(403).json({ error: 'Access denied: You can only delete rewards created in your family' });
+    }
 
     // Check if reward has any pending claims
     const pendingClaims = db.prepare(`
@@ -458,9 +605,13 @@ router.delete('/:rewardId', (req: Request, res: Response) => {
 
 // Get all rewards (for admin/parent management)
 // If parentId query param is provided, filter to only rewards created by this parent
-router.get('/all', (req: Request, res: Response) => {
+router.get('/all', (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.query;
+    const viewer = req.profile!;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can manage rewards' });
+    }
 
     let sql = `
       SELECT r.*,
@@ -471,9 +622,14 @@ router.get('/all', (req: Request, res: Response) => {
     `;
     const params: any[] = [];
 
-    if (parentId) {
-      sql += ` WHERE r.created_by = ?`;
-      params.push(parentId);
+    if (viewer.type === 'parent') {
+      const ownerIds = getFamilyRewardOwnerIds(viewer);
+      if (ownerIds.length === 0) {
+        return res.json([]);
+      }
+
+      sql += ` WHERE r.created_by IN (${ownerIds.map(() => '?').join(', ')})`;
+      params.push(...ownerIds);
     }
 
     sql += ` ORDER BY r.created_at DESC`;
@@ -487,16 +643,25 @@ router.get('/all', (req: Request, res: Response) => {
 });
 
 // Get children for a parent (for reward targeting dropdown)
-router.get('/parent/:parentId/children', (req: Request, res: Response) => {
+router.get('/parent/:parentId/children', (req: AuthRequest, res: Response) => {
   try {
     const { parentId } = req.params;
+    const parentIdNum = parseInt(parentId, 10);
+    const viewer = req.profile!;
 
-    const children = db.prepare(`
-      SELECT id, name, avatar, age
-      FROM profiles
-      WHERE parent_id = ? AND type = 'child'
-      ORDER BY name
-    `).all(parentId);
+    if (viewer.type !== 'admin' && viewer.id !== parentIdNum) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own children' });
+    }
+
+    const childIds = getManagedChildIdsForParent(parentIdNum);
+    const children = childIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar, age
+          FROM profiles
+          WHERE type = 'child' AND id IN (${childIds.map(() => '?').join(', ')})
+          ORDER BY name
+        `).all(...childIds)
+      : [];
 
     res.json(children);
   } catch (error: any) {
@@ -507,18 +672,25 @@ router.get('/parent/:parentId/children', (req: Request, res: Response) => {
 
 // ==================== REWARD CATEGORIES ====================
 
-// Get all reward categories (default + custom for this parent)
-router.get('/categories/:parentId', (req: Request, res: Response) => {
+// Get all reward categories (default + family custom categories)
+router.get('/categories/:parentId', (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.params;
+    const viewer = req.profile!;
+    const requestedParentId = parseInt(req.params.parentId, 10);
 
-    const categories = db.prepare(`
-      SELECT * FROM reward_categories
-      WHERE is_default = 1 OR created_by = ?
-      ORDER BY is_default DESC, display_name ASC
-    `).all(parentId);
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can manage reward categories' });
+    }
 
-    res.json(categories);
+    if (
+      viewer.type === 'parent' &&
+      requestedParentId !== viewer.id &&
+      !getFamilyRewardOwnerIds(viewer).includes(requestedParentId)
+    ) {
+      return res.status(403).json({ error: 'Access denied: You can only view reward categories for your own family' });
+    }
+
+    res.json(getVisibleRewardCategories(viewer));
   } catch (error: any) {
     console.error('Error fetching reward categories:', error.message);
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -526,30 +698,43 @@ router.get('/categories/:parentId', (req: Request, res: Response) => {
 });
 
 // Create a custom reward category
-router.post('/categories', (req: Request, res: Response) => {
+router.post('/categories', (req: AuthRequest, res: Response) => {
   try {
-    const { name, displayName, icon, description, color, createdBy } = req.body;
+    const viewer = req.profile!;
+    const { name, displayName, icon, description, color } = req.body;
 
-    if (!name || !displayName || !createdBy) {
-      return res.status(400).json({ error: 'Name, display name, and createdBy are required' });
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can create reward categories' });
     }
 
-    // Sanitize name for database key
-    const safeName = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    if (!displayName && !name) {
+      return res.status(400).json({ error: 'A category name is required' });
+    }
 
-    // Check if category already exists for this user
+    const normalizedDisplayName = String(displayName || name).trim();
+    const safeName = normalizeCategoryKey(String(name || normalizedDisplayName));
+    const ownerIds = getFamilyRewardOwnerIds(viewer);
+    const ownerPlaceholders = ownerIds.map(() => '?').join(', ');
+    const familyFilter = ownerIds.length > 0
+      ? ` OR created_by IN (${ownerPlaceholders})`
+      : '';
+
     const existing = db.prepare(`
-      SELECT id FROM reward_categories WHERE name = ? AND created_by = ?
-    `).get(safeName, createdBy);
+      SELECT id
+      FROM reward_categories
+      WHERE name = ?
+        AND (is_default = 1${familyFilter})
+      LIMIT 1
+    `).get(safeName, ...ownerIds);
 
     if (existing) {
-      return res.status(400).json({ error: 'Category with this name already exists' });
+      return res.status(400).json({ error: 'A reward category with this name already exists in your family' });
     }
 
     const result = db.prepare(`
       INSERT INTO reward_categories (name, display_name, icon, description, color, created_by, is_default)
       VALUES (?, ?, ?, ?, ?, ?, 0)
-    `).run(safeName, displayName, icon || '🎁', description || '', color || '#9333ea', createdBy);
+    `).run(safeName, normalizedDisplayName, icon || '🎁', description || '', color || '#9333ea', viewer.id);
 
     const category = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(result.lastInsertRowid);
 
@@ -561,10 +746,15 @@ router.post('/categories', (req: Request, res: Response) => {
 });
 
 // Update a custom reward category
-router.put('/categories/:categoryId', (req: Request, res: Response) => {
+router.put('/categories/:categoryId', (req: AuthRequest, res: Response) => {
   try {
+    const viewer = req.profile!;
     const { categoryId } = req.params;
     const { displayName, icon, description, color } = req.body;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can update reward categories' });
+    }
 
     // Only allow updating non-default categories
     const category: any = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(categoryId);
@@ -577,12 +767,38 @@ router.put('/categories/:categoryId', (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Cannot modify default categories' });
     }
 
+    if (!canManageFamilyCreatedRecord(viewer, category.created_by)) {
+      return res.status(403).json({ error: 'Access denied: You can only update reward categories created in your family' });
+    }
+
     const updateFields: string[] = [];
     const values: any[] = [];
 
     if (displayName !== undefined) {
+      const normalizedDisplayName = String(displayName).trim();
+      const normalizedName = normalizeCategoryKey(normalizedDisplayName);
+      const ownerIds = getFamilyRewardOwnerIds(viewer);
+      const ownerPlaceholders = ownerIds.map(() => '?').join(', ');
+      const familyFilter = ownerIds.length > 0
+        ? ` OR created_by IN (${ownerPlaceholders})`
+        : '';
+      const existing = db.prepare(`
+        SELECT id
+        FROM reward_categories
+        WHERE id != ?
+          AND name = ?
+          AND (is_default = 1${familyFilter})
+        LIMIT 1
+      `).get(categoryId, normalizedName, ...ownerIds);
+
+      if (existing) {
+        return res.status(400).json({ error: 'A reward category with this name already exists in your family' });
+      }
+
+      updateFields.push('name = ?');
+      values.push(normalizedName);
       updateFields.push('display_name = ?');
-      values.push(displayName);
+      values.push(normalizedDisplayName);
     }
     if (icon !== undefined) {
       updateFields.push('icon = ?');
@@ -613,9 +829,14 @@ router.put('/categories/:categoryId', (req: Request, res: Response) => {
 });
 
 // Delete a custom reward category
-router.delete('/categories/:categoryId', (req: Request, res: Response) => {
+router.delete('/categories/:categoryId', (req: AuthRequest, res: Response) => {
   try {
+    const viewer = req.profile!;
     const { categoryId } = req.params;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can delete reward categories' });
+    }
 
     const category: any = db.prepare('SELECT * FROM reward_categories WHERE id = ?').get(categoryId);
 
@@ -627,13 +848,29 @@ router.delete('/categories/:categoryId', (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Cannot delete default categories' });
     }
 
-    // Update rewards using this category to 'general'
-    db.prepare('UPDATE rewards SET category = ? WHERE category = ?').run('general', category.name);
+    if (!canManageFamilyCreatedRecord(viewer, category.created_by)) {
+      return res.status(403).json({ error: 'Access denied: You can only delete reward categories created in your family' });
+    }
+
+    const remainingCategory = db.prepare(`
+      SELECT id
+      FROM reward_categories
+      WHERE id != ?
+        AND name = ?
+      LIMIT 1
+    `).get(categoryId, category.name) as { id: number } | undefined;
+
+    if (!remainingCategory) {
+      db.prepare('UPDATE rewards SET category = ? WHERE category = ?').run('general', category.name);
+    }
 
     // Delete the category
     db.prepare('DELETE FROM reward_categories WHERE id = ?').run(categoryId);
 
-    res.json({ message: 'Category deleted', affectedRewards: 0 });
+    res.json({
+      message: 'Category deleted',
+      rewardsMovedToGeneral: !remainingCategory
+    });
   } catch (error: any) {
     console.error('Error deleting reward category:', error.message);
     res.status(500).json({ error: 'Failed to delete category' });

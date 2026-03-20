@@ -58,6 +58,34 @@ const getGoalTypeLabel = (type: string | undefined): string => {
   return goalTypeLabels[type.toLowerCase()] || `🎯 ${type}`;
 };
 
+const GOAL_TYPE_OPTIONS = [
+  { value: 'kroner', label: '💰 Money (Kroner)' },
+  { value: 'movie-night', label: '🎬 Movie Night' },
+  { value: 'treat', label: '🍭 Special Treat' },
+  { value: 'toy', label: '🎁 Toy or Gift' },
+  { value: 'game', label: '🎮 Game Time' },
+  { value: 'outing', label: '🚗 Fun Outing' },
+  { value: 'other', label: '🎯 Other Reward' }
+];
+
+const GOAL_CATEGORY_OPTIONS = [
+  { value: 'monthly', label: '📅 Monthly Goal' },
+  { value: 'long_term', label: '🚀 Long-Term Goal' },
+  { value: 'screen_time', label: '📱 Screen Time' },
+  { value: 'treats', label: '🍭 Treats' },
+  { value: 'toys', label: '🧸 Toys & Games' },
+  { value: 'activities', label: '🎪 Activities' },
+  { value: 'family_outing', label: '🚌 Family Outing' },
+  { value: 'money', label: '💰 Money' },
+  { value: 'other', label: '🎯 Other' }
+];
+
+const isPresetGoalType = (value?: string) =>
+  !!value && GOAL_TYPE_OPTIONS.some((option) => option.value === value);
+
+const isPresetGoalCategory = (value?: string) =>
+  !!value && GOAL_CATEGORY_OPTIONS.some((option) => option.value === value);
+
 // Page title based on age group
 const getPageTitle = (ageGroup: string, isParent: boolean): { title: string; emoji: string; subtitle: string } => {
   if (isParent) {
@@ -319,15 +347,20 @@ export default function TasksManager() {
   const handleAddGoal = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const customType = (formData.get('custom_type') as string | null)?.trim();
+    const customCategory = (formData.get('custom_category') as string | null)?.trim();
+    const goalType = customType || (formData.get('type') as string) || 'kroner';
+    const goalCategory = customCategory || (formData.get('category') as string) || 'monthly';
 
     try {
       const currentMonth = new Date().toISOString().slice(0, 7);
       await goalsAPI.create({
         profile_id: displayProfileId!,
         month: currentMonth,
-        goal_description: formData.get('description') as string,
+        goal_description: (formData.get('description') as string).trim(),
         goal_points: parseInt(formData.get('points') as string, 10),
-        goal_type: formData.get('type') as string,
+        goal_type: goalType,
+        goal_category: goalCategory,
         created_by: currentProfile?.id
       });
 
@@ -473,12 +506,17 @@ export default function TasksManager() {
     if (!editingGoal) return;
 
     const formData = new FormData(e.currentTarget);
+    const customType = (formData.get('custom_type') as string | null)?.trim();
+    const customCategory = (formData.get('custom_category') as string | null)?.trim();
+    const goalType = customType || (formData.get('type') as string) || 'kroner';
+    const goalCategory = customCategory || (formData.get('category') as string) || 'monthly';
 
     try {
       await goalsAPI.update(editingGoal.id, {
-        goal_description: formData.get('description') as string,
+        goal_description: (formData.get('description') as string).trim(),
         goal_points: parseInt(formData.get('points') as string, 10),
-        goal_type: formData.get('type') as string
+        goal_type: goalType,
+        goal_category: goalCategory
       });
 
       await loadMonthlyGoal();
@@ -1610,14 +1648,37 @@ export default function TasksManager() {
                   What reward do you want? 🎁
                 </label>
                 <select name="type" className="input">
-                  <option value="kroner">💰 Money (Kroner)</option>
-                  <option value="movie-night">🎬 Movie Night</option>
-                  <option value="treat">🍭 Special Treat</option>
-                  <option value="toy">🎁 Toy or Gift</option>
-                  <option value="game">🎮 Game Time</option>
-                  <option value="outing">🚗 Fun Outing</option>
-                  <option value="other">🎯 Other Reward</option>
+                  {GOAL_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+                <input
+                  type="text"
+                  name="custom_type"
+                  className="input mt-2"
+                  placeholder="Or type your own reward, e.g. Roblox gift card"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Goal category
+                </label>
+                <select name="category" className="input" defaultValue="monthly">
+                  {GOAL_CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  name="custom_category"
+                  className="input mt-2"
+                  placeholder="Or type your own category, e.g. school trip"
+                />
               </div>
 
               <div>
@@ -1852,15 +1913,48 @@ export default function TasksManager() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   What reward do you want? 🎁
                 </label>
-                <select name="type" className="input" defaultValue={editingGoal.goal_type}>
-                  <option value="kroner">💰 Money (Kroner)</option>
-                  <option value="movie-night">🎬 Movie Night</option>
-                  <option value="treat">🍭 Special Treat</option>
-                  <option value="toy">🎁 Toy or Gift</option>
-                  <option value="game">🎮 Game Time</option>
-                  <option value="outing">🚗 Fun Outing</option>
-                  <option value="other">🎯 Other Reward</option>
+                <select
+                  name="type"
+                  className="input"
+                  defaultValue={isPresetGoalType(editingGoal.goal_type) ? editingGoal.goal_type : 'other'}
+                >
+                  {GOAL_TYPE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
+                <input
+                  type="text"
+                  name="custom_type"
+                  className="input mt-2"
+                  defaultValue={isPresetGoalType(editingGoal.goal_type) ? '' : editingGoal.goal_type}
+                  placeholder="Or type your own reward"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Goal category
+                </label>
+                <select
+                  name="category"
+                  className="input"
+                  defaultValue={isPresetGoalCategory(editingGoal.goal_category) ? editingGoal.goal_category : 'monthly'}
+                >
+                  {GOAL_CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  name="custom_category"
+                  className="input mt-2"
+                  defaultValue={editingGoal.goal_category && !isPresetGoalCategory(editingGoal.goal_category) ? editingGoal.goal_category : ''}
+                  placeholder="Or type your own category"
+                />
               </div>
 
               <div>

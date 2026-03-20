@@ -8,6 +8,7 @@ export function createTestProfile(overrides: Partial<{
   avatar: string;
   pin: string;
   parent_id: number;
+  family_id: number;
   ai_enabled: number;
   diet_enabled: number;
 }> = {}) {
@@ -18,6 +19,7 @@ export function createTestProfile(overrides: Partial<{
     avatar: null,
     pin: null,
     parent_id: null,
+    family_id: null,
     ai_enabled: 0,
     diet_enabled: 0
   };
@@ -25,9 +27,9 @@ export function createTestProfile(overrides: Partial<{
   const data = { ...defaults, ...overrides };
 
   const result = testDb.prepare(`
-    INSERT INTO profiles (name, type, age, avatar, pin, parent_id, ai_enabled, diet_enabled)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(data.name, data.type, data.age, data.avatar, data.pin, data.parent_id, data.ai_enabled, data.diet_enabled);
+    INSERT INTO profiles (name, type, age, avatar, pin, parent_id, family_id, ai_enabled, diet_enabled)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(data.name, data.type, data.age, data.avatar, data.pin, data.parent_id, data.family_id, data.ai_enabled, data.diet_enabled);
 
   return testDb.prepare('SELECT * FROM profiles WHERE id = ?').get(result.lastInsertRowid) as any;
 }

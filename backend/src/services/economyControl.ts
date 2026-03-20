@@ -43,6 +43,11 @@ interface EarningTracker {
   last_action_at: string;
 }
 
+interface ActivePowerUpRow {
+  id: number;
+  quantity: number;
+}
+
 /**
  * Get economy settings for a profile (creates defaults if not exists)
  */
@@ -347,20 +352,38 @@ export function checkTaskTimeElapsed(task: any): { allowed: boolean; reason?: st
  * Get active power-up multiplier for a profile (e.g., from spin wheel)
  * Returns the multiplier value if an active, non-expired power-up exists
  */
-export function getActivePowerUpMultiplier(profileId: number): number {
+function getActivePowerUp(profileId: number): ActivePowerUpRow | undefined {
   const now = new Date().toISOString();
 
-  const powerUp: any = db.prepare(`
-    SELECT * FROM power_ups
+  return db.prepare(`
+    SELECT id, quantity FROM power_ups
     WHERE profile_id = ? AND power_up_type = 'spin_multiplier' AND expires_at > ?
     ORDER BY expires_at DESC LIMIT 1
-  `).get(profileId, now);
+  `).get(profileId, now) as ActivePowerUpRow | undefined;
+}
+
+export function getActivePowerUpMultiplier(profileId: number): number {
+  const powerUp = getActivePowerUp(profileId);
 
   if (powerUp && powerUp.quantity > 1) {
     return powerUp.quantity; // quantity stores the multiplier value (e.g., 2 for 2x)
   }
 
   return 1; // No active power-up
+}
+
+export function consumeActivePowerUp(profileId: number): boolean {
+  const activePowerUp = getActivePowerUp(profileId);
+  if (!activePowerUp) {
+    return false;
+  }
+
+  const result = db.prepare(`
+    DELETE FROM power_ups
+    WHERE id = ? AND profile_id = ?
+  `).run(activePowerUp.id, profileId);
+
+  return result.changes > 0;
 }
 
 /**
@@ -433,6 +456,7 @@ export type PointSource =
   | 'shopping'       // Shopping helper
   | 'achievement'    // Achievement unlock bonus
   | 'challenge'      // Daily/custom challenge
+  | 'mystery_reward' // Random task completion bonus
   | 'login_bonus'    // Daily login bonus
   | 'spin_wheel'     // Spin wheel prize
   | 'bonus'          // Manual bonus from parent
@@ -458,7 +482,8 @@ export interface AwardPointsOptions {
   source: PointSource;
   taskId?: number;
   applyMultiplier?: boolean;      // Apply economy multiplier (default: true for tasks)
-  applyPowerUps?: boolean;        // Apply power-up multipliers (default: true)
+  applyPowerUps?: boolean;        // Apply power-up multipliers (default: true for tasks)
+  consumePowerUp?: boolean;       // Consume a one-time task power-up when used
   bypassCaps?: boolean;           // For parent adjustments only (default: false)
   enforceRateLimit?: boolean;     // Check cooldown (default: true for tasks)
   actionType?: 'task' | 'bonus' | 'spin';  // For rate limiting
@@ -487,7 +512,8 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
     source,
     taskId,
     applyMultiplier = source === 'task',
-    applyPowerUps = true,
+    applyPowerUps = source === 'task',
+    consumePowerUp = source === 'task',
     bypassCaps = false,
     enforceRateLimit = source === 'task',
     actionType = 'task',
@@ -519,15 +545,17 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
 
   // Calculate points with multipliers
   let calculatedPoints = basePoints;
+  let consumedPowerUpId: number | null = null;
 
   if (applyMultiplier && basePoints > 0) {
     calculatedPoints = Math.round(basePoints * settings.points_multiplier);
   }
 
   if (applyPowerUps && basePoints > 0) {
-    const powerUpMultiplier = getActivePowerUpMultiplier(profileId);
-    if (powerUpMultiplier > 1) {
-      calculatedPoints = Math.round(calculatedPoints * powerUpMultiplier);
+    const activePowerUp = getActivePowerUp(profileId);
+    if (activePowerUp && activePowerUp.quantity > 1) {
+      calculatedPoints = Math.round(calculatedPoints * activePowerUp.quantity);
+      consumedPowerUpId = activePowerUp.id;
     }
   }
 
@@ -608,7 +636,7 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
       finalPoints,
       stars,
       source === 'task',
-      ['bonus', 'achievement', 'spin_wheel', 'login_bonus'].includes(source)
+      ['bonus', 'achievement', 'spin_wheel', 'login_bonus', 'mystery_reward'].includes(source)
     );
   }
 
@@ -617,16 +645,11 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
     updateRateLimit(profileId, actionType);
   }
 
-  // Log adjustment for audit trail if it's a manual adjustment
-  if ((source === 'adjustment' || source === 'bonus') && reason) {
-    try {
-      db.prepare(`
-        INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `).run(profileId, profileId, finalPoints, reason);
-    } catch (e) {
-      // Table might not exist in older setups, ignore
-    }
+  if (consumePowerUp && consumedPowerUpId && finalPoints > 0) {
+    db.prepare(`
+      DELETE FROM power_ups
+      WHERE id = ? AND profile_id = ?
+    `).run(consumedPowerUpId, profileId);
   }
 
   // Calculate remaining caps

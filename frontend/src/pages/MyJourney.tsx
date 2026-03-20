@@ -48,10 +48,10 @@ export default function MyJourney() {
       if (currentProfile?.type === 'admin') {
         viewableProfiles = profiles;
       } else if (currentProfile?.type === 'parent') {
-        // Parent sees themselves and their children only
+        // Parent sees themselves and the children returned by the authorized backend view.
         viewableProfiles = profiles.filter((p: Profile) =>
           p.id === currentProfile.id ||
-          (p.type === 'child' && p.parent_id === currentProfile.id)
+          p.type === 'child'
         );
       }
 

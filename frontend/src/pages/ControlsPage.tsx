@@ -22,7 +22,7 @@ export default function ControlsPage() {
       setLoading(true);
       const response = await profilesAPI.getAll();
       const myKids = response.data.filter(
-        (p: Profile) => p.type === 'child' && p.parent_id === currentProfile.id
+        (p: Profile) => p.type === 'child'
       );
       setChildren(myKids);
     } catch (error) {

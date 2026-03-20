@@ -22,17 +22,23 @@ describe('Gamification Routes', () => {
 
   describe('GET /gamification/family-leaderboard', () => {
     it('should return family members sorted by points', async () => {
+      const familyId = Number(testDb.prepare(`
+        INSERT INTO families (name, family_type)
+        VALUES ('Gamification Family', 'A')
+      `).run().lastInsertRowid);
+
       // Create family members with different points
-      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
-      const child1 = createTestProfile({ name: 'Child 1', type: 'child' });
-      const child2 = createTestProfile({ name: 'Child 2', type: 'child' });
+      const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
+      const child1 = createTestProfile({ name: 'Child 1', type: 'child', family_id: familyId });
+      const child2 = createTestProfile({ name: 'Child 2', type: 'child', family_id: familyId });
 
       createTestProgress(parent.id, { total_points: 50 });
       createTestProgress(child1.id, { total_points: 150 });
       createTestProgress(child2.id, { total_points: 100 });
 
       const response = await request(app)
-        .get('/gamification/family-leaderboard');
+        .get('/gamification/family-leaderboard')
+        .set('x-profile-id', String(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(3);
@@ -45,7 +51,13 @@ describe('Gamification Routes', () => {
     });
 
     it('should include streak and achievement data', async () => {
-      const child = createTestProfile({ name: 'Test Child', type: 'child' });
+      const familyId = Number(testDb.prepare(`
+        INSERT INTO families (name, family_type)
+        VALUES ('Achievement Family', 'A')
+      `).run().lastInsertRowid);
+
+      const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
+      const child = createTestProfile({ name: 'Test Child', type: 'child', family_id: familyId });
       createTestProgress(child.id, { total_points: 100, total_stars: 10, level: 2 });
       createTestStreak(child.id, 'tasks', { current_streak: 5, longest_streak: 7 });
 
@@ -57,7 +69,8 @@ describe('Gamification Routes', () => {
       testDb.prepare('INSERT INTO profile_achievements (profile_id, achievement_id) VALUES (?, ?)').run(child.id, achievement.id);
 
       const response = await request(app)
-        .get('/gamification/family-leaderboard');
+        .get('/gamification/family-leaderboard')
+        .set('x-profile-id', String(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body[0].currentStreak).toBe(5);
@@ -77,7 +90,8 @@ describe('Gamification Routes', () => {
       createTestStreak(profile.id, 'tasks', { current_streak: 3, longest_streak: 5 });
 
       const response = await request(app)
-        .get(`/gamification/stats/${profile.id}`);
+        .get(`/gamification/stats/${profile.id}`)
+        .set('x-profile-id', String(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body.points).toBe(250);
@@ -94,7 +108,8 @@ describe('Gamification Routes', () => {
       createTestStreak(profile.id, 'tasks', { current_streak: 7, longest_streak: 10 });
 
       const response = await request(app)
-        .get(`/gamification/streaks/${profile.id}`);
+        .get(`/gamification/streaks/${profile.id}`)
+        .set('x-profile-id', String(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
@@ -107,7 +122,8 @@ describe('Gamification Routes', () => {
       const profile = createTestProfile({ name: 'New User', type: 'child' });
 
       const response = await request(app)
-        .get(`/gamification/streaks/${profile.id}`);
+        .get(`/gamification/streaks/${profile.id}`)
+        .set('x-profile-id', String(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body.length).toBeGreaterThanOrEqual(1);

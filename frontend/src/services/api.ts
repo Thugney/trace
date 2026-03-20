@@ -637,7 +637,7 @@ export interface GoalMilestone {
 
 // Extended MonthlyGoal with new fields
 export interface GoalWithMilestones extends MonthlyGoal {
-  goal_category?: 'weekly' | 'monthly' | 'long-term';
+  goal_category?: string;
   reward_image?: string;
   current_points?: number;
   milestones?: GoalMilestone[];
@@ -1379,7 +1379,7 @@ export const rewardsAPI = {
     icon?: string;
     description?: string;
     color?: string;
-    createdBy: number;
+    createdBy?: number;
   }) => api.post<RewardCategory>('/rewards/categories', data),
 
   updateCategory: (categoryId: number, data: {

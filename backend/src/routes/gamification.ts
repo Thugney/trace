@@ -21,19 +21,40 @@ import {
   getParentIdForProfile
 } from '../services/aiUsageControl';
 import { NotificationHelpers } from '../services/notifications';
+import {
+  canAccessOwnOrManagedChild,
+  canParentManageChild,
+  getFamilyLeaderboardProfileIds
+} from '../services/familyAccess';
 
 const router = express.Router();
 router.use(authenticate, requireFeature('gamification'));
 
+function canAccessGamificationProfile(viewer: AuthRequest['profile'], targetProfileId: number): boolean {
+  if (!viewer) {
+    return false;
+  }
+
+  return canAccessOwnOrManagedChild(viewer, targetProfileId);
+}
+
+function denyGamificationAccess(res: express.Response) {
+  return res.status(403).json({ error: 'Access denied: You can only access your own or your children\'s gamification data' });
+}
+
 // ==================== WATER INTAKE ====================
 
 // Log water intake
-router.post('/water', (req, res) => {
+router.post('/water', (req: AuthRequest, res) => {
   try {
     const { profile_id, amount_ml } = req.body;
 
     if (!profile_id || !amount_ml) {
       return res.status(400).json({ error: 'profile_id and amount_ml are required' });
+    }
+
+    if (!canAccessGamificationProfile(req.profile, parseInt(profile_id, 10))) {
+      return denyGamificationAccess(res);
     }
 
     const result = db.prepare(`
@@ -55,10 +76,15 @@ router.post('/water', (req, res) => {
 });
 
 // Get water intake for a profile (today or specific date)
-router.get('/water/:profileId', (req, res) => {
+router.get('/water/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { date } = req.query;
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     const targetDate = date || new Date().toISOString().split('T')[0];
 
@@ -66,13 +92,13 @@ router.get('/water/:profileId', (req, res) => {
       SELECT * FROM water_intake
       WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
       ORDER BY logged_at DESC
-    `).all(profileId, targetDate);
+    `).all(profileIdNum, targetDate);
 
     const total: any = db.prepare(`
       SELECT SUM(amount_ml) as total
       FROM water_intake
       WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
-    `).get(profileId, targetDate);
+    `).get(profileIdNum, targetDate);
 
     res.json({
       entries,
@@ -86,8 +112,17 @@ router.get('/water/:profileId', (req, res) => {
 });
 
 // Delete water intake entry
-router.delete('/water/:id', (req, res) => {
+router.delete('/water/:id', (req: AuthRequest, res) => {
   try {
+    const entry: any = db.prepare('SELECT profile_id FROM water_intake WHERE id = ?').get(req.params.id);
+    if (!entry) {
+      return res.status(404).json({ error: 'Entry not found' });
+    }
+
+    if (!canAccessGamificationProfile(req.profile, entry.profile_id)) {
+      return denyGamificationAccess(res);
+    }
+
     const result = db.prepare('DELETE FROM water_intake WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Entry not found' });
@@ -101,13 +136,18 @@ router.delete('/water/:id', (req, res) => {
 // ==================== STREAKS ====================
 
 // Get streaks for a profile
-router.get('/streaks/:profileId', (req, res) => {
+router.get('/streaks/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     const streaks = db.prepare(`
       SELECT * FROM streaks WHERE profile_id = ?
-    `).all(profileId);
+    `).all(profileIdNum);
 
     // If no streaks exist, create default ones
     if (streaks.length === 0) {
@@ -116,9 +156,9 @@ router.get('/streaks/:profileId', (req, res) => {
         db.prepare(`
           INSERT OR IGNORE INTO streaks (profile_id, streak_type, current_streak, longest_streak)
           VALUES (?, ?, 0, 0)
-        `).run(profileId, type);
+        `).run(profileIdNum, type);
       });
-      return res.json(db.prepare('SELECT * FROM streaks WHERE profile_id = ?').all(profileId));
+      return res.json(db.prepare('SELECT * FROM streaks WHERE profile_id = ?').all(profileIdNum));
     }
 
     res.json(streaks);
@@ -140,9 +180,14 @@ router.get('/achievements', (req, res) => {
 });
 
 // Get achievements earned by a profile
-router.get('/achievements/:profileId', (req, res) => {
+router.get('/achievements/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     const earned = db.prepare(`
       SELECT a.*, pa.earned_at
@@ -150,7 +195,7 @@ router.get('/achievements/:profileId', (req, res) => {
       INNER JOIN profile_achievements pa ON a.id = pa.achievement_id
       WHERE pa.profile_id = ?
       ORDER BY pa.earned_at DESC
-    `).all(profileId);
+    `).all(profileIdNum);
 
     const all = db.prepare('SELECT * FROM achievements').all();
 
@@ -168,9 +213,14 @@ router.get('/achievements/:profileId', (req, res) => {
 // ==================== GAMIFICATION STATS ====================
 
 // Get gamification summary for a profile
-router.get('/stats/:profileId', (req, res) => {
+router.get('/stats/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Get progress data
     const progress: any = db.prepare(`
@@ -178,33 +228,33 @@ router.get('/stats/:profileId', (req, res) => {
       FROM progress
       WHERE profile_id = ?
       ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
+    `).get(profileIdNum);
 
     // Get completed tasks count
     const tasks: any = db.prepare(`
       SELECT COUNT(*) as completed
       FROM tasks
       WHERE profile_id = ? AND completed = 1
-    `).get(profileId);
+    `).get(profileIdNum);
 
     // Get achieved goals count
     const goals: any = db.prepare(`
       SELECT COUNT(*) as achieved
       FROM monthly_goals
       WHERE profile_id = ? AND achieved = 1
-    `).get(profileId);
+    `).get(profileIdNum);
 
     // Get streaks
     const streaks = db.prepare(`
       SELECT * FROM streaks WHERE profile_id = ?
-    `).all(profileId);
+    `).all(profileIdNum);
 
     // Get earned achievements
     const achievements: any = db.prepare(`
       SELECT COUNT(*) as count
       FROM profile_achievements
       WHERE profile_id = ?
-    `).get(profileId);
+    `).get(profileIdNum);
 
     // Get today's water intake
     const today = new Date().toISOString().split('T')[0];
@@ -212,7 +262,7 @@ router.get('/stats/:profileId', (req, res) => {
       SELECT SUM(amount_ml) as total
       FROM water_intake
       WHERE profile_id = ? AND DATE(logged_at) = DATE(?)
-    `).get(profileId, today);
+    `).get(profileIdNum, today);
 
     res.json({
       points: progress?.total_points || 0,
@@ -239,55 +289,16 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
   try {
     const { period } = req.query; // 'week', 'month', 'all'
     const currentUser = req.profile!;
+    const visibleIds = getFamilyLeaderboardProfileIds(currentUser);
 
-    // FAMILY ISOLATION: Only show members of the current user's family
-    // 1. Get the user's family_id (resolve through parent if needed for children)
-    let familyId = currentUser.family_id;
-
-    if (!familyId && currentUser.type === 'child' && currentUser.parent_id) {
-      // Child without family_id - inherit from parent
-      const parent: any = db.prepare('SELECT family_id FROM profiles WHERE id = ?').get(currentUser.parent_id);
-      familyId = parent?.family_id;
-    }
-
-    // 2. Get all profiles that belong to this family
-    let profiles: any[];
-
-    if (familyId) {
-      // Family-based query: get all members with the same family_id
-      profiles = db.prepare(`
-        SELECT id, name, avatar, type FROM profiles
-        WHERE family_id = ? AND type IN ('parent', 'child')
-      `).all(familyId);
-    } else {
-      // Fallback for legacy data without family_id: use parent_id relationship
-      if (currentUser.type === 'parent') {
-        // Parent: get self + children linked via parent_id or guardian_students
-        profiles = db.prepare(`
-          SELECT id, name, avatar, type FROM profiles
-          WHERE (id = ? OR parent_id = ? OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?))
+    const profiles = visibleIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar, type
+          FROM profiles
+          WHERE id IN (${visibleIds.map(() => '?').join(', ')})
             AND type IN ('parent', 'child')
-        `).all(currentUser.id, currentUser.id, currentUser.id);
-      } else if (currentUser.type === 'child') {
-        // Child: get self + parent + siblings
-        const parentId = currentUser.parent_id;
-        if (parentId) {
-          profiles = db.prepare(`
-            SELECT id, name, avatar, type FROM profiles
-            WHERE (id = ? OR parent_id = ? OR id IN (SELECT student_id FROM guardian_students WHERE guardian_id = ?))
-              AND type IN ('parent', 'child')
-          `).all(parentId, parentId, parentId);
-        } else {
-          // No parent link - show only self
-          profiles = db.prepare(`
-            SELECT id, name, avatar, type FROM profiles WHERE id = ?
-          `).all(currentUser.id);
-        }
-      } else {
-        // Admin viewing - show empty (admin should use admin-specific endpoints)
-        profiles = [];
-      }
-    }
+        `).all(...visibleIds) as any[]
+      : [];
 
     if (profiles.length === 0) {
       return res.json([]);
@@ -405,16 +416,26 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
 });
 
 // Get family leaderboard (all kids for a parent) - legacy endpoint
-router.get('/leaderboard/:parentId', (req, res) => {
+router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
   try {
     const { parentId } = req.params;
+    const parentIdNum = parseInt(parentId, 10);
+    const viewer = req.profile!;
     const { period } = req.query; // 'week', 'month', 'all'
 
+    if (viewer.type !== 'admin' && viewer.id !== parentIdNum) {
+      return res.status(403).json({ error: 'Access denied: You can only view your own family leaderboard' });
+    }
+
     // Get all kids for this parent
-    const kids: any[] = db.prepare(`
-      SELECT id, name, avatar FROM profiles
-      WHERE parent_id = ? AND type = 'child'
-    `).all(parentId);
+    const childIds = getFamilyLeaderboardProfileIds({ id: parentIdNum, type: 'parent' });
+    const kids = childIds.length > 0
+      ? db.prepare(`
+          SELECT id, name, avatar
+          FROM profiles
+          WHERE type = 'child' AND id IN (${childIds.map(() => '?').join(', ')})
+        `).all(...childIds) as any[]
+      : [];
 
     if (kids.length === 0) {
       return res.json([]);
@@ -883,9 +904,14 @@ function calculateChallengeProgress(profileId: number, challengeType: string, ta
 // ==================== WEEKLY SUMMARY ====================
 
 // Get weekly summary for a profile
-router.get('/weekly-summary/:profileId', (req, res) => {
+router.get('/weekly-summary/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Calculate week start (Monday) and end (Sunday)
     const now = new Date();
@@ -993,9 +1019,14 @@ router.get('/weekly-summary/:profileId', (req, res) => {
 const DAILY_BONUS_POINTS = [5, 10, 15, 20, 25, 35, 50];
 
 // Check and claim daily login bonus
-router.get('/login-bonus/:profileId', (req, res) => {
+router.get('/login-bonus/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
@@ -1033,9 +1064,14 @@ router.get('/login-bonus/:profileId', (req, res) => {
 });
 
 // Claim daily login bonus - uses transaction to prevent race conditions
-router.post('/login-bonus/:profileId/claim', (req, res) => {
+router.post('/login-bonus/:profileId/claim', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
@@ -1157,9 +1193,14 @@ export function checkMysteryReward(profileId: number, taskId: number, basePoints
 }
 
 // Get recent mystery rewards for a profile
-router.get('/mystery-rewards/:profileId', (req, res) => {
+router.get('/mystery-rewards/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
     const rewards = db.prepare(`
       SELECT mr.*, t.title as task_title
       FROM mystery_rewards mr
@@ -1189,9 +1230,14 @@ router.get('/mystery-rewards/:profileId', (req, res) => {
 // ==================== STREAK PROTECTION ====================
 
 // Get streak freeze status
-router.get('/streak-freeze/:profileId', (req, res) => {
+router.get('/streak-freeze/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Check freezes used this week
     const weekStart = new Date();
@@ -1223,11 +1269,16 @@ router.get('/streak-freeze/:profileId', (req, res) => {
 });
 
 // Use streak freeze
-router.post('/streak-freeze/:profileId', (req, res) => {
+router.post('/streak-freeze/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { streak_type } = req.body;
     const today = new Date().toISOString().split('T')[0];
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     if (!streak_type || !['tasks', 'water'].includes(streak_type)) {
       return res.status(400).json({ error: 'Invalid streak_type. Must be "tasks" or "water"' });
@@ -1317,11 +1368,17 @@ export function updateTaskStreak(profileId: number) {
 // ==================== ECONOMY CONTROLS (Parent Settings) ====================
 
 // Get economy settings for a child profile
-router.get('/economy/:profileId', (req, res) => {
+router.get('/economy/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
-    const settings = getEconomySettings(parseInt(profileId));
-    const summary = getEarningSummary(parseInt(profileId));
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
+
+    const settings = getEconomySettings(profileIdNum);
+    const summary = getEarningSummary(profileIdNum);
 
     res.json({
       settings,
@@ -1338,15 +1395,22 @@ router.get('/economy/:profileId', (req, res) => {
 });
 
 // Update economy settings (parent action)
-router.put('/economy/:profileId', (req, res) => {
+router.put('/economy/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+    const requester = req.profile!;
     const updates = req.body;
 
-    // Verify the requester is a parent (in a real app, use proper auth)
-    const profile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(profileId);
+    if (requester.type !== 'parent' && requester.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can update economy settings' });
+    }
 
-    const updatedSettings = updateEconomySettings(parseInt(profileId), {
+    if (requester.type === 'parent' && !canParentManageChild(requester.id, profileIdNum)) {
+      return res.status(403).json({ error: 'Access denied: You can only manage settings for your own children' });
+    }
+
+    const updatedSettings = updateEconomySettings(profileIdNum, {
       daily_points_cap: updates.dailyPointsCap,
       weekly_points_cap: updates.weeklyPointsCap,
       points_multiplier: updates.pointsMultiplier,
@@ -1368,10 +1432,15 @@ router.put('/economy/:profileId', (req, res) => {
 });
 
 // Get earning history for a child (for parent dashboard)
-router.get('/economy/:profileId/history', (req, res) => {
+router.get('/economy/:profileId/history', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { days = 7 } = req.query;
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     const history = db.prepare(`
       SELECT date, points_earned, stars_earned, tasks_completed, bonuses_claimed
@@ -1379,7 +1448,7 @@ router.get('/economy/:profileId/history', (req, res) => {
       WHERE profile_id = ?
       ORDER BY date DESC
       LIMIT ?
-    `).all(profileId, parseInt(days as string));
+    `).all(profileIdNum, parseInt(days as string));
 
     const totals: any = db.prepare(`
       SELECT
@@ -1389,7 +1458,7 @@ router.get('/economy/:profileId/history', (req, res) => {
         SUM(bonuses_claimed) as total_bonuses
       FROM earning_tracker
       WHERE profile_id = ?
-    `).get(profileId);
+    `).get(profileIdNum);
 
     res.json({
       history,
@@ -1406,18 +1475,24 @@ router.get('/economy/:profileId/history', (req, res) => {
 });
 
 // Reward pricing calculator - helps parents set appropriate costs
-router.get('/economy/:profileId/pricing-guide', (req, res) => {
+router.get('/economy/:profileId/pricing-guide', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
-    const settings = getEconomySettings(parseInt(profileId));
-    const summary = getEarningSummary(parseInt(profileId));
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
+
+    const settings = getEconomySettings(profileIdNum);
+    const summary = getEarningSummary(profileIdNum);
 
     // Calculate average daily earnings based on history
     const avgHistory: any = db.prepare(`
       SELECT AVG(points_earned) as avg_daily
       FROM earning_tracker
       WHERE profile_id = ? AND points_earned > 0
-    `).get(profileId);
+    `).get(profileIdNum);
 
     const avgDailyEarnings = Math.round(avgHistory?.avg_daily || settings.daily_points_cap * 0.5);
 
@@ -1471,7 +1546,8 @@ router.get('/economy/:profileId/pricing-guide', (req, res) => {
 router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
-    const { amount, reason, parent_id, related_task_id } = req.body;
+    const profileIdNum = parseInt(profileId, 10);
+    const { amount, reason, related_task_id } = req.body;
 
     // Validate input
     if (amount === undefined || amount === 0) {
@@ -1483,7 +1559,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     }
 
     // Verify parent has permission over this child
-    const child: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileId);
+    const child: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileIdNum);
     if (!child) {
       return res.status(404).json({ error: 'Profile not found' });
     }
@@ -1493,10 +1569,14 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     }
 
     // Verify the requester is a parent/admin of this child
-    const parentId = parent_id || req.profile?.id;
+    const parentId = req.profile?.id;
     const parent: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(parentId);
     if (!parent || (parent.type !== 'parent' && parent.type !== 'admin')) {
       return res.status(403).json({ error: 'Only parents can adjust points' });
+    }
+
+    if (parent.type === 'parent' && !canParentManageChild(parent.id, child.id)) {
+      return res.status(403).json({ error: 'Access denied: You can only adjust points for your own children' });
     }
 
     // Get related task title if provided
@@ -1507,12 +1587,12 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     }
 
     // Capture current points before adjustment for response
-    const currentPoints = child.total_points || 0;
+    const currentPoints = getCurrentTotalPoints(profileIdNum);
 
     // Award/deduct points using centralized system
     // Parent adjustments bypass caps but still go through the central system for consistency
     const awardResult = awardPoints({
-      profileId: parseInt(profileId),
+      profileId: profileIdNum,
       basePoints: amount,
       source: 'adjustment',
       bypassCaps: true,  // Parent adjustments bypass earning caps
@@ -1533,14 +1613,14 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
       db.prepare(`
         INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, related_task_id, created_at)
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `).run(profileId, parentId, awardResult.awarded, reason.trim(), related_task_id || null);
+      `).run(profileIdNum, parentId, awardResult.awarded, reason.trim(), related_task_id || null);
     } catch (insertError: any) {
       // If related_task_id column doesn't exist, try without it
       if (insertError.message.includes('related_task_id')) {
         db.prepare(`
           INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, created_at)
           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).run(profileId, parentId, awardResult.awarded, reason.trim());
+        `).run(profileIdNum, parentId, awardResult.awarded, reason.trim());
       } else if (!insertError.message.includes('no such table')) {
         throw insertError;
       }
@@ -1553,7 +1633,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     try {
       if (amount < 0) {
         await NotificationHelpers.pointsDeducted(
-          parseInt(profileId),
+          profileIdNum,
           Math.abs(amount),
           reason.trim(),
           parent.name,
@@ -1561,7 +1641,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
         );
       } else {
         await NotificationHelpers.pointsAdded(
-          parseInt(profileId),
+          profileIdNum,
           amount,
           reason.trim(),
           parent.name
@@ -1596,7 +1676,12 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
 router.get('/points/history/:profileId', authenticate, (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { limit = 20 } = req.query;
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Try to get adjustment history (table may not exist in older databases)
     let history: any[] = [];
@@ -1608,7 +1693,7 @@ router.get('/points/history/:profileId', authenticate, (req: AuthRequest, res) =
         WHERE pa.profile_id = ?
         ORDER BY pa.created_at DESC
         LIMIT ?
-      `).all(profileId, parseInt(limit as string));
+      `).all(profileIdNum, parseInt(limit as string));
     } catch {
       // Table doesn't exist yet
       history = [];
@@ -1631,10 +1716,15 @@ const COUNTDOWN_TEMPLATES = [
 ];
 
 // Get active countdown challenge for a profile
-router.get('/countdown/:profileId', (req, res) => {
+router.get('/countdown/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const now = new Date().toISOString();
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Get active (non-expired, non-completed) countdown challenge
     const active: any = db.prepare(`
@@ -1665,11 +1755,16 @@ router.get('/countdown/:profileId', (req, res) => {
 });
 
 // Start a new countdown challenge
-router.post('/countdown/:profileId/start', (req, res) => {
+router.post('/countdown/:profileId/start', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const now = new Date();
     const nowISO = now.toISOString();
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Check if already has an active challenge
     const existing: any = db.prepare(`
@@ -1786,9 +1881,14 @@ const SPIN_WHEEL_PRIZES = [
 ];
 
 // Get spin wheel status for a profile
-router.get('/spin-wheel/:profileId', (req, res) => {
+router.get('/spin-wheel/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Get or create spin wheel progress
     let progress: any = db.prepare(`
@@ -1827,10 +1927,14 @@ router.get('/spin-wheel/:profileId', (req, res) => {
 });
 
 // Spin the wheel
-router.post('/spin-wheel/:profileId/spin', (req, res) => {
+router.post('/spin-wheel/:profileId/spin', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
     const profileIdNum = parseInt(profileId);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // ===== ECONOMY CHECK: Is spin wheel enabled? =====
     if (!isSpinWheelEnabled(profileIdNum)) {
@@ -1999,9 +2103,14 @@ export function incrementSpinProgress(profileId: number): boolean {
 // ==================== HIDDEN ACHIEVEMENTS ====================
 
 // Get achievements for a profile (with hidden support)
-router.get('/achievements-with-hidden/:profileId', (req, res) => {
+router.get('/achievements-with-hidden/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessGamificationProfile(req.profile, profileIdNum)) {
+      return denyGamificationAccess(res);
+    }
 
     // Get all non-hidden achievements
     const visible = db.prepare(`

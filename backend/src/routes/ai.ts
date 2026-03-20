@@ -3,7 +3,6 @@ import axios from 'axios';
 import db from '../database/init';
 import { AuthRequest, authenticate, authenticateEventSource, requireRole, verifyParentChild, verifyOwnership } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
-import { applyPointsMultiplier, getEconomySettings } from '../services/economyControl';
 
 const router = express.Router();
 
@@ -354,18 +353,17 @@ function executeAITool(toolName: string, args: any, profileId: number): { succes
           basePoints = pointsMap[args.difficulty] || 10;
         }
 
-        // Apply economy controls - multiply points by parent-set multiplier
-        const economySettings = getEconomySettings(profileId);
-        let points = applyPointsMultiplier(profileId, basePoints);
+        // Store the same base task points as manual task creation.
+        // Economy multipliers are applied later at completion time so AI-created tasks don't get boosted twice.
+        let points = basePoints;
 
-        // Cap maximum points per task to prevent abuse (max 50 base points, respecting multiplier)
-        const maxTaskPoints = Math.round(50 * economySettings.points_multiplier);
+        const maxTaskPoints = 50;
         if (points > maxTaskPoints) {
-          console.log(`[AI Tool] Capping points from ${points} to ${maxTaskPoints} (economy control)`);
+          console.log(`[AI Tool] Capping points from ${points} to ${maxTaskPoints} (max task points)`);
           points = maxTaskPoints;
         }
 
-        console.log(`[AI Tool] Economy control: base=${basePoints}, multiplier=${economySettings.points_multiplier}, final=${points}`);
+        console.log(`[AI Tool] Task points stored as base value: ${points}`);
 
         try {
           const result = db.prepare(`

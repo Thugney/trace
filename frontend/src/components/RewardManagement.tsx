@@ -16,6 +16,19 @@ interface RewardManagementProps {
   parentId: number;
 }
 
+function dedupeRewardCategories(items: RewardCategory[]) {
+  const unique = new Map<string, RewardCategory>();
+
+  for (const item of items) {
+    const key = (item.name || item.display_name).trim().toLowerCase();
+    if (!unique.has(key)) {
+      unique.set(key, item);
+    }
+  }
+
+  return Array.from(unique.values());
+}
+
 export default function RewardManagement({ parentId }: RewardManagementProps) {
   const toast = useToast();
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -48,6 +61,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
     description: '',
     color: '#9333ea'
   });
+  const visibleCategories = dedupeRewardCategories(categories);
 
   useEffect(() => {
     loadData();
@@ -187,8 +201,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
         displayName: categoryFormData.displayName,
         icon: categoryFormData.icon,
         description: categoryFormData.description,
-        color: categoryFormData.color,
-        createdBy: parentId
+        color: categoryFormData.color
       });
       toast.success('Category created!');
       playSounds.achievement();
@@ -352,7 +365,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
                 onChange={e => setFormData({ ...formData, category: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
-                {categories.map(cat => (
+                {visibleCategories.map(cat => (
                   <option key={cat.id} value={cat.name}>
                     {cat.icon} {cat.display_name}
                   </option>
@@ -663,7 +676,7 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
           {/* Categories List */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Default Categories</h3>
-            {categories.filter(c => c.is_default).map(cat => (
+            {visibleCategories.filter(c => c.is_default).map(cat => (
               <div
                 key={cat.id}
                 className="flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-200"
@@ -682,10 +695,10 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
               </div>
             ))}
 
-            {categories.filter(c => !c.is_default).length > 0 && (
+            {visibleCategories.filter(c => !c.is_default).length > 0 && (
               <>
                 <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wide mt-6">Your Custom Categories</h3>
-                {categories.filter(c => !c.is_default).map(cat => (
+                {visibleCategories.filter(c => !c.is_default).map(cat => (
                   <div
                     key={cat.id}
                     className="flex items-center gap-4 p-4 bg-white rounded-xl border border-indigo-200"

@@ -66,7 +66,8 @@ describe('Profiles API', () => {
       `).run(child2.id, 30, 2, 1);
 
       const response = await request(app)
-        .get(`/api/profiles/${parent.id}/progress`);
+        .get(`/api/profiles/${parent.id}/progress`)
+        .set('x-profile-id', String(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('children');
@@ -105,7 +106,8 @@ describe('Profiles API', () => {
       const parent = createTestProfile({ name: 'Parent with no kids', type: 'parent' });
 
       const response = await request(app)
-        .get(`/api/profiles/${parent.id}/progress`);
+        .get(`/api/profiles/${parent.id}/progress`)
+        .set('x-profile-id', String(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body.children).toEqual([]);
@@ -124,7 +126,8 @@ describe('Profiles API', () => {
       });
 
       const response = await request(app)
-        .get(`/api/profiles/${parent.id}/progress`);
+        .get(`/api/profiles/${parent.id}/progress`)
+        .set('x-profile-id', String(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body.children).toHaveLength(1);
@@ -214,6 +217,30 @@ describe('Profiles API', () => {
         .get('/api/profiles/family/progress');
 
       expect(response.status).toBe(401);
+    });
+
+    it('shows a family-linked child to a co-parent on the authenticated family progress route', async () => {
+      const familyId = Number(testDb.prepare(`
+        INSERT INTO families (name, family_type)
+        VALUES ('Progress Family', 'A')
+      `).run().lastInsertRowid);
+
+      const primaryParent = createTestProfile({ name: 'Primary Parent', type: 'parent', family_id: familyId });
+      const coParent = createTestProfile({ name: 'Co-Parent', type: 'parent', family_id: familyId });
+      const child = createTestProfile({ name: 'Family Child', type: 'child', family_id: familyId });
+
+      testDb.prepare(`
+        INSERT INTO progress (profile_id, total_points, total_stars, level)
+        VALUES (?, ?, ?, ?)
+      `).run(child.id, 25, 2, 1);
+
+      const response = await request(app)
+        .get('/api/profiles/family/progress')
+        .set('x-profile-id', String(coParent.id));
+
+      expect(response.status).toBe(200);
+      expect(response.body.children).toHaveLength(1);
+      expect(response.body.children[0].id).toBe(child.id);
     });
   });
 });

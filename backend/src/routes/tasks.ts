@@ -5,6 +5,7 @@ import fs from 'fs';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { canAccessOwnOrManagedChild, canParentManageChild, getManagedChildIdsForParent } from '../services/familyAccess';
 import { NotificationHelpers } from '../services/notifications';
 import {
   DEFAULT_TASK_TIMER_DURATIONS,
@@ -19,7 +20,7 @@ import {
   checkTaskTimeElapsed,
   canEarnPoints,
   applyPointsMultiplier,
-  recordEarnings,
+  awardPoints,
   areBonusesEnabled,
   isSpinWheelEnabled,
   areCountdownChallengesEnabled
@@ -62,14 +63,35 @@ const proofUpload = multer({
   }
 });
 
+function canAccessTaskProfile(viewer: AuthRequest['profile'], targetProfileId: number): boolean {
+  if (!viewer) {
+    return false;
+  }
+
+  return canAccessOwnOrManagedChild(viewer, targetProfileId);
+}
+
+function canAccessTask(viewer: AuthRequest['profile'], task: { profile_id: number }): boolean {
+  return canAccessTaskProfile(viewer, task.profile_id);
+}
+
+function denyTaskAccess(res: Response) {
+  return res.status(403).json({ error: 'Access denied: You can only access your own tasks or your children\'s tasks' });
+}
+
 // Get tasks for a profile
-router.get('/:profileId', (req, res) => {
+router.get('/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { completed, category } = req.query;
 
+    if (!canAccessTaskProfile(req.profile, profileIdNum)) {
+      return denyTaskAccess(res);
+    }
+
     let query = 'SELECT * FROM tasks WHERE profile_id = ?';
-    const params: any[] = [profileId];
+    const params: any[] = [profileIdNum];
 
     if (completed !== undefined) {
       query += ' AND completed = ?';
@@ -91,12 +113,17 @@ router.get('/:profileId', (req, res) => {
 });
 
 // Get single task
-router.get('/task/:id', (req, res) => {
+router.get('/task/:id', (req: AuthRequest, res) => {
   try {
     const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    if (!canAccessTask(req.profile, task as { profile_id: number })) {
+      return denyTaskAccess(res);
+    }
+
     res.json(task);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -117,8 +144,9 @@ const DEFAULT_TIMER_DURATIONS_CREATE: Record<string, number> = {
 };
 
 // Create task
-router.post('/', (req, res) => {
+router.post('/', (req: AuthRequest, res) => {
   try {
+    const viewer = req.profile!;
     const {
       profile_id,
       title,
@@ -129,7 +157,6 @@ router.post('/', (req, res) => {
       is_recurring,
       recurrence_pattern,
       due_date,
-      created_by,
       priority,
       estimated_minutes,
       requires_timer,
@@ -139,6 +166,11 @@ router.post('/', (req, res) => {
 
     if (!profile_id || !title) {
       return res.status(400).json({ error: 'profile_id and title are required' });
+    }
+
+    const profileIdNum = parseInt(profile_id, 10);
+    if (!canAccessTaskProfile(viewer, profileIdNum)) {
+      return denyTaskAccess(res);
     }
 
     // Due date is mandatory for all tasks
@@ -165,16 +197,9 @@ router.post('/', (req, res) => {
 
     // Check if creator is parent or admin - auto-approve
     // Check if creator is child - require parent approval
-    let parentApproved = 0;
-    let approvedBy = null;
-
-    if (created_by) {
-      const creator: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(created_by);
-      if (creator && (creator.type === 'parent' || creator.type === 'admin')) {
-        parentApproved = 1;
-        approvedBy = created_by;
-      }
-    }
+    const createdBy = viewer.id;
+    const parentApproved = viewer.type === 'parent' || viewer.type === 'admin' ? 1 : 0;
+    const approvedBy = parentApproved ? viewer.id : null;
 
     const result = db.prepare(`
       INSERT INTO tasks (
@@ -183,7 +208,7 @@ router.post('/', (req, res) => {
         priority, estimated_minutes, requires_timer, timer_duration_minutes, scheduled_time
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      profile_id,
+      profileIdNum,
       title,
       description || null,
       taskCategory,
@@ -192,7 +217,7 @@ router.post('/', (req, res) => {
       is_recurring ? 1 : 0,
       recurrence_pattern || null,
       due_date || null,
-      created_by || null,
+      createdBy,
       parentApproved,
       approvedBy,
       priority || 'medium',
@@ -205,10 +230,10 @@ router.post('/', (req, res) => {
     const newTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
 
     // Send notification if child created a task (needs approval)
-    if (!parentApproved && created_by) {
-      const creator: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(created_by);
+    if (!parentApproved) {
+      const creator: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(createdBy);
       if (creator && creator.type === 'child') {
-        NotificationHelpers.taskCreatedByChild(created_by, creator.name, title).catch(console.error);
+        NotificationHelpers.taskCreatedByChild(createdBy, creator.name, title).catch(console.error);
       }
     }
 
@@ -219,9 +244,18 @@ router.post('/', (req, res) => {
 });
 
 // Update task
-router.put('/:id', (req, res) => {
+router.put('/:id', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
+    const existingTask: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(id);
+    if (!existingTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, existingTask)) {
+      return denyTaskAccess(res);
+    }
+
     const {
       title,
       description,
@@ -307,7 +341,7 @@ router.put('/:id', (req, res) => {
 // Complete task and award points
 // WITH ECONOMY CONTROLS: rate limiting, time verification, daily caps
 // RACE CONDITION FIX: Uses transaction to ensure atomic points calculation
-router.post('/:id/complete', (req, res) => {
+router.post('/:id/complete', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const today = new Date().toISOString().split('T')[0];
@@ -415,51 +449,56 @@ router.post('/:id/complete', (req, res) => {
         return { error: 'Task already completed', code: 'ALREADY_COMPLETED' };
       }
 
-      // Update rate limit tracker
+      const taskAward = awardPoints({
+        profileId: task.profile_id,
+        basePoints: rawPoints,
+        stars,
+        source: 'task',
+        taskId: parseInt(id, 10),
+        enforceRateLimit: false
+      });
+
+      if (!taskAward.success) {
+        return { error: taskAward.reason || 'Failed to award task points', code: 'POINT_AWARD_FAILED' };
+      }
+
       updateRateLimit(task.profile_id, 'task');
 
       // Check for mystery reward (only if bonuses enabled)
       let mysteryReward = null;
       let bonusPoints = 0;
       if (areBonusesEnabled(task.profile_id)) {
-        mysteryReward = checkMysteryReward(task.profile_id, parseInt(id), cappedPoints);
+        mysteryReward = checkMysteryReward(task.profile_id, parseInt(id, 10), taskAward.awarded);
         if (mysteryReward) {
-          // Cap bonus points too
-          const maxBonusCheck = canEarnPoints(task.profile_id, mysteryReward.bonusPoints);
-          bonusPoints = maxBonusCheck.cappedAmount !== undefined
-            ? Math.min(mysteryReward.bonusPoints, maxBonusCheck.cappedAmount)
-            : mysteryReward.bonusPoints;
+          const bonusAward = awardPoints({
+            profileId: task.profile_id,
+            basePoints: mysteryReward.bonusPoints,
+            source: 'mystery_reward',
+            applyMultiplier: false,
+            applyPowerUps: false,
+            enforceRateLimit: false
+          });
+
+          if (bonusAward.success) {
+            bonusPoints = bonusAward.awarded;
+          }
         }
       }
 
-      const totalPointsEarned = cappedPoints + bonusPoints;
-
-      // Get current progress INSIDE transaction for consistency
+      const totalPointsEarned = taskAward.awarded + bonusPoints;
       const currentProgress: any = db.prepare(`
         SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
       `).get(task.profile_id);
 
-      const totalPoints = (currentProgress?.total_points || 0) + totalPointsEarned;
-      const totalStars = (currentProgress?.total_stars || 0) + stars;
-      const level = Math.floor(totalPoints / 100) + 1;
-
-      // Insert progress record
-      db.prepare(`
-        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(task.profile_id, id, totalPointsEarned, stars, level, totalPoints, totalStars);
-
-      // Record earnings in daily tracker
-      recordEarnings(task.profile_id, totalPointsEarned, stars, true, bonusPoints > 0);
-
       return {
         success: true,
         totalPointsEarned,
+        taskPointsEarned: taskAward.awarded,
         bonusPoints,
         mysteryReward,
-        totalPoints,
-        totalStars,
-        level
+        totalPoints: currentProgress?.total_points || 0,
+        totalStars: currentProgress?.total_stars || 0,
+        level: currentProgress?.level || 1
       };
     });
 
@@ -472,6 +511,7 @@ router.post('/:id/complete', (req, res) => {
 
     // TypeScript narrowing: after error check, these values are guaranteed to exist
     const totalPointsEarned = txResult.totalPointsEarned!;
+    const taskPointsEarned = txResult.taskPointsEarned!;
     const bonusPoints = txResult.bonusPoints!;
     const mysteryReward = txResult.mysteryReward;
 
@@ -525,7 +565,7 @@ router.post('/:id/complete', (req, res) => {
 
     // Update countdown challenge progress (if enabled)
     if (areCountdownChallengesEnabled(task.profile_id)) {
-      countdownResult = updateCountdownProgress(task.profile_id, cappedPoints);
+      countdownResult = updateCountdownProgress(task.profile_id, taskPointsEarned);
     }
 
     // Increment spin wheel progress (if enabled)
@@ -537,7 +577,7 @@ router.post('/:id/complete', (req, res) => {
     checkHiddenAchievementsOnTaskComplete(task.profile_id, new Date());
 
     // Include cap warning in response if points were reduced
-    const wasPointsCapped = cappedPoints < basePoints || (capCheck.cappedAmount !== undefined);
+    const wasPointsCapped = taskPointsEarned < basePoints || (capCheck.cappedAmount !== undefined);
 
     res.json({
       task: completedTask,
@@ -556,7 +596,7 @@ router.post('/:id/complete', (req, res) => {
       economyInfo: wasPointsCapped ? {
         warning: 'Points were capped due to daily/weekly limits',
         originalPoints: basePoints,
-        actualPoints: cappedPoints
+        actualPoints: taskPointsEarned
       } : null
     });
   } catch (error: any) {
@@ -688,11 +728,7 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
       // Owner can delete their own task
       canDelete = true;
     } else if (userProfile.type === 'parent') {
-      // Parent can delete their child's task
-      const taskOwner: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(task.profile_id);
-      if (taskOwner && taskOwner.parent_id === userProfile.id) {
-        canDelete = true;
-      }
+      canDelete = canParentManageChild(userProfile.id, task.profile_id);
     }
 
     if (!canDelete) {
@@ -707,21 +743,26 @@ router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
 });
 
 // Get progress for profile
-router.get('/progress/:profileId', (req, res) => {
+router.get('/progress/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
     const { limit = 30 } = req.query;
+
+    if (!canAccessTaskProfile(req.profile, profileIdNum)) {
+      return denyTaskAccess(res);
+    }
 
     const progress = db.prepare(`
       SELECT * FROM progress
       WHERE profile_id = ?
       ORDER BY logged_at DESC
       LIMIT ?
-    `).all(profileId, limit);
+    `).all(profileIdNum, limit);
 
     const current: any = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId);
+    `).get(profileIdNum);
 
     // Get weekly stats (use difference method for points reliability)
     const weekAgo = new Date();
@@ -732,13 +773,13 @@ router.get('/progress/:profileId', (req, res) => {
       SELECT total_points, total_stars FROM progress
       WHERE profile_id = ? AND DATE(logged_at) < DATE(?)
       ORDER BY logged_at DESC LIMIT 1
-    `).get(profileId, weekAgoStr);
+    `).get(profileIdNum, weekAgoStr);
 
     const tasksThisWeek: any = db.prepare(`
       SELECT COUNT(DISTINCT task_id) as count
       FROM progress
       WHERE profile_id = ? AND DATE(logged_at) >= DATE(?)
-    `).get(profileId, weekAgoStr);
+    `).get(profileIdNum, weekAgoStr);
 
     const weeklyStats = {
       points_this_week: (current?.total_points || 0) - (weekStartProgress?.total_points || 0),
@@ -757,12 +798,18 @@ router.get('/progress/:profileId', (req, res) => {
 });
 
 // Get rewards
-router.get('/rewards/:profileId', (req, res) => {
+router.get('/rewards/:profileId', (req: AuthRequest, res) => {
   try {
     const { profileId } = req.params;
+    const profileIdNum = parseInt(profileId, 10);
+
+    if (!canAccessTaskProfile(req.profile, profileIdNum)) {
+      return denyTaskAccess(res);
+    }
+
     const rewards = db.prepare(`
       SELECT * FROM rewards WHERE profile_id = ? ORDER BY points_required ASC
-    `).all(profileId);
+    `).all(profileIdNum);
 
     res.json(rewards);
   } catch (error: any) {
@@ -771,19 +818,29 @@ router.get('/rewards/:profileId', (req, res) => {
 });
 
 // Create reward
-router.post('/rewards', (req, res) => {
+router.post('/rewards', (req: AuthRequest, res) => {
   try {
+    const viewer = req.profile!;
     const { profile_id, title, description, type, points_required, icon } = req.body;
 
     if (!profile_id || !title || !points_required) {
       return res.status(400).json({ error: 'profile_id, title, and points_required are required' });
     }
 
+    const profileIdNum = parseInt(profile_id, 10);
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can create rewards' });
+    }
+
+    if (!canAccessTaskProfile(viewer, profileIdNum)) {
+      return denyTaskAccess(res);
+    }
+
     const result = db.prepare(`
       INSERT INTO rewards (profile_id, title, description, type, points_required, icon)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(
-      profile_id,
+      profileIdNum,
       title,
       description || null,
       type || 'virtual',
@@ -799,13 +856,17 @@ router.post('/rewards', (req, res) => {
 });
 
 // Claim reward
-router.post('/rewards/:id/claim', (req, res) => {
+router.post('/rewards/:id/claim', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
     const reward: any = db.prepare('SELECT * FROM rewards WHERE id = ?').get(id);
     if (!reward) {
       return res.status(404).json({ error: 'Reward not found' });
+    }
+
+    if (!canAccessTaskProfile(req.profile, reward.profile_id)) {
+      return denyTaskAccess(res);
     }
 
     if (reward.is_claimed) {
@@ -834,29 +895,35 @@ router.post('/rewards/:id/claim', (req, res) => {
 });
 
 // Approve task (parent/admin only)
-router.post('/:id/approve', (req, res) => {
+router.post('/:id/approve', (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { approved_by } = req.body;
+    const approverId = req.profile?.id;
 
-    if (!approved_by) {
-      return res.status(400).json({ error: 'approved_by is required' });
+    if (!approverId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Verify approver is parent or admin
-    const approver: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(approved_by);
-    if (!approver || (approver.type !== 'parent' && approver.type !== 'admin')) {
+    const approver = req.profile!;
+    if (approver.type !== 'parent' && approver.type !== 'admin') {
       return res.status(403).json({ error: 'Only parents or admins can approve tasks' });
     }
 
     // Get task before approval for notification
     const task: any = db.prepare('SELECT title, profile_id FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (approver.type === 'parent' && !canParentManageChild(approver.id, task.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only approve tasks for your own children' });
+    }
 
     db.prepare(`
       UPDATE tasks
       SET parent_approved = 1, approved_by = ?
       WHERE id = ?
-    `).run(approved_by, id);
+    `).run(approverId, id);
 
     const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
 
@@ -872,29 +939,31 @@ router.post('/:id/approve', (req, res) => {
 });
 
 // Reject/delete task (parent/admin only)
-router.post('/:id/reject', (req, res) => {
+router.post('/:id/reject', (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { rejected_by } = req.body;
+    const rejectorId = req.profile?.id;
 
-    if (!rejected_by) {
-      return res.status(400).json({ error: 'rejected_by is required' });
+    if (!rejectorId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Verify rejector is parent or admin
-    const rejector: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(rejected_by);
-    if (!rejector || (rejector.type !== 'parent' && rejector.type !== 'admin')) {
+    const rejector = req.profile!;
+    if (rejector.type !== 'parent' && rejector.type !== 'admin') {
       return res.status(403).json({ error: 'Only parents or admins can reject tasks' });
     }
 
     // Get task before deletion for notification
     const task: any = db.prepare('SELECT title, profile_id FROM tasks WHERE id = ?').get(id);
-
-    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
-
-    if (result.changes === 0) {
+    if (!task) {
       return res.status(404).json({ error: 'Task not found' });
     }
+
+    if (rejector.type === 'parent' && !canParentManageChild(rejector.id, task.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only reject tasks for your own children' });
+    }
+
+    const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
 
     // Send notification to child that their task was rejected
     if (task) {
@@ -908,18 +977,41 @@ router.post('/:id/reject', (req, res) => {
 });
 
 // Get pending tasks (for parents to review)
-router.get('/pending/:parentId', (req, res) => {
+router.get('/pending/:parentId', (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.params;
+    const viewer = req.profile!;
 
-    // Optimized single-query approach using JOIN to avoid N+1 queries
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can review pending tasks' });
+    }
+
+    if (viewer.type === 'admin') {
+      const pendingTasks = db.prepare(`
+        SELECT t.*, p.name as child_name, p.avatar as child_avatar
+        FROM tasks t
+        JOIN profiles p ON t.profile_id = p.id
+        WHERE p.type = 'child' AND t.parent_approved = 0
+        ORDER BY t.created_at DESC
+      `).all();
+
+      return res.json(pendingTasks);
+    }
+
+    const childIds = getManagedChildIdsForParent(viewer.id);
+    if (childIds.length === 0) {
+      return res.json([]);
+    }
+
+    const placeholders = childIds.map(() => '?').join(', ');
     const pendingTasks = db.prepare(`
       SELECT t.*, p.name as child_name, p.avatar as child_avatar
       FROM tasks t
       JOIN profiles p ON t.profile_id = p.id
-      WHERE p.parent_id = ? AND p.type = 'child' AND t.parent_approved = 0
+      WHERE p.type = 'child'
+        AND t.parent_approved = 0
+        AND t.profile_id IN (${placeholders})
       ORDER BY t.created_at DESC
-    `).all(parentId);
+    `).all(...childIds);
 
     res.json(pendingTasks);
   } catch (error: any) {
@@ -928,22 +1020,48 @@ router.get('/pending/:parentId', (req, res) => {
 });
 
 // Get tasks with photo proofs pending parent verification
-router.get('/pending-proofs/:parentId', (req, res) => {
+router.get('/pending-proofs/:parentId', (req: AuthRequest, res: Response) => {
   try {
-    const { parentId } = req.params;
+    const viewer = req.profile!;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Only parents or admins can review photo proofs' });
+    }
+
+    if (viewer.type === 'admin') {
+      const pendingProofs = db.prepare(`
+        SELECT t.*, p.name as child_name, p.avatar as child_avatar
+        FROM tasks t
+        JOIN profiles p ON t.profile_id = p.id
+        WHERE p.type = 'child'
+          AND t.proof_required = 1
+          AND t.proof_photo_url IS NOT NULL
+          AND t.completed = 0
+        ORDER BY t.created_at DESC
+      `).all();
+
+      return res.json(pendingProofs);
+    }
+
+    const childIds = getManagedChildIdsForParent(viewer.id);
+    if (childIds.length === 0) {
+      return res.json([]);
+    }
+
+    const placeholders = childIds.map(() => '?').join(', ');
 
     // Get tasks that have photo proof uploaded but are not yet completed
     const pendingProofs = db.prepare(`
       SELECT t.*, p.name as child_name, p.avatar as child_avatar
       FROM tasks t
       JOIN profiles p ON t.profile_id = p.id
-      WHERE p.parent_id = ?
-        AND p.type = 'child'
+      WHERE p.type = 'child'
+        AND t.profile_id IN (${placeholders})
         AND t.proof_required = 1
         AND t.proof_photo_url IS NOT NULL
         AND t.completed = 0
       ORDER BY t.created_at DESC
-    `).all(parentId);
+    `).all(...childIds);
 
     res.json(pendingProofs);
   } catch (error: any) {
@@ -952,18 +1070,18 @@ router.get('/pending-proofs/:parentId', (req, res) => {
 });
 
 // Verify photo proof (parent approves or rejects)
-router.post('/:id/verify-proof', (req, res) => {
+router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { approved, verified_by } = req.body;
+    const { approved } = req.body;
+    const verifierId = req.profile?.id;
 
-    if (!verified_by) {
-      return res.status(400).json({ error: 'verified_by is required' });
+    if (!verifierId) {
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Verify that verifier is parent or admin
-    const verifier: any = db.prepare('SELECT type FROM profiles WHERE id = ?').get(verified_by);
-    if (!verifier || (verifier.type !== 'parent' && verifier.type !== 'admin')) {
+    const verifier = req.profile!;
+    if (verifier.type !== 'parent' && verifier.type !== 'admin') {
       return res.status(403).json({ error: 'Only parents or admins can verify photo proofs' });
     }
 
@@ -973,11 +1091,66 @@ router.post('/:id/verify-proof', (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (approved) {
-      // Approve: Complete the task and award points
-      db.prepare('UPDATE tasks SET completed = 1, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
 
-      // Delete proof photo to save storage (task is approved, no longer needed)
+    if (verifier.type === 'parent' && !canParentManageChild(verifier.id, task.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only verify photo proofs for your own children' });
+    }
+
+    if (approved) {
+      const today = new Date().toISOString().split('T')[0];
+      const rawPoints = task.points || 10;
+      const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+      const approvalTx = db.transaction(() => {
+        const updateResult = db.prepare(`
+          UPDATE tasks
+          SET completed = 1, completed_at = CURRENT_TIMESTAMP, last_completed_date = ?
+          WHERE id = ? AND completed = 0
+        `).run(today, id);
+
+        if (updateResult.changes === 0) {
+          return { error: 'Task already completed', code: 'ALREADY_COMPLETED' };
+        }
+
+        const taskAward = awardPoints({
+          profileId: task.profile_id,
+          basePoints: rawPoints,
+          stars,
+          source: 'task',
+          taskId: parseInt(id, 10),
+          enforceRateLimit: false
+        });
+
+        if (!taskAward.success) {
+          return { error: taskAward.reason || 'Failed to award task points', code: 'POINT_AWARD_FAILED' };
+        }
+
+        let nextTask = null;
+        if (task.is_recurring && task.recurrence_pattern) {
+          const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
+          db.prepare(`
+            INSERT INTO tasks (
+              profile_id, title, description, category, points, difficulty,
+              is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
+              priority, estimated_minutes, proof_required
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
+            1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
+            task.priority || 'medium', task.estimated_minutes, task.proof_required || 0
+          );
+        }
+
+        return { pointsEarned: taskAward.awarded, nextTask };
+      });
+
+      const approvalResult = approvalTx();
+      if (approvalResult.error) {
+        return res.status(400).json({ error: approvalResult.error, code: approvalResult.code });
+      }
+
       const proofFiles = fs.readdirSync(PROOF_DIR).filter((f: string) => f.startsWith(`task-${id}-`));
       for (const file of proofFiles) {
         try {
@@ -987,50 +1160,14 @@ router.post('/:id/verify-proof', (req, res) => {
           console.error(`[Proof] Failed to delete proof file: ${file}`, err);
         }
       }
-      // Clear proof URL in database
       db.prepare('UPDATE tasks SET proof_photo_url = NULL WHERE id = ?').run(id);
-
-      // Award points
-      const basePoints = task.points || 10;
-      const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
-
-      // Get current progress
-      const currentProgress: any = db.prepare(`
-        SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
-      `).get(task.profile_id);
-
-      const totalPoints = (currentProgress?.total_points || 0) + basePoints;
-      const totalStars = (currentProgress?.total_stars || 0) + stars;
-      const level = Math.floor(totalPoints / 100) + 1;
-
-      // Insert progress record
-      db.prepare(`
-        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(task.profile_id, id, basePoints, stars, level, totalPoints, totalStars);
-
-      // Handle recurring tasks
-      if (task.is_recurring && task.recurrence_pattern) {
-        const nextDueDate = calculateNextDueDate(task.due_date, task.recurrence_pattern);
-        db.prepare(`
-          INSERT INTO tasks (
-            profile_id, title, description, category, points, difficulty,
-            is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-            priority, estimated_minutes, proof_required
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
-          1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
-          task.priority || 'medium', task.estimated_minutes, task.proof_required || 0
-        );
-      }
 
       const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
       res.json({
         success: true,
         message: 'Photo proof approved, task completed!',
         task: completedTask,
-        pointsEarned: basePoints,
+        pointsEarned: approvalResult.pointsEarned,
         starsEarned: stars
       });
     } else {
@@ -1060,9 +1197,18 @@ router.post('/:id/verify-proof', (req, res) => {
 // ==================== SUBTASKS ====================
 
 // Get subtasks for a task
-router.get('/:taskId/subtasks', (req, res) => {
+router.get('/:taskId/subtasks', (req: AuthRequest, res) => {
   try {
     const { taskId } = req.params;
+    const task: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
     const subtasks = db.prepare(
       'SELECT * FROM subtasks WHERE task_id = ? ORDER BY sort_order ASC, id ASC'
     ).all(taskId);
@@ -1073,13 +1219,22 @@ router.get('/:taskId/subtasks', (req, res) => {
 });
 
 // Add subtask to a task
-router.post('/:taskId/subtasks', (req, res) => {
+router.post('/:taskId/subtasks', (req: AuthRequest, res) => {
   try {
     const { taskId } = req.params;
     const { title, sort_order } = req.body;
 
     if (!title) {
       return res.status(400).json({ error: 'Title is required' });
+    }
+
+    const task: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
     }
 
     // Get max sort_order for this task
@@ -1100,10 +1255,25 @@ router.post('/:taskId/subtasks', (req, res) => {
 });
 
 // Update subtask (toggle complete or edit title)
-router.put('/subtasks/:id', (req, res) => {
+router.put('/subtasks/:id', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { title, completed, sort_order } = req.body;
+
+    const parentTask: any = db.prepare(`
+      SELECT t.profile_id
+      FROM subtasks st
+      INNER JOIN tasks t ON t.id = st.task_id
+      WHERE st.id = ?
+    `).get(id);
+
+    if (!parentTask) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+
+    if (!canAccessTask(req.profile, parentTask)) {
+      return denyTaskAccess(res);
+    }
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -1136,8 +1306,23 @@ router.put('/subtasks/:id', (req, res) => {
 });
 
 // Delete subtask
-router.delete('/subtasks/:id', (req, res) => {
+router.delete('/subtasks/:id', (req: AuthRequest, res) => {
   try {
+    const parentTask: any = db.prepare(`
+      SELECT t.profile_id
+      FROM subtasks st
+      INNER JOIN tasks t ON t.id = st.task_id
+      WHERE st.id = ?
+    `).get(req.params.id);
+
+    if (!parentTask) {
+      return res.status(404).json({ error: 'Subtask not found' });
+    }
+
+    if (!canAccessTask(req.profile, parentTask)) {
+      return denyTaskAccess(res);
+    }
+
     const result = db.prepare('DELETE FROM subtasks WHERE id = ?').run(req.params.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Subtask not found' });
@@ -1149,13 +1334,22 @@ router.delete('/subtasks/:id', (req, res) => {
 });
 
 // Bulk add subtasks to a task
-router.post('/:taskId/subtasks/bulk', (req, res) => {
+router.post('/:taskId/subtasks/bulk', (req: AuthRequest, res) => {
   try {
     const { taskId } = req.params;
     const { subtasks } = req.body;
 
     if (!Array.isArray(subtasks) || subtasks.length === 0) {
       return res.status(400).json({ error: 'subtasks array is required' });
+    }
+
+    const task: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
     }
 
     const insertStmt = db.prepare(`
@@ -1184,7 +1378,7 @@ router.post('/:taskId/subtasks/bulk', (req, res) => {
 // ==================== Photo Proof Routes ====================
 
 // Upload photo proof for a task
-router.post('/:id/proof', (req, res) => {
+router.post('/:id/proof', (req: AuthRequest, res) => {
   proofUpload.single('proof')(req, res, async (err: any) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
@@ -1211,6 +1405,11 @@ router.post('/:id/proof', (req, res) => {
         return res.status(404).json({ error: 'Task not found' });
       }
 
+      if (!canAccessTask(req.profile, task)) {
+        fs.unlinkSync(file.path);
+        return denyTaskAccess(res);
+      }
+
       // Store the proof URL (without /api prefix - frontend adds it)
       const proofUrl = `/tasks/${id}/proof`;
       db.prepare('UPDATE tasks SET proof_photo_url = ? WHERE id = ?').run(proofUrl, id);
@@ -1232,7 +1431,7 @@ router.post('/:id/proof', (req, res) => {
 });
 
 // Get photo proof for a task
-router.get('/:id/proof', (req, res) => {
+router.get('/:id/proof', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -1275,7 +1474,7 @@ router.get('/:id/proof', (req, res) => {
 });
 
 // Delete photo proof for a task
-router.delete('/:id/proof', authenticate, (req: AuthRequest, res: Response) => {
+router.delete('/:id/proof', (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -1308,7 +1507,7 @@ const TIMED_CATEGORIES = TIMED_TASK_CATEGORIES;
 const DEFAULT_TIMER_DURATIONS = DEFAULT_TASK_TIMER_DURATIONS;
 
 // Get timer state for a task
-router.get('/:id/timer', (req, res) => {
+router.get('/:id/timer', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -1361,7 +1560,7 @@ router.get('/:id/timer', (req, res) => {
 });
 
 // Start timer for a task
-router.post('/:id/timer/start', (req, res) => {
+router.post('/:id/timer/start', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -1418,7 +1617,7 @@ router.post('/:id/timer/start', (req, res) => {
 });
 
 // Pause timer for a task
-router.post('/:id/timer/pause', (req, res) => {
+router.post('/:id/timer/pause', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -1469,7 +1668,7 @@ router.post('/:id/timer/pause', (req, res) => {
 });
 
 // Resume timer for a task
-router.post('/:id/timer/resume', (req, res) => {
+router.post('/:id/timer/resume', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -1515,13 +1714,41 @@ router.post('/:id/timer/resume', (req, res) => {
 });
 
 // Finish timer and complete task
-router.post('/:id/timer/finish', (req, res) => {
+router.post('/:id/timer/finish', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
     const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
     }
 
     // Check if task is already completed today
@@ -1570,6 +1797,18 @@ router.post('/:id/timer/finish', (req, res) => {
       });
     }
 
+    const rawPoints = task.points || 10;
+    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+    const capCheck = canEarnPoints(task.profile_id, basePoints);
+
+    if (!capCheck.allowed) {
+      return res.status(400).json({
+        error: capCheck.reason,
+        code: 'EARNING_CAP_REACHED'
+      });
+    }
+
     // ===== TRANSACTION: Complete task via timer atomically =====
     // This prevents race conditions where points could be lost
     const finishTimerTransaction = db.transaction(() => {
@@ -1590,32 +1829,44 @@ router.post('/:id/timer/finish', (req, res) => {
         return { error: 'Task already completed', code: 'ALREADY_COMPLETED' };
       }
 
-      // Award points (using same logic as regular complete)
-      const rawPoints = task.points || 10;
-      const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
-      const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
+      const taskAward = awardPoints({
+        profileId: task.profile_id,
+        basePoints: rawPoints,
+        stars,
+        source: 'task',
+        taskId: parseInt(id, 10),
+        enforceRateLimit: false
+      });
 
-      // Check caps
-      const capCheck = canEarnPoints(task.profile_id, basePoints);
-      const cappedPoints = capCheck.cappedAmount !== undefined ? capCheck.cappedAmount : basePoints;
+      if (!taskAward.success) {
+        return { error: taskAward.reason || 'Failed to award task points', code: 'POINT_AWARD_FAILED' };
+      }
 
-      // Get current progress INSIDE transaction for consistency
+      updateRateLimit(task.profile_id, 'task');
+
+      let mysteryReward = null;
+      let bonusPoints = 0;
+      if (areBonusesEnabled(task.profile_id)) {
+        mysteryReward = checkMysteryReward(task.profile_id, parseInt(id, 10), taskAward.awarded);
+        if (mysteryReward) {
+          const bonusAward = awardPoints({
+            profileId: task.profile_id,
+            basePoints: mysteryReward.bonusPoints,
+            source: 'mystery_reward',
+            applyMultiplier: false,
+            applyPowerUps: false,
+            enforceRateLimit: false
+          });
+
+          if (bonusAward.success) {
+            bonusPoints = bonusAward.awarded;
+          }
+        }
+      }
+
       const currentProgress: any = db.prepare(`
         SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
       `).get(task.profile_id);
-
-      const totalPoints = (currentProgress?.total_points || 0) + cappedPoints;
-      const totalStars = (currentProgress?.total_stars || 0) + stars;
-      const level = Math.floor(totalPoints / 100) + 1;
-
-      // Insert progress record
-      db.prepare(`
-        INSERT INTO progress (profile_id, task_id, points_earned, stars_earned, level, total_points, total_stars)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(task.profile_id, id, cappedPoints, stars, level, totalPoints, totalStars);
-
-      // Record earnings
-      recordEarnings(task.profile_id, cappedPoints, stars, true, false);
 
       // Handle recurring tasks
       let nextTask = null;
@@ -1651,7 +1902,16 @@ router.post('/:id/timer/finish', (req, res) => {
         nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
       }
 
-      return { success: true, cappedPoints, stars, nextTask };
+      return {
+        success: true,
+        pointsEarned: taskAward.awarded + bonusPoints,
+        taskPointsEarned: taskAward.awarded,
+        bonusPoints,
+        mysteryReward,
+        stars,
+        nextTask,
+        totalPoints: currentProgress?.total_points || 0
+      };
     });
 
     // Execute the transaction
@@ -1661,23 +1921,43 @@ router.post('/:id/timer/finish', (req, res) => {
       return res.status(400).json({ error: txResult.error, code: txResult.code });
     }
 
-    const { cappedPoints, stars, nextTask } = txResult;
+    const { pointsEarned, taskPointsEarned, bonusPoints, mysteryReward, stars: starsEarned, nextTask } = txResult;
 
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
     `).get(task.profile_id);
 
-    console.log(`[Timer] Task ${id} completed via timer, elapsed: ${finalElapsed}s, points: ${cappedPoints}`);
+    let countdownResult = null;
+    let spinReady = false;
+
+    if (areCountdownChallengesEnabled(task.profile_id)) {
+      countdownResult = updateCountdownProgress(task.profile_id, taskPointsEarned!);
+    }
+
+    if (isSpinWheelEnabled(task.profile_id)) {
+      spinReady = incrementSpinProgress(task.profile_id);
+    }
+
+    checkHiddenAchievementsOnTaskComplete(task.profile_id, new Date());
+
+    console.log(`[Timer] Task ${id} completed via timer, elapsed: ${finalElapsed}s, points: ${pointsEarned}`);
 
     res.json({
       success: true,
       task: completedTask,
       progress,
-      pointsEarned: cappedPoints,
-      starsEarned: stars,
+      pointsEarned,
+      starsEarned: starsEarned,
       timeSpent: finalElapsed,
-      nextRecurringTask: nextTask
+      nextRecurringTask: nextTask,
+      mysteryReward: mysteryReward ? {
+        type: mysteryReward.rewardType,
+        multiplier: mysteryReward.multiplier,
+        bonusPoints
+      } : null,
+      countdownChallenge: countdownResult,
+      spinWheelReady: spinReady
     });
   } catch (error: any) {
     console.error('[Timer] Finish timer error:', error);

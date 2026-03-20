@@ -92,7 +92,7 @@ export default function FamilyProfiles({
         {profiles.map(profile => {
           const isCurrentUser = profile.id === currentProfile?.id;
           const canEdit = isAdmin && !isCurrentUser;
-          const canResetPin = isParent && profile.type === 'child' && profile.parent_id === currentProfile?.id;
+          const canResetPin = isParent && profile.type === 'child';
           const config = profileTypeConfig[profile.type as keyof typeof profileTypeConfig] || profileTypeConfig.child;
           const Icon = config.icon;
 

@@ -86,7 +86,7 @@ export default function ShoppingList() {
       const [listsRes, categoriesRes, childrenRes, tripsRes, leaderboardRes, permissionsRes] = await Promise.all([
         shoppingAPI.getLists(currentProfile.id, true),
         shoppingAPI.getCategories(),
-        profilesAPI.getAll().then(res => res.data.filter((p: any) => p.type === 'child' && p.parent_id === currentProfile.id).map((p: any) => ({ id: p.id, name: p.name, avatar: p.avatar }))),
+        profilesAPI.getAll().then(res => res.data.filter((p: any) => p.type === 'child').map((p: any) => ({ id: p.id, name: p.name, avatar: p.avatar }))),
         shoppingAPI.getActiveTrips(currentProfile.id),
         shoppingAPI.getLeaderboard(currentProfile.id),
         shoppingAPI.getChildPermissions(currentProfile.id)

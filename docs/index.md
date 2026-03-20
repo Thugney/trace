@@ -15,6 +15,7 @@ This index provides a comprehensive reference for the brownfield Family Learning
 
 ## Getting Started
 See [Development Guide](development-guide.md) for setup, run, test, deploy.
+See [Synology Operations Runbook](synology-operations-runbook.md) for the current live NAS deployment, SSH path, and safe deploy workflow.
 
 ## Core Documentation
 
@@ -35,6 +36,7 @@ See [Development Guide](development-guide.md) for setup, run, test, deploy.
 
 ### Supporting
 - [Project Overview](project-overview.md) - High-level goals, status, summary.
+- [Synology Operations Runbook](synology-operations-runbook.md) - Current live deployment state, SSH usage, Docker commands, and safe cherry-pick deploy steps.
 
 ## Existing Documentation (Discovered)
 - [README.md](../README.md) - General project info.

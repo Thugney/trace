@@ -1,5 +1,8 @@
 # Deployment Guide for Synology NAS
 
+Current live Trace deployment does not follow all paths in this older guide.
+Use [docs/synology-operations-runbook.md](docs/synology-operations-runbook.md) for the current NAS host, repo path, Docker commands, and safe deploy procedure.
+
 This guide will help you deploy the Family Management PWA on your Synology NAS using Docker.
 
 ## Prerequisites
