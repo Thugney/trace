@@ -2,6 +2,8 @@
 
 Generated: 2026-01-09 (Deep Scan - Initial Documentation)
 
+Operational docs status: refreshed 2026-03-20 for the current Synology live deployment. Use [Synology Operations Runbook](synology-operations-runbook.md) for live NAS operations. Treat [DEPLOYMENT.md](../DEPLOYMENT.md) as legacy/bootstrap reference only.
+
 This index provides a comprehensive reference for the brownfield Family Learning Hub project. It's designed for AI-assisted development: understanding existing code, extending features, or planning migrations.
 
 ## Quick Reference
@@ -40,7 +42,7 @@ See [Synology Operations Runbook](synology-operations-runbook.md) for the curren
 
 ## Existing Documentation (Discovered)
 - [README.md](../README.md) - General project info.
-- [DEPLOYMENT.md](../DEPLOYMENT.md) - Deployment steps.
+- [DEPLOYMENT.md](../DEPLOYMENT.md) - Legacy/bootstrap deployment guide; not the current live Synology procedure.
 - [QUICKSTART.md](../QUICKSTART.md) - Initial setup.
 - [PWA_SETUP.md](../PWA_SETUP.md) - PWA config.
 - [RBAC_IMPLEMENTATION.md](../RBAC_IMPLEMENTATION.md) - Role-based access.

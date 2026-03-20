@@ -1,7 +1,15 @@
-# Deployment Guide for Synology NAS
+# Legacy Synology Bootstrap Guide
 
 Current live Trace deployment does not follow all paths in this older guide.
-Use [docs/synology-operations-runbook.md](docs/synology-operations-runbook.md) for the current NAS host, repo path, Docker commands, and safe deploy procedure.
+Use [docs/synology-operations-runbook.md](docs/synology-operations-runbook.md) as the authoritative operations document for the active NAS deployment.
+
+Current live deployment facts:
+- SSH host: `192.168.1.135`
+- SSH port: `41`
+- Repo path: `/volume2/docker/trace`
+- Live branch: `feature/school-leaderboard`
+
+Do not use this file for routine live deploys. This document is kept only as a bootstrap/reference guide and still contains older example paths such as `/volume1/docker/family-pwa`.
 
 This guide will help you deploy the Family Management PWA on your Synology NAS using Docker.
 
