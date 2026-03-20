@@ -94,4 +94,25 @@ describe('family access helpers', () => {
       child.id
     ]);
   });
+
+  it('keeps legacy parent-linked children on the family leaderboard for parent viewers', () => {
+    const familyId = Number(testDb.prepare(`
+      INSERT INTO families (name, family_type)
+      VALUES ('Legacy Leaderboard Family', 'A')
+    `).run().lastInsertRowid);
+
+    const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
+    const coParent = createTestProfile({ name: 'Co-Parent', type: 'parent', family_id: familyId });
+    const legacyChild = createTestProfile({ name: 'Legacy Child', type: 'child', parent_id: parent.id });
+
+    expect(getFamilyLeaderboardProfileIds({
+      id: parent.id,
+      type: 'parent',
+      family_id: familyId
+    })).toEqual([
+      parent.id,
+      coParent.id,
+      legacyChild.id
+    ]);
+  });
 });

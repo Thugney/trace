@@ -13,6 +13,13 @@ function createTestApp() {
   return app;
 }
 
+function enableGamification(profileId: number) {
+  testDb.prepare(`
+    INSERT INTO profile_features (profile_id, feature_key, enabled)
+    VALUES (?, 'gamification', 1)
+  `).run(profileId);
+}
+
 describe('Gamification Routes', () => {
   let app: express.Application;
 
@@ -31,6 +38,10 @@ describe('Gamification Routes', () => {
       const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
       const child1 = createTestProfile({ name: 'Child 1', type: 'child', family_id: familyId });
       const child2 = createTestProfile({ name: 'Child 2', type: 'child', family_id: familyId });
+
+      enableGamification(parent.id);
+      enableGamification(child1.id);
+      enableGamification(child2.id);
 
       createTestProgress(parent.id, { total_points: 50 });
       createTestProgress(child1.id, { total_points: 150 });
@@ -58,6 +69,8 @@ describe('Gamification Routes', () => {
 
       const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
       const child = createTestProfile({ name: 'Test Child', type: 'child', family_id: familyId });
+      enableGamification(parent.id);
+      enableGamification(child.id);
       createTestProgress(child.id, { total_points: 100, total_stars: 10, level: 2 });
       createTestStreak(child.id, 'tasks', { current_streak: 5, longest_streak: 7 });
 
@@ -77,11 +90,89 @@ describe('Gamification Routes', () => {
       expect(response.body[0].longestStreak).toBe(7);
       expect(response.body[0].achievementCount).toBe(1);
     });
+
+    it('includes legacy child profiles and calculates week and month points from period boundaries', async () => {
+      const familyId = Number(testDb.prepare(`
+        INSERT INTO families (name, family_type)
+        VALUES ('Period Family', 'A')
+      `).run().lastInsertRowid);
+
+      const parent = createTestProfile({ name: 'Parent', type: 'parent', family_id: familyId });
+      const legacyChild = createTestProfile({ name: 'Legacy Child', type: 'child', parent_id: parent.id });
+
+      enableGamification(parent.id);
+      enableGamification(legacyChild.id);
+
+      const now = new Date();
+      const tenDaysAgo = new Date(now);
+      tenDaysAgo.setDate(now.getDate() - 10);
+      const fortyDaysAgo = new Date(now);
+      fortyDaysAgo.setDate(now.getDate() - 40);
+      const twoDaysAgo = new Date(now);
+      twoDaysAgo.setDate(now.getDate() - 2);
+
+      testDb.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars, logged_at)
+        VALUES (?, 20, 0, 1, 20, 0, ?)
+      `).run(legacyChild.id, fortyDaysAgo.toISOString());
+
+      testDb.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars, logged_at)
+        VALUES (?, 20, 0, 1, 40, 0, ?)
+      `).run(legacyChild.id, tenDaysAgo.toISOString());
+
+      testDb.prepare(`
+        INSERT INTO progress (profile_id, points_earned, stars_earned, level, total_points, total_stars, logged_at)
+        VALUES (?, 60, 0, 2, 100, 0, ?)
+      `).run(legacyChild.id, now.toISOString());
+
+      testDb.prepare(`
+        INSERT INTO tasks (profile_id, title, category, points, completed, completed_at)
+        VALUES (?, 'Old Task', 'homework', 20, 1, ?)
+      `).run(legacyChild.id, fortyDaysAgo.toISOString());
+
+      testDb.prepare(`
+        INSERT INTO tasks (profile_id, title, category, points, completed, completed_at)
+        VALUES (?, 'Recent Task', 'homework', 60, 1, ?)
+      `).run(legacyChild.id, twoDaysAgo.toISOString());
+
+      const weekResponse = await request(app)
+        .get('/gamification/family-leaderboard')
+        .query({ period: 'week' })
+        .set('x-profile-id', String(parent.id));
+
+      expect(weekResponse.status).toBe(200);
+      const weekChild = weekResponse.body.find((entry: any) => entry.id === legacyChild.id);
+      expect(weekChild).toBeDefined();
+      expect(weekChild.points).toBe(60);
+      expect(weekChild.tasksCompleted).toBe(1);
+
+      const monthResponse = await request(app)
+        .get('/gamification/family-leaderboard')
+        .query({ period: 'month' })
+        .set('x-profile-id', String(parent.id));
+
+      expect(monthResponse.status).toBe(200);
+      const monthChild = monthResponse.body.find((entry: any) => entry.id === legacyChild.id);
+      expect(monthChild.points).toBe(80);
+      expect(monthChild.tasksCompleted).toBe(1);
+
+      const allTimeResponse = await request(app)
+        .get('/gamification/family-leaderboard')
+        .query({ period: 'all' })
+        .set('x-profile-id', String(parent.id));
+
+      expect(allTimeResponse.status).toBe(200);
+      const allTimeChild = allTimeResponse.body.find((entry: any) => entry.id === legacyChild.id);
+      expect(allTimeChild.points).toBe(100);
+      expect(allTimeChild.tasksCompleted).toBe(2);
+    });
   });
 
   describe('GET /gamification/stats/:profileId', () => {
     it('should return gamification stats for a profile', async () => {
       const profile = createTestProfile({ name: 'Test Child', type: 'child' });
+      enableGamification(profile.id);
       createTestProgress(profile.id, {
         total_points: 250,
         total_stars: 15,
@@ -105,6 +196,7 @@ describe('Gamification Routes', () => {
   describe('GET /gamification/streaks/:profileId', () => {
     it('should return streaks for a profile', async () => {
       const profile = createTestProfile({ name: 'Test Child', type: 'child' });
+      enableGamification(profile.id);
       createTestStreak(profile.id, 'tasks', { current_streak: 7, longest_streak: 10 });
 
       const response = await request(app)
@@ -120,6 +212,7 @@ describe('Gamification Routes', () => {
 
     it('should create default streaks if none exist', async () => {
       const profile = createTestProfile({ name: 'New User', type: 'child' });
+      enableGamification(profile.id);
 
       const response = await request(app)
         .get(`/gamification/streaks/${profile.id}`)

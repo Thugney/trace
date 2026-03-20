@@ -166,6 +166,14 @@ export function getFamilyLeaderboardProfileIds(viewer: ViewerProfile): number[] 
     return [];
   }
 
+  if (viewer.type === 'parent') {
+    return getVisibleProfileIdsForParent(viewer.id);
+  }
+
+  if (viewer.type === 'child' && viewer.parent_id) {
+    return getVisibleProfileIdsForParent(viewer.parent_id);
+  }
+
   if (viewer.family_id !== null && viewer.family_id !== undefined) {
     const rows = db.prepare(`
       SELECT id
@@ -175,14 +183,6 @@ export function getFamilyLeaderboardProfileIds(viewer: ViewerProfile): number[] 
     `).all(viewer.family_id) as ChildIdRow[];
 
     return rows.map((row) => row.id);
-  }
-
-  if (viewer.type === 'parent') {
-    return getVisibleProfileIdsForParent(viewer.id);
-  }
-
-  if (viewer.type === 'child' && viewer.parent_id) {
-    return getVisibleProfileIdsForParent(viewer.parent_id);
   }
 
   return [viewer.id];

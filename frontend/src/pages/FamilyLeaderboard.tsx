@@ -63,6 +63,18 @@ export default function FamilyLeaderboard() {
     all: 'All Time'
   };
 
+  const pointsLabelByPeriod: Record<Period, string> = {
+    week: 'Family Points This Week',
+    month: 'Family Points This Month',
+    all: 'Total Family Points'
+  };
+
+  const pointsBadgeByPeriod: Record<Period, string> = {
+    week: 'this week',
+    month: 'this month',
+    all: 'points'
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -85,7 +97,9 @@ export default function FamilyLeaderboard() {
             </div>
             Family Leaderboard
           </h1>
-          <p className="text-slate-500 mt-1">See how everyone's doing!</p>
+          <p className="text-slate-500 mt-1">
+            Rankings use points earned {periodLabels[period].toLowerCase()}. Levels and stars show current totals.
+          </p>
         </div>
 
         {/* Period Selector */}
@@ -242,7 +256,7 @@ export default function FamilyLeaderboard() {
                 {/* Points */}
                 <div className="text-right shrink-0">
                   <div className="font-bold text-slate-800">{entry.points.toLocaleString()}</div>
-                  <div className="text-xs text-slate-500">points</div>
+                  <div className="text-xs text-slate-500">{pointsBadgeByPeriod[period]}</div>
                 </div>
               </div>
             );
@@ -264,7 +278,7 @@ export default function FamilyLeaderboard() {
             <div className="text-2xl font-bold text-slate-800">
               {leaderboard.reduce((sum, e) => sum + e.points, 0).toLocaleString()}
             </div>
-            <div className="text-sm text-slate-500">Total Family Points</div>
+            <div className="text-sm text-slate-500">{pointsLabelByPeriod[period]}</div>
           </div>
           <div className="bg-white rounded-xl p-4 border border-slate-200">
             <div className="text-2xl font-bold text-slate-800">

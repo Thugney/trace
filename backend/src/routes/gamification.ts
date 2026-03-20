@@ -42,6 +42,31 @@ function denyGamificationAccess(res: express.Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own or your children\'s gamification data' });
 }
 
+function formatSqlLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getLeaderboardPeriodStartDate(period: unknown): string | null {
+  if (period !== 'week' && period !== 'month') {
+    return null;
+  }
+
+  const now = new Date();
+
+  if (period === 'week') {
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return formatSqlLocalDate(weekStart);
+  }
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  return formatSqlLocalDate(monthStart);
+}
+
 // ==================== WATER INTAKE ====================
 
 // Log water intake
@@ -304,19 +329,7 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
       return res.json([]);
     }
 
-    // Calculate date range for period using UTC dates to avoid timezone issues
-    const now = new Date();
-    let periodStartDate: string | null = null;
-
-    if (period === 'week') {
-      // Start of week (Sunday) in UTC
-      const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - now.getUTCDay()));
-      periodStartDate = weekStart.toISOString().split('T')[0];
-    } else if (period === 'month') {
-      // Start of month in UTC
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      periodStartDate = monthStart.toISOString().split('T')[0];
-    }
+    const periodStartDate = getLeaderboardPeriodStartDate(period);
 
     // Get stats for each family member
     const leaderboard = profiles.map((profile: any) => {
@@ -330,12 +343,11 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
 
       let periodPoints = currentTotalPoints; // Default to all-time
 
-      if (periodStartDate && (period === 'week' || period === 'month')) {
-        // RELIABLE METHOD: Get total_points at start of period, calculate difference
-        // This avoids the bug where SUM(points_earned) can be incorrect due to data issues
+      if (periodStartDate) {
+        // Use local calendar boundaries so "this week" and "this month" follow the family timezone.
         const startOfPeriodProgress: any = db.prepare(`
           SELECT total_points FROM progress
-          WHERE profile_id = ? AND DATE(logged_at) < ?
+          WHERE profile_id = ? AND DATE(logged_at, 'localtime') < DATE(?)
           ORDER BY logged_at DESC LIMIT 1
         `).get(profile.id, periodStartDate);
 
@@ -357,7 +369,7 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
         tasks = db.prepare(`
           SELECT COUNT(*) as count FROM tasks
           WHERE profile_id = ? AND completed = 1
-          AND DATE(completed_at) >= DATE(?)
+          AND DATE(completed_at, 'localtime') >= DATE(?)
         `).get(profile.id, periodStartDate);
       }
 
@@ -441,16 +453,7 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
       return res.json([]);
     }
 
-    // Calculate date range for period
-    let periodStartDate: string | null = null;
-    const now = new Date();
-    if (period === 'week') {
-      const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - now.getUTCDay()));
-      periodStartDate = weekStart.toISOString().split('T')[0];
-    } else if (period === 'month') {
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      periodStartDate = monthStart.toISOString().split('T')[0];
-    }
+    const periodStartDate = getLeaderboardPeriodStartDate(period);
 
     // Get stats for each kid
     const leaderboard = kids.map((kid: any) => {
@@ -462,11 +465,10 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
       const currentTotalPoints = currentProgress?.total_points || 0;
 
       let periodPoints = currentTotalPoints;
-      if (periodStartDate && (period === 'week' || period === 'month')) {
-        // Use reliable method: difference between total_points at period start vs now
+      if (periodStartDate) {
         const startOfPeriodProgress: any = db.prepare(`
           SELECT total_points FROM progress
-          WHERE profile_id = ? AND DATE(logged_at) < ?
+          WHERE profile_id = ? AND DATE(logged_at, 'localtime') < DATE(?)
           ORDER BY logged_at DESC LIMIT 1
         `).get(kid.id, periodStartDate);
         const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
@@ -485,7 +487,7 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
         tasks = db.prepare(`
           SELECT COUNT(*) as count FROM tasks
           WHERE profile_id = ? AND completed = 1
-          AND DATE(completed_at) >= DATE(?)
+          AND DATE(completed_at, 'localtime') >= DATE(?)
         `).get(kid.id, periodStartDate);
       }
 
