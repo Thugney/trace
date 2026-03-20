@@ -3,6 +3,7 @@ import { gamificationAPI, EconomySettings as EconomySettingsType } from '../serv
 import { Profile } from '../types';
 import { Shield, Clock, Zap, Gift, ChevronDown, ChevronUp, Save, AlertCircle, DollarSign, Info } from 'lucide-react';
 import Avatar from './Avatar';
+import { useToast } from './Toast';
 
 interface Props {
   children: Profile[];
@@ -23,6 +24,7 @@ interface ChildEconomy {
 }
 
 export default function EconomySettings({ children }: Props) {
+  const toast = useToast();
   const [economies, setEconomies] = useState<ChildEconomy[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedChild, setExpandedChild] = useState<number | null>(null);
@@ -68,6 +70,7 @@ export default function EconomySettings({ children }: Props) {
       setEconomies(results.filter(Boolean) as ChildEconomy[]);
     } catch (error) {
       console.error('Failed to load economy data:', error);
+      toast.error('Failed to load economy settings');
     } finally {
       setLoading(false);
     }
@@ -109,8 +112,11 @@ export default function EconomySettings({ children }: Props) {
         return next;
       });
       await loadEconomyData();
+      const savedChild = economies.find(economy => economy.profileId === profileId);
+      toast.success(`Saved economy controls for ${savedChild?.name || 'child'}`);
     } catch (error) {
       console.error('Failed to save settings:', error);
+      toast.error('Failed to save economy settings');
     } finally {
       setSaving(null);
     }
@@ -118,6 +124,15 @@ export default function EconomySettings({ children }: Props) {
 
   const getEffectiveValue = (profileId: number, key: keyof EconomySettingsType, original: any) => {
     return editedSettings[profileId]?.[key] ?? original;
+  };
+
+  const getSafeNumberInputValue = (
+    value: string,
+    fallback: number,
+    parser: (raw: string) => number
+  ) => {
+    const parsed = parser(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
   };
 
   const hasChanges = (profileId: number) => {
@@ -239,7 +254,15 @@ export default function EconomySettings({ children }: Props) {
                         min="10"
                         max="1000"
                         value={getEffectiveValue(economy.profileId, 'daily_points_cap', economy.settings.daily_points_cap)}
-                        onChange={(e) => handleSettingChange(economy.profileId, 'daily_points_cap', parseInt(e.target.value))}
+                        onChange={(e) => handleSettingChange(
+                          economy.profileId,
+                          'daily_points_cap',
+                          getSafeNumberInputValue(
+                            e.target.value,
+                            getEffectiveValue(economy.profileId, 'daily_points_cap', economy.settings.daily_points_cap),
+                            (raw) => Number.parseInt(raw, 10)
+                          )
+                        )}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       <p className="text-xs text-gray-500 mt-1">Max points per day</p>
@@ -254,7 +277,15 @@ export default function EconomySettings({ children }: Props) {
                         min="50"
                         max="5000"
                         value={getEffectiveValue(economy.profileId, 'weekly_points_cap', economy.settings.weekly_points_cap)}
-                        onChange={(e) => handleSettingChange(economy.profileId, 'weekly_points_cap', parseInt(e.target.value))}
+                        onChange={(e) => handleSettingChange(
+                          economy.profileId,
+                          'weekly_points_cap',
+                          getSafeNumberInputValue(
+                            e.target.value,
+                            getEffectiveValue(economy.profileId, 'weekly_points_cap', economy.settings.weekly_points_cap),
+                            (raw) => Number.parseInt(raw, 10)
+                          )
+                        )}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       <p className="text-xs text-gray-500 mt-1">Max points per week</p>
@@ -273,7 +304,15 @@ export default function EconomySettings({ children }: Props) {
                         min="5"
                         max="300"
                         value={getEffectiveValue(economy.profileId, 'cooldown_seconds', economy.settings.cooldown_seconds)}
-                        onChange={(e) => handleSettingChange(economy.profileId, 'cooldown_seconds', parseInt(e.target.value))}
+                        onChange={(e) => handleSettingChange(
+                          economy.profileId,
+                          'cooldown_seconds',
+                          getSafeNumberInputValue(
+                            e.target.value,
+                            getEffectiveValue(economy.profileId, 'cooldown_seconds', economy.settings.cooldown_seconds),
+                            (raw) => Number.parseInt(raw, 10)
+                          )
+                        )}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       <p className="text-xs text-gray-500 mt-1">Wait between tasks</p>
@@ -288,7 +327,15 @@ export default function EconomySettings({ children }: Props) {
                         min="1"
                         max="60"
                         value={getEffectiveValue(economy.profileId, 'min_task_duration_minutes', economy.settings.min_task_duration_minutes)}
-                        onChange={(e) => handleSettingChange(economy.profileId, 'min_task_duration_minutes', parseInt(e.target.value))}
+                        onChange={(e) => handleSettingChange(
+                          economy.profileId,
+                          'min_task_duration_minutes',
+                          getSafeNumberInputValue(
+                            e.target.value,
+                            getEffectiveValue(economy.profileId, 'min_task_duration_minutes', economy.settings.min_task_duration_minutes),
+                            (raw) => Number.parseInt(raw, 10)
+                          )
+                        )}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       <p className="text-xs text-gray-500 mt-1">For timed tasks</p>
@@ -363,6 +410,22 @@ export default function EconomySettings({ children }: Props) {
                         type="checkbox"
                         checked={getEffectiveValue(economy.profileId, 'spin_wheel_enabled', economy.settings.spin_wheel_enabled)}
                         onChange={(e) => handleSettingChange(economy.profileId, 'spin_wheel_enabled', e.target.checked)}
+                        className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
+                      />
+                    </label>
+
+                    <label className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                      <div className="flex items-center space-x-2">
+                        <Zap size={18} className="text-gray-500" />
+                        <div>
+                          <p className="font-medium text-gray-900">Countdown Challenges Enabled</p>
+                          <p className="text-xs text-gray-500">Allow time-limited challenge boosts</p>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={getEffectiveValue(economy.profileId, 'countdown_challenges_enabled', economy.settings.countdown_challenges_enabled)}
+                        onChange={(e) => handleSettingChange(economy.profileId, 'countdown_challenges_enabled', e.target.checked)}
                         className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500"
                       />
                     </label>

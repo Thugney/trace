@@ -9,7 +9,7 @@ import playSounds from '../utils/sounds';
 interface OverdueTask {
   id: number;
   title: string;
-  scheduled_time: string;
+  due_at: string;
   points: number;
 }
 
@@ -25,6 +25,40 @@ interface ChildPoints {
 interface Props {
   children: Profile[];
   parentId: number;
+}
+
+function parseLocalDateValue(value?: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    return new Date(
+      Number(dateMatch[1]),
+      Number(dateMatch[2]) - 1,
+      Number(dateMatch[3])
+    );
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getTaskDueAt(task: Task): Date | null {
+  const dueDate = parseLocalDateValue(task.due_date);
+  if (!dueDate) {
+    return null;
+  }
+
+  const timeMatch = task.scheduled_time?.match(/^(\d{1,2}):(\d{2})$/);
+  if (timeMatch) {
+    dueDate.setHours(Number(timeMatch[1]), Number(timeMatch[2]), 0, 0);
+    return dueDate;
+  }
+
+  dueDate.setHours(23, 59, 59, 999);
+  return dueDate;
 }
 
 export default function PointsManagement({ children, parentId }: Props) {
@@ -78,14 +112,18 @@ export default function PointsManagement({ children, parentId }: Props) {
             const overdueTasks: OverdueTask[] = (tasksRes.data || [])
               .filter((task: Task) => {
                 if (task.completed) return false;
-                if (!task.scheduled_time) return false;
-                const scheduledTime = new Date(task.scheduled_time);
-                return scheduledTime < now;
+                const dueAt = getTaskDueAt(task);
+                return !!dueAt && dueAt.getTime() < now.getTime();
+              })
+              .sort((left: Task, right: Task) => {
+                const leftDueAt = getTaskDueAt(left)?.getTime() || 0;
+                const rightDueAt = getTaskDueAt(right)?.getTime() || 0;
+                return leftDueAt - rightDueAt;
               })
               .map((task: Task) => ({
                 id: task.id,
                 title: task.title,
-                scheduled_time: task.scheduled_time!,
+                due_at: getTaskDueAt(task)!.toISOString(),
                 points: task.points || 10
               }));
 
@@ -349,7 +387,7 @@ export default function PointsManagement({ children, parentId }: Props) {
                       <option value="">Select an overdue task...</option>
                       {child.overdueTasks.map((task) => (
                         <option key={task.id} value={task.id}>
-                          {task.title} (was due {formatDate(task.scheduled_time!)})
+                          {task.title} (was due {formatDate(task.due_at)})
                         </option>
                       ))}
                     </select>

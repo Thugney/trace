@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { awardPoints, getCurrentTotalPoints } from '../services/economyControl.js';
+import { awardPoints, getEconomySettings, updateEconomySettings } from '../services/economyControl.js';
 import { createTestProfile, createTestProgress } from './helpers.js';
 import { testDb } from './setup.js';
 
@@ -21,7 +21,8 @@ describe('economy control', () => {
     });
 
     expect(quizAward.awarded).toBe(10);
-    expect(getCurrentTotalPoints(child.id)).toBe(10);
+    expect(quizAward.newTotal).toBe(10);
+    expect(testDb.prepare('SELECT total_points FROM progress WHERE profile_id = ? ORDER BY id DESC LIMIT 1').get(child.id)).toEqual({ total_points: 10 });
     expect(testDb.prepare('SELECT COUNT(*) as count FROM power_ups WHERE profile_id = ?').get(child.id)).toEqual({ count: 1 });
 
     const taskAward = awardPoints({
@@ -33,7 +34,8 @@ describe('economy control', () => {
     });
 
     expect(taskAward.awarded).toBe(20);
-    expect(getCurrentTotalPoints(child.id)).toBe(30);
+    expect(taskAward.newTotal).toBe(30);
+    expect(testDb.prepare('SELECT total_points FROM progress WHERE profile_id = ? ORDER BY id DESC LIMIT 1').get(child.id)).toEqual({ total_points: 30 });
     expect(testDb.prepare('SELECT COUNT(*) as count FROM power_ups WHERE profile_id = ?').get(child.id)).toEqual({ count: 0 });
 
     const followUpTaskAward = awardPoints({
@@ -44,6 +46,35 @@ describe('economy control', () => {
     });
 
     expect(followUpTaskAward.awarded).toBe(10);
-    expect(getCurrentTotalPoints(child.id)).toBe(40);
+    expect(followUpTaskAward.newTotal).toBe(40);
+    expect(testDb.prepare('SELECT total_points FROM progress WHERE profile_id = ? ORDER BY id DESC LIMIT 1').get(child.id)).toEqual({ total_points: 40 });
+  });
+
+  it('ignores invalid economy numeric updates and preserves prior settings', () => {
+    const child = createTestProfile({ name: 'Economy Kid', type: 'child' });
+
+    updateEconomySettings(child.id, {
+      daily_points_cap: 250,
+      weekly_points_cap: 1200,
+      points_multiplier: 1.5,
+      cooldown_seconds: 20,
+      min_task_duration_minutes: 8
+    });
+
+    updateEconomySettings(child.id, {
+      daily_points_cap: Number.NaN,
+      weekly_points_cap: Number.POSITIVE_INFINITY,
+      points_multiplier: Number.NaN,
+      cooldown_seconds: Number.NaN,
+      min_task_duration_minutes: Number.NaN
+    });
+
+    const settings = getEconomySettings(child.id);
+
+    expect(settings.daily_points_cap).toBe(250);
+    expect(settings.weekly_points_cap).toBe(1200);
+    expect(settings.points_multiplier).toBe(1.5);
+    expect(settings.cooldown_seconds).toBe(20);
+    expect(settings.min_task_duration_minutes).toBe(8);
   });
 });

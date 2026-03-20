@@ -1326,26 +1326,33 @@ export function initDatabase() {
     console.error('Migration error (school_only_mode setting):', error.message);
   }
 
-  // Migration: Ensure ALL features are enabled for ALL profiles
-  // This runs on every startup to ensure no features are missing
+  // Migration: Backfill missing profile feature rows once for legacy profiles.
+  // Do not run this on every startup, because admin-controlled feature state must not drift on restart.
   try {
-    const profiles: any[] = db.prepare('SELECT id FROM profiles').all();
-    const upsertFeature = db.prepare(`
-      INSERT INTO profile_features (profile_id, feature_key, enabled)
-      VALUES (?, ?, 1)
-      ON CONFLICT(profile_id, feature_key) DO NOTHING
-    `);
+    const migrationKey = 'migration_profile_features_backfilled';
+    const migrationRun: any = db.prepare('SELECT value FROM settings WHERE key = ?').get(migrationKey);
 
-    let insertedCount = 0;
-    profiles.forEach(profile => {
-      FEATURE_KEYS.forEach(featureKey => {
-        const result = upsertFeature.run(profile.id, featureKey);
-        if (result.changes > 0) insertedCount++;
+    if (!migrationRun) {
+      const profiles: any[] = db.prepare('SELECT id FROM profiles').all();
+      const upsertFeature = db.prepare(`
+        INSERT INTO profile_features (profile_id, feature_key, enabled)
+        VALUES (?, ?, 1)
+        ON CONFLICT(profile_id, feature_key) DO NOTHING
+      `);
+
+      let insertedCount = 0;
+      profiles.forEach(profile => {
+        FEATURE_KEYS.forEach(featureKey => {
+          const result = upsertFeature.run(profile.id, featureKey);
+          if (result.changes > 0) insertedCount++;
+        });
       });
-    });
 
-    if (insertedCount > 0) {
-      console.log(`✅ Enabled ${insertedCount} missing feature entries for profiles`);
+      db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run(migrationKey, 'completed');
+
+      if (insertedCount > 0) {
+        console.log(`✅ Backfilled ${insertedCount} missing feature entries for legacy profiles`);
+      }
     }
   } catch (error: any) {
     console.error('Migration error (profile feature seed):', error.message);

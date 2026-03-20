@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { Profile } from '../types';
 import { profilesAPI } from '../services/api';
 
@@ -31,7 +31,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setCurrentProfileState(profile);
   };
 
-  const refreshProfiles = async () => {
+  const refreshProfiles = useCallback(async () => {
     // Check if user is authenticated
     const authToken = localStorage.getItem('family_auth');
 
@@ -59,7 +59,44 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         console.error('Failed to fetch profiles from selector:', fallbackError);
       }
     }
-  };
+  }, []);
+
+  const refreshCurrentProfile = useCallback(async (profileId?: number) => {
+    const activeProfileId = profileId ?? currentProfile?.id;
+
+    if (!activeProfileId) {
+      return;
+    }
+
+    try {
+      const response = await profilesAPI.getOne(activeProfileId);
+      const refreshedProfile = response.data;
+
+      setCurrentProfileState(prev => {
+        if (!prev || prev.id !== activeProfileId) {
+          return prev;
+        }
+        return refreshedProfile;
+      });
+
+      setProfiles(prev => {
+        if (!prev.some(profile => profile.id === refreshedProfile.id)) {
+          return prev;
+        }
+
+        return prev.map(profile =>
+          profile.id === refreshedProfile.id
+            ? { ...profile, ...refreshedProfile }
+            : profile
+        );
+      });
+    } catch (error: any) {
+      const statusCode = error?.response?.status;
+      if (statusCode !== 401 && statusCode !== 403) {
+        console.error('Failed to refresh active profile:', error);
+      }
+    }
+  }, [currentProfile?.id]);
 
   // Load profiles on mount (always load - use public endpoint if not authenticated)
   useEffect(() => {
@@ -73,17 +110,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const refreshIfAuthenticated = () => {
+    const refreshSessionState = () => {
+      if (currentProfile) {
+        refreshCurrentProfile(currentProfile.id);
+      }
+
       if (localStorage.getItem('family_auth') === 'true') {
         refreshProfiles();
       }
     };
 
-    const intervalId = setInterval(refreshIfAuthenticated, 5 * 60 * 1000);
-    const handleFocus = () => refreshIfAuthenticated();
+    const intervalId = setInterval(refreshSessionState, 5 * 60 * 1000);
+    const handleFocus = () => refreshSessionState();
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        refreshIfAuthenticated();
+        refreshSessionState();
       }
     };
 
@@ -94,7 +135,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [refreshProfiles]);
+  }, [currentProfile, refreshCurrentProfile, refreshProfiles]);
 
   // Restore saved profile when profiles are loaded OR update current profile when profiles change
   useEffect(() => {
@@ -138,11 +179,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (previousProfileIdRef.current !== currentProfile.id) {
         previousProfileIdRef.current = currentProfile.id;
         refreshProfiles();
+        refreshCurrentProfile(currentProfile.id);
       }
     } else {
       previousProfileIdRef.current = null;
     }
-  }, [currentProfile]);
+  }, [currentProfile, refreshCurrentProfile, refreshProfiles]);
 
   const isParent = currentProfile?.type === 'parent';
   const isAdmin = currentProfile?.type === 'admin';

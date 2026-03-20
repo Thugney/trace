@@ -4,6 +4,7 @@ import request from 'supertest';
 import { createTestProfile, createTestProgress, createTestStreak, createTestAchievement } from './helpers.js';
 import { testDb } from './setup.js';
 import gamificationRouter from '../routes/gamification.js';
+import { updateEconomySettings } from '../services/economyControl.js';
 
 // Create test app
 function createTestApp() {
@@ -221,6 +222,136 @@ describe('Gamification Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.length).toBeGreaterThanOrEqual(1);
       expect(response.body.some((s: any) => s.streak_type === 'tasks')).toBe(true);
+    });
+  });
+
+  describe('Parent point and economy controls', () => {
+    it('allows a parent to update child economy settings, including countdown challenges', async () => {
+      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+      const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+
+      enableGamification(parent.id);
+      enableGamification(child.id);
+
+      const response = await request(app)
+        .put(`/gamification/economy/${child.id}`)
+        .set('x-profile-id', String(parent.id))
+        .send({
+          dailyPointsCap: 180,
+          weeklyPointsCap: 900,
+          pointsMultiplier: 1.3,
+          requireTimeElapsed: false,
+          minTaskDuration: 7,
+          cooldownSeconds: 15,
+          bonusesEnabled: true,
+          spinWheelEnabled: false,
+          countdownChallengesEnabled: false
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.settings).toMatchObject({
+        daily_points_cap: 180,
+        weekly_points_cap: 900,
+        points_multiplier: 1.3,
+        require_time_elapsed: false,
+        min_task_duration_minutes: 7,
+        cooldown_seconds: 15,
+        bonuses_enabled: true,
+        spin_wheel_enabled: false,
+        countdown_challenges_enabled: false
+      });
+    });
+
+    it('lets a parent add points to a managed child even when earning caps are already reached', async () => {
+      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+      const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+
+      enableGamification(parent.id);
+      enableGamification(child.id);
+      createTestProgress(child.id, { total_points: 20, total_stars: 0, level: 1 });
+
+      updateEconomySettings(child.id, {
+        daily_points_cap: 5,
+        weekly_points_cap: 5
+      });
+
+      const today = new Date().toISOString().split('T')[0];
+      testDb.prepare(`
+        INSERT INTO earning_tracker (profile_id, date, points_earned, stars_earned, tasks_completed, bonuses_claimed)
+        VALUES (?, ?, 5, 0, 0, 0)
+      `).run(child.id, today);
+
+      const relatedTaskId = Number(testDb.prepare(`
+        INSERT INTO tasks (profile_id, title, category, points, due_date, completed)
+        VALUES (?, 'Missed Chore', 'chore', 10, '2099-01-01', 0)
+      `).run(child.id).lastInsertRowid);
+
+      const response = await request(app)
+        .post(`/gamification/points/adjust/${child.id}`)
+        .set('x-profile-id', String(parent.id))
+        .send({
+          amount: 10,
+          reason: 'Bonus for helping without being asked',
+          related_task_id: relatedTaskId
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.adjustment).toBe(10);
+      expect(response.body.previous_points).toBe(20);
+      expect(response.body.new_points).toBe(30);
+
+      expect(testDb.prepare(`
+        SELECT amount, related_task_id
+        FROM points_adjustments
+        WHERE profile_id = ?
+        ORDER BY id DESC
+        LIMIT 1
+      `).get(child.id)).toEqual({
+        amount: 10,
+        related_task_id: relatedTaskId
+      });
+    });
+
+    it('blocks unrelated parents from adjusting a child points balance', async () => {
+      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+      const unrelatedParent = createTestProfile({ name: 'Other Parent', type: 'parent' });
+      const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+
+      enableGamification(parent.id);
+      enableGamification(unrelatedParent.id);
+      enableGamification(child.id);
+      createTestProgress(child.id, { total_points: 20, total_stars: 0, level: 1 });
+
+      const response = await request(app)
+        .post(`/gamification/points/adjust/${child.id}`)
+        .set('x-profile-id', String(unrelatedParent.id))
+        .send({
+          amount: -5,
+          reason: 'Not your child'
+        });
+
+      expect(response.status).toBe(403);
+      expect(response.body.error).toContain('own children');
+    });
+
+    it('rejects non-whole-number point adjustments', async () => {
+      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+      const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+
+      enableGamification(parent.id);
+      enableGamification(child.id);
+      createTestProgress(child.id, { total_points: 20, total_stars: 0, level: 1 });
+
+      const response = await request(app)
+        .post(`/gamification/points/adjust/${child.id}`)
+        .set('x-profile-id', String(parent.id))
+        .send({
+          amount: 2.5,
+          reason: 'Fractional points should fail'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('whole number');
     });
   });
 });

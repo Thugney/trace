@@ -48,6 +48,55 @@ interface ActivePowerUpRow {
   quantity: number;
 }
 
+function toFiniteNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeIntegerSetting(value: unknown, minimum: number, maximum?: number): number | undefined {
+  const parsed = toFiniteNumber(value);
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  const rounded = Math.round(parsed);
+  return maximum === undefined
+    ? Math.max(minimum, rounded)
+    : Math.min(maximum, Math.max(minimum, rounded));
+}
+
+function normalizeMultiplierSetting(value: unknown): number | undefined {
+  const parsed = toFiniteNumber(value);
+  if (parsed === undefined) {
+    return undefined;
+  }
+
+  const normalized = Math.max(0.1, Math.min(2.0, parsed));
+  return Math.round(normalized * 10) / 10;
+}
+
+function normalizeBooleanSetting(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') {
+      return 1;
+    }
+    if (normalized === 'false') {
+      return 0;
+    }
+  }
+
+  return value ? 1 : 0;
+}
+
 /**
  * Get economy settings for a profile (creates defaults if not exists)
  */
@@ -101,41 +150,50 @@ export function updateEconomySettings(profileId: number, updates: Partial<Econom
   const fields: string[] = [];
   const values: any[] = [];
 
-  if (updates.daily_points_cap !== undefined) {
+  const normalizedDailyCap = normalizeIntegerSetting(updates.daily_points_cap, 10);
+  if (normalizedDailyCap !== undefined) {
     fields.push('daily_points_cap = ?');
-    values.push(Math.max(10, updates.daily_points_cap)); // Minimum 10
+    values.push(normalizedDailyCap);
   }
-  if (updates.weekly_points_cap !== undefined) {
+  const normalizedWeeklyCap = normalizeIntegerSetting(updates.weekly_points_cap, 50);
+  if (normalizedWeeklyCap !== undefined) {
     fields.push('weekly_points_cap = ?');
-    values.push(Math.max(50, updates.weekly_points_cap)); // Minimum 50
+    values.push(normalizedWeeklyCap);
   }
-  if (updates.points_multiplier !== undefined) {
+  const normalizedMultiplier = normalizeMultiplierSetting(updates.points_multiplier);
+  if (normalizedMultiplier !== undefined) {
     fields.push('points_multiplier = ?');
-    values.push(Math.max(0.1, Math.min(2.0, updates.points_multiplier))); // 0.1 to 2.0
+    values.push(normalizedMultiplier);
   }
-  if (updates.require_time_elapsed !== undefined) {
+  const normalizedRequireTimeElapsed = normalizeBooleanSetting(updates.require_time_elapsed);
+  if (normalizedRequireTimeElapsed !== undefined) {
     fields.push('require_time_elapsed = ?');
-    values.push(updates.require_time_elapsed ? 1 : 0);
+    values.push(normalizedRequireTimeElapsed);
   }
-  if (updates.min_task_duration_minutes !== undefined) {
+  const normalizedMinTaskDuration = normalizeIntegerSetting(updates.min_task_duration_minutes, 1);
+  if (normalizedMinTaskDuration !== undefined) {
     fields.push('min_task_duration_minutes = ?');
-    values.push(Math.max(1, updates.min_task_duration_minutes));
+    values.push(normalizedMinTaskDuration);
   }
-  if (updates.cooldown_seconds !== undefined) {
+  const normalizedCooldown = normalizeIntegerSetting(updates.cooldown_seconds, 5);
+  if (normalizedCooldown !== undefined) {
     fields.push('cooldown_seconds = ?');
-    values.push(Math.max(5, updates.cooldown_seconds)); // Minimum 5 seconds
+    values.push(normalizedCooldown);
   }
-  if (updates.bonuses_enabled !== undefined) {
+  const normalizedBonuses = normalizeBooleanSetting(updates.bonuses_enabled);
+  if (normalizedBonuses !== undefined) {
     fields.push('bonuses_enabled = ?');
-    values.push(updates.bonuses_enabled ? 1 : 0);
+    values.push(normalizedBonuses);
   }
-  if (updates.spin_wheel_enabled !== undefined) {
+  const normalizedSpinWheel = normalizeBooleanSetting(updates.spin_wheel_enabled);
+  if (normalizedSpinWheel !== undefined) {
     fields.push('spin_wheel_enabled = ?');
-    values.push(updates.spin_wheel_enabled ? 1 : 0);
+    values.push(normalizedSpinWheel);
   }
-  if (updates.countdown_challenges_enabled !== undefined) {
+  const normalizedCountdownChallenges = normalizeBooleanSetting(updates.countdown_challenges_enabled);
+  if (normalizedCountdownChallenges !== undefined) {
     fields.push('countdown_challenges_enabled = ?');
-    values.push(updates.countdown_challenges_enabled ? 1 : 0);
+    values.push(normalizedCountdownChallenges);
   }
 
   if (fields.length > 0) {
@@ -613,7 +671,7 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
   // Get current progress for calculating new totals
   const currentProgress: any = db.prepare(`
     SELECT total_points, total_stars, level FROM progress
-    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
   `).get(profileId);
 
   const currentTotalPoints = currentProgress?.total_points || 0;
@@ -675,7 +733,7 @@ export function awardPoints(options: AwardPointsOptions): AwardPointsResult {
 export function getCurrentTotalPoints(profileId: number): number {
   const progress: any = db.prepare(`
     SELECT total_points FROM progress
-    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
   `).get(profileId);
   return progress?.total_points || 0;
 }
@@ -686,7 +744,7 @@ export function getCurrentTotalPoints(profileId: number): number {
 export function getCurrentLevel(profileId: number): number {
   const progress: any = db.prepare(`
     SELECT level FROM progress
-    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
   `).get(profileId);
   return progress?.level || 1;
 }
@@ -697,7 +755,7 @@ export function getCurrentLevel(profileId: number): number {
 export function getCurrentTotalStars(profileId: number): number {
   const progress: any = db.prepare(`
     SELECT total_stars FROM progress
-    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
   `).get(profileId);
   return progress?.total_stars || 0;
 }

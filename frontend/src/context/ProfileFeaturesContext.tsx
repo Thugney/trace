@@ -23,6 +23,54 @@ export const FEATURE_TO_PATH: Record<string, string[]> = {
   diet: ['/diet'],
 };
 
+const FEATURE_CACHE_PREFIX = 'profile_features_cache:';
+const KNOWN_FEATURE_KEYS = Object.keys(FEATURE_TO_PATH);
+
+const buildFailSafeFeatures = () => {
+  return KNOWN_FEATURE_KEYS.reduce((acc, featureKey) => {
+    acc[featureKey] = false;
+    return acc;
+  }, {} as Record<string, boolean>);
+};
+
+const getFeatureCacheKey = (profileId: number) => `${FEATURE_CACHE_PREFIX}${profileId}`;
+
+const readCachedFeatures = (profileId: number) => {
+  try {
+    const cached = localStorage.getItem(getFeatureCacheKey(profileId));
+    if (!cached) {
+      return null;
+    }
+
+    const parsed = JSON.parse(cached) as {
+      features?: Record<string, boolean>;
+      role?: string | null;
+    };
+
+    if (!parsed.features || typeof parsed.features !== 'object') {
+      return null;
+    }
+
+    return {
+      features: parsed.features,
+      role: parsed.role ?? null
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedFeatures = (profileId: number, features: Record<string, boolean>, role: string | null) => {
+  try {
+    localStorage.setItem(
+      getFeatureCacheKey(profileId),
+      JSON.stringify({ features, role })
+    );
+  } catch {
+    // Ignore storage failures and keep runtime state authoritative.
+  }
+};
+
 // Reverse map: path to feature key
 export const PATH_TO_FEATURE: Record<string, string> = {};
 Object.entries(FEATURE_TO_PATH).forEach(([feature, paths]) => {
@@ -44,8 +92,8 @@ const defaultContext: ProfileFeaturesContextType = {
   features: {},
   loading: true,
   role: null,
-  isFeatureEnabled: () => true, // Default to true until loaded
-  isPathEnabled: () => true,
+  isFeatureEnabled: () => false,
+  isPathEnabled: () => false,
   refreshFeatures: async () => {},
 };
 
@@ -65,14 +113,24 @@ export function ProfileFeaturesProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setLoading(true);
+    setRole(currentProfile.type);
+
     try {
       const response = await profilesAPI.getMyFeatures();
       setFeatures(response.data.features);
       setRole(response.data.role);
+      writeCachedFeatures(currentProfile.id, response.data.features, response.data.role);
     } catch (error) {
       console.error('Failed to load profile features:', error);
-      // On error, default to all enabled to not break the app
-      setFeatures({});
+      const cached = readCachedFeatures(currentProfile.id);
+
+      if (cached) {
+        setFeatures(cached.features);
+        setRole(cached.role ?? currentProfile.type);
+      } else {
+        setFeatures(buildFailSafeFeatures());
+      }
     } finally {
       setLoading(false);
     }
@@ -83,12 +141,10 @@ export function ProfileFeaturesProvider({ children }: { children: ReactNode }) {
   }, [refreshFeatures, currentProfile?.id]);
 
   const isFeatureEnabled = useCallback((featureKey: string): boolean => {
-    // If still loading or no features loaded, default to true
-    if (loading || Object.keys(features).length === 0) return true;
     // Admin always has access
     if (role === 'admin') return true;
-    // Check feature
-    return features[featureKey] !== false;
+    if (loading && Object.keys(features).length === 0) return false;
+    return features[featureKey] === true;
   }, [features, loading, role]);
 
   const isPathEnabled = useCallback((path: string): boolean => {

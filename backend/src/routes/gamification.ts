@@ -67,6 +67,16 @@ function getLeaderboardPeriodStartDate(period: unknown): string | null {
   return formatSqlLocalDate(monthStart);
 }
 
+function parseWholePointAmount(value: unknown): number | null {
+  const parsed = typeof value === 'number' ? value : Number(value);
+
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed === 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
 // ==================== WATER INTAKE ====================
 
 // Log water intake
@@ -252,7 +262,7 @@ router.get('/stats/:profileId', (req: AuthRequest, res) => {
       SELECT total_points, total_stars, level
       FROM progress
       WHERE profile_id = ?
-      ORDER BY logged_at DESC LIMIT 1
+      ORDER BY logged_at DESC, id DESC LIMIT 1
     `).get(profileIdNum);
 
     // Get completed tasks count
@@ -336,7 +346,7 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
       // Get current total points (most recent record)
       const currentProgress: any = db.prepare(`
         SELECT total_points, total_stars, level FROM progress
-        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+        WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
       `).get(profile.id);
 
       const currentTotalPoints = currentProgress?.total_points || 0;
@@ -348,7 +358,7 @@ router.get('/family-leaderboard', (req: AuthRequest, res) => {
         const startOfPeriodProgress: any = db.prepare(`
           SELECT total_points FROM progress
           WHERE profile_id = ? AND DATE(logged_at, 'localtime') < DATE(?)
-          ORDER BY logged_at DESC LIMIT 1
+          ORDER BY logged_at DESC, id DESC LIMIT 1
         `).get(profile.id, periodStartDate);
 
         const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
@@ -460,7 +470,7 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
       // Get current total points
       const currentProgress: any = db.prepare(`
         SELECT total_points FROM progress
-        WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+        WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
       `).get(kid.id);
       const currentTotalPoints = currentProgress?.total_points || 0;
 
@@ -469,7 +479,7 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
         const startOfPeriodProgress: any = db.prepare(`
           SELECT total_points FROM progress
           WHERE profile_id = ? AND DATE(logged_at, 'localtime') < DATE(?)
-          ORDER BY logged_at DESC LIMIT 1
+          ORDER BY logged_at DESC, id DESC LIMIT 1
         `).get(kid.id, periodStartDate);
         const pointsAtPeriodStart = startOfPeriodProgress?.total_points || 0;
         periodPoints = currentTotalPoints - pointsAtPeriodStart;
@@ -576,7 +586,7 @@ function checkAchievements(profileId: number) {
   // Get profile stats
   const progress: any = db.prepare(`
     SELECT total_points, total_stars FROM progress
-    WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+    WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
   `).get(profileId);
 
   const tasks: any = db.prepare(`
@@ -940,11 +950,11 @@ router.get('/weekly-summary/:profileId', (req: AuthRequest, res) => {
     const weekStartProgress: any = db.prepare(`
       SELECT total_points FROM progress
       WHERE profile_id = ? AND DATE(logged_at) < DATE(?)
-      ORDER BY logged_at DESC LIMIT 1
+      ORDER BY logged_at DESC, id DESC LIMIT 1
     `).get(profileId, weekStartStr);
     const currentProgress: any = db.prepare(`
       SELECT total_points FROM progress
-      WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
     `).get(profileId);
     const pointsEarned = {
       total: (currentProgress?.total_points || 0) - (weekStartProgress?.total_points || 0)
@@ -1253,7 +1263,7 @@ router.get('/streak-freeze/:profileId', (req: AuthRequest, res) => {
 
     // Get current points
     const progress: any = db.prepare(`
-      SELECT total_points FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      SELECT total_points FROM progress WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
     `).get(profileId);
 
     const freezeCost = 50; // Cost in points
@@ -1403,6 +1413,15 @@ router.put('/economy/:profileId', (req: AuthRequest, res) => {
     const profileIdNum = parseInt(profileId, 10);
     const requester = req.profile!;
     const updates = req.body;
+    const targetProfile: any = db.prepare('SELECT id, type FROM profiles WHERE id = ?').get(profileIdNum);
+
+    if (!targetProfile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    if (targetProfile.type !== 'child') {
+      return res.status(400).json({ error: 'Economy settings can only be managed for child profiles' });
+    }
 
     if (requester.type !== 'parent' && requester.type !== 'admin') {
       return res.status(403).json({ error: 'Only parents or admins can update economy settings' });
@@ -1550,13 +1569,14 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     const { profileId } = req.params;
     const profileIdNum = parseInt(profileId, 10);
     const { amount, reason, related_task_id } = req.body;
+    const normalizedAmount = parseWholePointAmount(amount);
 
     // Validate input
-    if (amount === undefined || amount === 0) {
-      return res.status(400).json({ error: 'Amount is required and cannot be zero' });
+    if (normalizedAmount === null) {
+      return res.status(400).json({ error: 'Amount is required, must be a whole number, and cannot be zero' });
     }
 
-    if (!reason || reason.trim().length < 3) {
+    if (typeof reason !== 'string' || reason.trim().length < 3) {
       return res.status(400).json({ error: 'A reason is required (minimum 3 characters)' });
     }
 
@@ -1583,8 +1603,17 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
 
     // Get related task title if provided
     let relatedTaskTitle: string | undefined;
+    let relatedTaskId: number | null = null;
     if (related_task_id) {
-      const task: any = db.prepare('SELECT title FROM tasks WHERE id = ?').get(related_task_id);
+      relatedTaskId = Number.isInteger(related_task_id) ? related_task_id : Number.parseInt(String(related_task_id), 10);
+      if (!Number.isFinite(relatedTaskId)) {
+        return res.status(400).json({ error: 'Related task id must be a valid task id' });
+      }
+
+      const task: any = db.prepare('SELECT title FROM tasks WHERE id = ? AND profile_id = ?').get(relatedTaskId, profileIdNum);
+      if (!task) {
+        return res.status(400).json({ error: 'Related task must belong to the selected child' });
+      }
       relatedTaskTitle = task?.title;
     }
 
@@ -1595,7 +1624,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
     // Parent adjustments bypass caps but still go through the central system for consistency
     const awardResult = awardPoints({
       profileId: profileIdNum,
-      basePoints: amount,
+      basePoints: normalizedAmount,
       source: 'adjustment',
       bypassCaps: true,  // Parent adjustments bypass earning caps
       applyMultiplier: false,
@@ -1615,7 +1644,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
       db.prepare(`
         INSERT INTO points_adjustments (profile_id, adjusted_by, amount, reason, related_task_id, created_at)
         VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `).run(profileIdNum, parentId, awardResult.awarded, reason.trim(), related_task_id || null);
+      `).run(profileIdNum, parentId, awardResult.awarded, reason.trim(), relatedTaskId);
     } catch (insertError: any) {
       // If related_task_id column doesn't exist, try without it
       if (insertError.message.includes('related_task_id')) {
@@ -1633,10 +1662,10 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
 
     // Send notification to the child
     try {
-      if (amount < 0) {
+      if (normalizedAmount < 0) {
         await NotificationHelpers.pointsDeducted(
           profileIdNum,
-          Math.abs(amount),
+          Math.abs(awardResult.awarded),
           reason.trim(),
           parent.name,
           relatedTaskTitle
@@ -1644,7 +1673,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
       } else {
         await NotificationHelpers.pointsAdded(
           profileIdNum,
-          amount,
+          awardResult.awarded,
           reason.trim(),
           parent.name
         );
@@ -1656,7 +1685,7 @@ router.post('/points/adjust/:profileId', authenticate, async (req: AuthRequest, 
 
     res.json({
       success: true,
-      adjustment: amount,
+      adjustment: awardResult.awarded,
       reason: reason.trim(),
       previous_points: currentPoints,
       new_points: newPoints,
@@ -2018,7 +2047,7 @@ router.post('/spin-wheel/:profileId/spin', (req: AuthRequest, res) => {
 
     // Award the prize (with economy caps)
     const currentProgress: any = db.prepare(`
-      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
+      SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
     `).get(profileId);
 
     let pointsAwarded = 0;
