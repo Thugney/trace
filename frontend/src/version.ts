@@ -1,4 +1,7 @@
-// This file is auto-updated during version bumps
-// Version should match the root package.json version
-export const APP_VERSION = '1.0.0';
+import packageJson from '../package.json';
+
+export const APP_VERSION = packageJson.version;
 export const APP_NAME = 'Family Hub';
+export const APP_OWNER = 'BetiLab';
+export const APP_WEBSITE = 'https://eriteach.com';
+export const APP_DESCRIPTION = 'Tasks, rewards, goals, habits, and learning for families in one place.';

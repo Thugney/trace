@@ -8,6 +8,7 @@ import {
   SecuritySettings,
   FamilyProfiles,
   ChildSettings,
+  AboutSection,
   SettingsSection
 } from '../components/settings';
 
@@ -179,6 +180,8 @@ export default function Settings() {
             onRefresh={refreshProfiles}
           />
         );
+      case 'about':
+        return <AboutSection />;
       default:
         return null;
     }

@@ -1,99 +1,157 @@
-import { Heart, Code, Sparkles, Rocket, CheckCircle } from 'lucide-react';
+import {
+  BadgeCheck,
+  Building2,
+  ExternalLink,
+  Globe,
+  Info,
+  Layers3,
+  ShieldCheck
+} from 'lucide-react';
+import {
+  APP_DESCRIPTION,
+  APP_NAME,
+  APP_OWNER,
+  APP_VERSION,
+  APP_WEBSITE
+} from '../../version';
 
-const features = [
-  { emoji: '📋', title: 'Task Management', desc: 'Track and complete family tasks', color: 'from-blue-500 to-indigo-500' },
-  { emoji: '🥗', title: 'Diet Tracking', desc: 'Monitor healthy eating habits', color: 'from-emerald-500 to-teal-500' },
-  { emoji: '🤖', title: 'AI Assistant', desc: 'Smart help powered by Grok & Ollama', color: 'from-purple-500 to-pink-500' },
-  { emoji: '🎮', title: 'Gamification', desc: 'Points, rewards, and achievements', color: 'from-amber-500 to-orange-500' },
-  { emoji: '📚', title: 'Book Library', desc: 'AI-generated stories for kids', color: 'from-rose-500 to-red-500' },
-  { emoji: '🧠', title: 'Family Quizzes', desc: 'Learn together with fun quizzes', color: 'from-cyan-500 to-blue-500' }
+const highlights = [
+  {
+    icon: Layers3,
+    title: 'What It Does',
+    description: 'Family Hub helps parents and children manage tasks, rewards, goals, habits, and learning in one place.'
+  },
+  {
+    icon: ShieldCheck,
+    title: 'How It Works',
+    description: 'Parents set routines and approvals. Kids complete tasks, earn points, and request rewards or goals.'
+  },
+  {
+    icon: Building2,
+    title: 'Who Runs It',
+    description: 'This app is built and operated by BetiLab, with public company and product information available on Eriteach.'
+  }
+];
+
+const appFacts = [
+  { label: 'App', value: APP_NAME },
+  { label: 'Current Version', value: APP_VERSION },
+  { label: 'Owner', value: APP_OWNER },
+  { label: 'Website', value: 'eriteach.com' }
 ];
 
 export default function AboutSection() {
   return (
-    <div className="space-y-8">
-      {/* Hero Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 p-8 text-center">
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-br from-primary-500/20 to-violet-500/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-72 h-72 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-full translate-x-1/2 translate-y-1/2 blur-3xl" />
-
-        <div className="relative">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-violet-600 rounded-2xl shadow-2xl shadow-primary-500/30 mb-6">
-            <Sparkles className="text-white" size={36} />
+    <div className="space-y-6">
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
+        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.28),_transparent_55%)]" />
+        <div className="relative max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/80">
+            <Info size={14} />
+            About This App
           </div>
 
-          <h3 className="text-3xl font-bold text-white mb-2">
-            Family Learning Hub
-          </h3>
+          <h3 className="mt-4 text-3xl font-bold text-white">{APP_NAME}</h3>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+            {APP_DESCRIPTION}
+          </p>
 
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <span className="px-3 py-1 bg-white/10 backdrop-blur rounded-full text-sm text-white/80 font-medium">
-              Version 1.0.0
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
+              Version {APP_VERSION}
             </span>
-            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-sm font-medium flex items-center gap-1">
-              <CheckCircle size={14} />
-              Stable
+            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-300">
+              Owned by {APP_OWNER}
             </span>
-          </div>
-
-          <div className="flex items-center justify-center gap-2 text-white/60">
-            <Code size={16} />
-            <span>Built with React, TypeScript, and AI</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Features Grid */}
-      <div>
-        <h4 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <Rocket className="text-primary-500" size={20} />
-          Features
-        </h4>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, i) => (
-            <div
-              key={i}
-              className="group relative overflow-hidden p-4 bg-white rounded-xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all"
+            <a
+              href={APP_WEBSITE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
             >
-              <div className={`absolute inset-0 bg-gradient-to-r ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
-              <div className="relative flex items-start gap-3">
-                <span className="text-2xl flex-shrink-0">{feature.emoji}</span>
-                <div>
-                  <p className="font-semibold text-slate-900">{feature.title}</p>
-                  <p className="text-sm text-slate-500 mt-0.5">{feature.desc}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Tech Stack */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { name: 'React', icon: '⚛️' },
-          { name: 'TypeScript', icon: '🔷' },
-          { name: 'Node.js', icon: '🟢' },
-          { name: 'SQLite', icon: '🗃️' }
-        ].map((tech, i) => (
-          <div key={i} className="p-3 bg-slate-50 rounded-xl text-center">
-            <span className="text-2xl">{tech.icon}</span>
-            <p className="text-sm font-medium text-slate-600 mt-1">{tech.name}</p>
+              Visit eriteach.com
+              <ExternalLink size={14} />
+            </a>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Credits */}
-      <div className="relative overflow-hidden p-6 bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl border border-rose-100 text-center">
-        <div className="flex items-center justify-center gap-2 text-slate-700">
-          <span className="font-medium">Made with</span>
-          <Heart className="text-rose-500 animate-pulse" size={20} fill="currentColor" />
-          <span className="font-medium">for families everywhere</span>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {highlights.map((highlight) => {
+          const Icon = highlight.icon;
+          return (
+            <div
+              key={highlight.title}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-sky-50 p-3 text-sky-700">
+                  <Icon size={20} />
+                </div>
+                <h4 className="font-semibold text-slate-900">{highlight.title}</h4>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-slate-600">{highlight.description}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
+              <BadgeCheck size={20} />
+            </div>
+            <h4 className="font-semibold text-slate-900">What Families Use It For</h4>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="font-medium text-slate-900">Daily routines</p>
+              <p className="mt-1 text-sm text-slate-600">Tasks, checklists, and accountability for home routines.</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="font-medium text-slate-900">Rewards and motivation</p>
+              <p className="mt-1 text-sm text-slate-600">Points, rewards, approvals, and goal tracking with parent control.</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="font-medium text-slate-900">Learning and habits</p>
+              <p className="mt-1 text-sm text-slate-600">Books, quizzes, habits, and structured family learning activities.</p>
+            </div>
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <p className="font-medium text-slate-900">Parent oversight</p>
+              <p className="mt-1 text-sm text-slate-600">Approvals, controls, notifications, and family progress visibility.</p>
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-slate-500 mt-2">
-          A comprehensive family management solution for modern households
-        </p>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-amber-50 p-3 text-amber-700">
+              <Globe size={20} />
+            </div>
+            <h4 className="font-semibold text-slate-900">App Information</h4>
+          </div>
+          <dl className="mt-5 space-y-3">
+            {appFacts.map((fact) => (
+              <div
+                key={fact.label}
+                className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3"
+              >
+                <dt className="text-sm text-slate-500">{fact.label}</dt>
+                <dd className="text-sm font-medium text-slate-900">{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <a
+            href={APP_WEBSITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800"
+          >
+            Open public website
+            <ExternalLink size={14} />
+          </a>
+        </div>
       </div>
     </div>
   );

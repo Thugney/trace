@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Camera, Save, Loader2, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { Camera, Save, Loader2, Lock, Eye, EyeOff, Shield, Info, ExternalLink } from 'lucide-react';
 import Avatar from '../Avatar';
 import ReminderWidget from '../kids/ReminderWidget';
 import { Profile } from '../../types';
 import { profilesAPI, ReminderPreferences } from '../../services/api';
+import { APP_NAME, APP_OWNER, APP_VERSION, APP_WEBSITE } from '../../version';
 
 interface ChildSettingsProps {
   profile: Profile;
@@ -289,6 +290,24 @@ export default function ChildSettings({
               <strong>Note:</strong> Some settings can only be changed by your parents.
             </p>
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-sky-600" />
+            <p className="text-sm font-semibold text-slate-900">{APP_NAME}</p>
+          </div>
+          <p className="mt-2 text-xs text-slate-500">Version {APP_VERSION}</p>
+          <p className="mt-1 text-xs text-slate-500">Owned and operated by {APP_OWNER}</p>
+          <a
+            href={APP_WEBSITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-sky-700 hover:text-sky-800"
+          >
+            Visit eriteach.com
+            <ExternalLink size={12} />
+          </a>
         </div>
       </div>
     </div>
