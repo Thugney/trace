@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, schoolAPI, regularSchoolAPI } from '../services/api';
+import { extractDateOnly, formatDateOnlyForDisplay, getLocalDateKey } from '../utils/date-only';
 import type { Profile, SchoolSubject, SchoolAssignment, SchoolClass, SchoolFeedback, SchoolSubmission, SchoolAttachment, RegularSchoolSubject, RegularSchoolHomework, RegularSchoolStats } from '../types';
 
 type AssignmentFormState = {
@@ -52,9 +53,7 @@ const assignmentTypes: Array<{ value: AssignmentFormState['type']; label: string
 
 const formatDate = (value?: string | null) => {
   if (!value) return 'No due date';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDateOnlyForDisplay(value, 'en-US');
 };
 
 export default function School() {
@@ -713,8 +712,8 @@ export default function School() {
   };
 
   const isOverdue = (dueDate?: string | null) => {
-    if (!dueDate) return false;
-    return new Date(dueDate) < new Date();
+    const dueDateKey = extractDateOnly(dueDate);
+    return !!dueDateKey && dueDateKey < getLocalDateKey();
   };
 
   if (loading) {
@@ -1340,7 +1339,11 @@ export default function School() {
                                 </div>
 
                                 {/* On-time bonus indicator */}
-                                {assignment?.due_date && new Date(submission.submitted_at) <= new Date(assignment.due_date) && (
+                                {assignment?.due_date && (() => {
+                                  const submittedDate = extractDateOnly(submission.submitted_at);
+                                  const assignmentDate = extractDateOnly(assignment.due_date);
+                                  return !!submittedDate && !!assignmentDate && submittedDate <= assignmentDate;
+                                })() && (
                                   <div className="mt-2 text-sm text-emerald-600 flex items-center gap-1">
                                     <span>⭐</span> On-time bonus: +{Math.round(maxPoints * 0.1)} points will be added automatically!
                                   </div>
@@ -2246,9 +2249,10 @@ export default function School() {
                 ) : (
                   <div className="space-y-3">
                     {regularHomework.map(hw => {
-                      const isOverdueHw = hw.status === 'pending' && hw.due_date && new Date(hw.due_date) < new Date();
-                      const isDueToday = hw.status === 'pending' && hw.due_date &&
-                        new Date(hw.due_date).toDateString() === new Date().toDateString();
+                      const dueDateKey = extractDateOnly(hw.due_date);
+                      const todayKey = getLocalDateKey();
+                      const isOverdueHw = hw.status === 'pending' && !!dueDateKey && dueDateKey < todayKey;
+                      const isDueToday = hw.status === 'pending' && !!dueDateKey && dueDateKey === todayKey;
 
                       return (
                         <div

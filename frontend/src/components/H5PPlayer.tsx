@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { h5pAPI } from '../services/api';
 import { Loader2, AlertCircle, Award, RotateCcw, Star, Trophy, X } from 'lucide-react';
 
@@ -32,53 +32,304 @@ interface PlayerData {
   } | null;
 }
 
+type CompletionResult = {
+  score: number;
+  maxScore: number;
+  passed: boolean;
+  pointsAwarded: number;
+};
+
+const MIN_FRAME_HEIGHT = 320;
+const DEFAULT_FRAME_HEIGHT = 520;
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function serializeForInlineScript(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function buildH5PSrcDoc(player: PlayerData['player']): string {
+  const styles = (player.styles || [])
+    .map((styleUrl) => `<link rel="stylesheet" href="${escapeHtmlAttribute(styleUrl)}" />`)
+    .join('\n');
+  const scripts = (player.scripts || [])
+    .map((scriptUrl) => `<script src="${escapeHtmlAttribute(scriptUrl)}"></script>`)
+    .join('\n');
+  const integration = serializeForInlineScript(player.integration || {});
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  ${styles}
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #334155;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #h5p-root {
+      min-height: ${MIN_FRAME_HEIGHT}px;
+      padding: 16px;
+      box-sizing: border-box;
+      background: #ffffff;
+    }
+
+    .h5p-content {
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="h5p-root">
+    <div class="h5p-content" data-content-id="${escapeHtmlAttribute(player.contentId)}"></div>
+  </div>
+
+  <script>
+    (function () {
+      function notifyParent(type, payload) {
+        window.parent.postMessage(Object.assign({ source: 'trace-h5p', type: type }, payload || {}), '*');
+      }
+
+      function postHeight() {
+        var root = document.getElementById('h5p-root');
+        var height = Math.max(
+          root ? root.scrollHeight : 0,
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight
+        );
+
+        notifyParent('height', { height: height + 8 });
+      }
+
+      window.__traceH5P = {
+        notifyParent: notifyParent,
+        postHeight: postHeight
+      };
+
+      window.H5PIntegration = ${integration};
+      window.H5P = window.H5P || {};
+      window.H5P.preventInit = true;
+
+      if ('ResizeObserver' in window) {
+        var resizeObserver = new ResizeObserver(postHeight);
+        resizeObserver.observe(document.body);
+      }
+
+      var mutationObserver = new MutationObserver(function () {
+        window.requestAnimationFrame(postHeight);
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true
+      });
+
+      window.addEventListener('resize', postHeight);
+      window.addEventListener('load', postHeight);
+      window.addEventListener('error', function (event) {
+        notifyParent('error', {
+          message: event.message || 'Failed to load H5P activity'
+        });
+      });
+
+      window.setTimeout(postHeight, 0);
+    }());
+  </script>
+
+  ${scripts}
+
+  <script>
+    (function () {
+      function notifyParent(type, payload) {
+        if (window.__traceH5P && window.__traceH5P.notifyParent) {
+          window.__traceH5P.notifyParent(type, payload);
+        }
+      }
+
+      function postHeight() {
+        if (window.__traceH5P && window.__traceH5P.postHeight) {
+          window.__traceH5P.postHeight();
+        }
+      }
+
+      function attachXapiListener() {
+        var dispatcher = window.H5P && window.H5P.externalDispatcher;
+        if (!dispatcher) {
+          window.setTimeout(attachXapiListener, 250);
+          return;
+        }
+
+        dispatcher.on('xAPI', function (event) {
+          notifyParent('xapi', {
+            statement: event && event.data ? event.data.statement || null : null
+          });
+          postHeight();
+        });
+      }
+
+      window.setTimeout(function () {
+        try {
+          if (!window.H5P || typeof window.H5P.init !== 'function') {
+            notifyParent('error', { message: 'H5P player failed to initialize' });
+            return;
+          }
+
+          window.H5P.init(document.body);
+          attachXapiListener();
+          postHeight();
+          notifyParent('ready');
+        } catch (error) {
+          notifyParent('error', {
+            message: error && error.message ? error.message : 'Failed to start H5P activity'
+          });
+        }
+      }, 100);
+    }());
+  </script>
+</body>
+</html>`;
+}
+
 export const H5PPlayer: React.FC<H5PPlayerProps> = ({
   contentId,
   onComplete,
   onError
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const completedAttemptRef = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [result, setResult] = useState<{
-    score: number;
-    maxScore: number;
-    passed: boolean;
-    pointsAwarded: number;
-  } | null>(null);
+  const [result, setResult] = useState<CompletionResult | null>(null);
+  const [frameHeight, setFrameHeight] = useState(DEFAULT_FRAME_HEIGHT);
 
   useEffect(() => {
-    console.log('[H5PPlayer] useEffect triggered, contentId:', contentId);
     loadContent();
   }, [contentId]);
 
-  // Initialize H5P when playerData is loaded AND component is rendered (not loading)
   useEffect(() => {
-    if (playerData && !loading && containerRef.current) {
-      console.log('[H5PPlayer] Initializing H5P after render, playerData:', playerData);
-      initializeH5P(playerData);
+    completedAttemptRef.current = null;
+  }, [playerData?.attemptId]);
+
+  useEffect(() => {
+    if (!playerData) {
+      return;
     }
-  }, [playerData, loading]);
+
+    const handleMessage = async (event: MessageEvent<any>) => {
+      if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+
+      const message = event.data;
+      if (!message || message.source !== 'trace-h5p') {
+        return;
+      }
+
+      if (message.type === 'height' && Number.isFinite(message.height)) {
+        setFrameHeight(Math.max(MIN_FRAME_HEIGHT, Math.ceil(message.height)));
+        return;
+      }
+
+      if (message.type === 'error') {
+        const errorMessage = message.message || 'Failed to load H5P activity';
+        setError(errorMessage);
+        onError?.(errorMessage);
+        return;
+      }
+
+      if (message.type !== 'xapi') {
+        return;
+      }
+
+      const statement = message.statement;
+      const verb = statement?.verb?.id?.split('/').pop() || 'unknown';
+      if (verb !== 'completed' || !playerData.attemptId) {
+        return;
+      }
+
+      if (completedAttemptRef.current === playerData.attemptId) {
+        return;
+      }
+
+      completedAttemptRef.current = playerData.attemptId;
+
+      try {
+        const score = statement.result?.score?.raw ?? 0;
+        const maxScore = statement.result?.score?.max ?? 100;
+        const xapiResult = await h5pAPI.submitXAPI({
+          attemptId: playerData.attemptId,
+          verb,
+          objectId: statement.object?.id,
+          objectType: statement.object?.objectType,
+          result: {
+            score: { raw: score, max: maxScore },
+            success: statement.result?.success,
+            completion: statement.result?.completion,
+            duration: statement.result?.duration
+          }
+        });
+
+        if (!xapiResult.data.completed) {
+          completedAttemptRef.current = null;
+          return;
+        }
+
+        setCompleted(true);
+        const completionResult = {
+          score: xapiResult.data.score || 0,
+          maxScore: xapiResult.data.maxScore || 100,
+          passed: xapiResult.data.passed || false,
+          pointsAwarded: xapiResult.data.pointsAwarded || 0
+        };
+        setResult(completionResult);
+        setShowPopup(true);
+        onComplete?.(completionResult);
+      } catch (submitError) {
+        completedAttemptRef.current = null;
+        console.error('[H5PPlayer] Failed to submit xAPI event:', submitError);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onComplete, onError, playerData]);
 
   const loadContent = async () => {
     try {
-      console.log('[H5PPlayer] loadContent called for contentId:', contentId);
       setLoading(true);
       setError(null);
+      setPlayerData(null);
       setCompleted(false);
       setShowPopup(false);
       setResult(null);
+      setFrameHeight(DEFAULT_FRAME_HEIGHT);
 
-      console.log('[H5PPlayer] Calling h5pAPI.getPlayerData...');
       const response = await h5pAPI.getPlayerData(contentId);
-      console.log('[H5PPlayer] API response:', response.data);
       setPlayerData(response.data);
-      // H5P initialization now happens in separate useEffect after loading is false
     } catch (err: any) {
-      console.error('[H5PPlayer] Error loading content:', err);
       const errorMessage = err.response?.data?.error || 'Failed to load content';
       setError(errorMessage);
       onError?.(errorMessage);
@@ -87,187 +338,13 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
     }
   };
 
-  const initializeH5P = (data: PlayerData) => {
-    console.log('[H5PPlayer] initializeH5P called with:', data);
-    if (!containerRef.current) {
-      console.error('[H5PPlayer] Container ref is null!');
-      return;
+  const iframeSrcDoc = useMemo(() => {
+    if (!playerData) {
+      return '';
     }
 
-    // Clear container by removing all child nodes
-    while (containerRef.current.firstChild) {
-      containerRef.current.removeChild(containerRef.current.firstChild);
-    }
-
-    // Create H5P container element using DOM methods
-    // H5P looks for elements with class 'h5p-content' and data-content-id attribute
-    const h5pContainer = document.createElement('div');
-    h5pContainer.className = 'h5p-content';
-    h5pContainer.setAttribute('data-content-id', data.player.contentId);
-    containerRef.current.appendChild(h5pContainer);
-
-    console.log('[H5PPlayer] Created container with data-content-id:', data.player.contentId);
-
-    // Setup H5P integration - use the integration object from the player model directly
-    // The Lumi H5P library returns a properly formatted integration object
-    const integration = data.player.integration || {};
-
-    console.log('[H5PPlayer] Setting up H5PIntegration with contentId:', data.player.contentId);
-    console.log('[H5PPlayer] Integration object:', JSON.stringify(integration, null, 2).substring(0, 500));
-
-    // Set global H5P integration - use the integration as-is from the backend
-    (window as any).H5PIntegration = integration;
-
-    // CRITICAL: Prevent H5P from auto-initializing on document ready
-    // H5P's core script (h5p.js) has this at the end:
-    //   H5P.jQuery(document).ready(function () { if (!H5P.preventInit) H5P.init(document.body); });
-    // This causes H5P to initialize before all library scripts are loaded.
-    // We set preventInit to true and manually call H5P.init after all scripts load.
-    (window as any).H5P = (window as any).H5P || {};
-    (window as any).H5P.preventInit = true;
-
-    // Load styles
-    data.player.styles?.forEach((styleUrl: string) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = styleUrl;
-      document.head.appendChild(link);
-    });
-
-    // Load scripts
-    console.log('[H5PPlayer] Loading scripts:', data.player.scripts);
-    console.log('[H5PPlayer] Loading styles:', data.player.styles);
-    const loadScripts = async () => {
-      for (const scriptUrl of (data.player.scripts || [])) {
-        console.log('[H5PPlayer] Loading script:', scriptUrl);
-        await new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = scriptUrl;
-          script.onload = () => {
-            console.log('[H5PPlayer] Script loaded:', scriptUrl);
-            resolve();
-          };
-          script.onerror = () => reject(new Error(`Failed to load script: ${scriptUrl}`));
-          document.body.appendChild(script);
-        });
-      }
-
-      // Initialize H5P content after scripts are loaded
-      console.log('[H5PPlayer] All scripts loaded, H5P object exists:', !!(window as any).H5P);
-      if ((window as any).H5P) {
-        // Small delay to ensure all scripts are fully initialized
-        // (some H5P libraries register themselves asynchronously)
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        console.log('[H5PPlayer] Calling H5P.init on document.body');
-        console.log('[H5PPlayer] H5P.preventInit is:', (window as any).H5P.preventInit);
-        console.log('[H5PPlayer] Available H5P constructors:', Object.keys((window as any).H5P).filter(k => typeof (window as any).H5P[k] === 'function'));
-
-        // H5P.init scans for elements with class 'h5p-content' and data-content-id attribute
-        (window as any).H5P.init(document.body);
-
-        // Setup xAPI listener
-        setupXAPIListener(data);
-      } else {
-        console.error('[H5PPlayer] H5P global not found after loading scripts!');
-      }
-    };
-
-    loadScripts().catch(err => {
-      console.error('[H5PPlayer] Failed to load H5P scripts:', err);
-      setError('Failed to load H5P player scripts');
-    });
-  };
-
-  const setupXAPIListener = (data: PlayerData) => {
-    const H5P = (window as any).H5P;
-    if (!H5P) {
-      console.warn('[H5PPlayer] H5P global not available for xAPI listener');
-      return;
-    }
-
-    console.log('[H5PPlayer] Setting up xAPI listener for attemptId:', data.attemptId);
-
-    // Listen for xAPI events
-    const handleXAPI = async (event: any) => {
-      const statement = event.data?.statement;
-      if (!statement) {
-        console.warn('[H5PPlayer] xAPI event without statement:', event);
-        return;
-      }
-
-      const verb = statement.verb?.id?.split('/').pop() || 'unknown';
-      console.log('[H5PPlayer] xAPI event received:', {
-        verb,
-        score: statement.result?.score,
-        completion: statement.result?.completion,
-        success: statement.result?.success
-      });
-
-      // Check for completion - H5P QuestionSet uses 'completed' verb for the full quiz
-      // Individual questions use 'answered' verb with completion: true for just that question
-      // We ONLY want to trigger our completion flow when the ENTIRE quiz is completed
-      // The 'completed' verb is sent when the user finishes the whole QuestionSet
-      // Ignore individual question 'answered' events to prevent premature completion
-      if (verb === 'completed') {
-        const score = statement.result?.score?.raw ?? 0;
-        const maxScore = statement.result?.score?.max ?? 100;
-
-        console.log('[H5PPlayer] FULL Quiz completion detected (verb=completed):', { score, maxScore, attemptId: data.attemptId });
-
-        if (data.attemptId) {
-          try {
-            const xapiResult = await h5pAPI.submitXAPI({
-              attemptId: data.attemptId,
-              verb,
-              objectId: statement.object?.id,
-              objectType: statement.object?.objectType,
-              result: {
-                score: { raw: score, max: maxScore },
-                success: statement.result?.success,
-                completion: statement.result?.completion,
-                duration: statement.result?.duration
-              }
-            });
-
-            console.log('[H5PPlayer] xAPI submission result:', xapiResult.data);
-
-            if (xapiResult.data.completed) {
-              setCompleted(true);
-              const completionResult = {
-                score: xapiResult.data.score || 0,
-                maxScore: xapiResult.data.maxScore || 100,
-                passed: xapiResult.data.passed || false,
-                pointsAwarded: xapiResult.data.pointsAwarded || 0
-              };
-              setResult(completionResult);
-              setShowPopup(true); // Show the completion popup
-              onComplete?.(completionResult);
-            }
-          } catch (err) {
-            console.error('[H5PPlayer] Failed to submit xAPI event:', err);
-          }
-        } else {
-          console.warn('[H5PPlayer] No attemptId available - cannot submit xAPI');
-        }
-      }
-    };
-
-    // Attach listener
-    if (H5P.externalDispatcher) {
-      H5P.externalDispatcher.on('xAPI', handleXAPI);
-      console.log('[H5PPlayer] xAPI listener attached successfully');
-    } else {
-      console.warn('[H5PPlayer] H5P.externalDispatcher not available');
-      // Try again after a short delay (sometimes H5P.externalDispatcher loads async)
-      setTimeout(() => {
-        if ((window as any).H5P?.externalDispatcher) {
-          (window as any).H5P.externalDispatcher.on('xAPI', handleXAPI);
-          console.log('[H5PPlayer] xAPI listener attached (delayed)');
-        }
-      }, 1000);
-    }
-  };
+    return buildH5PSrcDoc(playerData.player);
+  }, [playerData]);
 
   const handleRetry = () => {
     loadContent();
@@ -300,7 +377,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
 
   return (
     <div className="h5p-player-wrapper">
-      {/* Title */}
       {playerData && (
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
@@ -314,13 +390,11 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
         </div>
       )}
 
-      {/* Completion Popup Modal */}
       {showPopup && result && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 transform animate-bounce-in ${
             result.passed ? 'ring-4 ring-green-400' : 'ring-4 ring-yellow-400'
           }`}>
-            {/* Close button */}
             <button
               onClick={() => setShowPopup(false)}
               className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -328,7 +402,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
               <X className="w-5 h-5 text-gray-500" />
             </button>
 
-            {/* Celebration header */}
             <div className="text-center mb-6">
               {result.passed ? (
                 <>
@@ -354,7 +427,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
               )}
             </div>
 
-            {/* Score display */}
             <div className={`text-center p-4 rounded-xl mb-4 ${
               result.passed
                 ? 'bg-green-100 dark:bg-green-900/30'
@@ -368,7 +440,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
               </div>
             </div>
 
-            {/* Points earned */}
             {result.pointsAwarded > 0 && (
               <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl p-4 mb-4 text-center">
                 <div className="flex items-center justify-center gap-2 mb-1">
@@ -380,14 +451,12 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
               </div>
             )}
 
-            {/* Already earned message */}
             {result.passed && result.pointsAwarded === 0 && playerData?.assignment?.points && playerData.assignment.points > 0 && (
               <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-xl p-3 mb-4 text-center text-sm">
                 You already earned points for this quiz!
               </div>
             )}
 
-            {/* Action buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -410,7 +479,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
         </div>
       )}
 
-      {/* Small completion banner (shows after popup is closed) */}
       {completed && result && !showPopup && (
         <div className={`mb-4 p-3 rounded-lg flex items-center justify-between ${
           result.passed
@@ -434,89 +502,17 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
         </div>
       )}
 
-      {/* H5P Content Container - Always use light background for H5P content */}
-      <div
-        ref={containerRef}
-        className="h5p-container bg-white rounded-lg shadow-lg p-4 min-h-[300px]"
-        style={{
-          // Force light mode styling for H5P content
-          // H5P libraries assume light background with dark text
-          colorScheme: 'light',
-        }}
-      />
-
-      {/* H5P-specific style overrides to ensure visibility */}
-      <style>{`
-        .h5p-container,
-        .h5p-container * {
-          color-scheme: light;
-        }
-        .h5p-content {
-          background: white !important;
-          color: #333 !important;
-        }
-        .h5p-content * {
-          color: inherit;
-        }
-        .h5p-content .h5p-question-content,
-        .h5p-content .h5p-question-introduction,
-        .h5p-content .h5p-question-feedback,
-        .h5p-content .h5p-joubelui-score-bar,
-        .h5p-content .h5p-question,
-        .h5p-content .h5p-alternative-inner,
-        .h5p-content .h5p-multichoice,
-        .h5p-content .h5p-true-false,
-        .h5p-content .h5p-blanks,
-        .h5p-content .h5p-question-set {
-          color: #333 !important;
-          background-color: transparent;
-        }
-        .h5p-content h1, .h5p-content h2, .h5p-content h3,
-        .h5p-content h4, .h5p-content h5, .h5p-content h6,
-        .h5p-content p, .h5p-content span, .h5p-content div,
-        .h5p-content label, .h5p-content li {
-          color: #333 !important;
-        }
-        .h5p-content input[type="text"],
-        .h5p-content input[type="number"],
-        .h5p-content textarea {
-          background: white !important;
-          color: #333 !important;
-          border: 1px solid #ccc !important;
-        }
-        .h5p-content button {
-          color: inherit;
-        }
-        /* Ensure score and feedback text is visible */
-        .h5p-content .h5p-joubelui-score-numeric {
-          color: #333 !important;
-        }
-        /* Fix QuestionSet intro page title visibility */
-        .h5p-content .h5p-question-set-intro-title,
-        .h5p-content .intro-page .title,
-        .h5p-content .h5p-joubelui-intro-title,
-        .h5p-content .h5p-question-introduction h2,
-        .h5p-content .intro-page h2,
-        .h5p-content .h5p-intro-page-title {
-          color: #1e40af !important;
-          background: none !important;
-          background-clip: unset !important;
-          -webkit-background-clip: unset !important;
-          -webkit-text-fill-color: unset !important;
-          text-shadow: none !important;
-        }
-        /* Override any gradient text effects that H5P might apply */
-        .h5p-content [class*="title"],
-        .h5p-content [class*="Title"] {
-          color: #1e40af !important;
-          -webkit-text-fill-color: #1e40af !important;
-        }
-        /* Ensure intro page content is visible */
-        .h5p-content .intro-page,
-        .h5p-content .h5p-intro-page {
-          background: white !important;
-        }
-      `}</style>
+      {playerData && (
+        <iframe
+          ref={iframeRef}
+          key={playerData.attemptId ?? contentId}
+          title={playerData.content.title}
+          srcDoc={iframeSrcDoc}
+          className="w-full rounded-lg border-0 bg-white shadow-lg"
+          style={{ height: `${frameHeight}px`, minHeight: `${MIN_FRAME_HEIGHT}px` }}
+          allow="fullscreen"
+        />
+      )}
     </div>
   );
 };

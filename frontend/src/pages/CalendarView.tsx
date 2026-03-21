@@ -4,6 +4,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { tasksAPI } from '../services/api';
 import clsx from 'clsx';
+import { extractDateOnly, getLocalDateKey } from '../utils/date-only';
 
 interface Task {
   id: number;
@@ -80,8 +81,8 @@ export default function CalendarView() {
 
   // Group tasks by date
   const tasksByDate = tasks.reduce((acc, task) => {
-    if (task.due_date) {
-      const dateKey = task.due_date.split('T')[0];
+    const dateKey = extractDateOnly(task.due_date);
+    if (dateKey) {
       if (!acc[dateKey]) acc[dateKey] = [];
       acc[dateKey].push(task);
     }
@@ -94,7 +95,7 @@ export default function CalendarView() {
 
     const allCompleted = dateTasks.every(t => t.completed);
     const someCompleted = dateTasks.some(t => t.completed);
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateKey();
     const isOverdue = dateKey < today && !allCompleted;
 
     if (allCompleted) return 'completed';
@@ -120,7 +121,7 @@ export default function CalendarView() {
   const dayNames = isYoungChild
     ? ['S', 'M', 'T', 'W', 'T', 'F', 'S']
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateKey();
 
   const selectedTasks = selectedDate ? (tasksByDate[selectedDate] || []) : [];
 

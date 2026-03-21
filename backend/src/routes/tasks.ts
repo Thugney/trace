@@ -7,6 +7,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import { NotificationHelpers } from '../services/notifications';
 import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
+import { formatDateOnly, getTodayDateOnly, normalizeDateOnlyInput, parseDateOnly, startOfLocalDay } from '../utils/date-only';
 import {
   checkRateLimit,
   updateRateLimit,
@@ -140,6 +141,13 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'due_date is required. All tasks must have a due date.' });
     }
 
+    let normalizedDueDate: string | null;
+    try {
+      normalizedDueDate = normalizeDateOnlyInput(due_date);
+    } catch {
+      return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+    }
+
     // Calculate points based on difficulty if not provided
     let taskPoints = points;
     if (!taskPoints && difficulty) {
@@ -185,7 +193,7 @@ router.post('/', (req, res) => {
       difficulty || 'easy',
       is_recurring ? 1 : 0,
       recurrence_pattern || null,
-      due_date || null,
+      normalizedDueDate,
       created_by || null,
       parentApproved,
       approvedBy,
@@ -268,8 +276,14 @@ router.put('/:id', (req, res) => {
       values.push(req.body.estimated_minutes);
     }
     if (due_date !== undefined) {
+      let normalizedDueDate: string | null;
+      try {
+        normalizedDueDate = normalizeDateOnlyInput(due_date);
+      } catch {
+        return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+      }
       updates.push('due_date = ?');
-      values.push(due_date);
+      values.push(normalizedDueDate);
     }
     if (completed !== undefined) {
       updates.push('completed = ?');
@@ -304,7 +318,7 @@ router.put('/:id', (req, res) => {
 router.post('/:id/complete', (req, res) => {
   try {
     const { id } = req.params;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
 
     // Get task first (outside transaction for early validation)
     const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
@@ -332,10 +346,9 @@ router.post('/:id/complete', (req, res) => {
 
     // ===== ANTI-ABUSE CHECK 0.6: Task is overdue (past due date) =====
     if (task.due_date) {
-      const dueDate = new Date(task.due_date);
-      dueDate.setHours(23, 59, 59, 999); // End of due date
-      const now = new Date();
-      if (now > dueDate) {
+      const dueDate = parseDateOnly(task.due_date);
+      const todayStart = startOfLocalDay(new Date());
+      if (dueDate && dueDate < todayStart) {
         return res.status(400).json({
           error: 'This task is overdue and can no longer be completed. The due date has passed.',
           code: 'TASK_OVERDUE',
@@ -577,8 +590,8 @@ const DAY_MAP: Record<string, number> = {
 // - every_N_days (every N days, e.g., every_3_days)
 // - day_of_month_N (specific day of month, e.g., day_of_month_15)
 function calculateNextDueDate(currentDueDate: string | null, pattern: string): string {
-  const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
-  const today = new Date();
+  const baseDate = parseDateOnly(currentDueDate) || startOfLocalDay(new Date());
+  const today = startOfLocalDay(new Date());
 
   // If base date is in the past, start from today
   if (baseDate < today) {
@@ -605,7 +618,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       // Fallback to daily if no valid days
       baseDate.setDate(baseDate.getDate() + 1);
     }
-    return baseDate.toISOString().split('T')[0];
+    return formatDateOnly(baseDate);
   }
 
   // Handle every_N_days pattern (e.g., "every_3_days")
@@ -614,7 +627,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
     if (match) {
       const n = parseInt(match[1], 10);
       baseDate.setDate(baseDate.getDate() + (n > 0 ? n : 1));
-      return baseDate.toISOString().split('T')[0];
+      return formatDateOnly(baseDate);
     }
   }
 
@@ -631,7 +644,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
         // Set to target day (or last day of month if target exceeds month's days)
         const lastDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
         baseDate.setDate(Math.min(targetDay, lastDayOfMonth));
-        return baseDate.toISOString().split('T')[0];
+        return formatDateOnly(baseDate);
       }
     }
   }
@@ -660,7 +673,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       baseDate.setDate(baseDate.getDate() + 1);
   }
 
-  return baseDate.toISOString().split('T')[0];
+  return formatDateOnly(baseDate);
 }
 
 // Delete task - with authorization (owner, parent of owner, or admin)
@@ -720,7 +733,7 @@ router.get('/progress/:profileId', (req, res) => {
     // Get weekly stats (use difference method for points reliability)
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+    const weekAgoStr = formatDateOnly(weekAgo);
 
     const weekStartProgress: any = db.prepare(`
       SELECT total_points, total_stars FROM progress
@@ -1348,7 +1361,7 @@ router.get('/:id/timer', (req, res) => {
         pause_time: timerState.pause_time
       } : null,
       can_complete: !task.requires_timer || (timerState && currentElapsed > 0),
-      completed_today: task.last_completed_date === new Date().toISOString().split('T')[0]
+      completed_today: task.last_completed_date === getTodayDateOnly()
     });
   } catch (error: any) {
     console.error('[Timer] Get timer state error:', error);
@@ -1367,7 +1380,7 @@ router.post('/:id/timer/start', (req, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today',
@@ -1521,7 +1534,7 @@ router.post('/:id/timer/finish', (req, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today. You cannot earn more points for it.',

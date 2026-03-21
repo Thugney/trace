@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
 import Avatar from '../components/Avatar';
 import TaskTimerCard from '../components/TaskTimerCard';
+import { differenceInDateOnlyDays, extractDateOnly, formatDateOnlyForDisplay, getLocalDateKey } from '../utils/date-only';
 import {
   ActiveMissionCard,
   TodaysMissions,
@@ -294,7 +295,7 @@ export default function TasksManager() {
         priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
         is_recurring: isRecurring,
         recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
-        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0],
+        due_date: (formData.get('due_date') as string) || getLocalDateKey(),
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
         scheduled_time: scheduledTime || undefined,
         // Timer is automatically set by backend based on category
@@ -456,7 +457,7 @@ export default function TasksManager() {
         category: category as any,
         difficulty: formData.get('difficulty') as any,
         earns_points: true,
-        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0]
+        due_date: (formData.get('due_date') as string) || getLocalDateKey()
       });
 
       await loadTasks();
@@ -531,54 +532,38 @@ export default function TasksManager() {
     : 0;
 
   // Categorize tasks for kid view
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const weekFromNow = new Date(today);
+  const todayKey = getLocalDateKey();
+  const weekFromNow = new Date();
   weekFromNow.setDate(weekFromNow.getDate() + 7);
+  const weekFromNowKey = getLocalDateKey(weekFromNow);
 
   const overdueTasks = incompleteTasks.filter(t => {
-    if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate < today;
+    const dueDate = extractDateOnly(t.due_date);
+    return !!dueDate && !!t.parent_approved && dueDate < todayKey;
   });
 
   const todayTasks = incompleteTasks.filter(t => {
-    if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate.getTime() === today.getTime();
+    const dueDate = extractDateOnly(t.due_date);
+    return !!dueDate && !!t.parent_approved && dueDate === todayKey;
   });
 
   const upcomingTasks = incompleteTasks.filter(t => {
-    if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate > today && dueDate <= weekFromNow;
+    const dueDate = extractDateOnly(t.due_date);
+    return !!dueDate && !!t.parent_approved && dueDate > todayKey && dueDate <= weekFromNowKey;
   });
 
   const otherApprovedTasks = incompleteTasks.filter(t => {
     if (!t.parent_approved) return false;
-    if (!t.due_date) return true;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate > weekFromNow;
+    const dueDate = extractDateOnly(t.due_date);
+    return !dueDate || dueDate > weekFromNowKey;
   });
 
-  const todayStr = new Date().toISOString().split('T')[0];
   const completedTodayTasks = completedTasks.filter(t => {
-    if (!t.completed_at) return false;
-    return t.completed_at.split('T')[0] === todayStr;
+    return extractDateOnly(t.completed_at) === todayKey;
   });
 
   const formatDueDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = differenceInDateOnlyDays(dateStr, todayKey);
 
     if (diffDays < 0) {
       const overdueDays = Math.abs(diffDays);
@@ -801,9 +786,9 @@ export default function TasksManager() {
                     <div className="flex items-center gap-2 text-sm">
                       <span className="badge badge-primary">{task.points} pts</span>
                       <span className="badge badge-warning">{task.difficulty}</span>
-                      <span className="text-gray-600">• {task.category}</span>
+        <span className="text-gray-600">• {task.category}</span>
                       {task.due_date && (
-                        <span className="text-gray-600">• Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                        <span className="text-gray-600">• Due: {formatDateOnlyForDisplay(task.due_date)}</span>
                       )}
                     </div>
                   </div>
@@ -1314,7 +1299,7 @@ export default function TasksManager() {
                           {task.due_date && (
                             <span className="text-xs text-gray-600 flex items-center">
                               <Calendar size={12} className="mr-1" />
-                              {new Date(task.due_date).toLocaleDateString()}
+                              {formatDateOnlyForDisplay(task.due_date)}
                             </span>
                           )}
                           {task.estimated_minutes && (
@@ -1503,7 +1488,7 @@ export default function TasksManager() {
                   name="due_date"
                   className="input"
                   required
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  defaultValue={todayKey}
                 />
               </div>
 
@@ -1801,7 +1786,7 @@ export default function TasksManager() {
                   name="due_date"
                   className="input"
                   required
-                  defaultValue={editingTask.due_date?.split('T')[0] || new Date().toISOString().split('T')[0]}
+                  defaultValue={extractDateOnly(editingTask.due_date) || todayKey}
                 />
               </div>
 

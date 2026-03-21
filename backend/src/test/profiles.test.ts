@@ -139,6 +139,29 @@ describe('Profiles API', () => {
       expect(childData.completionRate).toBe(0);
       expect(childData.currentStreak).toBe(0);
     });
+
+    it('should not count tasks due today as overdue', async () => {
+      const parent = createTestProfile({ name: 'Test Parent', type: 'parent' });
+      const child = createTestProfile({
+        name: 'Child with due today task',
+        type: 'child',
+        parent_id: parent.id
+      });
+      const today = new Date().toISOString().split('T')[0];
+
+      testDb.prepare(`
+        INSERT INTO tasks (profile_id, title, completed, points, due_date)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(child.id, 'Due today task', 0, 10, today);
+
+      const response = await request(app)
+        .get(`/api/profiles/${parent.id}/progress`);
+
+      expect(response.status).toBe(200);
+      const childData = response.body.children.find((c: any) => c.id === child.id);
+      expect(childData).toBeDefined();
+      expect(childData.tasks.overdue_tasks).toBe(0);
+    });
   });
 
   // Test for new /profiles/family/progress endpoint (authenticated)

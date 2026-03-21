@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import db from '../database/init';
 import { sendPushNotification } from './notifications';
+import { getTodayDateOnly } from '../utils/date-only';
 
 interface ReminderPreference {
   id: number;
@@ -59,7 +60,7 @@ function getProfilesForReminder(hour: number, minute: number): number[] {
 
 // Get pending tasks for a profile
 function getPendingTasks(profileId: number): Task[] {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateOnly();
 
   return db.prepare(`
     SELECT id, title, due_date, profile_id
@@ -74,7 +75,7 @@ function getPendingTasks(profileId: number): Task[] {
 
 // Get overdue tasks for a profile
 function getOverdueTasks(profileId: number): Task[] {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateOnly();
 
   return db.prepare(`
     SELECT id, title, due_date, profile_id
@@ -166,7 +167,7 @@ interface ScheduledTask {
 
 function getTasksScheduledForTime(hour: number, minute: number): ScheduledTask[] {
   const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateOnly();
 
   return db.prepare(`
     SELECT id, title, profile_id, scheduled_time, points, category
@@ -197,7 +198,7 @@ async function sendTaskScheduledReminder(task: ScheduledTask): Promise<void> {
   });
 
   // Update last_reminder_sent to today
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayDateOnly();
   db.prepare('UPDATE tasks SET last_reminder_sent = ? WHERE id = ?').run(today, task.id);
 
   console.log(`[Scheduler] Sent task reminder to ${profile.name}: "${task.title}" at ${task.scheduled_time}`);
