@@ -147,10 +147,16 @@ function buildH5PSrcDoc(player: PlayerData['player']): string {
       window.addEventListener('resize', postHeight);
       window.addEventListener('load', postHeight);
       window.addEventListener('error', function (event) {
-        notifyParent('error', {
-          message: event.message || 'Failed to load H5P activity'
-        });
-      });
+        var target = event.target;
+        var tagName = target && target.tagName;
+
+        if (target && target !== window && (tagName === 'SCRIPT' || tagName === 'LINK')) {
+          notifyParent('error', {
+            fatal: true,
+            message: 'Failed to load an H5P asset'
+          });
+        }
+      }, true);
 
       window.setTimeout(postHeight, 0);
     }());
@@ -173,8 +179,13 @@ function buildH5PSrcDoc(player: PlayerData['player']): string {
       }
 
       function attachXapiListener() {
+        var attempts = window.__traceH5PAttachAttempts || 0;
         var dispatcher = window.H5P && window.H5P.externalDispatcher;
         if (!dispatcher) {
+          if (attempts >= 40) {
+            return;
+          }
+          window.__traceH5PAttachAttempts = attempts + 1;
           window.setTimeout(attachXapiListener, 250);
           return;
         }
@@ -190,7 +201,10 @@ function buildH5PSrcDoc(player: PlayerData['player']): string {
       window.setTimeout(function () {
         try {
           if (!window.H5P || typeof window.H5P.init !== 'function') {
-            notifyParent('error', { message: 'H5P player failed to initialize' });
+            notifyParent('error', {
+              fatal: true,
+              message: 'H5P player failed to initialize'
+            });
             return;
           }
 
@@ -200,6 +214,7 @@ function buildH5PSrcDoc(player: PlayerData['player']): string {
           notifyParent('ready');
         } catch (error) {
           notifyParent('error', {
+            fatal: true,
             message: error && error.message ? error.message : 'Failed to start H5P activity'
           });
         }
@@ -254,6 +269,9 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
       }
 
       if (message.type === 'error') {
+        if (!message.fatal) {
+          return;
+        }
         const errorMessage = message.message || 'Failed to load H5P activity';
         setError(errorMessage);
         onError?.(errorMessage);

@@ -1042,24 +1042,17 @@ export function questionSetNeedsRepair(storedParams: any, quizSpec: QuizSpec): b
     }
 
     const storedQuestionParams = storedQuestion.params || {};
-    const expectedQuestionParams = expectedQuestion.params || {};
+    const hasStructuredQuestion =
+      Array.isArray(storedQuestionParams.questions) &&
+      storedQuestionParams.questions.length === 1 &&
+      typeof storedQuestionParams.questions[0]?.question === 'string' &&
+      storedQuestionParams.questions[0].question.trim() !== '';
 
-    const storedPrompt = storedQuestionParams.questions?.[0]?.question || '';
-    const expectedPrompt = expectedQuestionParams.questions?.[0]?.question || '';
-
-    if (storedQuestionParams.text !== expectedQuestionParams.text) {
-      return true;
+    if (hasStructuredQuestion) {
+      return false;
     }
 
-    if (storedPrompt !== expectedPrompt) {
-      return true;
-    }
-
-    if (!Array.isArray(storedQuestionParams.questions) || storedQuestionParams.questions.length !== 1) {
-      return true;
-    }
-
-    return false;
+    return true;
   });
 }
 

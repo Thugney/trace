@@ -65,4 +65,27 @@ describe('H5P quiz conversion', () => {
     expect(questionSetNeedsRepair(legacyQuestionSetParams, quizSpec)).toBe(true);
     expect(questionSetNeedsRepair(converted.params, quizSpec)).toBe(false);
   });
+
+  it('does not rewrite already-structured blank questions just because prompt text differs', () => {
+    const structuredQuestionSetParams = {
+      introPage: {
+        title: 'Fun Alphabet Quiz'
+      },
+      questions: [
+        {
+          library: 'H5P.Blanks 1.14',
+          params: {
+            text: 'Type the answer in the box.',
+            questions: [
+              {
+                question: '<p>The letter that comes before E is *D*.</p>'
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    expect(questionSetNeedsRepair(structuredQuestionSetParams, quizSpec)).toBe(false);
+  });
 });
