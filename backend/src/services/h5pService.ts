@@ -423,6 +423,21 @@ export function createH5PUser(profileId: number, profileName: string): H5PUser {
   );
 }
 
+function buildH5PMetadata(
+  metadata: Partial<IContentMetadata>,
+  libraryName: string
+): IContentMetadata {
+  return {
+    title: metadata.title || 'Untitled',
+    license: metadata.license || 'U',
+    embedTypes: metadata.embedTypes || ['div'],
+    language: metadata.language || 'en',
+    mainLibrary: libraryName.split(' ')[0],
+    preloadedDependencies: metadata.preloadedDependencies || [],
+    defaultLanguage: metadata.defaultLanguage || 'en'
+  };
+}
+
 /**
  * Create H5P content from parameters
  */
@@ -434,26 +449,38 @@ export async function createH5PContent(
 ): Promise<ContentId> {
   const editor = getH5PEditor();
 
-  // Build full metadata with required fields
-  const fullMetadata: IContentMetadata = {
-    title: metadata.title || 'Untitled',
-    license: metadata.license || 'U',
-    embedTypes: metadata.embedTypes || ['div'],
-    language: metadata.language || 'en',
-    mainLibrary: libraryName.split(' ')[0],
-    preloadedDependencies: metadata.preloadedDependencies || [],
-    defaultLanguage: metadata.defaultLanguage || 'en'
-  };
-
   const contentId = await editor.saveOrUpdateContentReturnMetaData(
     undefined as any, // new content - cast to any to work around type issue
     params,
-    fullMetadata,
+    buildH5PMetadata(metadata, libraryName),
     libraryName,
     user
   );
 
   return contentId.id;
+}
+
+/**
+ * Update existing H5P content in place.
+ */
+export async function updateH5PContent(
+  contentId: ContentId,
+  libraryName: string,
+  params: any,
+  metadata: Partial<IContentMetadata>,
+  user: H5PUser
+): Promise<ContentId> {
+  const editor = getH5PEditor();
+
+  const updatedContent = await editor.saveOrUpdateContentReturnMetaData(
+    contentId as any,
+    params,
+    buildH5PMetadata(metadata, libraryName),
+    libraryName,
+    user
+  );
+
+  return updatedContent.id;
 }
 
 /**
@@ -638,6 +665,23 @@ function cleanAiGeneratedText(text: string): string {
 function stripAsterisks(text: string): string {
   if (!text) return text;
   return text.replace(/\*+/g, '');
+}
+
+const BLANK_PLACEHOLDER_PATTERN = /_{2,}/;
+
+function hasBlankPlaceholder(text: string): boolean {
+  return BLANK_PLACEHOLDER_PATTERN.test(text || '');
+}
+
+function normalizeBlankCorrectAnswer(correctAnswer: QuizQuestion['correctAnswer']): string {
+  if (Array.isArray(correctAnswer)) {
+    return correctAnswer
+      .map(answer => stripAsterisks(String(answer || '')).trim())
+      .filter(Boolean)
+      .join('/');
+  }
+
+  return stripAsterisks(String(correctAnswer || '')).trim();
 }
 
 /**
@@ -831,6 +875,7 @@ function convertTrueFalseToH5P(q: QuizQuestion, index: number): any {
 function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
   // Clean up the prompt and convert to H5P format
   let textWithBlanks = q.prompt;
+  const correctAnswer = normalizeBlankCorrectAnswer(q.correctAnswer);
 
   // STEP 1: Remove off-topic content patterns FIRST (before any processing)
   // Common AI hallucination patterns that sneak into responses
@@ -854,21 +899,21 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
   // STEP 2: Strip ALL asterisks (AI might use *bold* for emphasis which would become extra blanks)
   textWithBlanks = textWithBlanks.replace(/\*+/g, '');
 
-  // STEP 3: If prompt has ___ blanks, replace with *answer*
-  // Only replace the FIRST ___ to ensure we have exactly one blank
-  if (textWithBlanks.includes('___')) {
-    textWithBlanks = textWithBlanks.replace(/___+/, `*${q.correctAnswer}*`);
-    // If there were multiple ___ patterns, remove additional ones
-    textWithBlanks = textWithBlanks.replace(/___+/g, '____'); // Mark extras with 4 underscores
+  // STEP 3: If prompt has placeholder underscores, replace the first group with *answer*
+  // Accept "__", "___", "_____" etc. because AI generation is inconsistent here.
+  if (hasBlankPlaceholder(textWithBlanks)) {
+    textWithBlanks = textWithBlanks.replace(BLANK_PLACEHOLDER_PATTERN, `*${correctAnswer}*`);
+    // If there were multiple placeholder groups, remove the extras entirely.
+    textWithBlanks = textWithBlanks.replace(/_{2,}/g, '____'); // Mark extras with 4 underscores
     if (textWithBlanks.includes('____')) {
       console.warn(`[H5P] Fill-blank question ${index}: Multiple blanks detected, keeping only first`);
       // Remove extra blank patterns entirely (they would create unwanted input fields)
       textWithBlanks = textWithBlanks.replace(/\s*____\s*/g, ' ');
     }
   } else {
-    // If no blanks in prompt, AI might have generated incorrectly
-    console.warn(`[H5P] Fill-blank question ${index} has no ___ in prompt, using fallback`);
-    textWithBlanks = `${textWithBlanks.trim().replace(/[.!?]$/, '')} *${q.correctAnswer}*.`;
+    // If no placeholder is present, append a single H5P blank marker as a fallback.
+    console.warn(`[H5P] Fill-blank question ${index} has no underscore placeholder, using fallback`);
+    textWithBlanks = `${textWithBlanks.trim().replace(/[.!?]$/, '')} *${correctAnswer}*.`;
   }
 
   // STEP 4: Keep only the sentence with the answer marker
@@ -905,7 +950,7 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
   for (const pattern of finalOffTopicCheck) {
     if (pattern.test(textWithBlanks)) {
       console.warn(`[H5P] Fill-blank question ${index}: Off-topic content still present, using simple format`);
-      textWithBlanks = `The answer is *${q.correctAnswer}*.`;
+      textWithBlanks = `The answer is *${correctAnswer}*.`;
       break;
     }
   }
@@ -913,7 +958,12 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
   return {
     library: 'H5P.Blanks 1.14',
     params: {
-      text: `<p>${textWithBlanks}</p>`,
+      text: 'Fill in the missing answer.',
+      questions: [
+        {
+          question: `<p>${textWithBlanks}</p>`
+        }
+      ],
       overallFeedback: [
         { from: 0, to: 50, feedback: 'Keep practicing!' },
         { from: 51, to: 80, feedback: 'Good job!' },
@@ -952,6 +1002,65 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
     },
     subContentId: `q-${index}-${Date.now()}`
   };
+}
+
+export function extractQuizSpecFromAiPrompt(aiPrompt: string): QuizSpec | null {
+  if (!aiPrompt) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(aiPrompt);
+
+    if (parsed?.quizSpec?.questions && Array.isArray(parsed.quizSpec.questions)) {
+      return parsed.quizSpec as QuizSpec;
+    }
+
+    if (parsed?.questions && Array.isArray(parsed.questions)) {
+      return parsed as QuizSpec;
+    }
+  } catch (error) {
+    console.warn('[H5P] Failed to parse ai_prompt for quiz extraction:', error);
+  }
+
+  return null;
+}
+
+export function questionSetNeedsRepair(storedParams: any, quizSpec: QuizSpec): boolean {
+  const storedQuestions = Array.isArray(storedParams?.questions) ? storedParams.questions : [];
+
+  return quizSpec.questions.some((question, index) => {
+    if (question.type !== 'fill_blank') {
+      return false;
+    }
+
+    const expectedQuestion = convertFillBlankToH5P(question, index);
+    const storedQuestion = storedQuestions[index];
+
+    if (!storedQuestion || storedQuestion.library !== expectedQuestion.library) {
+      return true;
+    }
+
+    const storedQuestionParams = storedQuestion.params || {};
+    const expectedQuestionParams = expectedQuestion.params || {};
+
+    const storedPrompt = storedQuestionParams.questions?.[0]?.question || '';
+    const expectedPrompt = expectedQuestionParams.questions?.[0]?.question || '';
+
+    if (storedQuestionParams.text !== expectedQuestionParams.text) {
+      return true;
+    }
+
+    if (storedPrompt !== expectedPrompt) {
+      return true;
+    }
+
+    if (!Array.isArray(storedQuestionParams.questions) || storedQuestionParams.questions.length !== 1) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 /**
@@ -1514,9 +1623,9 @@ export function validateQuizSpec(spec: any): { valid: boolean; errors: string[] 
         if (!q.correctAnswer) {
           errors.push(`Question ${i + 1}: Fill blank needs correctAnswer`);
         }
-        // Warn if prompt doesn't have proper blank format (but don't fail validation)
-        if (!q.prompt?.includes('___')) {
-          console.warn(`Question ${i + 1}: Fill blank prompt should contain '___' - will use fallback`);
+        // Warn if prompt doesn't have underscore placeholder format (but don't fail validation)
+        if (!hasBlankPlaceholder(q.prompt || '')) {
+          console.warn(`Question ${i + 1}: Fill blank prompt should contain an underscore placeholder like "__" - will use fallback`);
         }
         // Warn if prompt contains asterisks (AI formatting error)
         if (q.prompt?.includes('*')) {
