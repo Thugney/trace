@@ -28,9 +28,7 @@ describe('H5P quiz conversion', () => {
     expect(blankQuestion.library).toBe('H5P.Blanks 1.14');
     expect(blankQuestion.params.text).toBe('Fill in the missing answer.');
     expect(blankQuestion.params.questions).toEqual([
-      {
-        question: '<p>The letter that comes before E is *D*.</p>'
-      }
+      '<p>The letter that comes before E is *D*.</p>'
     ]);
   });
 
@@ -66,8 +64,8 @@ describe('H5P quiz conversion', () => {
     expect(questionSetNeedsRepair(converted.params, quizSpec)).toBe(false);
   });
 
-  it('does not rewrite already-structured blank questions just because prompt text differs', () => {
-    const structuredQuestionSetParams = {
+  it('marks editor-shaped blank questions for repair because runtime expects strings', () => {
+    const editorShapedQuestionSetParams = {
       introPage: {
         title: 'Fun Alphabet Quiz'
       },
@@ -86,6 +84,27 @@ describe('H5P quiz conversion', () => {
       ]
     };
 
-    expect(questionSetNeedsRepair(structuredQuestionSetParams, quizSpec)).toBe(false);
+    expect(questionSetNeedsRepair(editorShapedQuestionSetParams, quizSpec)).toBe(true);
+  });
+
+  it('does not rewrite already-correct runtime string questions just because prompt text differs', () => {
+    const runtimeQuestionSetParams = {
+      introPage: {
+        title: 'Fun Alphabet Quiz'
+      },
+      questions: [
+        {
+          library: 'H5P.Blanks 1.14',
+          params: {
+            text: 'Type the answer in the box.',
+            questions: [
+              '<p>The letter that comes before E is *D*.</p>'
+            ]
+          }
+        }
+      ]
+    };
+
+    expect(questionSetNeedsRepair(runtimeQuestionSetParams, quizSpec)).toBe(false);
   });
 });

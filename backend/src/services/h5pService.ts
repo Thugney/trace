@@ -973,11 +973,7 @@ function convertFillBlankToH5P(q: QuizQuestion, index: number): any {
     library: 'H5P.Blanks 1.14',
     params: {
       text: 'Fill in the missing answer.',
-      questions: [
-        {
-          question: `<p>${textWithBlanks}</p>`
-        }
-      ],
+      questions: [`<p>${textWithBlanks}</p>`],
       overallFeedback: [
         { from: 0, to: 50, feedback: 'Keep practicing!' },
         { from: 51, to: 80, feedback: 'Good job!' },
@@ -1056,13 +1052,13 @@ export function questionSetNeedsRepair(storedParams: any, quizSpec: QuizSpec): b
     }
 
     const storedQuestionParams = storedQuestion.params || {};
-    const hasStructuredQuestion =
+    const hasRuntimeQuestionString =
       Array.isArray(storedQuestionParams.questions) &&
       storedQuestionParams.questions.length === 1 &&
-      typeof storedQuestionParams.questions[0]?.question === 'string' &&
-      storedQuestionParams.questions[0].question.trim() !== '';
+      typeof storedQuestionParams.questions[0] === 'string' &&
+      storedQuestionParams.questions[0].trim() !== '';
 
-    if (hasStructuredQuestion) {
+    if (hasRuntimeQuestionString) {
       return false;
     }
 
