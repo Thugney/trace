@@ -10,7 +10,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticateEventSource } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
 import { db } from '../database/init';
 import {
@@ -19,10 +19,13 @@ import {
   getH5PPlayer,
   createH5PUser,
   createH5PContent,
+  updateH5PContent,
   getH5PContentForPlay,
   deleteH5PContent,
   getInstalledContentTypes,
   convertQuizSpecToH5P,
+  extractQuizSpecFromAiPrompt,
+  questionSetNeedsRepair,
   validateQuizSpec,
   installLibraryFromFile,
   installLibraryFromHub,
@@ -551,7 +554,36 @@ router.use('/card-images', express.static(H5P_PATHS.cardImages, {
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-router.use(authenticate, requireFeature('activities'));
+router.use(authenticateEventSource, requireFeature('activities'));
+
+// H5P probes these endpoints even when we don't persist per-user state.
+// Returning a successful no-op response prevents noisy browser errors
+// while our app continues to track completion through xAPI/attempts.
+router.get('/contentUserData/:contentId/:dataType/:subContentId?', async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: false
+  });
+});
+
+router.post('/contentUserData/:contentId/:dataType/:subContentId?', async (req: Request, res: Response) => {
+  if (req.query.ignorePost === 'yes') {
+    return res.status(200).json({
+      success: true,
+      message: 'The user state was not saved, as the query parameter ignorePost was set.'
+    });
+  }
+
+  res.status(200).json({
+    success: true
+  });
+});
+
+router.post('/setFinished', async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true
+  });
+});
 
 // Get available AI providers for quiz generation
 router.get('/ai-providers', async (req: Request, res: Response) => {
@@ -1780,9 +1812,40 @@ router.get('/play/:id', async (req: Request, res: Response) => {
     // Create H5P user
     const h5pUser = createH5PUser(profile.id, profile.name);
 
+    // Repair older AI-generated blank questions that were saved with the wrong H5P.Blanks schema.
+    if (content.is_ai_generated && content.content_type === 'QuestionSet' && content.ai_prompt) {
+      try {
+        const quizSpec = extractQuizSpecFromAiPrompt(content.ai_prompt);
+        if (quizSpec?.questions?.some((question) => question.type === 'fill_blank')) {
+          const contentJsonPath = path.join(H5P_PATHS.content, String(content.h5p_content_id), 'content.json');
+          let storedParams: any = null;
+
+          if (fs.existsSync(contentJsonPath)) {
+            storedParams = JSON.parse(fs.readFileSync(contentJsonPath, 'utf8'));
+          }
+
+          if (!storedParams || questionSetNeedsRepair(storedParams, quizSpec)) {
+            const repairedContent = convertQuizSpecToH5P(quizSpec);
+            await updateH5PContent(
+              content.h5p_content_id,
+              repairedContent.library,
+              repairedContent.params,
+              repairedContent.metadata,
+              h5pUser
+            );
+            console.log(`[H5P] Repaired AI question set ${content.id} before play`);
+          }
+        }
+      } catch (repairError: any) {
+        console.warn(`[H5P] Failed to repair AI question set ${content.id}:`, repairError.message);
+      }
+    }
+
     // Get player model
     const player = getH5PPlayer();
-    const playerModel = await player.render(content.h5p_content_id, h5pUser);
+    const playerModel = await player.render(content.h5p_content_id, h5pUser, undefined, {
+      readOnlyState: true
+    });
 
     // Create attempt record for both parents (preview) and children (assigned)
     let attemptId: number | null = null;
