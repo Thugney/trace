@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import PhotoProof from '../components/PhotoProof';
 import Avatar from '../components/Avatar';
 import TaskTimerCard from '../components/TaskTimerCard';
+import { extractDateOnly, formatDateOnlyForDisplay, getDateOnlyRelation, getLocalDateKey, parseDateOnly } from '../utils/date-only';
 import {
   ActiveMissionCard,
   TodaysMissions,
@@ -137,7 +138,13 @@ export default function TasksManager() {
 
   const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
-  const incompleteTasks = tasks.filter(t => !t.completed);
+  const allIncompleteTasks = tasks.filter(t => !t.completed);
+  const incompleteTasks = isParent
+    ? allIncompleteTasks
+    : allIncompleteTasks.filter(t => getDateOnlyRelation(t.due_date) !== 'future');
+  const futureTasks = isParent
+    ? []
+    : allIncompleteTasks.filter(t => getDateOnlyRelation(t.due_date) === 'future');
   const completedTasks = tasks.filter(t => t.completed);
 
   useEffect(() => {
@@ -322,7 +329,7 @@ export default function TasksManager() {
         priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
         is_recurring: isRecurring,
         recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly') : undefined,
-        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0],
+        due_date: (formData.get('due_date') as string) || getLocalDateKey(),
         estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : undefined,
         scheduled_time: scheduledTime || undefined,
         // Timer is automatically set by backend based on category
@@ -489,7 +496,7 @@ export default function TasksManager() {
         category: category as any,
         difficulty: formData.get('difficulty') as any,
         earns_points: true,
-        due_date: (formData.get('due_date') as string) || new Date().toISOString().split('T')[0]
+        due_date: (formData.get('due_date') as string) || getLocalDateKey()
       });
 
       await loadTasks();
@@ -605,17 +612,16 @@ export default function TasksManager() {
     return dueDate > weekFromNow;
   });
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateKey();
   const completedTodayTasks = completedTasks.filter(t => {
     if (!t.completed_at) return false;
-    return t.completed_at.split('T')[0] === todayStr;
+    return extractDateOnly(t.completed_at) === todayStr;
   });
 
   const formatDueDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateOnly(dateStr);
+    if (!date) return '';
+    const now = parseDateOnly(getLocalDateKey())!;
     const diffDays = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
@@ -841,7 +847,7 @@ export default function TasksManager() {
                       <span className="badge badge-warning">{task.difficulty}</span>
                       <span className="text-gray-600">• {task.category}</span>
                       {task.due_date && (
-                        <span className="text-gray-600">• Due: {new Date(task.due_date).toLocaleDateString()}</span>
+                        <span className="text-gray-600">• Due: {formatDateOnlyForDisplay(task.due_date)}</span>
                       )}
                     </div>
                   </div>
@@ -1175,6 +1181,11 @@ export default function TasksManager() {
             <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
               <div className="text-5xl mb-3">🎉</div>
               <p className="text-lg font-semibold text-gray-900">All {settings.ageGroup === 'young' ? 'jobs' : settings.ageGroup === 'middle' ? 'missions' : 'tasks'} done!</p>
+              {!isParent && futureTasks.length > 0 && (
+                <p className="text-sm mt-2 text-blue-600">
+                  {futureTasks.length} scheduled task{futureTasks.length === 1 ? '' : 's'} will appear on the due date.
+                </p>
+              )}
               <p className="text-gray-500">Great job! Check back later for more.</p>
             </div>
           )}
@@ -1352,7 +1363,7 @@ export default function TasksManager() {
                           {task.due_date && (
                             <span className="text-xs text-gray-600 flex items-center">
                               <Calendar size={12} className="mr-1" />
-                              {new Date(task.due_date).toLocaleDateString()}
+                              {formatDateOnlyForDisplay(task.due_date)}
                             </span>
                           )}
                           {task.estimated_minutes && (
@@ -1541,7 +1552,7 @@ export default function TasksManager() {
                   name="due_date"
                   className="input"
                   required
-                  defaultValue={new Date().toISOString().split('T')[0]}
+                  defaultValue={getLocalDateKey()}
                 />
               </div>
 
@@ -1862,7 +1873,7 @@ export default function TasksManager() {
                   name="due_date"
                   className="input"
                   required
-                  defaultValue={editingTask.due_date?.split('T')[0] || new Date().toISOString().split('T')[0]}
+                  defaultValue={extractDateOnly(editingTask.due_date) || getLocalDateKey(new Date())}
                 />
               </div>
 

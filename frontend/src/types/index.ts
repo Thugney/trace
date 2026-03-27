@@ -252,9 +252,10 @@ export interface Task {
   earns_points: boolean;
   is_recurring: boolean | number;
   recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | string; // string allows custom patterns like 'specific_days:mon,wed,fri'
-  due_date?: string;
+  due_date?: string | null;
   completed: boolean;
   completed_at?: string;
+  last_completed_date?: string | null;
   parent_approved: boolean;
   created_by?: number;
   approved_by?: number;

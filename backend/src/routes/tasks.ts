@@ -13,7 +13,8 @@ import {
   formatTaskTimerDuration,
   getRequiredTaskTimerSeconds
 } from '../services/taskTimer';
-import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
+import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete, updateTaskStreak } from './gamification';
+import { formatDateOnly, getTodayDateOnly, normalizeDateOnlyInput, parseDateOnly, startOfLocalDay } from '../utils/date-only';
 import {
   checkRateLimit,
   updateRateLimit,
@@ -193,6 +194,13 @@ router.post('/', (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'due_date is required. All tasks must have a due date.' });
     }
 
+    let normalizedDueDate: string | null = null;
+    try {
+      normalizedDueDate = normalizeDateOnlyInput(due_date);
+    } catch {
+      return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+    }
+
     // Calculate points based on difficulty if not provided
     let taskPoints = points;
     if (!taskPoints && difficulty) {
@@ -231,7 +239,7 @@ router.post('/', (req: AuthRequest, res) => {
       difficulty || 'easy',
       is_recurring ? 1 : 0,
       recurrence_pattern || null,
-      due_date || null,
+      normalizedDueDate,
       createdBy,
       parentApproved,
       approvedBy,
@@ -323,8 +331,14 @@ router.put('/:id', (req: AuthRequest, res) => {
       values.push(req.body.estimated_minutes);
     }
     if (due_date !== undefined) {
+      let normalizedDueDate: string | null;
+      try {
+        normalizedDueDate = normalizeDateOnlyInput(due_date);
+      } catch {
+        return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+      }
       updates.push('due_date = ?');
-      values.push(due_date);
+      values.push(normalizedDueDate);
     }
     if (completed !== undefined) {
       updates.push('completed = ?');
@@ -359,7 +373,7 @@ router.put('/:id', (req: AuthRequest, res) => {
 router.post('/:id/complete', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
 
     // Get task first (outside transaction for early validation)
     const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
@@ -383,20 +397,6 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         requires_timer: true,
         timer_duration_minutes: task.timer_duration_minutes
       });
-    }
-
-    // ===== ANTI-ABUSE CHECK 0.6: Task is overdue (past due date) =====
-    if (task.due_date) {
-      const dueDate = new Date(task.due_date);
-      dueDate.setHours(23, 59, 59, 999); // End of due date
-      const now = new Date();
-      if (now > dueDate) {
-        return res.status(400).json({
-          error: 'This task is overdue and can no longer be completed. The due date has passed.',
-          code: 'TASK_OVERDUE',
-          due_date: task.due_date
-        });
-      }
     }
 
     // ===== ANTI-ABUSE CHECK 1: Already completed =====
@@ -530,6 +530,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
     const bonusPoints = txResult.bonusPoints!;
     const mysteryReward = txResult.mysteryReward;
 
+    updateTaskStreak(task.profile_id);
+
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
@@ -550,8 +552,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         INSERT INTO tasks (
           profile_id, title, description, category, points, difficulty,
           is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-          priority, estimated_minutes, proof_required
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         task.profile_id,
         task.title,
@@ -567,7 +569,9 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         task.approved_by,
         task.priority || 'medium',
         task.estimated_minutes,
-        task.proof_required || 0
+        task.proof_required || 0,
+        task.requires_timer || 0,
+        task.timer_duration_minutes
       );
 
       nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -638,8 +642,8 @@ const DAY_MAP: Record<string, number> = {
 // - every_N_days (every N days, e.g., every_3_days)
 // - day_of_month_N (specific day of month, e.g., day_of_month_15)
 function calculateNextDueDate(currentDueDate: string | null, pattern: string): string {
-  const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
-  const today = new Date();
+  const baseDate = parseDateOnly(currentDueDate) || startOfLocalDay(new Date());
+  const today = startOfLocalDay(new Date());
 
   // If base date is in the past, start from today
   if (baseDate < today) {
@@ -666,7 +670,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       // Fallback to daily if no valid days
       baseDate.setDate(baseDate.getDate() + 1);
     }
-    return baseDate.toISOString().split('T')[0];
+    return formatDateOnly(baseDate);
   }
 
   // Handle every_N_days pattern (e.g., "every_3_days")
@@ -675,7 +679,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
     if (match) {
       const n = parseInt(match[1], 10);
       baseDate.setDate(baseDate.getDate() + (n > 0 ? n : 1));
-      return baseDate.toISOString().split('T')[0];
+      return formatDateOnly(baseDate);
     }
   }
 
@@ -692,7 +696,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
         // Set to target day (or last day of month if target exceeds month's days)
         const lastDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
         baseDate.setDate(Math.min(targetDay, lastDayOfMonth));
-        return baseDate.toISOString().split('T')[0];
+        return formatDateOnly(baseDate);
       }
     }
   }
@@ -721,7 +725,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       baseDate.setDate(baseDate.getDate() + 1);
   }
 
-  return baseDate.toISOString().split('T')[0];
+  return formatDateOnly(baseDate);
 }
 
 // Delete task - with authorization (owner, parent of owner, or admin)
@@ -1130,7 +1134,7 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
     }
 
     if (approved) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayDateOnly();
       const rawPoints = task.points || 10;
       const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
       const approvalTx = db.transaction(() => {
@@ -1164,12 +1168,13 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
             INSERT INTO tasks (
               profile_id, title, description, category, points, difficulty,
               is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-              priority, estimated_minutes, proof_required
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
             1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
-            task.priority || 'medium', task.estimated_minutes, task.proof_required || 0
+            task.priority || 'medium', task.estimated_minutes, task.proof_required || 0,
+            task.requires_timer || 0, task.timer_duration_minutes
           );
         }
 
@@ -1180,6 +1185,8 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
       if (approvalResult.error) {
         return res.status(400).json({ error: approvalResult.error, code: approvalResult.code });
       }
+
+      updateTaskStreak(task.profile_id);
 
       const proofFiles = fs.readdirSync(PROOF_DIR).filter((f: string) => f.startsWith(`task-${id}-`));
       for (const file of proofFiles) {
@@ -1581,7 +1588,7 @@ router.get('/:id/timer', (req: AuthRequest, res) => {
         pause_time: timerState.pause_time
       } : null,
       can_complete: !task.requires_timer || (!!timerState && currentElapsed >= requiredSeconds),
-      completed_today: task.last_completed_date === new Date().toISOString().split('T')[0]
+      completed_today: task.last_completed_date === getTodayDateOnly()
     });
   } catch (error: any) {
     console.error('[Timer] Get timer state error:', error);
@@ -1600,7 +1607,7 @@ router.post('/:id/timer/start', (req: AuthRequest, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today',
@@ -1782,7 +1789,7 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today. You cannot earn more points for it.',
@@ -1950,6 +1957,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
     if (txResult.error) {
       return res.status(400).json({ error: txResult.error, code: txResult.code });
     }
+
+    updateTaskStreak(task.profile_id);
 
     const { pointsEarned, taskPointsEarned, bonusPoints, mysteryReward, stars: starsEarned, nextTask } = txResult;
 

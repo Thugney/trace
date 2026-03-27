@@ -43,9 +43,18 @@ export function createTestTask(profileId: number, overrides: Partial<{
   difficulty: string;
   completed: number;
   needs_approval: number;
+  parent_approved: number;
+  is_recurring: number;
+  recurrence_pattern: string;
+  due_date: string;
+  last_completed_date: string;
+  estimated_minutes: number;
+  priority: string;
   created_by: number;
   proof_required: number;
   proof_photo_url: string;
+  requires_timer: number;
+  timer_duration_minutes: number;
 }> = {}) {
   const defaults = {
     title: 'Test Task',
@@ -55,17 +64,52 @@ export function createTestTask(profileId: number, overrides: Partial<{
     difficulty: 'easy',
     completed: 0,
     needs_approval: 0,
+    parent_approved: 1,
+    is_recurring: 0,
+    recurrence_pattern: null,
+    due_date: null,
+    last_completed_date: null,
+    estimated_minutes: null,
+    priority: 'medium',
     created_by: null,
     proof_required: 0,
-    proof_photo_url: null
+    proof_photo_url: null,
+    requires_timer: 0,
+    timer_duration_minutes: null
   };
 
   const data = { ...defaults, ...overrides };
 
   const result = testDb.prepare(`
-    INSERT INTO tasks (profile_id, title, description, category, points, difficulty, completed, needs_approval, created_by, proof_required, proof_photo_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(profileId, data.title, data.description, data.category, data.points, data.difficulty, data.completed, data.needs_approval, data.created_by, data.proof_required, data.proof_photo_url);
+    INSERT INTO tasks (
+      profile_id, title, description, category, points, difficulty, completed, needs_approval,
+      parent_approved, is_recurring, recurrence_pattern, due_date, last_completed_date,
+      estimated_minutes, priority, created_by, proof_required, proof_photo_url,
+      requires_timer, timer_duration_minutes
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    profileId,
+    data.title,
+    data.description,
+    data.category,
+    data.points,
+    data.difficulty,
+    data.completed,
+    data.needs_approval,
+    data.parent_approved,
+    data.is_recurring,
+    data.recurrence_pattern,
+    data.due_date,
+    data.last_completed_date,
+    data.estimated_minutes,
+    data.priority,
+    data.created_by,
+    data.proof_required,
+    data.proof_photo_url,
+    data.requires_timer,
+    data.timer_duration_minutes
+  );
 
   return testDb.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as any;
 }

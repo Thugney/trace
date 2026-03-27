@@ -39,6 +39,7 @@ See [Synology Operations Runbook](synology-operations-runbook.md) for the curren
 ### Supporting
 - [Project Overview](project-overview.md) - High-level goals, status, summary.
 - [Synology Operations Runbook](synology-operations-runbook.md) - Current live deployment state, SSH usage, Docker commands, and safe cherry-pick deploy steps.
+- [Stability Notes 2026-03-26](stability-notes-2026-03-26.md) - Operational note for the quiz recovery and scheduled-task behavior fixes.
 
 ## Existing Documentation (Discovered)
 - [README.md](../README.md) - General project info.

@@ -22,6 +22,7 @@ import ReminderWidget from '../components/kids/ReminderWidget';
 import { SimpleTaskGrid } from '../components/SimpleTaskCard';
 import NotificationSetup from '../components/NotificationSetup';
 import { usePushNotifications } from '../hooks/usePushNotifications';
+import { extractDateOnly, getDateOnlyRelation, getLocalDateKey, parseDateOnly } from '../utils/date-only';
 import {
   ActiveMissionCard,
   TodaysMissions,
@@ -298,24 +299,20 @@ export default function ChildDashboard() {
         const res = await tasksAPI.getByProfile(currentProfile.id);
         const allTasksData = res.data as Task[];
 
-        // Filter for incomplete tasks
-        const incompleteTasks = allTasksData.filter((t: Task) => !t.completed);
-        setAllTasks(incompleteTasks);
+        const actionableTasks = allTasksData.filter((t: Task) => !t.completed && getDateOnlyRelation(t.due_date) !== 'future');
+        setAllTasks(actionableTasks);
 
         // Filter for tasks completed today
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateKey();
         const completedToday = allTasksData.filter((t: Task) => {
           if (!t.completed || !t.completed_at) return false;
-          const completedDate = t.completed_at.split('T')[0];
+          const completedDate = extractDateOnly(t.completed_at);
           return completedDate === todayStr;
         });
         setCompletedTodayTasks(completedToday);
 
         // Categorize tasks by due date
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const now = parseDateOnly(getLocalDateKey())!;
         const weekFromNow = new Date(now);
         weekFromNow.setDate(weekFromNow.getDate() + 7);
 
@@ -324,10 +321,13 @@ export default function ChildDashboard() {
         const upcoming: Task[] = [];
         const other: Task[] = [];
 
-        for (const task of incompleteTasks) {
+        for (const task of actionableTasks) {
           if (task.due_date) {
-            const dueDate = new Date(task.due_date);
-            dueDate.setHours(0, 0, 0, 0);
+            const dueDate = parseDateOnly(task.due_date);
+            if (!dueDate) {
+              other.push(task);
+              continue;
+            }
 
             if (dueDate < now) {
               overdue.push(task);
@@ -344,8 +344,8 @@ export default function ChildDashboard() {
         }
 
         // Sort by due date
-        overdue.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
-        upcoming.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+        overdue.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
+        upcoming.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
 
         setOverdueTasks(overdue);
         setTodayTasks(today);
@@ -559,8 +559,12 @@ export default function ChildDashboard() {
       setOtherTasks(prev => prev.filter(t => t.id !== taskId));
 
       if (currentProfile) {
-        const statsRes = await profilesAPI.getStats(currentProfile.id);
+        const [statsRes, gamificationRes] = await Promise.all([
+          profilesAPI.getStats(currentProfile.id),
+          gamificationAPI.getStats(currentProfile.id)
+        ]);
         setStats(statsRes.data);
+        setStreaks(gamificationRes.data?.streaks || {});
       }
     } catch (e: any) {
       console.error('Failed to complete task:', e);
@@ -613,8 +617,12 @@ export default function ChildDashboard() {
 
     // Refresh stats
     if (currentProfile) {
-      const statsRes = await profilesAPI.getStats(currentProfile.id);
+      const [statsRes, gamificationRes] = await Promise.all([
+        profilesAPI.getStats(currentProfile.id),
+        gamificationAPI.getStats(currentProfile.id)
+      ]);
       setStats(statsRes.data);
+      setStreaks(gamificationRes.data?.streaks || {});
     }
   };
 
