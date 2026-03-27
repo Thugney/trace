@@ -55,7 +55,8 @@ export function createTestTask(profileId: number, overrides: Partial<{
   proof_photo_url: string;
   requires_timer: number;
   timer_duration_minutes: number;
-}> = {}) {
+  scheduled_time: string;
+  }> = {}) {
   const defaults = {
     title: 'Test Task',
     description: 'Test description',
@@ -75,7 +76,8 @@ export function createTestTask(profileId: number, overrides: Partial<{
     proof_required: 0,
     proof_photo_url: null,
     requires_timer: 0,
-    timer_duration_minutes: null
+    timer_duration_minutes: null,
+    scheduled_time: null
   };
 
   const data = { ...defaults, ...overrides };
@@ -85,9 +87,9 @@ export function createTestTask(profileId: number, overrides: Partial<{
       profile_id, title, description, category, points, difficulty, completed, needs_approval,
       parent_approved, is_recurring, recurrence_pattern, due_date, last_completed_date,
       estimated_minutes, priority, created_by, proof_required, proof_photo_url,
-      requires_timer, timer_duration_minutes
+      requires_timer, timer_duration_minutes, scheduled_time
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     profileId,
     data.title,
@@ -108,7 +110,8 @@ export function createTestTask(profileId: number, overrides: Partial<{
     data.proof_required,
     data.proof_photo_url,
     data.requires_timer,
-    data.timer_duration_minutes
+    data.timer_duration_minutes,
+    data.scheduled_time
   );
 
   return testDb.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as any;

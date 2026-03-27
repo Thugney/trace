@@ -96,12 +96,20 @@ export function initTestDb() {
       proof_photo_url TEXT,
       requires_timer BOOLEAN DEFAULT 0,
       timer_duration_minutes INTEGER,
+      scheduled_time TEXT,
+      last_reminder_sent DATETIME,
       deleted_at DATETIME,
       deleted_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_by INTEGER
     )
   `);
+  try {
+    testDb.exec(`ALTER TABLE tasks ADD COLUMN scheduled_time TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE tasks ADD COLUMN last_reminder_sent DATETIME`);
+  } catch {}
 
   // Progress table
   testDb.exec(`

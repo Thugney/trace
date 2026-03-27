@@ -290,74 +290,74 @@ export default function ChildDashboard() {
     loadStats();
   }, [currentProfile]);
 
-  // Load tasks with due date categorization
-  useEffect(() => {
-    if (!currentProfile) return;
+  const loadTasks = async () => {
+    if (!currentProfile?.id) return;
 
-    const loadTasks = async () => {
-      try {
-        const res = await tasksAPI.getByProfile(currentProfile.id);
-        const allTasksData = res.data as Task[];
+    try {
+      const res = await tasksAPI.getByProfile(currentProfile.id);
+      const allTasksData = res.data as Task[];
+      const actionableTasks = allTasksData.filter((t: Task) => !t.completed && getDateOnlyRelation(t.due_date) !== 'future');
+      const isRecurringTask = (task: Task) => task.is_recurring === 1 || task.is_recurring === true;
 
-        const actionableTasks = allTasksData.filter((t: Task) => !t.completed && getDateOnlyRelation(t.due_date) !== 'future');
-        setAllTasks(actionableTasks);
+      setAllTasks(actionableTasks);
 
-        // Filter for tasks completed today
-        const todayStr = getLocalDateKey();
-        const completedToday = allTasksData.filter((t: Task) => {
-          if (!t.completed || !t.completed_at) return false;
-          const completedDate = extractDateOnly(t.completed_at);
-          return completedDate === todayStr;
-        });
-        setCompletedTodayTasks(completedToday);
+      const todayStr = getLocalDateKey();
+      const completedToday = allTasksData.filter((t: Task) => {
+        if (!t.completed || !t.completed_at) return false;
+        const completedDate = extractDateOnly(t.completed_at);
+        return completedDate === todayStr;
+      });
+      setCompletedTodayTasks(completedToday);
 
-        // Categorize tasks by due date
-        const now = parseDateOnly(getLocalDateKey())!;
-        const weekFromNow = new Date(now);
-        weekFromNow.setDate(weekFromNow.getDate() + 7);
+      const now = parseDateOnly(getLocalDateKey())!;
+      const weekFromNow = new Date(now);
+      weekFromNow.setDate(weekFromNow.getDate() + 7);
 
-        const overdue: Task[] = [];
-        const today: Task[] = [];
-        const upcoming: Task[] = [];
-        const other: Task[] = [];
+      const overdue: Task[] = [];
+      const today: Task[] = [];
+      const upcoming: Task[] = [];
+      const other: Task[] = [];
 
-        for (const task of actionableTasks) {
-          if (task.due_date) {
-            const dueDate = parseDateOnly(task.due_date);
-            if (!dueDate) {
-              other.push(task);
-              continue;
-            }
+      for (const task of actionableTasks) {
+        if (task.due_date) {
+          const dueDate = parseDateOnly(task.due_date);
+          if (!dueDate) {
+            other.push(task);
+            continue;
+          }
 
-            if (dueDate < now) {
-              overdue.push(task);
-            } else if (dueDate.getTime() === now.getTime()) {
-              today.push(task);
-            } else if (dueDate <= weekFromNow) {
-              upcoming.push(task);
-            } else {
-              other.push(task);
-            }
+          if (isRecurringTask(task) && dueDate <= now) {
+            today.push(task);
+          } else if (dueDate < now) {
+            overdue.push(task);
+          } else if (dueDate.getTime() === now.getTime()) {
+            today.push(task);
+          } else if (dueDate <= weekFromNow) {
+            upcoming.push(task);
           } else {
             other.push(task);
           }
+        } else {
+          other.push(task);
         }
-
-        // Sort by due date
-        overdue.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
-        upcoming.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
-
-        setOverdueTasks(overdue);
-        setTodayTasks(today);
-        setUpcomingTasks(upcoming);
-        setOtherTasks(other);
-      } catch (e) {
-        console.error('Failed to load tasks:', e);
       }
-    };
 
+      overdue.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
+      upcoming.sort((a, b) => (parseDateOnly(a.due_date)?.getTime() || 0) - (parseDateOnly(b.due_date)?.getTime() || 0));
+
+      setOverdueTasks(overdue);
+      setTodayTasks(today);
+      setUpcomingTasks(upcoming);
+      setOtherTasks(other);
+    } catch (e) {
+      console.error('Failed to load tasks:', e);
+    }
+  };
+
+  // Load tasks with due date categorization
+  useEffect(() => {
     loadTasks();
-  }, [currentProfile]);
+  }, [currentProfile?.id]);
 
   // Load reminder preferences
   useEffect(() => {
@@ -542,21 +542,9 @@ export default function ChildDashboard() {
 
   const handleTaskComplete = async (taskId: number) => {
     try {
-      await tasksAPI.complete(taskId);
+      const response = await tasksAPI.complete(taskId);
       playSounds.taskComplete();
-
-      // Find the completed task to add to completedToday
-      const completedTask = allTasks.find(t => t.id === taskId);
-      if (completedTask) {
-        setCompletedTodayTasks(prev => [{ ...completedTask, completed: true, completed_at: new Date().toISOString() }, ...prev]);
-      }
-
-      // Remove from all lists
-      setAllTasks(prev => prev.filter(t => t.id !== taskId));
-      setOverdueTasks(prev => prev.filter(t => t.id !== taskId));
-      setTodayTasks(prev => prev.filter(t => t.id !== taskId));
-      setUpcomingTasks(prev => prev.filter(t => t.id !== taskId));
-      setOtherTasks(prev => prev.filter(t => t.id !== taskId));
+      await loadTasks();
 
       if (currentProfile) {
         const [statsRes, gamificationRes] = await Promise.all([
@@ -565,6 +553,10 @@ export default function ChildDashboard() {
         ]);
         setStats(statsRes.data);
         setStreaks(gamificationRes.data?.streaks || {});
+      }
+
+      if (response.data.latePenaltyApplied) {
+        console.info('[Tasks] Late completion applied reduced points for task', taskId);
       }
     } catch (e: any) {
       console.error('Failed to complete task:', e);
@@ -596,24 +588,11 @@ export default function ChildDashboard() {
         timeSpent
       });
       setShowMissionComplete(true);
-
-      // Add to completed today list
-      setCompletedTodayTasks(prev => [{
-        ...completedTask,
-        completed: true,
-        completed_at: new Date().toISOString()
-      }, ...prev]);
     }
-
-    // Remove from all lists
-    setAllTasks(prev => prev.filter(t => t.id !== taskId));
-    setOverdueTasks(prev => prev.filter(t => t.id !== taskId));
-    setTodayTasks(prev => prev.filter(t => t.id !== taskId));
-    setUpcomingTasks(prev => prev.filter(t => t.id !== taskId));
-    setOtherTasks(prev => prev.filter(t => t.id !== taskId));
 
     // Clear active mission
     setActiveMission(null);
+    await loadTasks();
 
     // Refresh stats
     if (currentProfile) {
@@ -1096,7 +1075,13 @@ export default function ChildDashboard() {
             ) : (
               <div className="divide-y divide-gray-50">
                 {todayTasks.map(task => (
-                  <TaskCard key={task.id} task={task} onComplete={handleTaskComplete} formatDueDate={formatDueDate} />
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    onComplete={handleTaskComplete}
+                    formatDueDate={formatDueDate}
+                    isOverdue={getDateOnlyRelation(task.due_date) === 'past'}
+                  />
                 ))}
               </div>
             )}
@@ -1326,6 +1311,9 @@ function TaskCard({ task, onComplete, formatDueDate, isOverdue = false }: {
               </span>
             )}
           </div>
+          {isOverdue && (
+            <p className="text-xs text-red-600 font-medium mt-1">Past due. Do it now for half points.</p>
+          )}
         </div>
         {hasTimer && (
           <Link to="/tasks" className="text-sm text-purple-600 font-medium">

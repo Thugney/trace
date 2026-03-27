@@ -218,10 +218,21 @@ export const tasksAPI = {
   create: (data: Partial<Task>) => api.post<Task>('/tasks', data),
   update: (id: number, data: Partial<Task>) => api.put<Task>(`/tasks/${id}`, data),
   complete: (id: number) =>
-    api.post<{ task: Task; progress: Progress; pointsEarned: number; starsEarned: number }>(
+    api.post<{
+      task: Task;
+      progress: Progress;
+      pointsEarned: number;
+      starsEarned: number;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
+    }>(
       `/tasks/${id}/complete`
     ),
   delete: (id: number) => api.delete(`/tasks/${id}`),
+  remind: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/tasks/${id}/remind`),
   approve: (id: number, approved_by: number) =>
     api.post<Task>(`/tasks/${id}/approve`, { approved_by }),
   reject: (id: number, rejected_by: number) =>
@@ -231,7 +242,17 @@ export const tasksAPI = {
   getPendingProofs: (parentId: number) =>
     api.get<Task[]>(`/tasks/pending-proofs/${parentId}`),
   verifyProof: (taskId: number, approved: boolean, verified_by: number) =>
-    api.post<{ success: boolean; message: string; task: Task; pointsEarned?: number; starsEarned?: number }>(
+    api.post<{
+      success: boolean;
+      message: string;
+      task: Task;
+      pointsEarned?: number;
+      starsEarned?: number;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
+    }>(
       `/tasks/${taskId}/verify-proof`,
       { approved, verified_by }
     ),
@@ -274,6 +295,10 @@ export const tasksAPI = {
       starsEarned: number;
       timeSpent: number;
       nextRecurringTask?: Task;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
     }>(`/tasks/${taskId}/timer/finish`)
 };
 

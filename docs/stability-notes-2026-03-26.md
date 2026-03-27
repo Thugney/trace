@@ -15,6 +15,16 @@ Scheduled task handling was tightened to match how families use the app day to d
 - Child-facing task lists should show what is actionable now, not future scheduled copies.
 - Overdue tasks remain actionable and should be treated as "do now" items instead of disappearing.
 - Completing a recurring task should not make the child think the same task is still due today when the app has actually created the next dated copy.
+- Overdue recurring tasks should surface in the child's "today" lane so they are treated as work to do now, not hidden in a separate bucket.
+- Recurring follow-up tasks must keep `scheduled_time` so reminder behavior survives to the next occurrence.
+
+## Overdue Task Rules
+
+Past-due tasks are allowed, but they should be clearly explained and scored differently.
+
+- Child-facing overdue cards should explain that the task is past due and can still be done now.
+- Overdue task completion now awards half points instead of full points.
+- Parent-triggered task reminders should work for approved due-today and past-due tasks without suppressing the normal scheduled reminder flow.
 
 ## Habit Accuracy
 

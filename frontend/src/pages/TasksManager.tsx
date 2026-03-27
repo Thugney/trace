@@ -255,7 +255,8 @@ export default function TasksManager() {
       await loadTasks();
 
       if (approved) {
-        alert(`✅ Photo approved! Task completed. ${response.data.pointsEarned} points awarded.`);
+        const lateNotice = response.data.latePenaltyApplied ? ' Late task, so points were reduced.' : '';
+        alert(`✅ Photo approved! Task completed. ${response.data.pointsEarned} points awarded.${lateNotice}`);
       } else {
         alert('❌ Photo rejected. Child can upload a new photo.');
       }
@@ -285,7 +286,8 @@ export default function TasksManager() {
 
       // Show celebration for kids
       if (!isParent) {
-        alert(`🎉 Great job! You earned ${response.data.pointsEarned} points and ${response.data.starsEarned} stars!`);
+        const lateNotice = response.data.latePenaltyApplied ? ' Late task, so points were reduced.' : '';
+        alert(`🎉 Great job! You earned ${response.data.pointsEarned} points and ${response.data.starsEarned} stars!${lateNotice}`);
       }
     } catch (error: any) {
       console.error('Failed to complete task:', error);
@@ -563,6 +565,16 @@ export default function TasksManager() {
     }
   };
 
+  const handleSendTaskReminder = async (task: Task) => {
+    try {
+      const response = await tasksAPI.remind(task.id);
+      alert(response.data.message || 'Reminder sent');
+    } catch (error: any) {
+      console.error('Failed to send task reminder:', error);
+      alert(error.response?.data?.error || 'Failed to send reminder');
+    }
+  };
+
   if (!currentProfile) {
     return (
       <div className="text-center py-12">
@@ -576,39 +588,42 @@ export default function TasksManager() {
     : 0;
 
   // Categorize tasks for kid view
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const today = parseDateOnly(getLocalDateKey())!;
   const weekFromNow = new Date(today);
   weekFromNow.setDate(weekFromNow.getDate() + 7);
+  const isRecurringTask = (task: Task) => task.is_recurring === true || task.is_recurring === 1;
 
   const overdueTasks = incompleteTasks.filter(t => {
     if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate < today;
+    const dueDate = parseDateOnly(t.due_date);
+    if (!dueDate) return false;
+    return dueDate < today && !isRecurringTask(t);
   });
 
   const todayTasks = incompleteTasks.filter(t => {
-    if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
+    if (!t.parent_approved || !t.due_date) return false;
+    const dueDate = parseDateOnly(t.due_date);
+    if (!dueDate) return false;
+
+    if (isRecurringTask(t) && dueDate <= today) {
+      return true;
+    }
+
     return dueDate.getTime() === today.getTime();
   });
 
   const upcomingTasks = incompleteTasks.filter(t => {
     if (!t.due_date || !t.parent_approved) return false;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
+    const dueDate = parseDateOnly(t.due_date);
+    if (!dueDate) return false;
     return dueDate > today && dueDate <= weekFromNow;
   });
 
   const otherApprovedTasks = incompleteTasks.filter(t => {
     if (!t.parent_approved) return false;
     if (!t.due_date) return true;
-    const dueDate = new Date(t.due_date);
-    dueDate.setHours(0, 0, 0, 0);
+    const dueDate = parseDateOnly(t.due_date);
+    if (!dueDate) return false;
     return dueDate > weekFromNow;
   });
 
@@ -1291,6 +1306,8 @@ export default function TasksManager() {
             <div className="space-y-3">
               {incompleteTasks.map((task, index) => {
                 const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
+                const dueRelation = getDateOnlyRelation(task.due_date);
+                const canSendReminder = isParent && task.parent_approved && !task.completed && !!task.due_date && dueRelation !== 'future';
 
                 // For tasks requiring timer (and approved), show the timer card
                 if (requiresTimer && task.parent_approved && !isParent) {
@@ -1388,6 +1405,15 @@ export default function TasksManager() {
                             title="Edit task"
                           >
                             <Edit2 size={16} />
+                          </button>
+                        )}
+                        {canSendReminder && (
+                          <button
+                            onClick={() => handleSendTaskReminder(task)}
+                            className="btn btn-secondary btn-sm text-orange-600 hover:bg-orange-100"
+                            title="Send reminder"
+                          >
+                            <Bell size={16} />
                           </button>
                         )}
                         {isParent && (

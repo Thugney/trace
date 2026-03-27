@@ -80,6 +80,39 @@ function denyTaskAccess(res: Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own tasks or your children\'s tasks' });
 }
 
+const OVERDUE_TASK_POINTS_MULTIPLIER = 0.5;
+
+type TaskPointAwardContext = {
+  originalPoints: number;
+  adjustedPoints: number;
+  latePenaltyApplied: boolean;
+  daysOverdue: number;
+};
+
+function getTaskPointAwardContext(task: { points?: number | null; due_date?: string | null }): TaskPointAwardContext {
+  const originalPoints = task.points || 10;
+  const dueDate = parseDateOnly(task.due_date);
+  const today = parseDateOnly(getTodayDateOnly());
+
+  if (!dueDate || !today || dueDate >= today) {
+    return {
+      originalPoints,
+      adjustedPoints: originalPoints,
+      latePenaltyApplied: false,
+      daysOverdue: 0
+    };
+  }
+
+  const daysOverdue = Math.max(1, Math.round((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  return {
+    originalPoints,
+    adjustedPoints: Math.max(1, Math.round(originalPoints * OVERDUE_TASK_POINTS_MULTIPLIER)),
+    latePenaltyApplied: true,
+    daysOverdue
+  };
+}
+
 // Get tasks for a profile
 router.get('/:profileId', (req: AuthRequest, res) => {
   try {
@@ -381,6 +414,10 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
     // ===== ANTI-ABUSE CHECK 0: Already completed today =====
     if (task.last_completed_date === today) {
       return res.status(400).json({
@@ -432,9 +469,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
       });
     }
 
-    // Calculate base points with multiplier
-    const rawPoints = task.points || 10;
-    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const pointContext = getTaskPointAwardContext(task);
+    const basePoints = applyPointsMultiplier(task.profile_id, pointContext.adjustedPoints);
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
 
     // ===== ANTI-ABUSE CHECK 5: Daily/weekly caps =====
@@ -466,7 +502,7 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
 
       const taskAward = awardPoints({
         profileId: task.profile_id,
-        basePoints: rawPoints,
+        basePoints: pointContext.adjustedPoints,
         stars,
         source: 'task',
         taskId: parseInt(id, 10),
@@ -552,8 +588,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         INSERT INTO tasks (
           profile_id, title, description, category, points, difficulty,
           is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         task.profile_id,
         task.title,
@@ -571,7 +607,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         task.estimated_minutes,
         task.proof_required || 0,
         task.requires_timer || 0,
-        task.timer_duration_minutes
+        task.timer_duration_minutes,
+        task.scheduled_time || null
       );
 
       nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -611,6 +648,10 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
       } : null,
       countdownChallenge: countdownResult,
       spinWheelReady: spinReady,
+      latePenaltyApplied: pointContext.latePenaltyApplied,
+      overdueDays: pointContext.daysOverdue,
+      originalPoints: pointContext.originalPoints,
+      adjustedPoints: pointContext.adjustedPoints,
       // Economy info
       economyInfo: wasPointsCapped ? {
         warning: 'Points were capped due to daily/weekly limits',
@@ -620,6 +661,54 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
     });
   } catch (error: any) {
     console.error('[Tasks] Complete error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/:id/remind', async (req: AuthRequest, res: Response) => {
+  try {
+    const viewer = req.profile!;
+    const { id } = req.params;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied: Only parents or admins can send task reminders' });
+    }
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (viewer.type === 'parent' && !canParentManageChild(viewer.id, task.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only remind your own children' });
+    }
+
+    if (!task.parent_approved) {
+      return res.status(400).json({ error: 'Task must be approved before sending reminders' });
+    }
+
+    if (task.completed) {
+      return res.status(400).json({ error: 'Task already completed' });
+    }
+
+    const pointContext = getTaskPointAwardContext(task);
+    await NotificationHelpers.taskReminder(
+      task.profile_id,
+      task.title,
+      pointContext.latePenaltyApplied,
+      pointContext.daysOverdue
+    );
+
+    res.json({
+      success: true,
+      message: pointContext.latePenaltyApplied ? 'Past-due reminder sent to child' : 'Reminder sent to child'
+    });
+  } catch (error: any) {
+    console.error('[Tasks] Reminder error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1135,7 +1224,7 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
 
     if (approved) {
       const today = getTodayDateOnly();
-      const rawPoints = task.points || 10;
+      const pointContext = getTaskPointAwardContext(task);
       const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
       const approvalTx = db.transaction(() => {
         const updateResult = db.prepare(`
@@ -1150,7 +1239,7 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
 
         const taskAward = awardPoints({
           profileId: task.profile_id,
-          basePoints: rawPoints,
+          basePoints: pointContext.adjustedPoints,
           stars,
           source: 'task',
           taskId: parseInt(id, 10),
@@ -1168,13 +1257,13 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
             INSERT INTO tasks (
               profile_id, title, description, category, points, difficulty,
               is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-              priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
             1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
             task.priority || 'medium', task.estimated_minutes, task.proof_required || 0,
-            task.requires_timer || 0, task.timer_duration_minutes
+            task.requires_timer || 0, task.timer_duration_minutes, task.scheduled_time || null
           );
         }
 
@@ -1205,7 +1294,11 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
         message: 'Photo proof approved, task completed!',
         task: completedTask,
         pointsEarned: approvalResult.pointsEarned,
-        starsEarned: stars
+        starsEarned: stars,
+        latePenaltyApplied: pointContext.latePenaltyApplied,
+        overdueDays: pointContext.daysOverdue,
+        originalPoints: pointContext.originalPoints,
+        adjustedPoints: pointContext.adjustedPoints
       });
     } else {
       // Reject: Clear the photo URL so child can upload again
@@ -1834,8 +1927,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
       });
     }
 
-    const rawPoints = task.points || 10;
-    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const pointContext = getTaskPointAwardContext(task);
+    const basePoints = applyPointsMultiplier(task.profile_id, pointContext.adjustedPoints);
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
     const capCheck = canEarnPoints(task.profile_id, basePoints);
 
@@ -1868,7 +1961,7 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
 
       const taskAward = awardPoints({
         profileId: task.profile_id,
-        basePoints: rawPoints,
+        basePoints: pointContext.adjustedPoints,
         stars,
         source: 'task',
         taskId: parseInt(id, 10),
@@ -1914,8 +2007,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
           INSERT INTO tasks (
             profile_id, title, description, category, points, difficulty,
             is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-            priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           task.profile_id,
           task.title,
@@ -1933,7 +2026,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
           task.estimated_minutes,
           task.proof_required || 0,
           task.requires_timer || 0,
-          task.timer_duration_minutes
+          task.timer_duration_minutes,
+          task.scheduled_time || null
         );
 
         nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -1996,7 +2090,11 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
         bonusPoints
       } : null,
       countdownChallenge: countdownResult,
-      spinWheelReady: spinReady
+      spinWheelReady: spinReady,
+      latePenaltyApplied: pointContext.latePenaltyApplied,
+      overdueDays: pointContext.daysOverdue,
+      originalPoints: pointContext.originalPoints,
+      adjustedPoints: pointContext.adjustedPoints
     });
   } catch (error: any) {
     console.error('[Timer] Finish timer error:', error);

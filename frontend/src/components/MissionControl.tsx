@@ -6,6 +6,7 @@ import { Task } from '../types';
 import playSounds from '../utils/sounds';
 import confetti from 'canvas-confetti';
 import PhotoProof from './PhotoProof';
+import { getDateOnlyRelation } from '../utils/date-only';
 
 // Fun encouraging messages for kids
 const ENCOURAGEMENTS = [
@@ -527,6 +528,7 @@ function MissionListItem({ task, onStart }: MissionListItemProps) {
   const { emoji } = useTaskIcon(task.category);
   const hasTimer = task.requires_timer === 1 || task.requires_timer === true;
   const timerMinutes = task.timer_duration_minutes || 10;
+  const isOverdue = getDateOnlyRelation(task.due_date) === 'past';
 
   return (
     <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:border-purple-200 hover:shadow-sm transition-all group">
@@ -542,6 +544,9 @@ function MissionListItem({ task, onStart }: MissionListItemProps) {
             </span>
           )}
         </div>
+        {isOverdue && (
+          <p className="text-xs text-red-600 font-medium mt-1">Past due. Do it now for half points.</p>
+        )}
       </div>
       <button
         onClick={onStart}
@@ -654,6 +659,7 @@ function OverdueMissionItem({ task, onStart, formatDueDate }: { task: Task; onSt
             <span className="text-xs text-red-600 font-medium">{formatDueDate(task.due_date)}</span>
           )}
         </div>
+        <p className="text-xs text-red-600 font-medium mt-1">Past due. Do it now for half points.</p>
       </div>
       {hasTimer ? (
         <button

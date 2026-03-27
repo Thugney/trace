@@ -288,6 +288,26 @@ export const NotificationHelpers = {
     });
   },
 
+  // Parent-triggered reminder for a specific task
+  async taskReminder(childId: number, taskTitle: string, isOverdue: boolean, daysOverdue = 0) {
+    const overdueText = daysOverdue === 1 ? '1 day' : `${daysOverdue} days`;
+
+    await sendPushNotification(childId, {
+      type: 'reminder',
+      title: isOverdue ? 'Past Due Task ⏰' : 'Task Reminder ⏰',
+      message: isOverdue
+        ? `"${taskTitle}" is ${overdueText} past due. Do it now for half points.`
+        : `Don't forget "${taskTitle}" today.`,
+      icon: '⏰',
+      url: '/tasks',
+      data: {
+        taskTitle,
+        isOverdue,
+        daysOverdue
+      }
+    });
+  },
+
   // Child created a goal - notify parent
   async goalCreatedByChild(childId: number, childName: string, goalDescription: string) {
     await notifyParent(childId, {
