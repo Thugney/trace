@@ -22,15 +22,11 @@ import FamilyLeaderboard from './pages/FamilyLeaderboard';
 import RewardShop from './pages/RewardShop';
 import CalendarView from './pages/CalendarView';
 import ControlsPage from './pages/ControlsPage';
-import QuizBuilder from './pages/QuizBuilder';
-import QuizPlayer from './pages/QuizPlayer';
 import School from './pages/School';
 import BookLibrary from './pages/BookLibrary';
 import BookReader from './pages/BookReader';
 import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
-import ActivityPlayer from './pages/ActivityPlayer';
-import ActivityBuilder from './pages/ActivityBuilder';
 import H5PManager from './pages/H5PManager';
 import { useProfile } from './context/ProfileContext';
 
@@ -385,25 +381,25 @@ function AppRoutes() {
           />
         )}
 
-        {/* Quiz Builder - Parents and Admin */}
+        {/* Legacy quiz builder redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/quizzes/builder"
             element={
               <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
-                <QuizBuilder />
+                <Navigate to="/h5p" replace />
               </ModuleProtectedRoute>
             }
           />
         )}
 
-        {/* Quiz Player - Children */}
+        {/* Legacy quiz player redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/quizzes"
             element={
               <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
-                <QuizPlayer />
+                <Navigate to="/h5p/play" replace />
               </ModuleProtectedRoute>
             }
           />
@@ -457,25 +453,25 @@ function AppRoutes() {
           />
         )}
 
-        {/* Activity Builder - Parents and Admin */}
+        {/* Legacy activity builder redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/activities/builder"
             element={
               <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
-                <ActivityBuilder />
+                <Navigate to="/h5p" replace />
               </ModuleProtectedRoute>
             }
           />
         )}
 
-        {/* Activity Player - Children */}
+        {/* Legacy activity player redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/activities"
             element={
               <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
-                <ActivityPlayer />
+                <Navigate to="/h5p/play" replace />
               </ModuleProtectedRoute>
             }
           />

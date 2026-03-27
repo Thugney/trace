@@ -497,10 +497,10 @@ export default function ParentDashboard() {
               <p className="font-medium text-gray-900 group-hover:text-amber-600">Leaderboard</p>
               <p className="text-xs text-gray-500">Family rankings</p>
             </Link>
-            <Link to="/quizzes/builder" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-purple-300 hover:shadow-sm transition-all group">
+            <Link to="/h5p" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-purple-300 hover:shadow-sm transition-all group">
               <BookOpen className="w-6 h-6 text-purple-600 mb-2" />
-              <p className="font-medium text-gray-900 group-hover:text-purple-600">Quiz Builder</p>
-              <p className="text-xs text-gray-500">Create quizzes</p>
+              <p className="font-medium text-gray-900 group-hover:text-purple-600">Quizzes</p>
+              <p className="text-xs text-gray-500">Create and manage H5P quizzes</p>
             </Link>
             <Link to="/settings" className="bg-white rounded-xl p-4 border border-gray-100 hover:border-gray-300 hover:shadow-sm transition-all group">
               <Users className="w-6 h-6 text-gray-600 mb-2" />

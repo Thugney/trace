@@ -1001,7 +1001,7 @@ export default function ChildDashboard() {
               </Link>
             )}
             {isFeatureEnabled('quizzes') && (
-              <Link to="/quizzes" className="bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-xl p-3 text-center transition-all">
+              <Link to="/h5p/play" className="bg-gradient-to-br from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200 rounded-xl p-3 text-center transition-all">
                 <Gamepad2 className="w-6 h-6 text-violet-600 mx-auto mb-1" />
                 <p className="text-xs font-semibold text-gray-700">Quizzes</p>
               </Link>
