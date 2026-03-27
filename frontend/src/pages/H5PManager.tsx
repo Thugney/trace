@@ -478,188 +478,401 @@ const H5PManager: React.FC = () => {
     }
   };
 
+  const totalAssignments = content.reduce((sum, item) => sum + (item.assignment_count || 0), 0);
+  const totalAttempts = content.reduce((sum, item) => {
+    const attempts = isParent ? (item.attempt_count || 0) : (item.my_attempts || 0);
+    return sum + attempts;
+  }, 0);
+  const aiGeneratedCount = content.filter((item) => Boolean(item.is_ai_generated)).length;
+  const availableProviderCount = aiProviders.filter((provider) => provider.available).length;
+  const passedCount = content.filter((item) => Boolean(item.passed)).length;
+  const startedCount = content.filter((item) => (item.my_attempts || 0) > 0).length;
+
+  const formatContentLabel = (contentType: string) => {
+    return (contentType || 'interactive_content')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+  const getContentTone = (contentType: string) => {
+    const normalized = (contentType || '').toLowerCase();
+
+    if (normalized.includes('memory')) {
+      return {
+        surface: 'from-amber-50 via-white to-orange-50 dark:from-amber-950/25 dark:via-slate-900 dark:to-orange-950/20',
+        badge: 'border-amber-200 bg-amber-100 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300',
+        button: 'bg-amber-600 hover:bg-amber-700'
+      };
+    }
+
+    if (normalized.includes('word') || normalized.includes('dialog') || normalized.includes('flash')) {
+      return {
+        surface: 'from-emerald-50 via-white to-cyan-50 dark:from-emerald-950/20 dark:via-slate-900 dark:to-cyan-950/20',
+        badge: 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300',
+        button: 'bg-emerald-600 hover:bg-emerald-700'
+      };
+    }
+
+    return {
+      surface: 'from-sky-50 via-white to-violet-50 dark:from-sky-950/20 dark:via-slate-900 dark:to-violet-950/20',
+      badge: 'border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-300',
+      button: 'bg-sky-600 hover:bg-sky-700'
+    };
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="flex min-h-[420px] items-center justify-center">
+        <div className="rounded-[28px] border border-slate-200 bg-white/80 px-8 py-10 text-center shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+          <Loader2 className="mx-auto h-9 w-9 animate-spin text-sky-500" />
+          <p className="mt-4 text-sm font-medium text-slate-600 dark:text-slate-300">Loading H5P workspace...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
-        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <p className="text-red-600 dark:text-red-400 text-center">{error}</p>
-        <button
-          onClick={loadData}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          Retry
-        </button>
+      <div className="flex min-h-[420px] items-center justify-center p-4">
+        <div className="w-full max-w-xl rounded-[28px] border border-red-200 bg-white p-8 text-center shadow-xl shadow-red-100/40 dark:border-red-900/50 dark:bg-slate-900">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">H5P workspace unavailable</h2>
+          <p className="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Retry after checking libraries, service health, or the current Synology build.
+          </p>
+          <button
+            onClick={loadData}
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500"
+          >
+            Retry load
+          </button>
+        </div>
       </div>
     );
   }
 
-  // If playing content
   if (activePlayer !== null) {
     return (
-      <div className="max-w-4xl mx-auto p-4">
-        <button
-          onClick={() => setActivePlayer(null)}
-          className="mb-4 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-        >
-          ← Back to List
-        </button>
-        <H5PPlayer
-          contentId={activePlayer}
-          onComplete={(result) => {
-            console.log('Completed:', result);
-            // Don't reload immediately - let the player show the result
-            // The H5PPlayer component will display the completion banner
-            // User can click "Back to List" to see updated scores
-          }}
-          onError={(err) => {
-            console.error('Player error:', err);
-          }}
-        />
+      <div className="mx-auto max-w-5xl space-y-6 px-4 py-4">
+        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950 text-white shadow-2xl shadow-slate-300/30 dark:border-slate-800">
+          <div className="px-6 py-6 sm:px-8">
+            <button
+              onClick={() => setActivePlayer(null)}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+            >
+              <span aria-hidden="true">←</span>
+              Back to quizzes
+            </button>
+            <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-sky-200/70">H5P Player</p>
+                <h1 className="mt-2 text-3xl font-semibold">Focused play mode</h1>
+                <p className="mt-2 max-w-2xl text-sm text-slate-300">
+                  Keep the quiz front and center, then return to the library when you want to review progress or launch another activity.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                Runtime-safe H5P playback is active for this content.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-[32px] border border-slate-200 bg-white p-3 shadow-xl shadow-slate-200/40 dark:border-slate-800 dark:bg-slate-900">
+          <H5PPlayer
+            contentId={activePlayer}
+            onComplete={(result) => {
+              console.log('Completed:', result);
+              // Don't reload immediately - let the player show the result
+              // The H5PPlayer component will display the completion banner
+              // User can click "Back to List" to see updated scores
+            }}
+            onError={(err) => {
+              console.error('Player error:', err);
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {isParent ? 'H5P Content Manager' : 'Interactive Quizzes'}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {isParent ? 'Create and manage interactive learning content' : 'Complete quizzes to earn points!'}
-          </p>
-        </div>
-        {isParent && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleOpenLibraryManager}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 flex items-center gap-2"
-            >
-              <FolderOpen className="w-5 h-5" />
-              Manage Libraries
-            </button>
-            <button
-              onClick={() => setShowActivityForm(true)}
-              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 flex items-center gap-2"
-            >
-              <Gamepad2 className="w-5 h-5" />
-              Create Activity
-            </button>
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Create Quiz
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-4">
+      <section className={`relative overflow-hidden rounded-[34px] border shadow-2xl ${
+        isParent
+          ? 'border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#111827_55%,#0c4a6e_100%)] text-white shadow-slate-300/30 dark:border-slate-800'
+          : 'border-slate-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_40%,#ecfeff_100%)] text-slate-900 shadow-slate-200/40 dark:border-slate-800 dark:bg-[linear-gradient(135deg,#0f172a_0%,#172554_45%,#083344_100%)] dark:text-white'
+      }`}>
+        <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.16)_1px,transparent_1px)] [background-size:38px_38px]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.24),transparent_34%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(251,191,36,0.18),transparent_28%)]"></div>
 
-      {/* Status Card (Parents Only) */}
+        <div className="relative z-10 px-6 py-8 sm:px-8 lg:px-10">
+          <div className="flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.28em] ${
+                isParent
+                  ? 'border-white/15 bg-white/10 text-sky-100'
+                  : 'border-sky-200 bg-white/70 text-sky-700 dark:border-white/15 dark:bg-white/10 dark:text-sky-100'
+              }`}>
+                {isParent ? 'H5P Studio' : 'H5P Quizzes'}
+              </div>
+              <h1 className={`mt-4 text-3xl font-semibold sm:text-4xl ${
+                isParent ? 'text-white' : 'text-slate-950 dark:text-white'
+              }`}>
+                {isParent ? 'One calm workspace for quizzes, content, and library health' : 'Play the H5P quizzes assigned to you'}
+              </h1>
+              <p className={`mt-3 max-w-2xl text-sm sm:text-base ${
+                isParent ? 'text-slate-200/85' : 'text-slate-600 dark:text-slate-300'
+              }`}>
+                {isParent
+                  ? 'Create H5P quizzes, import packages, check quiz readiness, and review child progress without bouncing between multiple quiz systems.'
+                  : 'Everything here is the real H5P quiz path. Open a quiz, track your best score, and come back for the next one.'}
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className={`rounded-2xl border px-4 py-3 ${
+                  isParent ? 'border-white/10 bg-white/8' : 'border-slate-200 bg-white/85 dark:border-white/10 dark:bg-white/10'
+                }`}>
+                  <p className={`text-xs uppercase tracking-[0.22em] ${isParent ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>Content</p>
+                  <p className={`mt-2 text-3xl font-semibold ${isParent ? 'text-white' : 'text-slate-900 dark:text-white'}`}>{content.length}</p>
+                  <p className={`mt-1 text-sm ${isParent ? 'text-slate-300/85' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'Total H5P items in library' : 'Ready to open from your list'}
+                  </p>
+                </div>
+                <div className={`rounded-2xl border px-4 py-3 ${
+                  isParent ? 'border-white/10 bg-white/8' : 'border-slate-200 bg-white/85 dark:border-white/10 dark:bg-white/10'
+                }`}>
+                  <p className={`text-xs uppercase tracking-[0.22em] ${isParent ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'Assignments' : 'Started'}
+                  </p>
+                  <p className={`mt-2 text-3xl font-semibold ${isParent ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                    {isParent ? totalAssignments : startedCount}
+                  </p>
+                  <p className={`mt-1 text-sm ${isParent ? 'text-slate-300/85' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'Child assignments linked' : 'Quizzes you already touched'}
+                  </p>
+                </div>
+                <div className={`rounded-2xl border px-4 py-3 ${
+                  isParent ? 'border-white/10 bg-white/8' : 'border-slate-200 bg-white/85 dark:border-white/10 dark:bg-white/10'
+                }`}>
+                  <p className={`text-xs uppercase tracking-[0.22em] ${isParent ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'AI Built' : 'Passed'}
+                  </p>
+                  <p className={`mt-2 text-3xl font-semibold ${isParent ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                    {isParent ? aiGeneratedCount : passedCount}
+                  </p>
+                  <p className={`mt-1 text-sm ${isParent ? 'text-slate-300/85' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'Items generated by AI' : 'Quizzes already passed'}
+                  </p>
+                </div>
+                <div className={`rounded-2xl border px-4 py-3 ${
+                  isParent ? 'border-white/10 bg-white/8' : 'border-slate-200 bg-white/85 dark:border-white/10 dark:bg-white/10'
+                }`}>
+                  <p className={`text-xs uppercase tracking-[0.22em] ${isParent ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'Providers' : 'Attempts'}
+                  </p>
+                  <p className={`mt-2 text-3xl font-semibold ${isParent ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                    {isParent ? availableProviderCount : totalAttempts}
+                  </p>
+                  <p className={`mt-1 text-sm ${isParent ? 'text-slate-300/85' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {isParent ? 'AI providers available now' : 'Attempts across your quizzes'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isParent && status && (
+              <div className="w-full max-w-sm rounded-[28px] border border-white/10 bg-white/10 p-5 backdrop-blur">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.24em] text-sky-100/80">Quiz engine</p>
+                    <h2 className="mt-2 text-xl font-semibold text-white">
+                      {status.quizReady ? 'Ready for quiz generation' : 'Needs library attention'}
+                    </h2>
+                  </div>
+                  {status.quizReady ? (
+                    <CheckCircle className="h-6 w-6 text-emerald-300" />
+                  ) : (
+                    <AlertCircle className="h-6 w-6 text-amber-300" />
+                  )}
+                </div>
+                <div className="mt-5 space-y-3 text-sm text-slate-200">
+                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                    <span>Libraries installed</span>
+                    <span className="font-semibold text-white">{status.contentTypesCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                    <span>Runnable types</span>
+                    <span className="font-semibold text-white">{status.runnableCount || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/10 px-4 py-3">
+                    <span>Total attempts</span>
+                    <span className="font-semibold text-white">{totalAttempts}</span>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-slate-300/85">
+                  Legacy quiz and activity routes now point here, so this page is the single family quiz surface.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {isParent && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+              >
+                <Plus className="h-4 w-4" />
+                Create quiz
+              </button>
+              <button
+                onClick={() => setShowActivityForm(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                <Gamepad2 className="h-4 w-4" />
+                Create activity
+              </button>
+              <button
+                onClick={handleOpenLibraryManager}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Manage libraries
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
       {isParent && status && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              H5P Service Status
-            </h2>
-            <div className="flex gap-2">
-              {/* Import Content Button */}
-              <input
-                ref={importFileInputRef}
-                type="file"
-                accept=".h5p"
-                onChange={handleImportContent}
-                className="hidden"
-              />
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
+          <div className="rounded-[30px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">Service health</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">H5P readiness at a glance</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+                  Use this card before creating or importing content. If quiz readiness is red or missing libraries are listed, fix that first.
+                </p>
+              </div>
+              <div className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
+                status.quizReady
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+              }`}>
+                {status.quizReady ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                {status.quizReady ? 'Quiz ready' : 'Needs repair'}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Service</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  {status.initialized ? 'Running' : 'Offline'}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Libraries</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{status.contentTypesCount}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Runnable</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{status.runnableCount || 0}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Quiz status</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                  {status.quizReady ? 'Ready' : 'Missing dependencies'}
+                </p>
+              </div>
+            </div>
+
+            {!status.quizReady && status.missingForQuiz && status.missingForQuiz.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="font-semibold">Missing quiz libraries</p>
+                <p className="mt-2">{status.missingForQuiz.join(', ')}</p>
+                <p className="mt-2 text-amber-800/90 dark:text-amber-200/90">
+                  Open library management and run the hub install before creating more H5P quizzes.
+                </p>
+              </div>
+            )}
+
+            {status.contentTypesCount === 0 && (
+              <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
+                <p className="font-semibold">No H5P libraries installed yet</p>
+                <p className="mt-2">Install the essentials from the hub before trying to generate quizzes or activities.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[30px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Operations</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">Maintain the quiz stack</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              These are the operational controls that matter when quiz creation or playback feels off.
+            </p>
+
+            <input
+              ref={importFileInputRef}
+              type="file"
+              accept=".h5p"
+              onChange={handleImportContent}
+              className="hidden"
+            />
+
+            <div className="mt-6 space-y-3">
               <button
                 onClick={() => importFileInputRef.current?.click()}
                 disabled={importingContent}
-                className="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 flex items-center gap-1 text-sm"
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-emerald-900/50 dark:hover:bg-emerald-950/20"
               >
-                {importingContent ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Importing...</>
-                ) : (
-                  <><Upload className="w-4 h-4" /> Import .h5p</>
-                )}
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900 dark:text-white">Import .h5p package</span>
+                  <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Bring in libraries and content from an uploaded package.</span>
+                </span>
+                {importingContent ? <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> : <Upload className="h-4 w-4 text-emerald-600" />}
               </button>
-              {/* Diagnostic Button */}
+
+              <button
+                onClick={handleOpenLibraryManager}
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-sky-300 hover:bg-sky-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-sky-900/50 dark:hover:bg-sky-950/20"
+              >
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900 dark:text-white">Library manager</span>
+                  <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Install essentials, upload libraries, and inspect downloaded packages.</span>
+                </span>
+                <FolderOpen className="h-4 w-4 text-sky-600" />
+              </button>
+
               <button
                 onClick={handleRunDiagnostic}
                 disabled={loadingDiagnostic}
-                className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 flex items-center gap-1 text-sm"
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-violet-300 hover:bg-violet-50 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-violet-900/50 dark:hover:bg-violet-950/20"
               >
-                {loadingDiagnostic ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Checking...</>
-                ) : (
-                  <><HelpCircle className="w-4 h-4" /> Diagnostic</>
-                )}
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900 dark:text-white">Run diagnostic</span>
+                  <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Check quiz health, missing libraries, and database status.</span>
+                </span>
+                {loadingDiagnostic ? <Loader2 className="h-4 w-4 animate-spin text-violet-600" /> : <HelpCircle className="h-4 w-4 text-violet-600" />}
               </button>
             </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2">
-              {status.initialized ? (
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-red-500" />
-              )}
-              <span className="text-gray-700 dark:text-gray-300">
-                {status.initialized ? 'Service Running' : 'Not Initialized'}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500 dark:text-gray-400">Libraries:</span>
-              <span className="ml-2 font-medium text-gray-800 dark:text-white">
-                {status.contentTypesCount}
-              </span>
-            </div>
-            <div>
-              <span className="text-gray-500 dark:text-gray-400">Runnable Types:</span>
-              <span className="ml-2 font-medium text-gray-800 dark:text-white">
-                {status.runnableCount || 0}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {status.quizReady ? (
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-yellow-500" />
-              )}
-              <span className="text-gray-700 dark:text-gray-300">
-                {status.quizReady ? 'Quiz Ready' : 'Quiz Libraries Missing'}
-              </span>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Children</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{children.length}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-950/60">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">AI providers</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{availableProviderCount}</p>
+              </div>
             </div>
           </div>
-          {!status.quizReady && status.missingForQuiz && status.missingForQuiz.length > 0 && (
-            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-              <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                <strong>Missing libraries for quiz generation:</strong> {status.missingForQuiz.join(', ')}
-              </p>
-              <p className="text-yellow-700 dark:text-yellow-300 text-sm mt-2">
-                Click "Manage Libraries" then "Install from Hub" to install required libraries.
-              </p>
-            </div>
-          )}
-          {status.contentTypesCount === 0 && (
-            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
-              <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-                <strong>Note:</strong> No H5P libraries installed yet. Click "Manage Libraries" then "Install from Hub" to install required libraries for quiz creation.
-              </p>
-            </div>
-          )}
-        </div>
+        </section>
       )}
 
       {/* Create Form Modal */}
@@ -1367,125 +1580,195 @@ const H5PManager: React.FC = () => {
       )}
 
       {/* Content List */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-        <div className="p-4 border-b dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
-            {isParent ? 'Your Content' : 'Available Quizzes'}
-          </h2>
+      <section className="rounded-[30px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Content library</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
+              {isParent ? 'Everything families can launch from H5P' : 'Your assigned H5P quizzes'}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
+              {isParent
+                ? 'Preview content, review progress, inspect AI-generated questions, and keep the family quiz library organized from one place.'
+                : 'Open a quiz, check your best score, and keep moving through the work that is assigned to you.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {content.length} item{content.length !== 1 ? 's' : ''}
+            </span>
+            <span className="rounded-full bg-slate-100 px-3 py-1.5 font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              {totalAttempts} attempt{totalAttempts !== 1 ? 's' : ''}
+            </span>
+            {isParent && (
+              <span className="rounded-full bg-sky-100 px-3 py-1.5 font-medium text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                {aiGeneratedCount} AI-built
+              </span>
+            )}
+          </div>
         </div>
 
         {content.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>No content available yet.</p>
-            {isParent && (
-              <p className="mt-2 text-sm">Click "Create Quiz" to get started!</p>
-            )}
+          <div className="mt-6 rounded-[28px] border border-dashed border-slate-300 bg-slate-50/80 px-6 py-12 text-center dark:border-slate-700 dark:bg-slate-950/40">
+            <Package className="mx-auto h-12 w-12 text-slate-400" />
+            <h3 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">No H5P content yet</h3>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              {isParent
+                ? 'Start with a quiz or an activity, then assign it to children from the same H5P workflow.'
+                : 'Your parent has not assigned any H5P quizzes yet. Check back after they publish new content.'}
+            </p>
           </div>
         ) : (
-          <div className="divide-y dark:divide-gray-700">
-            {content.map((item) => (
-              <div
-                key={item.id}
-                className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center justify-between"
-              >
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-800 dark:text-white">
-                    {item.title}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    <span>{item.content_type}</span>
-                    {item.is_ai_generated && (
-                      <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-xs">
-                        AI Generated
-                      </span>
-                    )}
-                    {isParent && (
-                      <>
-                        <span className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {item.assignment_count || 0} assigned
+          <div className="mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {content.map((item) => {
+              const tone = getContentTone(item.content_type);
+              const bestScore = item.best_score !== undefined && item.best_score !== null
+                ? Math.round(item.best_score || 0)
+                : null;
+              const cardAttempts = isParent ? (item.attempt_count || 0) : (item.my_attempts || 0);
+
+              return (
+                <article
+                  key={item.id}
+                  className={`group rounded-[28px] border border-slate-200 bg-gradient-to-br ${tone.surface} p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${tone.badge}`}>
+                          {formatContentLabel(item.content_type)}
                         </span>
-                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                          {item.attempt_count || 0} total attempts
-                        </span>
-                      </>
-                    )}
-                    {/* Child view - show their progress prominently */}
-                    {!isParent && (
-                      <div className="flex items-center gap-2">
-                        {item.best_score !== undefined && item.best_score !== null && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            (item.best_score || 0) >= 70
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                              : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                          }`}>
-                            Best: {Math.round(item.best_score || 0)}%
-                          </span>
-                        )}
-                        {item.my_attempts !== undefined && item.my_attempts > 0 && (
-                          <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">
-                            {item.my_attempts} attempt{item.my_attempts !== 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {item.passed ? (
-                          <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                            <CheckCircle className="w-4 h-4" />
-                            Passed!
-                          </span>
-                        ) : item.my_attempts && item.my_attempts > 0 ? (
-                          <span className="text-yellow-600 dark:text-yellow-400 text-xs">Keep trying!</span>
-                        ) : null}
-                        {item.points && (
-                          <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-xs font-medium">
-                            {item.points} pts
+                        {item.is_ai_generated && (
+                          <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300">
+                            AI generated
                           </span>
                         )}
                       </div>
-                    )}
+
+                      <h3 className="mt-4 truncate text-lg font-semibold text-slate-900 dark:text-white">
+                        {item.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {item.library_name}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setActivePlayer(item.id)}
+                      className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition ${tone.button}`}
+                      title={isParent ? 'Preview H5P content' : 'Open quiz'}
+                    >
+                      <Play className="h-5 w-5" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setActivePlayer(item.id)}
-                    className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
-                    title="Play"
-                  >
-                    <Play className="w-5 h-5" />
-                  </button>
-                  {isParent && (
-                    <>
-                      {item.is_ai_generated && (
-                        <button
-                          onClick={() => loadQuestions(item.id)}
-                          className="p-2 text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
-                          title="View Questions"
-                        >
-                          <HelpCircle className="w-5 h-5" />
-                        </button>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        {isParent ? 'Assigned' : 'Attempts'}
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                        {isParent ? (item.assignment_count || 0) : cardAttempts}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        {isParent ? 'Attempts' : 'Best score'}
+                      </p>
+                      <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+                        {isParent ? (item.attempt_count || 0) : (bestScore !== null ? `${bestScore}%` : 'Not started')}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        {isParent ? 'Created' : 'Points'}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        {isParent ? new Date(item.created_at).toLocaleDateString() : `${item.points || 0} pts`}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        {isParent ? 'Type' : 'Status'}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                        {isParent
+                          ? formatContentLabel(item.content_type)
+                          : item.passed
+                          ? 'Passed'
+                          : cardAttempts > 0
+                          ? 'In progress'
+                          : 'Ready'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {!isParent && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {bestScore !== null && (
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          bestScore >= 70
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                        }`}>
+                          Best score {bestScore}%
+                        </span>
                       )}
+                      {item.passed ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Passed
+                        </span>
+                      ) : cardAttempts > 0 ? (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                          Keep going
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setActivePlayer(item.id)}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition ${tone.button}`}
+                    >
+                      <Play className="h-4 w-4" />
+                      {isParent ? 'Preview' : cardAttempts > 0 ? 'Play again' : 'Start quiz'}
+                    </button>
+                    {isParent && item.is_ai_generated && (
+                      <button
+                        onClick={() => loadQuestions(item.id)}
+                        className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-slate-950 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+                      >
+                        <HelpCircle className="h-4 w-4" />
+                        Questions
+                      </button>
+                    )}
+                    {isParent && (
                       <button
                         onClick={() => loadProgress(item.id)}
-                        className="p-2 text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg"
-                        title="View Progress"
+                        className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 dark:border-violet-900/50 dark:bg-slate-950 dark:text-violet-300 dark:hover:bg-violet-950/20"
                       >
-                        <Eye className="w-5 h-5" />
+                        <Eye className="h-4 w-4" />
+                        Progress
                       </button>
+                    )}
+                    {isParent && (
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                        title="Delete"
+                        className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-slate-950 dark:text-rose-300 dark:hover:bg-rose-950/20"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Progress Modal */}
       {showProgressModal !== null && (

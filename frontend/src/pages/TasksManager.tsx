@@ -681,6 +681,12 @@ export default function TasksManager() {
 
   // Check if we should show kid-friendly Mission Control UI
   const showMissionControlUI = !isParent && currentProfile?.type === 'child';
+  const actionableNowTasks = [...todayTasks, ...otherApprovedTasks].filter(t => t.id !== activeMission?.id);
+  const overdueActionableTasks = overdueTasks.filter(t => t.id !== activeMission?.id);
+  const pendingApprovalCount = incompleteTasks.filter(t => !t.parent_approved).length;
+  const dueTodayCount = incompleteTasks.filter(t => t.parent_approved && getDateOnlyRelation(t.due_date) === 'today').length;
+  const lateTaskCount = incompleteTasks.filter(t => t.parent_approved && getDateOnlyRelation(t.due_date) === 'past').length;
+  const recurringOpenCount = incompleteTasks.filter(t => t.parent_approved && isRecurringTask(t)).length;
 
   return (
     <div className={clsx("max-w-7xl mx-auto", showMissionControlUI && settings.themeClass)}>
@@ -700,90 +706,160 @@ export default function TasksManager() {
 
       {/* Header - Kid-friendly or Parent view */}
       {showMissionControlUI ? (
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-2xl">{pageInfo.emoji}</span>
+        <div className="mb-6 overflow-hidden rounded-[30px] border border-purple-200 bg-gradient-to-br from-violet-100 via-white to-pink-100 shadow-xl shadow-purple-100/50">
+          <div className="px-5 py-6 sm:px-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 text-3xl shadow-lg shadow-purple-300/40">
+                  <span>{pageInfo.emoji}</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-purple-600">Mission Board</p>
+                  <h1 className="mt-2 text-3xl font-bold text-slate-900">{pageInfo.title}</h1>
+                  <p className="mt-2 max-w-2xl text-sm text-slate-600">{pageInfo.subtitle}</p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Today first, past due next, coming up after that. The board is meant to show what matters now.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{pageInfo.title}</h1>
-                <p className="text-sm text-gray-500">{pageInfo.subtitle}</p>
-              </div>
+              <button
+                onClick={() => setShowAddTask(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+              >
+                <Plus size={18} />
+                Add {settings.ageGroup === 'young' ? 'Job' : settings.ageGroup === 'middle' ? 'Mission' : 'Task'}
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddTask(true)}
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold text-sm hover:from-purple-600 hover:to-pink-600 active:scale-95 transition-all flex items-center gap-2 shadow-md"
-            >
-              <Plus size={18} />
-              Add {settings.ageGroup === 'young' ? 'Job' : settings.ageGroup === 'middle' ? 'Mission' : 'Task'}
-            </button>
-          </div>
 
-          {/* Quick Stats for Kids */}
-          {progress && (
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 text-center border border-amber-100">
-                <Star className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-amber-700">{progress.current.total_stars}</p>
-                <p className="text-xs text-amber-600">Stars</p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Do now</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-900">{actionableNowTasks.length}</p>
+                <p className="mt-1 text-sm text-slate-500">Ready in today's lane</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-3 text-center border border-purple-100">
-                <Gift className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-purple-700">{progress.current.total_points}</p>
-                <p className="text-xs text-purple-600">Points</p>
+              <div className="rounded-2xl border border-red-100 bg-red-50/80 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-red-500">Past due</p>
+                <p className="mt-2 text-3xl font-semibold text-red-700">{overdueActionableTasks.length}</p>
+                <p className="mt-1 text-sm text-red-600">Do now for reduced points</p>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-3 text-center border border-green-100">
-                <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                <p className="text-lg font-bold text-green-700">{completedTasks.length}</p>
-                <p className="text-xs text-green-600">Done</p>
+              <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-blue-500">Coming up</p>
+                <p className="mt-2 text-3xl font-semibold text-blue-700">{upcomingTasks.length}</p>
+                <p className="mt-1 text-sm text-blue-600">Already scheduled next</p>
+              </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-4 shadow-sm">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-600">Waiting</p>
+                <p className="mt-2 text-3xl font-semibold text-amber-700">{pendingApprovalCount}</p>
+                <p className="mt-1 text-sm text-amber-600">Needs parent approval</p>
               </div>
             </div>
-          )}
+
+            {progress && (
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <div className="rounded-2xl border border-amber-100 bg-amber-50/80 p-3 text-center">
+                  <Star className="mx-auto mb-1 h-5 w-5 text-amber-500" />
+                  <p className="text-lg font-bold text-amber-700">{progress.current.total_stars}</p>
+                  <p className="text-xs text-amber-600">Stars</p>
+                </div>
+                <div className="rounded-2xl border border-purple-100 bg-purple-50/80 p-3 text-center">
+                  <Gift className="mx-auto mb-1 h-5 w-5 text-purple-500" />
+                  <p className="text-lg font-bold text-purple-700">{progress.current.total_points}</p>
+                  <p className="text-xs text-purple-600">Points</p>
+                </div>
+                <div className="rounded-2xl border border-green-100 bg-green-50/80 p-3 text-center">
+                  <CheckCircle className="mx-auto mb-1 h-5 w-5 text-green-500" />
+                  <p className="text-lg font-bold text-green-700">{completedTasks.length}</p>
+                  <p className="text-xs text-green-600">Done</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{pageInfo.title}</h1>
-            <p className="text-gray-600 mt-1">{pageInfo.subtitle}</p>
-          </div>
+        <div className="mb-6 overflow-hidden rounded-[32px] border border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#111827_58%,#0c4a6e_100%)] text-white shadow-2xl shadow-slate-300/30">
+          <div className="px-6 py-7 sm:px-8">
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/80">Task workspace</p>
+                <h1 className="mt-2 text-3xl font-semibold">{pageInfo.title}</h1>
+                <p className="mt-3 text-sm text-slate-200/85">{pageInfo.subtitle}</p>
+                <p className="mt-2 text-sm text-slate-300/80">
+                  This view is now meant to answer the operational questions fast: what is due today, what is late, what is recurring, and what still needs approval.
+                </p>
 
-          <div className="flex space-x-2">
-            {isParent && displayProfileId && (
-              <button onClick={() => setShowBonusPoints(true)} className="btn btn-secondary">
-                <Award size={20} className="mr-2" />
-                Award Bonus
-              </button>
-            )}
-            <button onClick={() => setShowAddTask(true)} className="btn btn-primary">
-              <Plus size={20} className="mr-2" />
-              Add Task
-            </button>
+                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Pending</p>
+                    <p className="mt-2 text-3xl font-semibold text-white">{incompleteTasks.length}</p>
+                    <p className="mt-1 text-sm text-slate-300/80">Open tasks right now</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Due today</p>
+                    <p className="mt-2 text-3xl font-semibold text-white">{dueTodayCount}</p>
+                    <p className="mt-1 text-sm text-slate-300/80">Needs action today</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Past due</p>
+                    <p className="mt-2 text-3xl font-semibold text-white">{lateTaskCount}</p>
+                    <p className="mt-1 text-sm text-slate-300/80">Still completable now</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Recurring</p>
+                    <p className="mt-2 text-3xl font-semibold text-white">{recurringOpenCount}</p>
+                    <p className="mt-1 text-sm text-slate-300/80">Active repeat routines</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {isParent && displayProfileId && (
+                  <button
+                    onClick={() => setShowBonusPoints(true)}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                  >
+                    <Award size={18} />
+                    Award bonus
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowAddTask(true)}
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                >
+                  <Plus size={18} />
+                  Add task
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Child Selector for Parents */}
       {isParent && children.length > 0 && (
-        <div className="card mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Child
-          </label>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-6 rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-lg shadow-slate-200/40 backdrop-blur">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Focus child</p>
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">Switch the task view by child</h2>
+              <p className="mt-1 text-sm text-slate-500">Use this selector to review approvals, recurring work, and due dates for one child at a time.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
             {children.map(child => (
               <button
                 key={child.id}
                 onClick={() => setSelectedChild(child.id)}
                 className={clsx(
-                  'px-4 py-2 rounded-lg font-medium transition-colors',
+                  'inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-medium transition-colors',
                   selectedChild === child.id
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-300/30'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 )}
               >
-<Avatar avatar={child.avatar} size="sm" alt={child.name} className="inline-block mr-1" /> {child.name}
+                <Avatar avatar={child.avatar} size="sm" alt={child.name} className="inline-block" />
+                {child.name}
               </button>
             ))}
+            </div>
           </div>
         </div>
       )}
@@ -1146,7 +1222,7 @@ export default function TasksManager() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Today's Missions */}
             <TodaysMissions
-              tasks={[...todayTasks, ...otherApprovedTasks].filter(t => t.id !== activeMission?.id)}
+              tasks={actionableNowTasks}
               onStartMission={handleStartMission}
             />
 
@@ -1157,7 +1233,7 @@ export default function TasksManager() {
           {/* Overdue & Coming Up Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <OverdueMissions
-              tasks={overdueTasks.filter(t => t.id !== activeMission?.id)}
+              tasks={overdueActionableTasks}
               onStartMission={handleStartMission}
               formatDueDate={formatDueDate}
             />

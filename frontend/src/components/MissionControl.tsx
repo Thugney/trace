@@ -485,28 +485,29 @@ interface TodaysMissionsProps {
 export function TodaysMissions({ tasks, onStartMission }: TodaysMissionsProps) {
   if (tasks.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 p-4">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
           <span className="text-xl">🎯</span>
-          <h3 className="font-bold text-gray-900">Today's Missions</h3>
+          <h3 className="font-bold text-gray-900">Do Now</h3>
           <span className="text-xs text-gray-500">(0)</span>
         </div>
         <div className="text-center py-4">
           <div className="text-4xl mb-2">🎉</div>
-          <p className="text-gray-600 font-medium">All missions done!</p>
-          <p className="text-gray-400 text-sm">Great job today!</p>
+          <p className="text-gray-600 font-medium">Nothing left in today's lane.</p>
+          <p className="text-gray-400 text-sm">Great job. Check coming up or come back later.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
         <span className="text-xl">🎯</span>
-        <h3 className="font-bold text-gray-900">Today's Missions</h3>
+        <h3 className="font-bold text-gray-900">Do Now</h3>
         <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">{tasks.length}</span>
       </div>
+      <p className="mb-3 text-sm text-gray-500">These are the tasks that matter first, including recurring work that is due now.</p>
       <div className="space-y-2">
         {tasks.map(task => (
           <MissionListItem key={task.id} task={task} onStart={() => onStartMission(task)} />
@@ -572,12 +573,13 @@ export function CompletedToday({ tasks }: CompletedTodayProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
         <span className="text-xl">✨</span>
         <h3 className="font-bold text-green-800">Completed Today</h3>
         <span className="text-xs px-2 py-0.5 bg-green-200 text-green-800 rounded-full font-medium">{tasks.length}</span>
       </div>
+      <p className="mb-3 text-sm text-green-700/80">Proof that today's work is already counted.</p>
       <div className="space-y-2">
         {tasks.slice(0, 5).map(task => (
           <CompletedMissionItem key={task.id} task={task} />
@@ -624,12 +626,13 @@ export function OverdueMissions({ tasks, onStartMission, formatDueDate }: Overdu
   }
 
   return (
-    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border border-red-200 p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="rounded-xl border border-red-200 bg-gradient-to-br from-red-50 to-orange-50 p-4 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
         <AlertTriangle className="w-5 h-5 text-red-500" />
-        <h3 className="font-bold text-red-800">Overdue</h3>
+        <h3 className="font-bold text-red-800">Past Due - Do Now</h3>
         <span className="text-xs px-2 py-0.5 bg-red-200 text-red-800 rounded-full font-medium">{tasks.length}</span>
       </div>
+      <p className="mb-3 text-sm text-red-700/85">These can still be completed, but they now pay reduced points because they are late.</p>
       <div className="space-y-2">
         {tasks.map(task => (
           <OverdueMissionItem
@@ -695,12 +698,13 @@ export function ComingUpMissions({ tasks, formatDueDate }: ComingUpMissionsProps
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
         <Calendar className="w-5 h-5 text-blue-500" />
         <h3 className="font-bold text-blue-800">Coming Up</h3>
         <span className="text-xs px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full font-medium">{tasks.length}</span>
       </div>
+      <p className="mb-3 text-sm text-blue-700/80">Scheduled next so kids can see what is ahead without mixing it into today's work.</p>
       <div className="space-y-2">
         {tasks.slice(0, 3).map(task => (
           <ComingUpMissionItem key={task.id} task={task} formatDueDate={formatDueDate} />
