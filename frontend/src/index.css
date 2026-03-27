@@ -192,6 +192,407 @@
   }
 
   /* ============================================
+     FAMILY HUB - Parent/Admin surfaces
+     ============================================ */
+  .family-shell {
+    background:
+      radial-gradient(circle at top left, rgb(251 191 36 / 0.14), transparent 24%),
+      radial-gradient(circle at top right, rgb(45 212 191 / 0.12), transparent 28%),
+      linear-gradient(180deg, #f7fafc 0%, #f2f7f8 48%, #edf3f4 100%);
+  }
+
+  .family-topbar {
+    background: rgb(255 255 255 / 0.82);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgb(226 232 240 / 0.8);
+    box-shadow: 0 14px 40px -32px rgb(15 23 42 / 0.35);
+  }
+
+  .family-sidebar {
+    @apply rounded-[28px] border border-white/70 bg-white/80 p-3 backdrop-blur-xl;
+    box-shadow: 0 24px 60px -42px rgb(15 23 42 / 0.32);
+  }
+
+  .family-nav-link {
+    @apply relative flex items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition-all duration-200;
+  }
+
+  .family-nav-link::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 180ms ease;
+    background: linear-gradient(135deg, rgb(15 23 42 / 0.03), rgb(8 145 178 / 0.08));
+  }
+
+  .family-nav-link:hover::before {
+    opacity: 1;
+  }
+
+  .family-nav-link:hover {
+    @apply -translate-y-0.5 text-slate-900;
+  }
+
+  .family-nav-link-active {
+    @apply text-white;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0f766e 100%);
+    box-shadow: 0 22px 32px -28px rgb(15 23 42 / 0.85);
+  }
+
+  .family-nav-link-active::before {
+    opacity: 0;
+  }
+
+  .family-nav-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-sm;
+  }
+
+  .family-hero {
+    @apply relative overflow-hidden rounded-[32px] p-6 text-white md:p-8;
+    background: linear-gradient(135deg, #0f172a 0%, #1f2937 38%, #115e59 100%);
+    box-shadow: 0 36px 80px -52px rgb(15 23 42 / 0.9);
+  }
+
+  .family-hero::before {
+    content: "";
+    position: absolute;
+    inset: -25% auto auto -10%;
+    width: 18rem;
+    height: 18rem;
+    border-radius: 9999px;
+    background: rgb(245 158 11 / 0.16);
+    filter: blur(24px);
+  }
+
+  .family-hero::after {
+    content: "";
+    position: absolute;
+    right: -4rem;
+    bottom: -4rem;
+    width: 16rem;
+    height: 16rem;
+    border-radius: 9999px;
+    background: rgb(45 212 191 / 0.14);
+    filter: blur(18px);
+  }
+
+  .family-panel {
+    @apply relative rounded-[28px] border border-white/70 bg-white/80 p-6 backdrop-blur-xl;
+    box-shadow: 0 28px 70px -52px rgb(15 23 42 / 0.4);
+  }
+
+  .family-panel-muted {
+    @apply rounded-[24px] border border-slate-200/80 bg-slate-50/80;
+  }
+
+  .family-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-500;
+  }
+
+  .family-heading {
+    @apply font-semibold tracking-tight text-slate-950;
+  }
+
+  .family-subtle-text {
+    @apply text-sm leading-6 text-slate-600;
+  }
+
+  .family-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-700 backdrop-blur-sm;
+  }
+
+  .family-stat-card {
+    @apply rounded-[24px] border border-white/70 bg-white/90 p-5 backdrop-blur-xl transition-all duration-200;
+    box-shadow: 0 22px 50px -44px rgb(15 23 42 / 0.55);
+  }
+
+  .family-stat-card:hover {
+    @apply -translate-y-0.5;
+  }
+
+  .family-stat-value {
+    @apply mt-3 text-3xl font-semibold tracking-tight text-slate-950;
+  }
+
+  .family-stat-label {
+    @apply text-sm font-medium text-slate-600;
+  }
+
+  .family-progress-track {
+    @apply h-2.5 overflow-hidden rounded-full bg-slate-200/80;
+  }
+
+  .family-progress-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, #0f766e 0%, #14b8a6 50%, #f59e0b 100%);
+  }
+
+  .family-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/20;
+  }
+
+  .family-action-card {
+    @apply rounded-[24px] border border-slate-200/80 bg-white/90 p-5 transition-all duration-200;
+    box-shadow: 0 18px 44px -36px rgb(15 23 42 / 0.45);
+  }
+
+  .family-action-card:hover {
+    @apply -translate-y-1 border-slate-300/80;
+    box-shadow: 0 28px 60px -38px rgb(15 23 42 / 0.4);
+  }
+
+  .family-toolbar {
+    @apply flex flex-col gap-4 md:flex-row md:items-center md:justify-between;
+  }
+
+  .family-section-header {
+    @apply flex flex-col gap-2 md:flex-row md:items-start md:justify-between;
+  }
+
+  .family-summary-grid {
+    @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .family-summary-card {
+    @apply rounded-[24px] border border-white/70 bg-white/90 p-5 backdrop-blur-xl transition-all duration-200;
+    box-shadow: 0 22px 54px -44px rgb(15 23 42 / 0.55);
+  }
+
+  .family-summary-card:hover {
+    @apply -translate-y-0.5;
+  }
+
+  .family-summary-label {
+    @apply text-xs font-semibold uppercase tracking-[0.24em] text-slate-500;
+  }
+
+  .family-summary-note {
+    @apply mt-2 text-sm text-slate-600;
+  }
+
+  .family-control-card {
+    @apply rounded-[24px] border border-slate-200/80 bg-slate-50/90 p-5;
+  }
+
+  .family-control-card-strong {
+    @apply rounded-[24px] border border-white/70 bg-white/95 p-5 backdrop-blur-xl;
+    box-shadow: 0 20px 44px -38px rgb(15 23 42 / 0.45);
+  }
+
+  .family-empty-state {
+    @apply rounded-[24px] border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center;
+  }
+
+  .family-side-panel {
+    @apply family-panel lg:sticky lg:top-24;
+  }
+
+  .family-badge {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+
+  .family-badge-admin {
+    @apply bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200;
+  }
+
+  .family-badge-parent {
+    @apply bg-sky-50 text-sky-800 ring-1 ring-inset ring-sky-200;
+  }
+
+  .family-badge-child {
+    @apply bg-orange-50 text-orange-800 ring-1 ring-inset ring-orange-200;
+  }
+
+  .family-badge-teacher {
+    @apply bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200;
+  }
+
+  .family-badge-success {
+    @apply bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200;
+  }
+
+  .family-badge-warning {
+    @apply bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200;
+  }
+
+  .family-badge-neutral {
+    @apply bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200;
+  }
+
+  .family-modal-panel {
+    @apply w-full max-h-[90vh] overflow-y-auto rounded-[30px] border border-white/80 bg-white/95 p-6 shadow-2xl backdrop-blur-xl;
+    box-shadow: 0 36px 80px -48px rgb(15 23 42 / 0.5);
+  }
+
+  .family-list-divider {
+    @apply border-t border-slate-200/80 pt-4;
+  }
+
+  /* ============================================
+     ADULT WORKSPACE - Shared admin/parent surfaces
+     ============================================ */
+  .workspace-page {
+    @apply space-y-6;
+  }
+
+  .workspace-hero {
+    @apply relative overflow-hidden rounded-[32px] p-6 text-slate-950 md:p-8;
+    background:
+      radial-gradient(circle at top right, rgb(15 118 110 / 0.18), transparent 34%),
+      radial-gradient(circle at bottom left, rgb(245 158 11 / 0.14), transparent 30%),
+      linear-gradient(145deg, rgb(255 255 255 / 0.96) 0%, rgb(240 249 255 / 0.94) 48%, rgb(236 253 245 / 0.96) 100%);
+    box-shadow: 0 40px 90px -64px rgb(15 23 42 / 0.6);
+  }
+
+  .workspace-hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(120deg, rgb(15 23 42 / 0.04), transparent 36%),
+      linear-gradient(180deg, transparent 0%, rgb(15 23 42 / 0.04) 100%);
+    pointer-events: none;
+  }
+
+  .workspace-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.28em] text-teal-700/80;
+  }
+
+  .workspace-title {
+    @apply mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl;
+  }
+
+  .workspace-subtitle {
+    @apply mt-4 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base;
+  }
+
+  .workspace-inline-nav {
+    @apply mt-6 flex flex-wrap gap-2;
+  }
+
+  .workspace-nav-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white;
+  }
+
+  .workspace-chip {
+    @apply inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-700 backdrop-blur-sm;
+  }
+
+  .workspace-metric-grid {
+    @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .workspace-metric {
+    @apply rounded-[24px] border border-white/70 bg-white/80 p-4 backdrop-blur-xl;
+    box-shadow: 0 24px 52px -42px rgb(15 23 42 / 0.38);
+  }
+
+  .workspace-metric-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500;
+  }
+
+  .workspace-metric-value {
+    @apply mt-3 text-3xl font-semibold tracking-tight text-slate-950;
+  }
+
+  .workspace-metric-note {
+    @apply mt-1 text-sm text-slate-500;
+  }
+
+  .workspace-section {
+    @apply relative rounded-[28px] border border-white/70 bg-white/90 p-6 backdrop-blur-xl;
+    box-shadow: 0 28px 68px -54px rgb(15 23 42 / 0.42);
+  }
+
+  .workspace-section-muted {
+    @apply rounded-[24px] border border-slate-200/80 bg-slate-50/90;
+  }
+
+  .workspace-section-heading {
+    @apply text-2xl font-semibold tracking-tight text-slate-950;
+  }
+
+  .workspace-section-copy {
+    @apply mt-2 text-sm leading-6 text-slate-600;
+  }
+
+  .workspace-card {
+    @apply rounded-[24px] border border-slate-200/80 bg-slate-50/90 p-5;
+  }
+
+  .workspace-list-item {
+    @apply rounded-[24px] border border-slate-200/80 bg-white/95 p-4 transition-all duration-200;
+    box-shadow: 0 18px 42px -40px rgb(15 23 42 / 0.32);
+  }
+
+  .workspace-list-item:hover {
+    @apply -translate-y-0.5 border-slate-300/80;
+  }
+
+  .workspace-meta-list {
+    @apply mt-3 flex flex-wrap gap-2;
+  }
+
+  .workspace-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700;
+  }
+
+  .workspace-note {
+    @apply rounded-[22px] border border-amber-200/80 bg-amber-50/90 p-4 text-sm leading-6 text-amber-900;
+  }
+
+  .workspace-alert-success {
+    @apply rounded-[22px] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-900;
+  }
+
+  .workspace-empty {
+    @apply rounded-[24px] border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center;
+  }
+
+  .workspace-empty-title {
+    @apply mt-4 text-lg font-semibold text-slate-900;
+  }
+
+  .workspace-empty-copy {
+    @apply mt-2 text-sm text-slate-600;
+  }
+
+  .workspace-form-grid {
+    @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+  }
+
+  .workspace-action-row {
+    @apply flex flex-wrap gap-3;
+  }
+
+  .workspace-tabbar {
+    @apply inline-flex flex-wrap gap-2 rounded-full border border-slate-200/80 bg-slate-50/90 p-1.5;
+  }
+
+  .workspace-tab {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold text-slate-600 transition-all;
+  }
+
+  .workspace-tab-active {
+    @apply bg-slate-950 text-white shadow-sm;
+  }
+
+  .workspace-upload-zone {
+    @apply rounded-[24px] border-2 border-dashed border-slate-300 bg-slate-50/90 p-6 text-center transition-all duration-200 hover:border-slate-400 hover:bg-white;
+  }
+
+  .workspace-modal {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm;
+  }
+
+  .workspace-modal-panel {
+    @apply w-full max-h-[90vh] overflow-y-auto rounded-[28px] border border-white/70 bg-white/95 p-6;
+    box-shadow: 0 40px 90px -50px rgb(15 23 42 / 0.55);
+  }
+
+  /* ============================================
      MODAL - Premium overlays
      ============================================ */
   .modal-backdrop {
