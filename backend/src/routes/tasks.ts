@@ -425,7 +425,7 @@ router.put('/:id', (req: AuthRequest, res) => {
       WHERE id = ?
     `).run(...values);
 
-    const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    const updatedTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
 
     const taskOwner: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(updatedTask.profile_id);
     if ((viewer.type === 'parent' || viewer.type === 'admin') && taskOwner?.type === 'child') {
