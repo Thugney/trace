@@ -81,6 +81,11 @@ function denyTaskAccess(res: Response) {
 }
 
 const OVERDUE_TASK_POINTS_MULTIPLIER = 0.5;
+const TASK_DIFFICULTY_POINTS: Record<string, number> = {
+  easy: 10,
+  medium: 20,
+  hard: 30
+};
 
 type TaskPointAwardContext = {
   originalPoints: number;
@@ -237,8 +242,7 @@ router.post('/', (req: AuthRequest, res) => {
     // Calculate points based on difficulty if not provided
     let taskPoints = points;
     if (!taskPoints && difficulty) {
-      const pointsMap: Record<string, number> = { easy: 10, medium: 20, hard: 30 };
-      taskPoints = pointsMap[difficulty] || 10;
+      taskPoints = TASK_DIFFICULTY_POINTS[difficulty] || 10;
     }
 
     // Determine if timer is required based on category (unless explicitly set)
@@ -302,13 +306,14 @@ router.post('/', (req: AuthRequest, res) => {
 // Update task
 router.put('/:id', (req: AuthRequest, res) => {
   try {
+    const viewer = req.profile!;
     const { id } = req.params;
-    const existingTask: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(id);
+    const existingTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     if (!existingTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (!canAccessTask(req.profile, existingTask)) {
+    if (!canAccessTask(viewer, existingTask)) {
       return denyTaskAccess(res);
     }
 
@@ -321,7 +326,13 @@ router.put('/:id', (req: AuthRequest, res) => {
       is_recurring,
       recurrence_pattern,
       due_date,
-      completed
+      completed,
+      priority,
+      estimated_minutes,
+      scheduled_time,
+      proof_required,
+      requires_timer,
+      timer_duration_minutes
     } = req.body;
 
     const updates: string[] = [];
@@ -346,6 +357,11 @@ router.put('/:id', (req: AuthRequest, res) => {
     if (difficulty !== undefined) {
       updates.push('difficulty = ?');
       values.push(difficulty);
+
+      if (points === undefined && difficulty !== existingTask.difficulty) {
+        updates.push('points = ?');
+        values.push(TASK_DIFFICULTY_POINTS[difficulty] || existingTask.points || 10);
+      }
     }
     if (is_recurring !== undefined) {
       updates.push('is_recurring = ?');
@@ -355,13 +371,13 @@ router.put('/:id', (req: AuthRequest, res) => {
       updates.push('recurrence_pattern = ?');
       values.push(recurrence_pattern);
     }
-    if (req.body.priority !== undefined) {
+    if (priority !== undefined) {
       updates.push('priority = ?');
-      values.push(req.body.priority);
+      values.push(priority);
     }
-    if (req.body.estimated_minutes !== undefined) {
+    if (estimated_minutes !== undefined) {
       updates.push('estimated_minutes = ?');
-      values.push(req.body.estimated_minutes);
+      values.push(estimated_minutes);
     }
     if (due_date !== undefined) {
       let normalizedDueDate: string | null;
@@ -380,9 +396,25 @@ router.put('/:id', (req: AuthRequest, res) => {
         updates.push('completed_at = CURRENT_TIMESTAMP');
       }
     }
-    if (req.body.scheduled_time !== undefined) {
+    if (scheduled_time !== undefined) {
       updates.push('scheduled_time = ?');
-      values.push(req.body.scheduled_time || null);
+      values.push(scheduled_time || null);
+    }
+    if (proof_required !== undefined) {
+      updates.push('proof_required = ?');
+      values.push(proof_required ? 1 : 0);
+    }
+    if (requires_timer !== undefined) {
+      updates.push('requires_timer = ?');
+      values.push(requires_timer ? 1 : 0);
+    }
+    if (timer_duration_minutes !== undefined) {
+      updates.push('timer_duration_minutes = ?');
+      values.push(timer_duration_minutes || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
     }
 
     values.push(id);
@@ -394,6 +426,14 @@ router.put('/:id', (req: AuthRequest, res) => {
     `).run(...values);
 
     const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+    const taskOwner: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(updatedTask.profile_id);
+    if ((viewer.type === 'parent' || viewer.type === 'admin') && taskOwner?.type === 'child') {
+      const viewerProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(viewer.id);
+      const updaterName = viewerProfile?.name || (viewer.type === 'admin' ? 'An admin' : 'Your parent');
+      NotificationHelpers.taskUpdated(updatedTask.profile_id, updatedTask.title, updaterName).catch(console.error);
+    }
+
     res.json(updatedTask);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

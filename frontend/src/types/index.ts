@@ -251,7 +251,7 @@ export interface Task {
   difficulty: 'easy' | 'medium' | 'hard';
   earns_points: boolean;
   is_recurring: boolean | number;
-  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | string; // string allows custom patterns like 'specific_days:mon,wed,fri'
+  recurrence_pattern?: 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | string | null; // string allows custom patterns like 'specific_days:mon,wed,fri'
   due_date?: string | null;
   completed: boolean;
   completed_at?: string;
@@ -263,7 +263,7 @@ export interface Task {
   child_name?: string;
   child_avatar?: string;
   priority?: 'high' | 'medium' | 'low';
-  estimated_minutes?: number;
+  estimated_minutes?: number | null;
   // Photo proof fields
   proof_required?: boolean | number;
   proof_photo_url?: string | null;
@@ -442,7 +442,7 @@ export interface PushSubscription {
 export interface Notification {
   id: number;
   profile_id: number;
-  type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
+  type: 'task_created' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
         'message_received' | 'reminder' | 'achievement' | 'general';
   title: string;

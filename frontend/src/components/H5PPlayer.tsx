@@ -171,20 +171,51 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
         window.parent.postMessage(Object.assign({ source: 'trace-h5p', type: type }, payload || {}), '*');
       }
 
-      function postHeight() {
-        var root = document.getElementById('h5p-root');
-        var height = Math.max(
-          root ? root.scrollHeight : 0,
-          document.body.scrollHeight,
-          document.documentElement.scrollHeight
-        );
+      var lastSentHeight = 0;
+      var pendingHeightFrame = null;
 
-        notifyParent('height', { height: height + 8 });
+      function getContentHeight() {
+        var root = document.getElementById('h5p-root');
+        if (!root) {
+          return ${MIN_FRAME_HEIGHT};
+        }
+
+        var childHeights = Array.prototype.reduce.call(root.children, function (maxHeight, child) {
+          var childBottom = (child.offsetTop || 0) + (child.offsetHeight || 0);
+          return Math.max(maxHeight, childBottom);
+        }, 0);
+
+        return Math.max(
+          root.scrollHeight || 0,
+          root.offsetHeight || 0,
+          childHeights || 0,
+          ${MIN_FRAME_HEIGHT}
+        );
+      }
+
+      function postHeight() {
+        var height = Math.ceil(getContentHeight()) + 8;
+        pendingHeightFrame = null;
+
+        if (Math.abs(height - lastSentHeight) < 4) {
+          return;
+        }
+
+        lastSentHeight = height;
+        notifyParent('height', { height: height });
+      }
+
+      function schedulePostHeight() {
+        if (pendingHeightFrame !== null) {
+          return;
+        }
+
+        pendingHeightFrame = window.requestAnimationFrame(postHeight);
       }
 
       window.__traceH5P = {
         notifyParent: notifyParent,
-        postHeight: postHeight
+        postHeight: schedulePostHeight
       };
 
       window.H5PIntegration = ${integration};
@@ -192,22 +223,23 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
       window.H5P.preventInit = true;
 
       if ('ResizeObserver' in window) {
-        var resizeObserver = new ResizeObserver(postHeight);
-        resizeObserver.observe(document.body);
+        var resizeObserver = new ResizeObserver(schedulePostHeight);
+        var resizeTarget = document.getElementById('h5p-root') || document.body;
+        resizeObserver.observe(resizeTarget);
       }
 
       var mutationObserver = new MutationObserver(function () {
-        window.requestAnimationFrame(postHeight);
+        schedulePostHeight();
       });
-      mutationObserver.observe(document.body, {
+      mutationObserver.observe(document.getElementById('h5p-root') || document.body, {
         childList: true,
         subtree: true,
         characterData: true,
         attributes: true
       });
 
-      window.addEventListener('resize', postHeight);
-      window.addEventListener('load', postHeight);
+      window.addEventListener('resize', schedulePostHeight);
+      window.addEventListener('load', schedulePostHeight);
       window.addEventListener('error', function (event) {
         var target = event.target;
         var tagName = target && target.tagName;
@@ -220,7 +252,7 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
         }
       }, true);
 
-      window.setTimeout(postHeight, 0);
+      window.setTimeout(schedulePostHeight, 0);
     }());
   </script>
 
@@ -326,7 +358,10 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
       }
 
       if (message.type === 'height' && Number.isFinite(message.height)) {
-        setFrameHeight(Math.max(MIN_FRAME_HEIGHT, Math.ceil(message.height)));
+        setFrameHeight((currentHeight) => {
+          const nextHeight = Math.max(MIN_FRAME_HEIGHT, Math.ceil(message.height));
+          return Math.abs(currentHeight - nextHeight) < 4 ? currentHeight : nextHeight;
+        });
         return;
       }
 

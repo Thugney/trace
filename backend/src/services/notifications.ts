@@ -18,7 +18,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export interface NotificationPayload {
   title: string;
   message: string;
-  type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
+  type: 'task_created' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
         'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
         'school_assignment' | 'school_feedback' | 'school_due_soon' | 'school_submission' | 'school_graded' |
@@ -252,6 +252,21 @@ export const NotificationHelpers = {
       message: `${childName} wants to add a new task: "${taskTitle}"`,
       icon: '📋',
       url: '/tasks'
+    });
+  },
+
+  // Parent or admin updated a child's task
+  async taskUpdated(childId: number, taskTitle: string, updaterName: string) {
+    await sendPushNotification(childId, {
+      type: 'task_updated',
+      title: 'Task Updated',
+      message: `${updaterName} updated "${taskTitle}". Check the latest details before you start.`,
+      icon: '📝',
+      url: '/tasks',
+      data: {
+        taskTitle,
+        updaterName
+      }
     });
   },
 

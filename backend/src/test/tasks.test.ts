@@ -253,4 +253,66 @@ describe('Task Routes', () => {
     expect(reminder.message).toContain('Brush teeth');
     expect(reminder.message).toContain('half points');
   });
+
+  it('lets a parent update all major task settings and notifies the child', async () => {
+    const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+    const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+    enableTasksFeature(parent.id);
+    enableTasksFeature(child.id);
+
+    const task = createTestTask(child.id, {
+      title: 'Original Task',
+      category: 'other',
+      difficulty: 'easy',
+      points: 10,
+      parent_approved: 1,
+      estimated_minutes: 15,
+      scheduled_time: '08:00'
+    });
+
+    const response = await request(app)
+      .put(`/tasks/${task.id}`)
+      .set('x-profile-id', String(parent.id))
+      .send({
+        title: 'Updated Task',
+        description: 'Use the new instructions',
+        category: 'read-book',
+        difficulty: 'hard',
+        priority: 'high',
+        due_date: getTodayDateOnly(),
+        estimated_minutes: 45,
+        scheduled_time: '16:30',
+        is_recurring: true,
+        recurrence_pattern: 'weekly',
+        proof_required: true,
+        requires_timer: true,
+        timer_duration_minutes: 25
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.title).toBe('Updated Task');
+    expect(response.body.description).toBe('Use the new instructions');
+    expect(response.body.category).toBe('read-book');
+    expect(response.body.difficulty).toBe('hard');
+    expect(response.body.points).toBe(30);
+    expect(response.body.priority).toBe('high');
+    expect(response.body.estimated_minutes).toBe(45);
+    expect(response.body.scheduled_time).toBe('16:30');
+    expect(response.body.is_recurring).toBe(1);
+    expect(response.body.recurrence_pattern).toBe('weekly');
+    expect(response.body.proof_required).toBe(1);
+    expect(response.body.requires_timer).toBe(1);
+    expect(response.body.timer_duration_minutes).toBe(25);
+
+    const notification = testDb.prepare(`
+      SELECT * FROM notifications
+      WHERE profile_id = ? AND type = 'task_updated'
+      ORDER BY id DESC
+      LIMIT 1
+    `).get(child.id) as any;
+
+    expect(notification).toBeTruthy();
+    expect(notification.title).toBe('Task Updated');
+    expect(notification.message).toContain('Updated Task');
+  });
 });

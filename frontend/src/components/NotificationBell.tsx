@@ -142,6 +142,7 @@ export function NotificationBell() {
   const getNotificationIcon = (type: string) => {
     const icons: Record<string, string> = {
       task_created: '📋',
+      task_updated: '📝',
       task_approved: '✅',
       task_rejected: '❌',
       task_completed: '🎉',

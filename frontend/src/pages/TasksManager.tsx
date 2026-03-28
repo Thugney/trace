@@ -118,6 +118,7 @@ export default function TasksManager() {
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showBonusPoints, setShowBonusPoints] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [editingTaskCategory, setEditingTaskCategory] = useState('');
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingGoal, setEditingGoal] = useState<MonthlyGoal | null>(null);
   const [showPhotoProof, setShowPhotoProof] = useState(false);
@@ -170,6 +171,10 @@ export default function TasksManager() {
       setSelectedChild(fallbackChildId);
     }
   }, [fallbackChildId, isParent, selectedChild]);
+
+  useEffect(() => {
+    setEditingTaskCategory(editingTask?.category || '');
+  }, [editingTask]);
 
   const loadTasks = async () => {
     if (!displayProfileId) return;
@@ -349,6 +354,7 @@ export default function TasksManager() {
         await loadPendingTaskApprovals();
       }
       setShowAddTask(false);
+      setSelectedCategory('');
 
       // Show message to kids that their task needs parent approval
       if (!isParent) {
@@ -497,20 +503,39 @@ export default function TasksManager() {
 
     const formData = new FormData(e.currentTarget);
     const category = formData.get('category') as string;
+    const difficulty = formData.get('difficulty') as Task['difficulty'];
+    const isRecurring = formData.get('is_recurring') === 'on';
+    const estimatedMinutes = formData.get('estimated_minutes') as string;
+    const scheduledTime = formData.get('scheduled_time') as string;
+    const requiresTimer = formData.get('requires_timer') === 'on';
+    const timerDuration = formData.get('timer_duration_minutes') as string;
+    const proofRequired = formData.get('proof_required') === 'on';
 
     try {
       await tasksAPI.update(editingTask.id, {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
         category: category as any,
-        difficulty: formData.get('difficulty') as any,
-        earns_points: true,
-        due_date: (formData.get('due_date') as string) || getLocalDateKey()
+        difficulty,
+        priority: (formData.get('priority') as 'high' | 'medium' | 'low') || 'medium',
+        is_recurring: isRecurring,
+        recurrence_pattern: isRecurring ? (formData.get('recurrence_pattern') as Task['recurrence_pattern']) : null,
+        due_date: (formData.get('due_date') as string) || getLocalDateKey(),
+        estimated_minutes: estimatedMinutes ? parseInt(estimatedMinutes, 10) : null,
+        scheduled_time: scheduledTime || null,
+        proof_required: proofRequired,
+        requires_timer: requiresTimer,
+        timer_duration_minutes: requiresTimer && timerDuration ? parseInt(timerDuration, 10) : null
       });
 
       await loadTasks();
+      if (isParent) {
+        await loadPendingTaskApprovals();
+        await loadPendingPhotoProofs();
+      }
       setEditingTask(null);
-      alert('✅ Task updated!');
+      setEditingTaskCategory('');
+      alert(isParent ? '✅ Task updated. The child will see the new details.' : '✅ Task updated!');
     } catch (error) {
       console.error('Failed to update task:', error);
       alert('Failed to update task');
@@ -2306,21 +2331,57 @@ export default function TasksManager() {
       {editingTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
-            <div className="card max-w-2xl w-full my-4">
+            <div className="card max-w-3xl w-full my-4">
             <h2 className="text-2xl font-bold mb-4">Edit Task</h2>
+            <p className="mb-4 text-sm text-gray-600">
+              Update the task details, schedule, reminders, and completion rules. Saved changes are sent to the child.
+            </p>
 
             <form onSubmit={handleEditTask} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  required
-                  className="input"
-                  defaultValue={editingTask.title}
-                />
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    name="title"
+                    required
+                    className="input"
+                    defaultValue={editingTask.title}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    name="category"
+                    required
+                    className="input"
+                    defaultValue={editingTask.category}
+                    onChange={(e) => setEditingTaskCategory(e.target.value)}
+                  >
+                    <option value="">Select category</option>
+                    <option value="read-book">📚 Read Book (Timer Suggested)</option>
+                    <option value="tigrinya">✍️ Tigrinya Practice (Timer Suggested)</option>
+                    <option value="clean-room">🛏️ Clean Room (Timer Suggested)</option>
+                    <option value="clean-kitchen">🍽️ Clean Kitchen (Timer Suggested)</option>
+                    <option value="school">🎒 School Work (Timer Suggested)</option>
+                    <option value="homework">📝 Homework</option>
+                    <option value="exercise">🏃 Exercise</option>
+                    <option value="chore">🧹 Chore</option>
+                    <option value="watch-movies">🎬 Watch Movies</option>
+                    <option value="other">📌 Other</option>
+                  </select>
+                  {TIMED_CATEGORIES.includes(editingTaskCategory || editingTask.category) && (
+                    <p className="text-xs text-blue-600 mt-1 flex items-center">
+                      <Clock size={12} className="mr-1" />
+                      This category usually works best with a timer. You can adjust that below.
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -2335,50 +2396,163 @@ export default function TasksManager() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category *
-                </label>
-                <select
-                  name="category"
-                  required
-                  className="input"
-                  defaultValue={editingTask.category}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                >
-                  <option value="">Select category</option>
-                  <option value="read-book">📚 Read Book (Timer Required)</option>
-                  <option value="tigrinya">✍️ Tigrinya Practice (Timer Required)</option>
-                  <option value="clean-room">🛏️ Clean Room (Timer Required)</option>
-                  <option value="clean-kitchen">🍽️ Clean Kitchen (Timer Required)</option>
-                  <option value="school">🎒 School Work (Timer Required)</option>
-                  <option value="other">📌 Other</option>
-                </select>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Difficulty * (updates points)
+                  </label>
+                  <select name="difficulty" required className="input" defaultValue={editingTask.difficulty}>
+                    <option value="easy">Easy (10 pts)</option>
+                    <option value="medium">Medium (20 pts)</option>
+                    <option value="hard">Hard (30 pts)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <AlertTriangle size={16} className="inline mr-1" />
+                    Priority
+                  </label>
+                  <select name="priority" className="input" defaultValue={editingTask.priority || 'medium'}>
+                    <option value="high">🔴 High</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="low">🟢 Low</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Clock size={16} className="inline mr-1" />
+                    Estimated Time
+                  </label>
+                  <select
+                    name="estimated_minutes"
+                    className="input"
+                    defaultValue={editingTask.estimated_minutes?.toString() || ''}
+                  >
+                    <option value="">Not set</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty * (affects points earned)
-                </label>
-                <select name="difficulty" required className="input" defaultValue={editingTask.difficulty}>
-                  <option value="easy">Easy (10 pts)</option>
-                  <option value="medium">Medium (20 pts)</option>
-                  <option value="hard">Hard (30 pts)</option>
-                </select>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="edit_due_date" className="block text-sm font-medium text-gray-700 mb-1">
+                    <Calendar size={16} className="inline mr-1" />
+                    Due Date *
+                  </label>
+                  <input
+                    type="date"
+                    id="edit_due_date"
+                    name="due_date"
+                    className="input"
+                    required
+                    defaultValue={extractDateOnly(editingTask.due_date) || getLocalDateKey(new Date())}
+                  />
+                </div>
+
+                <div className="p-4 bg-orange-50 rounded-lg">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Bell size={16} className="inline mr-1 text-orange-600" />
+                    Scheduled Reminder Time
+                  </label>
+                  <input
+                    type="time"
+                    name="scheduled_time"
+                    className="input"
+                    defaultValue={editingTask.scheduled_time || ''}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Change, add, or clear the reminder time for this task.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label htmlFor="edit_due_date" className="block text-sm font-medium text-gray-700 mb-1">
-                  Due Date *
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 space-y-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="is_recurring"
+                    className="w-5 h-5 rounded"
+                    defaultChecked={editingTask.is_recurring === true || editingTask.is_recurring === 1}
+                  />
+                  <Repeat size={16} className="text-blue-600" />
+                  <span className="font-medium text-gray-700">Recurring task</span>
                 </label>
-                <input
-                  type="date"
-                  id="edit_due_date"
-                  name="due_date"
-                  className="input"
-                  required
-                  defaultValue={extractDateOnly(editingTask.due_date) || getLocalDateKey(new Date())}
-                />
+                <div>
+                  <select
+                    name="recurrence_pattern"
+                    className="input"
+                    defaultValue={editingTask.recurrence_pattern || 'daily'}
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Weekdays only</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    The repeat pattern only applies when recurring is turned on.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="proof_required"
+                      className="w-5 h-5 rounded"
+                      defaultChecked={editingTask.proof_required === true || editingTask.proof_required === 1}
+                    />
+                    <Camera size={16} className="text-emerald-600" />
+                    <span className="font-medium text-gray-700">Require photo proof</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Children must upload a photo before the task can be approved as complete.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-violet-100 bg-violet-50 p-4 space-y-3">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="requires_timer"
+                      className="w-5 h-5 rounded"
+                      defaultChecked={editingTask.requires_timer === true || editingTask.requires_timer === 1}
+                    />
+                    <Timer size={16} className="text-violet-600" />
+                    <span className="font-medium text-gray-700">Require timer before completion</span>
+                  </label>
+                  <div>
+                    <select
+                      name="timer_duration_minutes"
+                      className="input"
+                      defaultValue={editingTask.timer_duration_minutes?.toString() || ''}
+                    >
+                      <option value="">Auto / category default</option>
+                      <option value="5">5 minutes</option>
+                      <option value="10">10 minutes</option>
+                      <option value="15">15 minutes</option>
+                      <option value="20">20 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">60 minutes</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Set a custom timer length or leave it on the category default.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex space-x-3 pt-4">
@@ -2390,7 +2564,7 @@ export default function TasksManager() {
                   type="button"
                   onClick={() => {
                     setEditingTask(null);
-                    setSelectedCategory('');
+                    setEditingTaskCategory('');
                   }}
                   className="btn btn-secondary flex-1"
                 >
