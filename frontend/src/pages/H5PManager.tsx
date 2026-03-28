@@ -487,11 +487,40 @@ const H5PManager: React.FC = () => {
   const availableProviderCount = aiProviders.filter((provider) => provider.available).length;
   const passedCount = content.filter((item) => Boolean(item.passed)).length;
   const startedCount = content.filter((item) => (item.my_attempts || 0) > 0).length;
+  const childReadyContent = content.filter((item) => !Boolean(item.passed) && (item.my_attempts || 0) === 0);
+  const childInProgressContent = content.filter((item) => !Boolean(item.passed) && (item.my_attempts || 0) > 0);
+  const childPassedContent = content.filter((item) => Boolean(item.passed));
+  const featuredKidContent = childInProgressContent[0] || childReadyContent[0] || childPassedContent[0] || null;
+  const selectedChildrenCount = createForm.assignedTo.length;
+  const selectedProviderName = createForm.provider === 'auto'
+    ? 'Auto select'
+    : aiProviders.find((provider) => provider.id === createForm.provider)?.name || createForm.provider;
 
   const formatContentLabel = (contentType: string) => {
     return (contentType || 'interactive_content')
       .replace(/_/g, ' ')
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+  const formatQuizTypeLabel = (quizType: typeof createForm.quizType) => {
+    switch (quizType) {
+      case 'mixed':
+        return 'Mixed';
+      case 'mixed_advanced':
+        return 'Mixed Advanced';
+      case 'mcq_only':
+        return 'Multiple Choice';
+      case 'true_false_only':
+        return 'True / False';
+      case 'fill_blank':
+        return 'Fill in the Blank';
+      case 'drag_text':
+        return 'Drag the Words';
+      case 'mark_words':
+        return 'Mark the Words';
+      default:
+        return 'Mixed';
+    }
   };
 
   const getContentTone = (contentType: string) => {
@@ -518,6 +547,210 @@ const H5PManager: React.FC = () => {
       badge: 'border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-300',
       button: 'bg-sky-600 hover:bg-sky-700'
     };
+  };
+
+  const createQuizFlow = [
+    {
+      title: 'Topic',
+      done: Boolean(createForm.theme.trim()),
+      detail: createForm.theme.trim() ? createForm.theme.trim() : 'Choose the learning topic'
+    },
+    {
+      title: 'Format',
+      done: createForm.questionCount > 0,
+      detail: `${createForm.questionCount} questions • ${formatQuizTypeLabel(createForm.quizType)}`
+    },
+    {
+      title: 'Delivery',
+      done: children.length === 0 || selectedChildrenCount > 0,
+      detail: selectedChildrenCount > 0
+        ? `${selectedChildrenCount} child${selectedChildrenCount > 1 ? 'ren' : ''} selected`
+        : children.length > 0
+        ? 'Select children or leave this unassigned'
+        : 'No child profiles available yet'
+    }
+  ];
+  const createQuizStepsComplete = createQuizFlow.filter((step) => step.done).length;
+  const childContentSections = [
+    {
+      key: 'ready',
+      title: 'Ready to start',
+      description: 'Fresh quizzes that are ready to open now.',
+      badgeClass: 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
+      items: childReadyContent
+    },
+    {
+      key: 'progress',
+      title: 'Keep going',
+      description: 'Quizzes you already touched and can continue or retry.',
+      badgeClass: 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+      items: childInProgressContent
+    },
+    {
+      key: 'passed',
+      title: 'Passed already',
+      description: 'Completed quizzes you can replay for practice.',
+      badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+      items: childPassedContent
+    }
+  ].filter((section) => section.items.length > 0);
+
+  const renderLibraryCard = (item: H5PContent) => {
+    const tone = getContentTone(item.content_type);
+    const bestScore = item.best_score !== undefined && item.best_score !== null
+      ? Math.round(item.best_score || 0)
+      : null;
+    const cardAttempts = isParent ? (item.attempt_count || 0) : (item.my_attempts || 0);
+    const actionLabel = isParent
+      ? 'Preview'
+      : item.passed
+      ? 'Play again'
+      : cardAttempts > 0
+      ? 'Continue quiz'
+      : 'Start quiz';
+
+    return (
+      <article
+        key={item.id}
+        className={`group rounded-[28px] border border-slate-200 bg-gradient-to-br ${tone.surface} p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${tone.badge}`}>
+                {formatContentLabel(item.content_type)}
+              </span>
+              {item.is_ai_generated && (
+                <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300">
+                  AI generated
+                </span>
+              )}
+            </div>
+
+            <h3 className="mt-4 truncate text-lg font-semibold text-slate-900 dark:text-white">
+              {item.title}
+            </h3>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {item.library_name}
+            </p>
+          </div>
+
+          <button
+            onClick={() => setActivePlayer(item.id)}
+            className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition ${tone.button}`}
+            title={isParent ? 'Preview H5P content' : 'Open quiz'}
+          >
+            <Play className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {isParent ? 'Assigned' : 'Attempts'}
+            </p>
+            <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+              {isParent ? (item.assignment_count || 0) : cardAttempts}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {isParent ? 'Attempts' : 'Best score'}
+            </p>
+            <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
+              {isParent ? (item.attempt_count || 0) : (bestScore !== null ? `${bestScore}%` : 'Not started')}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {isParent ? 'Created' : 'Points'}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+              {isParent ? new Date(item.created_at).toLocaleDateString() : `${item.points || 0} pts`}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {isParent ? 'Type' : 'Status'}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+              {isParent
+                ? formatContentLabel(item.content_type)
+                : item.passed
+                ? 'Passed'
+                : cardAttempts > 0
+                ? 'In progress'
+                : 'Ready'}
+            </p>
+          </div>
+        </div>
+
+        {!isParent && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {bestScore !== null && (
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                bestScore >= 70
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+              }`}>
+                Best score {bestScore}%
+              </span>
+            )}
+            {item.passed ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                <CheckCircle className="h-3.5 w-3.5" />
+                Passed
+              </span>
+            ) : cardAttempts > 0 ? (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                Resume where you left off
+              </span>
+            ) : (
+              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300">
+                Ready now
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          <button
+            onClick={() => setActivePlayer(item.id)}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition ${tone.button}`}
+          >
+            <Play className="h-4 w-4" />
+            {actionLabel}
+          </button>
+          {isParent && item.is_ai_generated && (
+            <button
+              onClick={() => loadQuestions(item.id)}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-slate-950 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Questions
+            </button>
+          )}
+          {isParent && (
+            <button
+              onClick={() => loadProgress(item.id)}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 dark:border-violet-900/50 dark:bg-slate-950 dark:text-violet-300 dark:hover:bg-violet-950/20"
+            >
+              <Eye className="h-4 w-4" />
+              Progress
+            </button>
+          )}
+          {isParent && (
+            <button
+              onClick={() => handleDelete(item.id)}
+              className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-slate-950 dark:text-rose-300 dark:hover:bg-rose-950/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          )}
+        </div>
+      </article>
+    );
   };
 
   if (loading) {
@@ -877,12 +1110,27 @@ const H5PManager: React.FC = () => {
 
       {/* Create Form Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 z-50 overflow-y-auto">
           <div className="min-h-full flex items-center justify-center p-3 sm:p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 max-w-lg w-full shadow-2xl my-4">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-              Create H5P Quiz
-            </h2>
+            <div className="bg-white dark:bg-gray-800 rounded-[28px] p-4 sm:p-6 max-w-5xl w-full shadow-2xl my-4">
+            <div className="mb-5 flex items-start justify-between gap-4 rounded-[24px] bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_58%,#312e81_100%)] px-5 py-5 text-white">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-200/80">Parent builder</p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Create H5P Quiz
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-300">
+                  Build the quiz in three passes: topic, format, and delivery. The page now shows what is ready before you generate anything.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white transition hover:bg-white/20"
+                aria-label="Close quiz builder"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
             {/* Quiz Not Ready Warning */}
             {status && !status.quizReady && (
@@ -900,7 +1148,51 @@ const H5PManager: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="mb-5 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Builder flow</p>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">
+                    {createQuizStepsComplete} of {createQuizFlow.length} steps ready
+                  </h3>
+                </div>
+                <span className="rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white dark:bg-sky-600">
+                  {Math.round((createQuizStepsComplete / createQuizFlow.length) * 100)}%
+                </span>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {createQuizFlow.map((step, index) => (
+                  <div
+                    key={step.title}
+                    className={`rounded-2xl border p-4 ${
+                      step.done
+                        ? 'border-emerald-200 bg-white dark:border-emerald-900/50 dark:bg-slate-950/70'
+                        : 'border-slate-200 bg-white/70 dark:border-slate-700 dark:bg-slate-950/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                        Step {index + 1}
+                      </span>
+                      {step.done ? (
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4 text-slate-400" />
+                      )}
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">{step.title}</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{step.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/30 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Step 1</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">Quiz brief</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Start with the topic. The title can stay optional if you want the AI to name the quiz.</p>
+
               {/* Theme/Topic */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -928,10 +1220,16 @@ const H5PManager: React.FC = () => {
                   placeholder="Leave empty for AI to generate"
                 />
               </div>
+              </div>
 
               {/* Age and Questions - Responsive Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/30 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Step 2</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">Generation format</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Tune age, question count, and response style before the AI builds the quiz.</p>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/40">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Target Age: <span className="font-bold text-blue-600 dark:text-blue-400">{createForm.age}</span>
                   </label>
@@ -947,8 +1245,24 @@ const H5PManager: React.FC = () => {
                     <span>4</span>
                     <span>16</span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[6, 8, 10, 12].map((age) => (
+                      <button
+                        key={age}
+                        type="button"
+                        onClick={() => setCreateForm({ ...createForm, age })}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          createForm.age === age
+                            ? 'bg-sky-600 text-white'
+                            : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700'
+                        }`}
+                      >
+                        Age {age}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/40">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Questions: <span className="font-bold text-blue-600 dark:text-blue-400">{createForm.questionCount}</span>
                   </label>
@@ -964,11 +1278,27 @@ const H5PManager: React.FC = () => {
                     <span>3</span>
                     <span>15</span>
                   </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[5, 8, 12].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setCreateForm({ ...createForm, questionCount: count })}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          createForm.questionCount === count
+                            ? 'bg-sky-600 text-white'
+                            : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700'
+                        }`}
+                      >
+                        {count} questions
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Question Type and Answer Style - Responsive Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Question Type
@@ -1027,9 +1357,15 @@ const H5PManager: React.FC = () => {
                   </p>
                 )}
               </div>
+              </div>
 
               {/* Custom Instructions */}
-              <div>
+              <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/30 dark:border-slate-700 dark:bg-slate-900/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Step 3</p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-white">Delivery and reward</h3>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Pick the provider, the points, and the children who should receive the quiz.</p>
+
+              <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Custom Instructions <span className="text-gray-400 text-xs">(optional)</span>
                 </label>
@@ -1144,26 +1480,57 @@ const H5PManager: React.FC = () => {
                   )}
                 </div>
               )}
+              </div>
+
+            <div className="mt-5 rounded-[22px] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">Live summary</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl bg-white p-3 dark:bg-slate-950/70">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Topic</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    {createForm.theme.trim() || 'Not set yet'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white p-3 dark:bg-slate-950/70">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Format</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatQuizTypeLabel(createForm.quizType)} • {createForm.questionCount} Q
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white p-3 dark:bg-slate-950/70">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Audience</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    Age {createForm.age} • {selectedChildrenCount > 0 ? `${selectedChildrenCount} assigned` : 'Unassigned'}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-white p-3 dark:bg-slate-950/70">
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Generation</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                    {selectedProviderName}{createForm.includeImages ? ' + images' : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowCreateForm(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="flex-1 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateQuiz}
-                disabled={creating}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={creating || !createForm.theme.trim()}
+                className="flex-1 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-sky-600 dark:hover:bg-sky-500 flex items-center justify-center gap-2"
               >
                 {creating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating...
+                    Generating...
                   </>
                 ) : (
-                  'Create Quiz'
+                  'Generate H5P Quiz'
                 )}
               </button>
             </div>
@@ -1579,6 +1946,40 @@ const H5PManager: React.FC = () => {
         </div>
       )}
 
+      {!isParent && featuredKidContent && (
+        <section className="rounded-[30px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600 dark:text-sky-300">Start here</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">
+                {childInProgressContent.length > 0 ? 'Pick up where you left off' : 'Your next H5P quiz is ready'}
+              </h2>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                The page now separates fresh quizzes, active work, and passed quizzes so you do not have to scan the whole library before starting.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-900/50 dark:bg-sky-950/20">
+                <p className="text-xs uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">Ready now</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{childReadyContent.length}</p>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                <p className="text-xs uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">In progress</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{childInProgressContent.length}</p>
+              </div>
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">Passed</p>
+                <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{childPassedContent.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            {renderLibraryCard(featuredKidContent)}
+          </div>
+        </section>
+      )}
+
       {/* Content List */}
       <section className="rounded-[30px] border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/40 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -1618,154 +2019,28 @@ const H5PManager: React.FC = () => {
                 : 'Your parent has not assigned any H5P quizzes yet. Check back after they publish new content.'}
             </p>
           </div>
+        ) : !isParent ? (
+          <div className="mt-6 space-y-5">
+            {childContentSections.map((section) => (
+              <section key={section.key} className="rounded-[28px] border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/30">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{section.title}</h3>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{section.description}</p>
+                  </div>
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${section.badgeClass}`}>
+                    {section.items.length}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {section.items.map((item) => renderLibraryCard(item))}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : (
           <div className="mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {content.map((item) => {
-              const tone = getContentTone(item.content_type);
-              const bestScore = item.best_score !== undefined && item.best_score !== null
-                ? Math.round(item.best_score || 0)
-                : null;
-              const cardAttempts = isParent ? (item.attempt_count || 0) : (item.my_attempts || 0);
-
-              return (
-                <article
-                  key={item.id}
-                  className={`group rounded-[28px] border border-slate-200 bg-gradient-to-br ${tone.surface} p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-xl dark:border-slate-800`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${tone.badge}`}>
-                          {formatContentLabel(item.content_type)}
-                        </span>
-                        {item.is_ai_generated && (
-                          <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 dark:border-violet-900/60 dark:bg-violet-950/40 dark:text-violet-300">
-                            AI generated
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="mt-4 truncate text-lg font-semibold text-slate-900 dark:text-white">
-                        {item.title}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        {item.library_name}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setActivePlayer(item.id)}
-                      className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl text-white shadow-lg transition ${tone.button}`}
-                      title={isParent ? 'Preview H5P content' : 'Open quiz'}
-                    >
-                      <Play className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        {isParent ? 'Assigned' : 'Attempts'}
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
-                        {isParent ? (item.assignment_count || 0) : cardAttempts}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        {isParent ? 'Attempts' : 'Best score'}
-                      </p>
-                      <p className="mt-2 text-xl font-semibold text-slate-900 dark:text-white">
-                        {isParent ? (item.attempt_count || 0) : (bestScore !== null ? `${bestScore}%` : 'Not started')}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        {isParent ? 'Created' : 'Points'}
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
-                        {isParent ? new Date(item.created_at).toLocaleDateString() : `${item.points || 0} pts`}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/60 bg-white/70 p-3 dark:border-slate-800 dark:bg-slate-950/55">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        {isParent ? 'Type' : 'Status'}
-                      </p>
-                      <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
-                        {isParent
-                          ? formatContentLabel(item.content_type)
-                          : item.passed
-                          ? 'Passed'
-                          : cardAttempts > 0
-                          ? 'In progress'
-                          : 'Ready'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {!isParent && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {bestScore !== null && (
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          bestScore >= 70
-                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                            : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
-                        }`}>
-                          Best score {bestScore}%
-                        </span>
-                      )}
-                      {item.passed ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Passed
-                        </span>
-                      ) : cardAttempts > 0 ? (
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-                          Keep going
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
-
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setActivePlayer(item.id)}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition ${tone.button}`}
-                    >
-                      <Play className="h-4 w-4" />
-                      {isParent ? 'Preview' : cardAttempts > 0 ? 'Play again' : 'Start quiz'}
-                    </button>
-                    {isParent && item.is_ai_generated && (
-                      <button
-                        onClick={() => loadQuestions(item.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900/50 dark:bg-slate-950 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
-                      >
-                        <HelpCircle className="h-4 w-4" />
-                        Questions
-                      </button>
-                    )}
-                    {isParent && (
-                      <button
-                        onClick={() => loadProgress(item.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 transition hover:bg-violet-50 dark:border-violet-900/50 dark:bg-slate-950 dark:text-violet-300 dark:hover:bg-violet-950/20"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Progress
-                      </button>
-                    )}
-                    {isParent && (
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:bg-slate-950 dark:text-rose-300 dark:hover:bg-rose-950/20"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {content.map((item) => renderLibraryCard(item))}
           </div>
         )}
       </section>

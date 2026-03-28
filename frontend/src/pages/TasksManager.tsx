@@ -136,8 +136,9 @@ export default function TasksManager() {
   // Get page title based on age
   const pageInfo = getPageTitle(settings.ageGroup, isParent);
 
-  const displayProfileId = isParent ? selectedChild || currentProfile?.id : currentProfile?.id;
   const children = profiles.filter(p => p.type === 'child');
+  const fallbackChildId = children[0]?.id;
+  const displayProfileId = isParent ? selectedChild ?? fallbackChildId ?? currentProfile?.id : currentProfile?.id;
   const allIncompleteTasks = tasks.filter(t => !t.completed);
   const incompleteTasks = isParent
     ? allIncompleteTasks
@@ -163,6 +164,12 @@ export default function TasksManager() {
       loadPendingPhotoProofs();
     }
   }, [isParent, currentProfile]);
+
+  useEffect(() => {
+    if (isParent && !selectedChild && fallbackChildId) {
+      setSelectedChild(fallbackChildId);
+    }
+  }, [fallbackChildId, isParent, selectedChild]);
 
   const loadTasks = async () => {
     if (!displayProfileId) return;
@@ -683,10 +690,220 @@ export default function TasksManager() {
   const showMissionControlUI = !isParent && currentProfile?.type === 'child';
   const actionableNowTasks = [...todayTasks, ...otherApprovedTasks].filter(t => t.id !== activeMission?.id);
   const overdueActionableTasks = overdueTasks.filter(t => t.id !== activeMission?.id);
-  const pendingApprovalCount = incompleteTasks.filter(t => !t.parent_approved).length;
+  const selectedChildProfile = children.find(child => child.id === displayProfileId) || null;
+  const approvedOpenTasks = incompleteTasks.filter(t => t.parent_approved);
+  const unapprovedOpenTasks = incompleteTasks.filter(t => !t.parent_approved);
+  const filteredPendingGoals = selectedChildProfile
+    ? pendingGoals.filter(goal => goal.profile_id === selectedChildProfile.id)
+    : pendingGoals;
+  const filteredPendingTaskApprovals = selectedChildProfile
+    ? pendingTaskApprovals.filter(task => task.profile_id === selectedChildProfile.id)
+    : pendingTaskApprovals;
+  const filteredPendingPhotoProofs = selectedChildProfile
+    ? pendingPhotoProofs.filter(task => task.profile_id === selectedChildProfile.id)
+    : pendingPhotoProofs;
+  const reviewQueueCount = filteredPendingGoals.length + filteredPendingTaskApprovals.length + filteredPendingPhotoProofs.length;
+  const reviewDeskCount = filteredPendingGoals.length + filteredPendingPhotoProofs.length;
+  const pendingApprovalCount = unapprovedOpenTasks.length;
   const dueTodayCount = incompleteTasks.filter(t => t.parent_approved && getDateOnlyRelation(t.due_date) === 'today').length;
   const lateTaskCount = incompleteTasks.filter(t => t.parent_approved && getDateOnlyRelation(t.due_date) === 'past').length;
   const recurringOpenCount = incompleteTasks.filter(t => t.parent_approved && isRecurringTask(t)).length;
+  const timerRequiredCount = approvedOpenTasks.filter(t => t.requires_timer === true || t.requires_timer === 1).length;
+  const trackingOnlyCount = approvedOpenTasks.filter(t => !t.earns_points).length;
+  const upcomingAndLaterTasks = [...upcomingTasks, ...otherApprovedTasks];
+  const parentTaskSections = [
+    {
+      key: 'waiting',
+      title: 'Waiting for approval',
+      description: 'These tasks exist but are not active until you sign them off.',
+      icon: Clock,
+      panelClass: 'border-amber-200 bg-amber-50/70',
+      iconClass: 'bg-amber-100 text-amber-700',
+      countClass: 'bg-amber-100 text-amber-700',
+      emptyMessage: 'No tasks are waiting for approval.',
+      tasks: unapprovedOpenTasks
+    },
+    {
+      key: 'today',
+      title: 'Due today',
+      description: 'Tasks that should move forward before the day closes.',
+      icon: Calendar,
+      panelClass: 'border-sky-200 bg-sky-50/70',
+      iconClass: 'bg-sky-100 text-sky-700',
+      countClass: 'bg-sky-100 text-sky-700',
+      emptyMessage: 'Nothing is due today.',
+      tasks: todayTasks
+    },
+    {
+      key: 'overdue',
+      title: 'Overdue',
+      description: 'Late tasks that need follow-up before they grow into backlog.',
+      icon: AlertTriangle,
+      panelClass: 'border-rose-200 bg-rose-50/70',
+      iconClass: 'bg-rose-100 text-rose-700',
+      countClass: 'bg-rose-100 text-rose-700',
+      emptyMessage: 'No overdue tasks right now.',
+      tasks: overdueTasks
+    },
+    {
+      key: 'upcoming',
+      title: 'Upcoming and later',
+      description: 'Scheduled work that is already approved and on deck.',
+      icon: Repeat,
+      panelClass: 'border-slate-200 bg-slate-50/80',
+      iconClass: 'bg-slate-200 text-slate-700',
+      countClass: 'bg-slate-200 text-slate-700',
+      emptyMessage: 'No approved tasks are queued next.',
+      tasks: upcomingAndLaterTasks
+    }
+  ];
+
+  const getDueBadgeClass = (task: Task) => {
+    if (!task.due_date) return 'bg-slate-100 text-slate-600';
+
+    switch (getDateOnlyRelation(task.due_date)) {
+      case 'past':
+        return 'bg-rose-100 text-rose-700';
+      case 'today':
+        return 'bg-amber-100 text-amber-700';
+      case 'future':
+        return 'bg-sky-100 text-sky-700';
+      default:
+        return 'bg-slate-100 text-slate-600';
+    }
+  };
+
+  const getReviewChildName = (childName?: string) => childName || selectedChildProfile?.name || 'Child';
+
+  const renderParentTaskCard = (task: Task) => {
+    const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
+    const canSendReminder = task.parent_approved && !task.completed && !!task.due_date && getDateOnlyRelation(task.due_date) !== 'future';
+
+    return (
+      <article
+        key={task.id}
+        className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/40"
+      >
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                {getReviewChildName(task.child_name)}
+              </span>
+              <span className={clsx('rounded-full px-2.5 py-1 text-xs font-semibold', getDueBadgeClass(task))}>
+                {task.due_date ? formatDueDate(task.due_date) : 'No due date'}
+              </span>
+              {requiresTimer && (
+                <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                  Timer required
+                </span>
+              )}
+              {task.is_recurring === 1 && (
+                <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-cyan-700">
+                  Recurring
+                </span>
+              )}
+              {!task.earns_points && (
+                <span className="rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  Tracking only
+                </span>
+              )}
+            </div>
+
+            <h3 className="mt-3 text-lg font-semibold text-slate-900">{task.title}</h3>
+            {task.description && (
+              <p className="mt-2 text-sm leading-6 text-slate-600">{task.description}</p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {task.earns_points && (
+                <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                  {task.points} pts
+                </span>
+              )}
+              {task.priority && (
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase text-slate-700">
+                  {task.priority} priority
+                </span>
+              )}
+              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                {task.category}
+              </span>
+              {task.difficulty && task.earns_points && (
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                  {task.difficulty}
+                </span>
+              )}
+              {task.estimated_minutes && (
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                  {task.estimated_minutes} min
+                </span>
+              )}
+              {task.scheduled_time && (
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                  Reminder {task.scheduled_time}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 xl:max-w-[16rem] xl:justify-end">
+            {!task.parent_approved ? (
+              <>
+                <button
+                  onClick={() => handleApproveTask(task.id)}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleRejectTask(task.id)}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:text-rose-700"
+                >
+                  Reject
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => handleCompleteTask(task.id, task)}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500"
+                title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
+              >
+                {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
+                Complete
+              </button>
+            )}
+            <button
+              onClick={() => setEditingTask(task)}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+              title="Edit task"
+            >
+              <Edit2 size={16} />
+              Edit
+            </button>
+            {canSendReminder && (
+              <button
+                onClick={() => handleSendTaskReminder(task)}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 transition hover:bg-orange-100"
+                title="Send reminder"
+              >
+                <Bell size={16} />
+                Remind
+              </button>
+            )}
+            <button
+              onClick={() => handleDeleteTask(task.id)}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+              title="Delete task"
+            >
+              <Trash2 size={16} />
+              Delete
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <div className={clsx("max-w-7xl mx-auto", showMissionControlUI && settings.themeClass)}>
@@ -836,196 +1053,328 @@ export default function TasksManager() {
 
       {/* Child Selector for Parents */}
       {isParent && children.length > 0 && (
-        <div className="mb-6 rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-lg shadow-slate-200/40 backdrop-blur">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Focus child</p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-900">Switch the task view by child</h2>
-              <p className="mt-1 text-sm text-slate-500">Use this selector to review approvals, recurring work, and due dates for one child at a time.</p>
+        <>
+          <div className="mb-6 rounded-[28px] border border-slate-200 bg-white/90 p-5 shadow-lg shadow-slate-200/40 backdrop-blur">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Focus child</p>
+                <h2 className="mt-1 text-xl font-semibold text-slate-900">Switch the task view by child</h2>
+                <p className="mt-1 text-sm text-slate-500">Every panel below now filters to one child so approvals, overdue work, and routines stay readable.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {children.map(child => (
+                  <button
+                    key={child.id}
+                    onClick={() => setSelectedChild(child.id)}
+                    className={clsx(
+                      'inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-medium transition-colors',
+                      displayProfileId === child.id
+                        ? 'bg-slate-900 text-white shadow-lg shadow-slate-300/30'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    )}
+                  >
+                    <Avatar avatar={child.avatar} size="sm" alt={child.name} className="inline-block" />
+                    {child.name}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-            {children.map(child => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child.id)}
-                className={clsx(
-                  'inline-flex items-center gap-2 rounded-full px-4 py-2.5 font-medium transition-colors',
-                  selectedChild === child.id
-                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-300/30'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+          </div>
+
+          <section className="mb-6 grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
+            <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+              <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">Parent operations</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+                      Task management for {selectedChildProfile?.name || 'your family'}
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-sm text-slate-600">
+                      Use this board to assign work, unblock approvals, and keep overdue tasks from turning into backlog.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <p className="font-semibold text-slate-900">{selectedChildProfile?.name || 'Family view'}</p>
+                    <p className="mt-1">
+                      {progress
+                        ? `${progress.current.total_points} points and ${progress.current.total_stars} stars so far.`
+                        : 'Progress will appear here after the first task sync.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Open tasks</p>
+                  <p className="mt-2 text-3xl font-semibold text-slate-900">{incompleteTasks.length}</p>
+                  <p className="mt-1 text-sm text-slate-500">Live work in this child view</p>
+                </div>
+                <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-sky-600">Due today</p>
+                  <p className="mt-2 text-3xl font-semibold text-sky-900">{dueTodayCount}</p>
+                  <p className="mt-1 text-sm text-sky-700">Needs attention before tonight</p>
+                </div>
+                <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-rose-600">Past due</p>
+                  <p className="mt-2 text-3xl font-semibold text-rose-900">{lateTaskCount}</p>
+                  <p className="mt-1 text-sm text-rose-700">Needs follow-up now</p>
+                </div>
+                <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-cyan-600">Recurring</p>
+                  <p className="mt-2 text-3xl font-semibold text-cyan-900">{recurringOpenCount}</p>
+                  <p className="mt-1 text-sm text-cyan-700">Routine work still open</p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 border-t border-slate-200 p-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,1fr)]">
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">What needs attention</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                      <p className="text-sm font-semibold text-slate-900">{pendingApprovalCount} waiting</p>
+                      <p className="mt-1 text-xs text-slate-500">Approve or reject before they count as active work.</p>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                      <p className="text-sm font-semibold text-slate-900">{timerRequiredCount} timed</p>
+                      <p className="mt-1 text-xs text-slate-500">Tasks that depend on a timer staying available.</p>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                      <p className="text-sm font-semibold text-slate-900">{trackingOnlyCount} tracking only</p>
+                      <p className="mt-1 text-xs text-slate-500">Tasks that matter operationally but do not award points.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] bg-[linear-gradient(135deg,#0f172a_0%,#1e293b_60%,#312e81_100%)] p-4 text-white shadow-lg">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Goal snapshot</p>
+                  {monthlyGoal ? (
+                    <>
+                      <div className="mt-3 flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-lg font-semibold">{monthlyGoal.goal_description}</p>
+                          <p className="mt-1 text-sm text-slate-300">
+                            {progress?.current.total_points || 0} / {monthlyGoal.goal_points} points
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100">
+                          {Math.round(goalProgress)}%
+                        </span>
+                      </div>
+                      <div className="mt-4 h-2 rounded-full bg-white/10">
+                        <div
+                          className="h-2 rounded-full bg-white transition-all"
+                          style={{ width: `${goalProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-3 text-sm text-slate-300">
+                        {monthlyGoal.achieved
+                          ? 'Goal already achieved. Reward delivery can be closed out below.'
+                          : 'Use this as the context for bonus points and approval decisions.'}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="mt-3 rounded-2xl border border-dashed border-white/20 p-4 text-sm text-slate-300">
+                      No active goal yet for this child. The task board still works, but there is no reward target to anchor progress.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <aside className="overflow-hidden rounded-[30px] border border-slate-900 bg-slate-900 text-white shadow-2xl shadow-slate-400/20">
+              <div className="border-b border-white/10 px-5 py-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">Review queue</p>
+                <h3 className="mt-2 text-2xl font-semibold">{reviewQueueCount} items need parent action</h3>
+                <p className="mt-2 text-sm text-slate-300">
+                  Keep the queue short. Task approvals are handled in the management lanes below, while goals and proofs stay in the review desk.
+                </p>
+              </div>
+              <div className="space-y-3 px-5 py-5">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-white">Task approvals</p>
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                      {filteredPendingTaskApprovals.length}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-300">
+                    {filteredPendingTaskApprovals.length > 0
+                      ? 'Review these inside the waiting lane so you can approve, edit, or reject without losing context.'
+                      : 'No task approval backlog right now.'}
+                  </p>
+                  {filteredPendingTaskApprovals.length > 0 && (
+                    <a
+                      href="#task-management-board"
+                      className="mt-3 inline-flex items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                    >
+                      Review waiting tasks
+                    </a>
+                  )}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <div className="rounded-2xl border border-amber-300/30 bg-amber-400/10 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-white">Goal approvals</p>
+                      <span className="rounded-full bg-amber-300/20 px-2.5 py-1 text-xs font-semibold text-amber-100">
+                        {filteredPendingGoals.length}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-300">Set rewards and approve them without leaving the task page.</p>
+                  </div>
+                  <div className="rounded-2xl border border-violet-300/30 bg-violet-400/10 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-white">Photo proofs</p>
+                      <span className="rounded-full bg-violet-300/20 px-2.5 py-1 text-xs font-semibold text-violet-100">
+                        {filteredPendingPhotoProofs.length}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-300">Visual verification stays separate so the media review does not block task triage.</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section className="mb-6 overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-lg shadow-slate-200/40">
+            <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4 sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Review desk</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-900">Goal approvals and photo proofs</h3>
+                  <p className="mt-1 text-sm text-slate-500">The queue stays filtered to {selectedChildProfile?.name || 'this child'} so approvals do not mix across siblings.</p>
+                </div>
+                <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white">
+                  {reviewDeskCount} pending
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-5 xl:grid-cols-2">
+              <div className="rounded-[26px] border border-amber-200 bg-amber-50/70 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">Goal approvals</p>
+                    <h4 className="mt-1 text-lg font-semibold text-slate-900">Reward requests waiting on you</h4>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-amber-700 ring-1 ring-amber-200">
+                    {filteredPendingGoals.length}
+                  </span>
+                </div>
+
+                {filteredPendingGoals.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-amber-200 bg-white/80 p-6 text-sm text-slate-500">
+                    No goal approvals are waiting right now.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {filteredPendingGoals.map(goal => (
+                      <article key={goal.id} className="rounded-[22px] border border-amber-200 bg-white p-4 shadow-sm shadow-amber-100/50">
+                        <div className="flex items-start gap-3">
+                          <Avatar avatar={goal.child_avatar} size="sm" alt={goal.child_name || 'Child'} className="mt-0.5" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-900">{goal.child_name || selectedChildProfile?.name}</p>
+                            <p className="mt-1 text-base font-semibold text-slate-900">{goal.goal_description}</p>
+                            <p className="mt-2 text-sm text-slate-600">
+                              {goal.goal_points} points for {getGoalTypeLabel(goal.goal_type)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            onClick={() => handleApproveGoal(goal.id)}
+                            className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                          >
+                            Approve goal
+                          </button>
+                          <button
+                            onClick={() => handleRejectGoal(goal.id)}
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:text-rose-700"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 )}
-              >
-                <Avatar avatar={child.avatar} size="sm" alt={child.name} className="inline-block" />
-                {child.name}
-              </button>
-            ))}
+              </div>
+
+              <div className="rounded-[26px] border border-violet-200 bg-violet-50/70 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">Photo proofs</p>
+                    <h4 className="mt-1 text-lg font-semibold text-slate-900">Verify completion before rewards land</h4>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-violet-700 ring-1 ring-violet-200">
+                    {filteredPendingPhotoProofs.length}
+                  </span>
+                </div>
+
+                {filteredPendingPhotoProofs.length === 0 ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-violet-200 bg-white/80 p-6 text-sm text-slate-500">
+                    No photo proofs are waiting for review.
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {filteredPendingPhotoProofs.map(task => (
+                      <article key={task.id} className="rounded-[22px] border border-violet-200 bg-white p-4 shadow-sm shadow-violet-100/50">
+                        <div className="flex flex-col gap-4 md:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => task.proof_photo_url && window.open(`/api${task.proof_photo_url}`, '_blank')}
+                            className="overflow-hidden rounded-[20px] border border-violet-200 bg-violet-50 md:w-36"
+                          >
+                            <img
+                              src={task.proof_photo_url ? `/api${task.proof_photo_url}` : ''}
+                              alt={`${getReviewChildName(task.child_name)} proof for ${task.title}`}
+                              className="h-36 w-full object-cover"
+                            />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <Avatar avatar={task.child_avatar} size="sm" alt={task.child_name || 'Child'} />
+                              <p className="text-sm font-semibold text-slate-900">{getReviewChildName(task.child_name)}</p>
+                            </div>
+                            <h5 className="mt-3 text-base font-semibold text-slate-900">{task.title}</h5>
+                            {task.description && (
+                              <p className="mt-2 text-sm text-slate-600">{task.description}</p>
+                            )}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
+                                {task.points} pts
+                              </span>
+                              <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-violet-200">
+                                {task.difficulty}
+                              </span>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleVerifyProof(task.id, true)}
+                                className="inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                              >
+                                <Check size={16} />
+                                Approve and complete
+                              </button>
+                              <button
+                                onClick={() => handleVerifyProof(task.id, false)}
+                                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-rose-200 hover:text-rose-700"
+                              >
+                                Reject photo
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pending Goals for Parents to Review */}
-      {isParent && pendingGoals.length > 0 && (
-        <div className="card mb-6 bg-yellow-50 border-2 border-yellow-300">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Trophy className="mr-2 text-yellow-600" size={24} />
-            Pending Goal Approvals
-          </h3>
-          <div className="space-y-3">
-            {pendingGoals.map(goal => (
-              <div key={goal.id} className="bg-white p-4 rounded-lg border border-yellow-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <Avatar avatar={goal.child_avatar} size="sm" alt={goal.child_name || 'Child'} className="mr-2" />
-                      <div>
-                        <p className="font-semibold text-gray-900">{goal.child_name}</p>
-                        <p className="text-sm text-gray-600">wants to set a goal</p>
-                      </div>
-                    </div>
-                    <p className="text-gray-800 mb-2">{goal.goal_description}</p>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Star className="mr-1" size={16} />
-                      <span>{goal.goal_points} points • {getGoalTypeLabel(goal.goal_type)}</span>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => handleApproveGoal(goal.id)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectGoal(goal.id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                    >
-                      ✗ Reject
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Pending Tasks for Parents to Review */}
-      {isParent && pendingTaskApprovals.length > 0 && (
-        <div className="card mb-6 bg-blue-50 border-2 border-blue-300">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Check className="mr-2 text-blue-600" size={24} />
-            Pending Task Approvals
-          </h3>
-          <div className="space-y-3">
-            {pendingTaskApprovals.map(task => (
-              <div key={task.id} className="bg-white p-4 rounded-lg border border-blue-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <Avatar avatar={task.child_avatar} size="sm" alt={task.child_name || 'Child'} className="mr-2" />
-                      <div>
-                        <p className="font-semibold text-gray-900">{task.child_name}</p>
-                        <p className="text-sm text-gray-600">created a task</p>
-                      </div>
-                    </div>
-                    <h4 className="text-gray-900 font-bold mb-1">{task.title}</h4>
-                    {task.description && (
-                      <p className="text-gray-700 mb-2 text-sm">{task.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="badge badge-primary">{task.points} pts</span>
-                      <span className="badge badge-warning">{task.difficulty}</span>
-                      <span className="text-gray-600">• {task.category}</span>
-                      {task.due_date && (
-                        <span className="text-gray-600">• Due: {formatDateOnlyForDisplay(task.due_date)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex space-x-2 ml-4">
-                    <button
-                      onClick={() => handleApproveTask(task.id)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectTask(task.id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                    >
-                      ✗ Reject
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Pending Photo Proofs for Parents to Verify */}
-      {isParent && pendingPhotoProofs.length > 0 && (
-        <div className="card mb-6 bg-purple-50 border-2 border-purple-300">
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-            <Camera className="mr-2 text-purple-600" size={24} />
-            Photo Proofs to Verify ({pendingPhotoProofs.length})
-          </h3>
-          <div className="space-y-4">
-            {pendingPhotoProofs.map(task => (
-              <div key={task.id} className="bg-white p-4 rounded-lg border border-purple-200">
-                <div className="flex items-start gap-4">
-                  {/* Photo Preview */}
-                  <div className="flex-shrink-0">
-                    <img
-                      src={task.proof_photo_url ? `/api${task.proof_photo_url}` : ''}
-                      alt="Photo proof"
-                      className="w-32 h-32 object-cover rounded-lg border-2 border-purple-300 cursor-pointer hover:opacity-80"
-                      onClick={() => task.proof_photo_url && window.open(`/api${task.proof_photo_url}`, '_blank')}
-                      title="Click to view full size"
-                    />
-                    <p className="text-xs text-gray-500 mt-1 text-center">Click to enlarge</p>
-                  </div>
-
-                  {/* Task Details */}
-                  <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <Avatar avatar={task.child_avatar} size="sm" alt={task.child_name || 'Child'} className="mr-2" />
-                      <div>
-                        <p className="font-semibold text-gray-900">{task.child_name}</p>
-                        <p className="text-sm text-gray-600">uploaded proof for task</p>
-                      </div>
-                    </div>
-                    <h4 className="text-gray-900 font-bold mb-1">{task.title}</h4>
-                    {task.description && (
-                      <p className="text-gray-700 mb-2 text-sm">{task.description}</p>
-                    )}
-                    <div className="flex items-center gap-2 text-sm mb-3">
-                      <span className="badge badge-primary">{task.points} pts</span>
-                      <span className="badge badge-warning">{task.difficulty}</span>
-                    </div>
-
-                    {/* Approve/Reject Buttons */}
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleVerifyProof(task.id, true)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium flex items-center"
-                      >
-                        <Check size={16} className="mr-1" />
-                        Approve & Complete
-                      </button>
-                      <button
-                        onClick={() => handleVerifyProof(task.id, false)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                      >
-                        ✗ Reject Photo
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          </section>
+        </>
       )}
 
       {/* Monthly Goal Card */}
@@ -1360,198 +1709,251 @@ export default function TasksManager() {
           )}
 
           {/* Tasks List */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Incomplete Tasks */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">
-            Pending Tasks ({incompleteTasks.length})
-          </h2>
-
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <div className="spinner"></div>
-            </div>
-          ) : incompleteTasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No pending tasks</p>
-              <p className="text-sm mt-1">
-                {isParent ? 'Add tasks for your kids' : 'All caught up! 🎉'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {incompleteTasks.map((task, index) => {
-                const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
-                const dueRelation = getDateOnlyRelation(task.due_date);
-                const canSendReminder = isParent && task.parent_approved && !task.completed && !!task.due_date && dueRelation !== 'future';
-
-                // For tasks requiring timer (and approved), show the timer card
-                if (requiresTimer && task.parent_approved && !isParent) {
-                  return (
-                    <TaskTimerCard
-                      key={task.id}
-                      task={task}
-                      onComplete={(taskId) => handleCompleteTask(taskId, task)}
-                      index={index}
-                    />
-                  );
-                }
-
-                // Regular task card
-                return (
-                  <div
-                    key={task.id}
-                    className={clsx(
-                      'p-4 border-2 rounded-lg transition-all',
-                      !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
-                      task.parent_approved && task.priority === 'high' && 'border-red-300 bg-red-50',
-                      task.parent_approved && task.priority === 'medium' && 'border-yellow-300 bg-yellow-50',
-                      task.parent_approved && task.priority === 'low' && 'border-green-300 bg-green-50',
-                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
-                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
-                      task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
-                      task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
-                    )}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">{categoryIcons[task.category] || '📌'}</span>
-                          <h3 className="font-semibold text-gray-900">{task.title}</h3>
-                          {requiresTimer && (
-                            <span title="Timer required" className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                              <Timer size={12} /> Timer
-                            </span>
-                          )}
-                          {task.is_recurring === 1 && (
-                            <span title="Recurring task"><Repeat size={14} className="text-blue-600" /></span>
-                          )}
-                          {!task.parent_approved && (
-                            <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
-                              ⏳ Pending Approval
-                            </span>
-                          )}
-                        </div>
-                        {task.description && (
-                          <p className="text-sm text-gray-600 mt-1">{task.description}</p>
-                        )}
-                        <div className="flex flex-wrap items-center mt-2 gap-2">
-                          {task.earns_points ? (
-                            <>
-                              <span className="badge badge-primary">{task.points} pts</span>
-                              <span className="badge badge-warning">
-                                {task.difficulty}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="badge bg-gray-500 text-white">
-                              📍 Tracking Only
-                            </span>
-                          )}
-                          {task.priority && task.priority !== 'medium' && (
-                            <span className={clsx('badge', priorityColors[task.priority])}>
-                              {task.priority === 'high' ? '🔴 High' : '🟢 Low'}
-                            </span>
-                          )}
-                          {task.due_date && (
-                            <span className="text-xs text-gray-600 flex items-center">
-                              <Calendar size={12} className="mr-1" />
-                              {formatDateOnlyForDisplay(task.due_date)}
-                            </span>
-                          )}
-                          {task.estimated_minutes && (
-                            <span className="text-xs text-gray-600 flex items-center">
-                              <Clock size={12} className="mr-1" />
-                              {task.estimated_minutes} min
-                            </span>
-                          )}
-                          {task.scheduled_time && (
-                            <span className="text-xs text-orange-600 flex items-center font-medium">
-                              <Bell size={12} className="mr-1" />
-                              {task.scheduled_time}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex space-x-2 ml-4">
-                        {(isParent || task.parent_approved) && (
-                          <button
-                            onClick={() => setEditingTask(task)}
-                            className="btn btn-secondary btn-sm"
-                            title="Edit task"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                        )}
-                        {canSendReminder && (
-                          <button
-                            onClick={() => handleSendTaskReminder(task)}
-                            className="btn btn-secondary btn-sm text-orange-600 hover:bg-orange-100"
-                            title="Send reminder"
-                          >
-                            <Bell size={16} />
-                          </button>
-                        )}
-                        {isParent && (
-                          <button
-                            onClick={() => handleDeleteTask(task.id)}
-                            className="btn btn-secondary btn-sm text-red-600 hover:bg-red-100"
-                            title="Delete task"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                        {task.parent_approved ? (
-                          <button
-                            onClick={() => handleCompleteTask(task.id, task)}
-                            className="btn btn-success btn-sm"
-                            title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
-                          >
-                            {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
-                          </button>
-                        ) : (
-                          <span className="text-xs text-orange-600 italic">
-                            Needs parent approval
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Completed Tasks */}
-        <div className="card">
-          <h2 className="text-xl font-semibold mb-4">
-            Completed Tasks ({completedTasks.length})
-          </h2>
-
-          {completedTasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No completed tasks yet</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {completedTasks.slice(0, 10).map(task => (
-                <div key={task.id} className="p-4 bg-gray-50 rounded-lg opacity-60">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 line-through">{task.title}</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Completed {new Date(task.completed_at!).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Check size={20} className="text-green-600" />
-                  </div>
+          <div className={clsx('grid grid-cols-1 gap-6', isParent ? 'xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]' : 'lg:grid-cols-2')}>
+            {/* Incomplete Tasks */}
+            <section
+              id={isParent ? 'task-management-board' : undefined}
+              className={clsx('card', isParent && 'rounded-[30px] border border-slate-200 bg-white shadow-lg shadow-slate-200/40')}
+            >
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {isParent ? 'Task Management' : `Pending Tasks (${incompleteTasks.length})`}
+                  </h2>
+                  {isParent && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Grouped by urgency so you can clear approvals, today&apos;s work, and backlog without scanning one long list.
+                    </p>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+                {isParent && (
+                  <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-sm font-semibold text-white">
+                    {incompleteTasks.length} open
+                  </span>
+                )}
+              </div>
+
+              {loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="spinner"></div>
+                </div>
+              ) : incompleteTasks.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center text-slate-500">
+                  <p className="text-base font-medium text-slate-900">No pending tasks</p>
+                  <p className="mt-2 text-sm">
+                    {isParent ? 'Add tasks for your kids to start the workflow.' : 'All caught up! Check back later for more.'}
+                  </p>
+                </div>
+              ) : isParent ? (
+                <div className="space-y-4">
+                  {parentTaskSections.map(section => {
+                    const Icon = section.icon;
+
+                    return (
+                      <section key={section.key} className={clsx('rounded-[26px] border p-4', section.panelClass)}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className={clsx('rounded-2xl p-2.5', section.iconClass)}>
+                              <Icon size={18} />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-slate-900">{section.title}</h3>
+                              <p className="mt-1 text-sm text-slate-600">{section.description}</p>
+                            </div>
+                          </div>
+                          <span className={clsx('inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold', section.countClass)}>
+                            {section.tasks.length}
+                          </span>
+                        </div>
+
+                        {section.tasks.length === 0 ? (
+                          <div className="mt-4 rounded-2xl border border-dashed border-white/80 bg-white/70 p-5 text-sm text-slate-500">
+                            {section.emptyMessage}
+                          </div>
+                        ) : (
+                          <div className="mt-4 space-y-3">
+                            {section.tasks.map(task => renderParentTaskCard(task))}
+                          </div>
+                        )}
+                      </section>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {incompleteTasks.map((task, index) => {
+                    const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
+
+                    if (requiresTimer && task.parent_approved) {
+                      return (
+                        <TaskTimerCard
+                          key={task.id}
+                          task={task}
+                          onComplete={(taskId) => handleCompleteTask(taskId, task)}
+                          index={index}
+                        />
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={task.id}
+                        className={clsx(
+                          'p-4 border-2 rounded-lg transition-all',
+                          !task.parent_approved && 'border-orange-300 bg-orange-50 opacity-75',
+                          task.parent_approved && task.priority === 'high' && 'border-red-300 bg-red-50',
+                          task.parent_approved && task.priority === 'medium' && 'border-yellow-300 bg-yellow-50',
+                          task.parent_approved && task.priority === 'low' && 'border-green-300 bg-green-50',
+                          task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'hard' && 'border-red-300 bg-red-50',
+                          task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'medium' && 'border-yellow-300 bg-yellow-50',
+                          task.parent_approved && !task.priority && task.earns_points && task.difficulty === 'easy' && 'border-green-300 bg-green-50',
+                          task.parent_approved && !task.earns_points && 'border-gray-300 bg-gray-50'
+                        )}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{categoryIcons[task.category] || '📌'}</span>
+                              <h3 className="font-semibold text-gray-900">{task.title}</h3>
+                              {requiresTimer && (
+                                <span title="Timer required" className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                  <Timer size={12} /> Timer
+                                </span>
+                              )}
+                              {task.is_recurring === 1 && (
+                                <span title="Recurring task"><Repeat size={14} className="text-blue-600" /></span>
+                              )}
+                              {!task.parent_approved && (
+                                <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-medium">
+                                  Pending Approval
+                                </span>
+                              )}
+                            </div>
+                            {task.description && (
+                              <p className="mt-1 text-sm text-gray-600">{task.description}</p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {task.earns_points ? (
+                                <>
+                                  <span className="badge badge-primary">{task.points} pts</span>
+                                  <span className="badge badge-warning">{task.difficulty}</span>
+                                </>
+                              ) : (
+                                <span className="badge bg-gray-500 text-white">Tracking Only</span>
+                              )}
+                              {task.priority && task.priority !== 'medium' && (
+                                <span className={clsx('badge', priorityColors[task.priority])}>
+                                  {task.priority === 'high' ? 'High' : 'Low'}
+                                </span>
+                              )}
+                              {task.due_date && (
+                                <span className="flex items-center text-xs text-gray-600">
+                                  <Calendar size={12} className="mr-1" />
+                                  {formatDateOnlyForDisplay(task.due_date)}
+                                </span>
+                              )}
+                              {task.estimated_minutes && (
+                                <span className="flex items-center text-xs text-gray-600">
+                                  <Clock size={12} className="mr-1" />
+                                  {task.estimated_minutes} min
+                                </span>
+                              )}
+                              {task.scheduled_time && (
+                                <span className="flex items-center text-xs font-medium text-orange-600">
+                                  <Bell size={12} className="mr-1" />
+                                  {task.scheduled_time}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex space-x-2">
+                            {task.parent_approved && (
+                              <button
+                                onClick={() => setEditingTask(task)}
+                                className="btn btn-secondary btn-sm"
+                                title="Edit task"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {task.parent_approved ? (
+                              <button
+                                onClick={() => handleCompleteTask(task.id, task)}
+                                className="btn btn-success btn-sm"
+                                title={task.proof_required ? 'Complete with photo proof' : 'Mark as complete'}
+                              >
+                                {task.proof_required ? <Camera size={16} /> : <Check size={16} />}
+                              </button>
+                            ) : (
+                              <span className="text-xs italic text-orange-600">
+                                Needs parent approval
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            {/* Completed Tasks */}
+            <section className={clsx('card', isParent && 'rounded-[30px] border border-slate-200 bg-white shadow-lg shadow-slate-200/40')}>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {isParent ? 'Recent completions' : `Completed Tasks (${completedTasks.length})`}
+                  </h2>
+                  {isParent && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Keep an eye on what was finished most recently so reward and streak decisions stay grounded.
+                    </p>
+                  )}
+                </div>
+                {isParent && (
+                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+                    {completedTasks.length}
+                  </span>
+                )}
+              </div>
+
+              {completedTasks.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center text-slate-500">
+                  <p className="text-base font-medium text-slate-900">No completed tasks yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {completedTasks.slice(0, 10).map(task => (
+                    <article
+                      key={task.id}
+                      className={clsx(
+                        'rounded-[22px] border p-4',
+                        isParent ? 'border-slate-200 bg-slate-50/80 shadow-sm shadow-slate-200/30' : 'bg-gray-50 opacity-60'
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          {isParent && (
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                              {getReviewChildName(task.child_name)}
+                            </p>
+                          )}
+                          <h3 className={clsx('font-semibold text-slate-900', !isParent && 'line-through')}>
+                            {task.title}
+                          </h3>
+                          <p className="mt-1 text-xs text-slate-500">
+                            Completed {new Date(task.completed_at!).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Check size={20} className="text-emerald-600" />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </>
       )}
 
