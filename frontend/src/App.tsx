@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ProfileProvider } from './context/ProfileContext';
 import { AgeProvider } from './context/AgeContext';
 import { FeatureFlagsProvider, useFeatureFlags } from './context/FeatureFlagsContext';
-import { ProfileFeaturesProvider } from './context/ProfileFeaturesContext';
+import { ProfileFeaturesProvider, useProfileFeatures } from './context/ProfileFeaturesContext';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
@@ -27,6 +27,8 @@ import QuizPlayer from './pages/QuizPlayer';
 import School from './pages/School';
 import BookLibrary from './pages/BookLibrary';
 import BookReader from './pages/BookReader';
+import BibleLibrary from './pages/BibleLibrary';
+import PsalmReader from './pages/PsalmReader';
 import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
 import ActivityPlayer from './pages/ActivityPlayer';
@@ -58,6 +60,16 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   return <>{children}</>;
+}
+
+function FeatureProtectedRoute({ children, featureKey }: { children: React.ReactNode; featureKey: string }) {
+  const { loading, isFeatureEnabled } = useProfileFeatures();
+
+  if (loading) {
+    return null;
+  }
+
+  return isFeatureEnabled(featureKey) ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 // Module Protected Route Component - Module-based access control
@@ -428,6 +440,32 @@ function AppRoutes() {
             element={
               <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
                 <BookReader />
+              </ModuleProtectedRoute>
+            }
+          />
+        )}
+
+        {/* Bible - Psalms in Tigrinya, English, and pronunciation layers */}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/bible"
+            element={
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
+                <FeatureProtectedRoute featureKey="bible">
+                  <BibleLibrary />
+                </FeatureProtectedRoute>
+              </ModuleProtectedRoute>
+            }
+          />
+        )}
+        {!featureFlags.school_only_mode && (
+          <Route
+            path="/bible/psalms/:psalmNumber"
+            element={
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
+                <FeatureProtectedRoute featureKey="bible">
+                  <PsalmReader />
+                </FeatureProtectedRoute>
               </ModuleProtectedRoute>
             }
           />

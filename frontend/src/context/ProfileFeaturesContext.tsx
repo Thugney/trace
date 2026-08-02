@@ -19,6 +19,7 @@ export const FEATURE_TO_PATH: Record<string, string[]> = {
   regular_school: ['/regular-school'],
   shopping: ['/shopping', '/shopping/help'],
   books: ['/books', '/books/read'],
+  bible: ['/bible', '/bible/psalms'],
   activities: ['/activities', '/activities/builder', '/h5p', '/h5p/play'],
   diet: ['/diet'],
 };

@@ -35,6 +35,7 @@ const KID_NAV_ITEMS: KidNavItem[] = [
   { path: '/quizzes', emoji: '🧠', label: 'Family Quizzes', labels: { young: 'Fun Quiz', middle: 'Family Quiz', older: 'Custom Quizzes' }, color: 'from-indigo-500 to-blue-500', hoverAnim: 'hover:animate-pulse' },
   { path: '/activities', emoji: '🎯', label: 'Activities', labels: { young: 'Fun Games', middle: 'Activities', older: 'Activities' }, color: 'from-violet-500 to-fuchsia-500', hoverAnim: 'hover:animate-pulse' },
   { path: '/books', emoji: '📚', label: 'Story Books', labels: { young: 'Stories', middle: 'Books', older: 'Library' }, color: 'from-teal-400 to-cyan-500', hoverAnim: 'hover:animate-float' },
+  { path: '/bible', emoji: '📖', label: 'Bible', labels: { young: 'Bible', middle: 'Psalms', older: 'Bible' }, color: 'from-amber-500 to-yellow-600', hoverAnim: 'hover:animate-float' },
   { path: '/calendar', emoji: '🦉', label: 'My Days', labels: { young: 'My Days', middle: 'Calendar', older: 'Calendar' }, color: 'from-cyan-400 to-blue-500', hoverAnim: 'hover:animate-float' },
   { path: '/shop', emoji: '🐯', label: 'Treasure Shop', labels: { young: 'Prize Shop', middle: 'Shop', older: 'Rewards' }, color: 'from-emerald-400 to-green-500', hoverAnim: 'hover:animate-jiggle' },
   { path: '/notes', emoji: '🦊', label: 'Secret Notes', labels: { young: 'Notes', middle: 'Notes', older: 'Notes' }, color: 'from-yellow-400 to-amber-500', hoverAnim: 'hover:animate-pulse' },
@@ -60,6 +61,7 @@ const NAV_PATH_FEATURES: Record<string, string> = {
   '/shopping': 'shopping',
   '/shopping/help': 'shopping',
   '/books': 'books',
+  '/bible': 'bible',
   '/activities': 'activities',
   '/activities/builder': 'activities',
   '/h5p': 'activities',
@@ -78,7 +80,7 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(`${path}/`);
   const isChild = currentProfile?.type === 'child';
 
   // Family B users (church school only) should not see core app features
@@ -183,6 +185,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/quizzes/builder', icon: Brain, label: 'Quiz Builder' },
         { path: '/activities/builder', icon: Target, label: 'Activity Builder' },
         { path: '/books', icon: BookOpen, label: 'Books' },
+        { path: '/bible', icon: BookOpen, label: 'Bible' },
         { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
@@ -210,6 +213,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/h5p/play', icon: Puzzle, label: 'Fun Games' },
         { path: '/quizzes', icon: Brain, label: 'Family Quizzes' },
         { path: '/activities', icon: Target, label: 'Activities' },
+        { path: '/bible', icon: BookOpen, label: 'Bible' },
         { path: '/shopping/help', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },

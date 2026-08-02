@@ -9,7 +9,7 @@ services:
     container_name: family-learning-backend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     volumes:
       - ./data:/app/data
       # Removed ./backend:/app mount - it was overwriting compiled dist/ folder

@@ -43,6 +43,7 @@ const featureOptions = [
   { key: 'regular_school', label: 'Regular School', description: 'Homework tracking for regular school' },
   { key: 'shopping', label: 'Shopping', description: 'Shopping gamification and trips' },
   { key: 'books', label: 'AI Books', description: 'AI-generated personalized books' },
+  { key: 'bible', label: 'Bible', description: 'Psalms in Tigrinya, English, and pronunciation layers' },
   { key: 'tasks', label: 'Tasks', description: 'Chores and daily missions' },
   { key: 'quizzes', label: 'Quizzes', description: 'Quiz builder and player' },
   { key: 'notes', label: 'Notes', description: 'Personal notes and reminders' },
