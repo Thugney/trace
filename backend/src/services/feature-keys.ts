@@ -3,6 +3,7 @@ export const FEATURE_KEYS = [
   'regular_school',   // Regular School homework tracking
   'shopping',         // Shopping Gamification
   'books',            // AI Book Creator
+  'bible',            // Tigrinya Psalm reader
   'activities',       // Learning Activity Engine (H5P-inspired)
   'tasks',
   'diet',
