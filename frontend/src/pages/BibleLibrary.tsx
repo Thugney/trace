@@ -1,4 +1,4 @@
-import { ArrowRight, BookHeart, BookOpen, LockKeyhole, Languages } from 'lucide-react';
+import { ArrowRight, BookHeart, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PSALMS } from '../content/psalms';
 
@@ -20,7 +20,7 @@ export default function BibleLibrary() {
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Read it. Understand it. Learn to say it.</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-            Begin with short Psalms for prayer, repentance, comfort, and praise. Every verse is taught in three clear layers.
+            Begin with the complete Psalm 51 prayer of repentance. Every verse is taught in three clear layers.
           </p>
 
           <div className="mt-7 grid gap-3 sm:grid-cols-3" aria-label="The three learning layers">
@@ -46,28 +46,24 @@ export default function BibleLibrary() {
       <section aria-labelledby="psalms-heading">
         <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a36613]">Starting collection</p>
-            <h2 id="psalms-heading" className="mt-1 text-2xl font-bold text-slate-900">Choose a Psalm</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#a36613]">Available now</p>
+            <h2 id="psalms-heading" className="mt-1 text-2xl font-bold text-slate-900">Read Psalm 51</h2>
           </div>
-          <p className="text-sm text-slate-500">Psalm 51 opens with the first three source verses prepared for family review.</p>
+          <p className="text-sm text-slate-500">All 19 verses are ready in Tigrinya, English meaning, and child-readable pronunciation.</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {PSALMS.map((psalm) => (
             <article
               key={psalm.number}
-              className={`group relative flex min-h-64 flex-col overflow-hidden rounded-3xl border p-6 transition-all duration-200 ${
-                psalm.available
-                  ? 'border-[#d7b66b]/50 bg-white shadow-md shadow-slate-900/5 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10'
-                  : 'border-slate-200 bg-slate-50/80'
-              }`}
+              className="group relative flex min-h-64 flex-col overflow-hidden rounded-3xl border border-[#d7b66b]/50 bg-white p-6 shadow-md shadow-slate-900/5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-900/10"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${psalm.available ? 'bg-[#eef5f1] text-[#246557]' : 'bg-slate-200 text-slate-500'}`}>
-                  {psalm.available ? <BookOpen size={24} aria-hidden="true" /> : <LockKeyhole size={21} aria-hidden="true" />}
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eef5f1] text-[#246557]">
+                  <BookOpen size={24} aria-hidden="true" />
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${psalm.available ? 'bg-[#fff4d8] text-[#8a5a12]' : 'bg-slate-200 text-slate-600'}`}>
-                  {psalm.available ? `${psalm.verses.length} verses ready` : 'Coming next'}
+                <span className="rounded-full bg-[#fff4d8] px-3 py-1 text-xs font-semibold text-[#8a5a12]">
+                  {`${psalm.verses.length} verses • complete`}
                 </span>
               </div>
 
@@ -76,28 +72,21 @@ export default function BibleLibrary() {
               <p className="mt-2 font-semibold text-[#246557]">{psalm.theme}</p>
               <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">{psalm.description}</p>
 
-              {psalm.available ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/bible/psalms/${psalm.number}`)}
-                  className="mt-5 inline-flex min-h-11 items-center justify-between rounded-2xl bg-[#17324d] px-4 py-3 text-left font-semibold text-white transition-colors hover:bg-[#244765] focus-visible:ring-[#d5a94c]"
-                >
-                  Start reading
-                  <ArrowRight size={19} aria-hidden="true" />
-                </button>
-              ) : (
-                <div className="mt-5 flex min-h-11 items-center gap-2 rounded-2xl bg-slate-200/70 px-4 py-3 text-sm font-medium text-slate-500">
-                  <Languages size={18} aria-hidden="true" />
-                  Translation review needed
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => navigate(`/bible/psalms/${psalm.number}`)}
+                className="mt-5 inline-flex min-h-11 items-center justify-between rounded-2xl bg-[#17324d] px-4 py-3 text-left font-semibold text-white transition-colors hover:bg-[#244765] focus-visible:ring-[#d5a94c]"
+              >
+                Start reading
+                <ArrowRight size={19} aria-hidden="true" />
+              </button>
             </article>
           ))}
         </div>
       </section>
 
       <aside className="rounded-2xl border border-[#d9c99e] bg-[#fffaf0] p-5 text-sm leading-6 text-[#664a1d]">
-        <strong>Source note:</strong> Tigrinya scripture is credited to Geez Experience and the Bible Society of Eritrea. English meaning uses the public-domain World English Bible. Pronunciation is a family review copy and should be confirmed by a fluent speaker before more Psalms are published.
+        <strong>Source and numbering:</strong> Tigrinya scripture follows the Geez Experience text credited to the Bible Society of Eritrea. English meaning uses the public-domain World English Bible, and each pronunciation line is a simple Latin-script reading of the same Tigrinya verse. This complete 19-verse prayer is Psalm 51 in Hebrew and most English numbering; it is Psalm 50 in Septuagint and Orthodox numbering.
       </aside>
     </div>
   );

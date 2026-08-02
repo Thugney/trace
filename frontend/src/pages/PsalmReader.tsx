@@ -162,7 +162,7 @@ export default function PsalmReader() {
               <h2 id="pronunciation-label" className="text-sm font-bold uppercase tracking-[0.16em] text-[#8a5a12]">How to say it</h2>
             </div>
             <p className="mt-5 text-xl font-medium leading-8 tracking-wide text-[#573d19] sm:text-2xl">{verse.pronunciation}</p>
-            <p className="mt-4 text-xs leading-5 text-[#836b45]">Easy-reading family pronunciation guide. Please confirm the wording with a fluent Tigrinya speaker.</p>
+            <p className="mt-4 text-xs leading-5 text-[#836b45]">Child-readable Latin pronunciation of the Tigrinya line above.</p>
           </section>
         ) : null}
       </main>
