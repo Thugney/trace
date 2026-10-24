@@ -21,6 +21,7 @@ export const FEATURE_TO_PATH: Record<string, string[]> = {
   books: ['/books', '/books/read'],
   activities: ['/activities', '/activities/builder'],
   diet: ['/diet'],
+  learn: ['/learn'],
 };
 
 const FEATURE_CACHE_PREFIX = 'profile_features_cache:';

@@ -663,6 +663,56 @@ async function callGeminiApi(messages: { role: string; content: string }[], syst
 
 
 
+/**
+ * Non-streaming text generation over the existing provider chain
+ * (Grok -> OpenAI -> Gemini), for features such as the FamilyHub Learn
+ * lesson tutor that must not maintain a second AI stack. Throws when no
+ * provider is configured or every provider fails, so callers can fall back.
+ */
+export async function generateTextWithProviderFallback(
+  systemPrompt: string,
+  userMessage: string,
+  options: { maxTokens?: number; temperature?: number } = {}
+): Promise<{ text: string; provider: 'grok' | 'openai' | 'gemini' }> {
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userMessage }
+  ];
+  const maxTokens = options.maxTokens ?? 400;
+  const temperature = options.temperature ?? 0.4;
+
+  const openAiCompatible: Array<{ provider: 'grok' | 'openai'; url: string; model: string; key: string | null }> = [
+    { provider: 'grok', url: GROK_API_URL, model: 'grok-2-latest', key: getGrokApiKey() },
+    { provider: 'openai', url: OPENAI_API_URL, model: 'gpt-4o-mini', key: getOpenAiApiKey() }
+  ];
+
+  for (const candidate of openAiCompatible) {
+    if (!candidate.key) continue;
+    try {
+      const response = await axios.post(
+        candidate.url,
+        { model: candidate.model, messages, temperature, max_tokens: maxTokens },
+        { headers: { Authorization: `Bearer ${candidate.key}`, 'Content-Type': 'application/json' }, timeout: 30000 }
+      );
+      const text = response.data?.choices?.[0]?.message?.content;
+      if (typeof text === 'string' && text.trim()) {
+        return { text: text.trim(), provider: candidate.provider };
+      }
+    } catch (error: any) {
+      console.error(`[AI] ${candidate.provider} generation failed:`, error.response?.status || error.message);
+    }
+  }
+
+  if (isGeminiAvailable()) {
+    const text = await callGeminiApi(messages, systemPrompt);
+    return { text: text.trim(), provider: 'gemini' };
+  }
+
+  throw new Error('No AI provider available');
+}
+
+export { getAISettings };
+
 // Helper: Get comprehensive profile context (tasks, progress, diet, goals, notes, quizzes, behavior)
 function getProfileContext(profileId: number) {
   const profile: any = db.prepare('SELECT * FROM profiles WHERE id = ?').get(profileId);

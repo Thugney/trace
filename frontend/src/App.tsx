@@ -8,6 +8,11 @@ import { PermissionsProvider, usePermissions } from './context/PermissionsContex
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import LearnHome from './pages/learn/LearnHome';
+import LessonPage from './pages/learn/LessonPage';
+import MockExamPage from './pages/learn/MockExamPage';
+import LearnParent from './pages/learn/LearnParent';
+import LearnReview from './pages/learn/LearnReview';
 import { AUTH_TOKEN_KEY, clearStoredAuth } from './services/api';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
@@ -307,6 +312,49 @@ function AppRoutes() {
             }
           />
         )}
+
+        {/* FamilyHub Learn - access is enforced by the backend (learn feature, family opt-in,
+            school-only allowlist); not gated on core_app so school-only learners can use it */}
+        <Route
+          path="/learn"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <LearnHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/parent"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <LearnParent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/lessons/:lessonId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <LessonPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/exams/:examId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <MockExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/review"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <LearnReview />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Settings */}
         <Route

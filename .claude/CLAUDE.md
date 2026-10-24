@@ -141,6 +141,15 @@ try {
 }
 ```
 
+## Authentication (since FamilyHub Learn, 2026-10)
+
+- Requests authenticate with `Authorization: Bearer <session token>` from `POST /api/profiles/login`.
+  The legacy `x-profile-id` header and `?profile_id=` query are ignored.
+- EventSource/H5P iframe requests use a short-lived stream token (`POST /api/profiles/session/stream-token`, `?access_token=`).
+- In backend tests use `authHeaders(profileId)` from `src/test/helpers.ts`.
+- Object-level access for quizzes/activities/H5P lives in `backend/src/services/resourceAccess.ts`.
+- See `docs/familyhub-learn-implementation.md` for Learn, deploy and rollback notes.
+
 ## Git Commit Guidelines
 
 - Use conventional commits: `feat:`, `fix:`, `docs:`
