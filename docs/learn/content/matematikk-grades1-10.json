@@ -113,7 +113,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g1-sammenligne-mengder",
@@ -210,7 +211,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g1-addisjon-til-10",
@@ -307,7 +309,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g1-subtraksjon-til-10",
@@ -404,7 +407,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g1-figurmonstre",
@@ -501,7 +505,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g2-tiere-og-enere",
@@ -598,7 +603,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g2-tallinje-og-hopp",
@@ -695,7 +701,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g2-partall-og-oddetall",
@@ -792,7 +799,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g2-likhetstegn",
@@ -889,7 +897,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g2-tid-og-klokke",
@@ -986,7 +995,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g3-ganging-som-grupper",
@@ -1083,7 +1093,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g3-dobbelt-og-halvparten",
@@ -1180,7 +1191,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g3-dele-likt",
@@ -1277,7 +1289,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g3-hundrerplass",
@@ -1374,7 +1387,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g3-lengde-og-maleenhet",
@@ -1471,7 +1485,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g4-ganging-med-oppdeling",
@@ -1568,7 +1583,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g4-to-mater-a-dele-pa",
@@ -1665,7 +1681,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g4-brok-som-like-deler",
@@ -1762,7 +1779,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g4-areal-og-omkrets",
@@ -1859,7 +1877,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g4-diagrammer-med-stolper",
@@ -1956,7 +1975,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "statistikk-og-sannsynlighet"
     },
     {
       "id": "matematikk-g5-brok-og-prosent",
@@ -2053,7 +2073,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g5-brok-pa-tallinjen",
@@ -2150,7 +2171,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g5-legge-sammen-broker",
@@ -2247,7 +2269,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g5-geometriske-egenskaper",
@@ -2344,7 +2367,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g5-enheter-og-omgjoring",
@@ -2441,7 +2465,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g6-sammenligne-desimaltall",
@@ -2538,7 +2563,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g6-addere-desimaltall",
@@ -2635,7 +2661,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g6-finne-en-prosentdel",
@@ -2732,7 +2759,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g6-volum-av-bokser",
@@ -2829,7 +2857,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g6-typetall-og-datasett",
@@ -2926,7 +2955,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "statistikk-og-sannsynlighet"
     },
     {
       "id": "matematikk-g7-brok-til-prosent",
@@ -3023,7 +3053,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g7-negative-tall",
@@ -3120,7 +3151,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g7-regnerekkefolge",
@@ -3217,7 +3249,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g7-enkle-likninger",
@@ -3314,7 +3347,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g7-enkel-sannsynlighet",
@@ -3411,7 +3445,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_only"
+      "assessment_mode": "formative_only",
+      "local_domain": "statistikk-og-sannsynlighet"
     },
     {
       "id": "matematikk-g8-primtallsfaktorisering-og-brok",
@@ -3508,7 +3543,8 @@
         }
       ],
       "existing_grade8_slug_preserved": true,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g8-potenser-og-kvadratrotter",
@@ -3605,7 +3641,8 @@
         }
       ],
       "existing_grade8_slug_preserved": true,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g8-algebraiske-uttrykk-og-monstre",
@@ -3702,7 +3739,8 @@
         }
       ],
       "existing_grade8_slug_preserved": true,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g8-likninger-og-ulikheter",
@@ -3799,7 +3837,8 @@
         }
       ],
       "existing_grade8_slug_preserved": true,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g8-funksjoner-tabeller-og-grafer",
@@ -3896,7 +3935,8 @@
         }
       ],
       "existing_grade8_slug_preserved": true,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "funksjoner-og-modellering"
     },
     {
       "id": "matematikk-g9-fart-og-sammensatte-enheter",
@@ -3993,7 +4033,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g9-formlikhet-og-kongruens",
@@ -4090,7 +4131,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g9-pytagoras",
@@ -4187,7 +4229,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g9-malestokk",
@@ -4284,7 +4327,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "geometri-og-maling"
     },
     {
       "id": "matematikk-g9-gjennomsnitt-og-diagramkritikk",
@@ -4381,7 +4425,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "statistikk-og-sannsynlighet"
     },
     {
       "id": "matematikk-g10-algebraiske-regneregler",
@@ -4478,7 +4523,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g10-kvadratsetninger",
@@ -4575,7 +4621,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "algebra-og-monstre"
     },
     {
       "id": "matematikk-g10-ligningssett",
@@ -4672,7 +4719,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "tall-og-regnearter"
     },
     {
       "id": "matematikk-g10-lineaere-funksjoner",
@@ -4769,7 +4817,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "funksjoner-og-modellering"
     },
     {
       "id": "matematikk-g10-prosentvis-endring",
@@ -4866,7 +4915,8 @@
         }
       ],
       "existing_grade8_slug_preserved": false,
-      "assessment_mode": "formative_plus_non_official_mock_assessment"
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
+      "local_domain": "tall-og-regnearter"
     }
   ]
 }
