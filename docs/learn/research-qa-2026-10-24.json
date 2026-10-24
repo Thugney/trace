@@ -1,0 +1,197 @@
+{
+  "report_version": "1.0.0",
+  "audit_date": "2026-10-24",
+  "branch": "docs/lk20-grade8-source-research-20261024",
+  "production_code_modified": false,
+  "result": {
+    "structural_checks_passed": true,
+    "errors": [],
+    "research_complete_for_versions_and_checkpoint_urls": true,
+    "full_curriculum_goal_by_goal_coverage": false,
+    "ready_for_code_integration_as_draft_starter_library": true,
+    "ready_for_unrestricted_child_publication": false
+  },
+  "curriculum": {
+    "subject_count": 5,
+    "grades": 10,
+    "grade_subject_combinations": 50,
+    "official_checkpoint_pages_verified": 25,
+    "individual_goal_mapping_complete": false
+  },
+  "drafts": {
+    "lesson_count": 250,
+    "grade_subject_combination_lesson_count": 5,
+    "article_word_count_min": 52,
+    "article_word_count_median": 68,
+    "article_word_count_max": 91,
+    "questions_count": 500,
+    "flashcards_count": 750,
+    "review_papers": 50,
+    "review_paper_items": 500,
+    "review_paper_objective_questions_reused": 250,
+    "grades8_to10_numeric_school_grade_disabled": true,
+    "all_answer_keys_match_options": true,
+    "all_grade8_slugs_match_topic_map": true
+  },
+  "exclusions": [
+    "No exhaustive official goal-level crosswalk",
+    "No full-length reading articles yet",
+    "Only one objective question, one open question and three flashcards per micro-lesson",
+    "Review-paper objective items are reused rather than independent exam questions",
+    "No calibrated assessment for 1–6 grading",
+    "No pedagogical human approval or full factual-review audit",
+    "Subject scope excludes Norwegian courses outside the five agreed subjects"
+  ],
+  "official_checkpoint_pages": [
+    {
+      "code": "MAT01-06",
+      "after_grade": 2,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 3,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 4,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 5,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 6,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 7,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 8,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 9,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "MAT01-06",
+      "after_grade": 10,
+      "official_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NOR01-08",
+      "after_grade": 2,
+      "official_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NOR01-08",
+      "after_grade": 4,
+      "official_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NOR01-08",
+      "after_grade": 7,
+      "official_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NOR01-08",
+      "after_grade": 10,
+      "official_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "ENG01-06",
+      "after_grade": 2,
+      "official_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "ENG01-06",
+      "after_grade": 4,
+      "official_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "ENG01-06",
+      "after_grade": 7,
+      "official_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "ENG01-06",
+      "after_grade": 10,
+      "official_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NAT01-05",
+      "after_grade": 2,
+      "official_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NAT01-05",
+      "after_grade": 4,
+      "official_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NAT01-05",
+      "after_grade": 7,
+      "official_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "NAT01-05",
+      "after_grade": 10,
+      "official_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "SAF01-05",
+      "after_grade": 2,
+      "official_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "SAF01-05",
+      "after_grade": 4,
+      "official_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "SAF01-05",
+      "after_grade": 7,
+      "official_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    },
+    {
+      "code": "SAF01-05",
+      "after_grade": 10,
+      "official_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+      "url_checked_against_public_udir_on": "2026-10-24"
+    }
+  ]
+}

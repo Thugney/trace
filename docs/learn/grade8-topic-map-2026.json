@@ -1,0 +1,671 @@
+{
+  "format": "familyhub-learn-grade8-udir-research-v1",
+  "researched_on": "2026-10-24",
+  "source_authority": "Utdanningsdirektoratet",
+  "curriculum_framework": "LK20: versions in force 2026-08-01",
+  "status": "source-backed curriculum research; proposed local Grade 8 sequencing; NOT reviewed/published lessons",
+  "caveat": "Local goal aliases are NOT Udir's official individual competence-goal identifiers; they reference paraphrased themes on linked goal pages.",
+  "subjects": [
+    {
+      "slug": "matematikk",
+      "title": "Matematikk",
+      "curriculum_code": "MAT01-06",
+      "replaced_version_in_pr9": "MAT01-05",
+      "goal_after_grade": 8,
+      "effective_from": "2026-08-01",
+      "goal_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/mat01-06/gyldighet-og-innfoering?lang=nob",
+      "local_goal_refs": [
+        {
+          "alias": "M8-FACTOR",
+          "paraphrase": "Utforske faktorisering og primtallsfaktorisering og anvende dette i brøkregning.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-POW",
+          "paraphrase": "Regne med potenser og kvadratrøtter og forklare metoder og svar.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-PATTERN",
+          "paraphrase": "Beskrive og generalisere tallmønstre og geometriske mønstre med ord og algebra.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-EXPR",
+          "paraphrase": "Lage algebraiske uttrykk med variabler, konstanter og tall fra praktiske situasjoner.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-EQU",
+          "paraphrase": "Lage og løse likninger i praktiske situasjoner og kontrollere løsningene.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-INEQ",
+          "paraphrase": "Bruke strategier for ulikheter og begrunne hvilke løsninger som er gyldige.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "M8-FUNC",
+          "paraphrase": "Utforske praktiske funksjonssammenhenger og vise dem som tabeller, grafer og uttrykk.",
+          "source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+          "official_goal_id": false
+        }
+      ]
+    },
+    {
+      "slug": "norsk",
+      "title": "Norsk",
+      "curriculum_code": "NOR01-08",
+      "replaced_version_in_pr9": "NOR01-06",
+      "goal_after_grade": 10,
+      "effective_from": "2026-08-01",
+      "goal_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/nor01-08/gyldighet-og-innfoering?lang=nob",
+      "local_goal_refs": [
+        {
+          "alias": "NO10-ARG",
+          "paraphrase": "Argumentere saklig i muntlige og skriftlige sjangre, med fagbegreper og retoriske virkemidler.",
+          "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NO10-READ",
+          "paraphrase": "Lese og reflektere over skjønnlitteratur og sakprosa, sjangertrekk og språklige virkemidler.",
+          "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NO10-SOURCE",
+          "paraphrase": "Vurdere kilder kritisk, markere sitater og vise til kilder på en etterrettelig måte.",
+          "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NO10-WRITE",
+          "paraphrase": "Utforme og bearbeide tekster med tekstbinding, tegnsetting og rettskriving for ulike formål.",
+          "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NO10-LANG",
+          "paraphrase": "Utforske språklig variasjon og mangfold og forklare bakgrunnen for bokmål og nynorsk.",
+          "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+          "official_goal_id": false
+        }
+      ]
+    },
+    {
+      "slug": "engelsk",
+      "title": "Engelsk",
+      "curriculum_code": "ENG01-06",
+      "replaced_version_in_pr9": "ENG01-04",
+      "goal_after_grade": 10,
+      "effective_from": "2026-08-01",
+      "goal_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+      "validity_url": "https://www.udir.no/lk20/eng01-06/gyldighet-og-innfoering?lang=nob",
+      "local_goal_refs": [
+        {
+          "alias": "EN10-WRITE",
+          "paraphrase": "Write and revise formal and informal texts adapted to audience, purpose and context.",
+          "source_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+          "official_goal_id": false
+        },
+        {
+          "alias": "EN10-READ",
+          "paraphrase": "Read, discuss, interpret and reflect on different texts, including young-adult fiction.",
+          "source_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+          "official_goal_id": false
+        },
+        {
+          "alias": "EN10-GRAM",
+          "paraphrase": "Apply word classes, sentence structure, spelling and text coherence in communication.",
+          "source_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+          "official_goal_id": false
+        },
+        {
+          "alias": "EN10-SPEAK",
+          "paraphrase": "Use varied vocabulary and follow-up questions in coherent conversations.",
+          "source_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+          "official_goal_id": false
+        },
+        {
+          "alias": "EN10-SOURCE",
+          "paraphrase": "Read nonfiction critically, evaluate source reliability and cite information responsibly.",
+          "source_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+          "official_goal_id": false
+        }
+      ]
+    },
+    {
+      "slug": "naturfag",
+      "title": "Naturfag",
+      "curriculum_code": "NAT01-05",
+      "replaced_version_in_pr9": "NAT01-04",
+      "goal_after_grade": 10,
+      "effective_from": "2026-08-01",
+      "goal_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/nat01-05/gyldighet-og-innfoering?lang=nob",
+      "local_goal_refs": [
+        {
+          "alias": "NA10-CELL",
+          "paraphrase": "Sammenligne celler fra ulike organismer og forklare sammenheng mellom struktur og funksjon.",
+          "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NA10-INVEST",
+          "paraphrase": "Formulere hypoteser, undersøke variabler, samle og vurdere data og følge sikkerhetstiltak.",
+          "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NA10-MATTER",
+          "paraphrase": "Bruke atommodeller, grunnstoffer og periodesystemet; undersøke reaksjoner og massebevaring.",
+          "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NA10-ENERGY",
+          "paraphrase": "Beskrive energibevaring og energikvalitet og undersøke hvordan energi omdannes og flyttes.",
+          "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "NA10-ECO",
+          "paraphrase": "Utforske samspill i økosystemer og kretsløp, herunder fotosyntese og celleånding.",
+          "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+          "official_goal_id": false
+        }
+      ]
+    },
+    {
+      "slug": "samfunnsfag",
+      "title": "Samfunnsfag",
+      "curriculum_code": "SAF01-05",
+      "replaced_version_in_pr9": "SAF01-04",
+      "goal_after_grade": 10,
+      "effective_from": "2026-08-01",
+      "goal_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/saf01-05/gyldighet-og-innfoering?lang=nob",
+      "local_goal_refs": [
+        {
+          "alias": "SA10-DEMO",
+          "paraphrase": "Beskrive det politiske systemet og velferdssamfunnet i Norge og reflektere over makt.",
+          "source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "SA10-SOURCE",
+          "paraphrase": "Vurdere kilder, algoritmisk påvirkning, digital offentlighet og personvern.",
+          "source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "SA10-GEO",
+          "paraphrase": "Sammenligne geografiske, historiske og politiske forhold som påvirker bosetting og levekår.",
+          "source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "SA10-HISTORY",
+          "paraphrase": "Undersøke samfunnsendring og forklare årsaker og følger av utvalgte historiske konflikter.",
+          "source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+          "official_goal_id": false
+        },
+        {
+          "alias": "SA10-IDENTITY",
+          "paraphrase": "Reflektere over identitet, kultur, mangfold og menneske- og urfolksrettigheter.",
+          "source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+          "official_goal_id": false
+        }
+      ]
+    }
+  ],
+  "topics": [
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "slug": "primtallsfaktorisering-og-brok",
+      "title": "Primtallsfaktorisering og brøk",
+      "goal_aliases": [
+        "M8-FACTOR"
+      ],
+      "content_outline": [
+        "Primtall, faktortre og felles faktorer",
+        "Forkorte brøker og finne fellesnevner"
+      ],
+      "assessment_evidence": "Vis et faktortre for 84; forkort 18/24 og forklar hvorfor.",
+      "preserve_existing_pilot_slug": true,
+      "review_status": "draft",
+      "sequence": 1
+    },
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "slug": "potenser-og-kvadratrotter",
+      "title": "Potenser og kvadratrøtter",
+      "goal_aliases": [
+        "M8-POW"
+      ],
+      "content_outline": [
+        "Potenser som gjentatt multiplikasjon",
+        "Kvadrattall og overslag med røtter"
+      ],
+      "assessment_evidence": "Regn ut 3³ og √81 og begrunn framgangsmåtene.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 2
+    },
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "slug": "algebraiske-uttrykk-og-monstre",
+      "title": "Algebraiske uttrykk og mønstre",
+      "goal_aliases": [
+        "M8-PATTERN",
+        "M8-EXPR"
+      ],
+      "content_outline": [
+        "Figurmønster og tallmønster",
+        "Variabler og algebraiske regler"
+      ],
+      "assessment_evidence": "Utled regel for figur n og kontroller tre verdier.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 3
+    },
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "slug": "likninger-og-ulikheter",
+      "title": "Likninger og ulikheter",
+      "goal_aliases": [
+        "M8-EQU",
+        "M8-INEQ"
+      ],
+      "content_outline": [
+        "Ligningsbalanse og kontroll",
+        "Ulikheter og tallinje"
+      ],
+      "assessment_evidence": "Modeller et prisproblem, løs og kontroller svaret.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 4
+    },
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "slug": "funksjoner-tabeller-og-grafer",
+      "title": "Funksjoner, tabeller og grafer",
+      "goal_aliases": [
+        "M8-FUNC"
+      ],
+      "content_outline": [
+        "Praktiske avhengigheter og variabler",
+        "Tekst, tabell, graf og algebraisk uttrykk"
+      ],
+      "assessment_evidence": "Vis samme kostnadsmodell som tabell og graf.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 5
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "argumenterende-tekst",
+      "title": "Argumenterende tekst",
+      "goal_aliases": [
+        "NO10-ARG"
+      ],
+      "content_outline": [
+        "Påstand, belegg og motargument",
+        "Etos, patos, logos i saklig språk"
+      ],
+      "assessment_evidence": "Skriv to begrunnede avsnitt og vurder et motargument.",
+      "preserve_existing_pilot_slug": true,
+      "review_status": "draft",
+      "sequence": 1
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "leseforstaelse-og-teksttolkning",
+      "title": "Leseforståelse og teksttolkning",
+      "goal_aliases": [
+        "NO10-READ"
+      ],
+      "content_outline": [
+        "Tema og budskap i en original korttekst",
+        "Tekstbelegg for tolkninger"
+      ],
+      "assessment_evidence": "Begrunn to tolkninger med spor i teksten.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 2
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "kildekritikk-og-kildebruk",
+      "title": "Kildekritikk og kildebruk",
+      "goal_aliases": [
+        "NO10-SOURCE"
+      ],
+      "content_outline": [
+        "Avsender, formål og dokumentasjon",
+        "Sitat og enkel kildeliste"
+      ],
+      "assessment_evidence": "Vurder to motstridende kilder og vis til dem.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 3
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "skriving-rettskriving-og-tekstbinding",
+      "title": "Skriveverksted og tekstbinding",
+      "goal_aliases": [
+        "NO10-WRITE"
+      ],
+      "content_outline": [
+        "Avsnittsstruktur og bindeord",
+        "Revisjon, tegnsetting og bøying"
+      ],
+      "assessment_evidence": "Forbedre en elevtekst og begrunn fire endringer.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 4
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "sprakvariasjon-og-bokmal-nynorsk",
+      "title": "Språkvariasjon, bokmål og nynorsk",
+      "goal_aliases": [
+        "NO10-LANG"
+      ],
+      "content_outline": [
+        "Språkhistorie og målformer",
+        "Dialekt, mangfold og språkholdninger"
+      ],
+      "assessment_evidence": "Sammenlign målformseksempler og diskuter variasjon respektfullt.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 5
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "slug": "formal-and-informal-language",
+      "title": "Formal and informal language",
+      "goal_aliases": [
+        "EN10-WRITE"
+      ],
+      "content_outline": [
+        "Register, audience and purpose",
+        "Email structures and polite requests"
+      ],
+      "assessment_evidence": "Write equivalent messages to a teacher and a friend; explain the difference.",
+      "preserve_existing_pilot_slug": true,
+      "review_status": "draft",
+      "sequence": 1
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "slug": "reading-stories-and-inference",
+      "title": "Reading stories and inference",
+      "goal_aliases": [
+        "EN10-READ"
+      ],
+      "content_outline": [
+        "Character, setting and plot",
+        "Inference supported by text evidence"
+      ],
+      "assessment_evidence": "Justify two inferences from an original short story.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 2
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "slug": "sentence-structure-and-grammar",
+      "title": "Sentence structure and grammar",
+      "goal_aliases": [
+        "EN10-GRAM"
+      ],
+      "content_outline": [
+        "Subject–verb agreement and tense",
+        "Sentence combining and punctuation"
+      ],
+      "assessment_evidence": "Revise a paragraph and explain five grammar changes.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 3
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "slug": "speaking-vocabulary-and-dialogue",
+      "title": "Vocabulary and dialogue",
+      "goal_aliases": [
+        "EN10-SPEAK",
+        "EN10-GRAM"
+      ],
+      "content_outline": [
+        "Context-based vocabulary",
+        "Follow-up questions and coherent replies"
+      ],
+      "assessment_evidence": "Write or perform a dialogue using contextually suitable questions.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 4
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "slug": "nonfiction-sources-and-reliability",
+      "title": "Nonfiction and source reliability",
+      "goal_aliases": [
+        "EN10-SOURCE"
+      ],
+      "content_outline": [
+        "Claim versus evidence",
+        "Source quality and citations"
+      ],
+      "assessment_evidence": "Evaluate two short factual sources and explain which claims need checking.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 5
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "slug": "celler",
+      "title": "Cellers oppbygning og funksjon",
+      "goal_aliases": [
+        "NA10-CELL"
+      ],
+      "content_outline": [
+        "Plante-, dyre- og bakterieceller",
+        "Sammenheng mellom celledeler og funksjoner"
+      ],
+      "assessment_evidence": "Merk celletegninger og forklar to forskjeller.",
+      "preserve_existing_pilot_slug": true,
+      "review_status": "draft",
+      "sequence": 1
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "slug": "vitenskapelige-undersokelser",
+      "title": "Naturvitenskapelige undersøkelser",
+      "goal_aliases": [
+        "NA10-INVEST"
+      ],
+      "content_outline": [
+        "Hypoteser, variabler og målinger",
+        "Feilkilder og sikre undersøkelser"
+      ],
+      "assessment_evidence": "Planlegg en ufarlig måling og vurder datakvaliteten.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 2
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "slug": "atomer-og-kjemiske-reaksjoner",
+      "title": "Atomer og kjemiske reaksjoner",
+      "goal_aliases": [
+        "NA10-MATTER"
+      ],
+      "content_outline": [
+        "Atomer og periodesystemet",
+        "Massebevaring og reaksjoner"
+      ],
+      "assessment_evidence": "Forklar atommodeller og massebevaring i en modellert reaksjon.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 3
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "slug": "energi-og-energioverganger",
+      "title": "Energi og energioverganger",
+      "goal_aliases": [
+        "NA10-ENERGY"
+      ],
+      "content_outline": [
+        "Energiformer og energibevaring",
+        "Energikvalitet og hverdagslige overganger"
+      ],
+      "assessment_evidence": "Lag et energiflytskjema for en enkel teknologi.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 4
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "slug": "okosystemer-og-kretslop",
+      "title": "Økosystemer og kretsløp",
+      "goal_aliases": [
+        "NA10-ECO"
+      ],
+      "content_outline": [
+        "Biotiske/abiotiske faktorer",
+        "Næringskjeder, fotosyntese og celleånding"
+      ],
+      "assessment_evidence": "Forklar hvordan endring i én faktor påvirker et økosystem.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 5
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "slug": "demokrati-og-medvirkning",
+      "title": "Demokrati og medvirkning",
+      "goal_aliases": [
+        "SA10-DEMO"
+      ],
+      "content_outline": [
+        "Storting, regjering, kommuner og velferd",
+        "Medborgerskap og makt"
+      ],
+      "assessment_evidence": "Sammenlign kommuneoppgave og nasjonal beslutning.",
+      "preserve_existing_pilot_slug": true,
+      "review_status": "draft",
+      "sequence": 1
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "slug": "medier-kilder-og-digitale-spor",
+      "title": "Medier, kilder og digitale spor",
+      "goal_aliases": [
+        "SA10-SOURCE"
+      ],
+      "content_outline": [
+        "Perspektiv, algoritmer og kildetroverdighet",
+        "Privatliv, opphavsrett og digital dømmekraft"
+      ],
+      "assessment_evidence": "Vurder påstander i to fiktive innlegg og foreslå sikre personvernvalg.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 2
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "slug": "geografi-bosetting-og-levekar",
+      "title": "Geografi, bosetting og levekår",
+      "goal_aliases": [
+        "SA10-GEO"
+      ],
+      "content_outline": [
+        "Klima, ressurser, bosetting",
+        "Årsaker til levekårsforskjeller"
+      ],
+      "assessment_evidence": "Sammenlign to dokumenterte regioner og forklar mønstre.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 3
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "slug": "historie-endring-og-konflikt",
+      "title": "Historiske endringer og konflikt",
+      "goal_aliases": [
+        "SA10-HISTORY"
+      ],
+      "content_outline": [
+        "Kronologi, årsaker og konsekvenser",
+        "Kilder og perspektiv på historiske hendelser"
+      ],
+      "assessment_evidence": "Lag kildebasert tidslinje og skill årsak fra følge.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 4
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "slug": "identitet-mangfold-og-rettigheter",
+      "title": "Identitet, mangfold og rettigheter",
+      "goal_aliases": [
+        "SA10-IDENTITY"
+      ],
+      "content_outline": [
+        "Identitet og kulturmangfold",
+        "Menneskerettigheter og urfolksrettigheter"
+      ],
+      "assessment_evidence": "Forklar et prinsipp og drøft et alderspasset eksempel.",
+      "preserve_existing_pilot_slug": false,
+      "review_status": "draft",
+      "sequence": 5
+    }
+  ],
+  "publication_requirements": {
+    "author_original_content": true,
+    "reviewer_approves_lesson_and_quiz_answers": true,
+    "preserve_slug_on_existing_pilot": true,
+    "immutable_content_versions": true,
+    "keep_new_lessons_draft": true,
+    "do_not_auto_publish": true,
+    "mock_exam_grades_not_udir_percentage_bands": true
+  }
+}
