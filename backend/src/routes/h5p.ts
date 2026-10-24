@@ -1970,6 +1970,13 @@ router.post('/xapi', async (req: Request, res: Response) => {
       const scorePercentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
       const passed = scorePercentage >= (attempt.pass_percentage || 70);
 
+      // Read before updating so retried/duplicate xAPI events for the same attempt
+      // (including repeated 'answered' events) cannot award the points again
+      const alreadyAwarded: any = db.prepare(`
+        SELECT id FROM h5p_attempts
+        WHERE assignment_id = ? AND profile_id = ? AND passed = 1
+      `).get(attempt.assignment_id, profile.id);
+
       // Update attempt
       db.prepare(`
         UPDATE h5p_attempts
@@ -1987,12 +1994,6 @@ router.post('/xapi', async (req: Request, res: Response) => {
 
       // Award points if passed
       if (passed && attempt.points > 0) {
-        // Check if already awarded for this assignment
-        const alreadyAwarded: any = db.prepare(`
-          SELECT id FROM h5p_attempts
-          WHERE assignment_id = ? AND profile_id = ? AND passed = 1 AND id != ?
-        `).get(attempt.assignment_id, profile.id, attemptId);
-
         if (!alreadyAwarded) {
           // Award points to child
           db.prepare(`

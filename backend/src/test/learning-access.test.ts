@@ -169,6 +169,24 @@ function createLearningTables() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE(h5p_content_id, assigned_to)
     );
+    CREATE TABLE IF NOT EXISTS h5p_attempts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER,
+      profile_id INTEGER NOT NULL,
+      h5p_content_id INTEGER NOT NULL,
+      score REAL, max_score REAL, score_percentage REAL,
+      passed INTEGER DEFAULT 0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      xapi_data TEXT
+    );
+    CREATE TABLE IF NOT EXISTS h5p_xapi_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attempt_id INTEGER, profile_id INTEGER, h5p_content_id INTEGER, verb TEXT,
+      object_id TEXT, object_type TEXT, result_score REAL, result_max_score REAL,
+      result_success INTEGER, result_completion INTEGER, result_duration TEXT, context_data TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 }
 
@@ -176,7 +194,7 @@ function clearLearningTables() {
   for (const table of [
     'family_quiz_answers', 'family_quiz_questions', 'quiz_categories',
     'learning_activities', 'session_attempts', 'learning_sessions', 'activity_types',
-    'h5p_assignments', 'h5p_content'
+    'h5p_xapi_logs', 'h5p_attempts', 'h5p_assignments', 'h5p_content'
   ]) {
     testDb.exec(`DELETE FROM ${table}`);
   }
@@ -423,6 +441,30 @@ describe('learning engine object-level authorization', () => {
 
       expect((await request(app).get(`/h5p/content/${contentId}/assignments`).set(authHeaders(parentB.id))).status).toBe(403);
       expect((await request(app).post(`/h5p/content/${contentId}/assign`).set(authHeaders(parentB.id)).send({ childIds: [childB.id] })).status).toBe(403);
+    });
+
+    it('awards H5P points once even when xAPI completion events are retried or duplicated', async () => {
+      const app = await createApp();
+      const { parentA, childA } = createFamilies();
+      createTestProgress(childA.id);
+      const contentId = createContent(parentA.id);
+      const assignmentId = Number(testDb.prepare(`
+        INSERT INTO h5p_assignments (h5p_content_id, assigned_to, assigned_by, points) VALUES (?, ?, ?, 15)
+      `).run(contentId, childA.id, parentA.id).lastInsertRowid);
+      const attemptId = Number(testDb.prepare(`
+        INSERT INTO h5p_attempts (assignment_id, profile_id, h5p_content_id) VALUES (?, ?, ?)
+      `).run(assignmentId, childA.id, contentId).lastInsertRowid);
+
+      const event = { attemptId, verb: 'completed', result: { score: { raw: 9, max: 10 }, success: true, completion: true } };
+      const first = await request(app).post('/h5p/xapi').set(authHeaders(childA.id)).send(event);
+      const retry = await request(app).post('/h5p/xapi').set(authHeaders(childA.id)).send(event);
+      const answered = await request(app).post('/h5p/xapi').set(authHeaders(childA.id)).send({ ...event, verb: 'answered' });
+
+      expect(first.body.pointsAwarded).toBe(15);
+      expect(retry.body.pointsAwarded).toBe(0);
+      expect(answered.body.pointsAwarded).toBe(0);
+      const progress: any = testDb.prepare('SELECT total_points FROM progress WHERE profile_id = ?').get(childA.id);
+      expect(progress.total_points).toBe(15);
     });
 
     it('rejects assigning content to children outside the family', async () => {
