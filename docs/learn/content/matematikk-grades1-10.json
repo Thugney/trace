@@ -1,10 +1,8 @@
 {
-  "schema_version": "1.0.0",
-  "source": "original editorial content drafted with authoritative Udir checkpoint URL",
-  "status": "review_required",
-  "topic_count": 50,
+  "schema_version": "2.0.0",
+  "description": "Source-linked original micro-lessons, not exhaustive coverage or independently reviewed official LK20 goals",
   "subject": "matematikk",
-  "grades_supported": [
+  "grades": [
     1,
     2,
     3,
@@ -16,25 +14,28 @@
     9,
     10
   ],
+  "curriculum_code": "MAT01-06",
+  "review_status": "draft",
   "source_registry": "docs/learn/lk20-source-registry-2026.json",
   "lessons": [
     {
       "id": "matematikk-g1-telle-og-antall",
       "subject": "matematikk",
       "grade": 1,
-      "sequence": 1,
       "slug": "telle-og-antall",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Telle og antall",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_toward_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du telle og antall. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -51,13 +52,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor mange klosser er talt når det siste tallordet er seks?",
+        "model_answer": "A",
         "key_takeaway": "Når du teller, får hver ting ett tallord. Siste tallord forteller hvor mange ting du har.",
         "worked_example": {
           "explanation": "Tell seks klosser én gang hver: du har 6 klosser.",
           "result": "6"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange klosser er talt når det siste tallordet er seks?» blir «6».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -67,11 +68,11 @@
           "options": [
             {
               "key": "A",
-              "label": "6"
+              "label": "5"
             },
             {
               "key": "B",
-              "label": "5"
+              "label": "6"
             },
             {
               "key": "C",
@@ -82,16 +83,19 @@
               "label": "12"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "6",
           "explanation": "Tell seks klosser én gang hver: du har 6 klosser.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g1-telle-og-antall-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange klosser er talt når det siste tallordet er seks?",
           "model_answer": "Tell seks klosser én gang hver: du har 6 klosser.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -108,25 +112,27 @@
           "back": "Tell seks klosser én gang hver: du har 6 klosser."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g1-sammenligne-mengder",
       "subject": "matematikk",
       "grade": 1,
-      "sequence": 2,
       "slug": "sammenligne-mengder",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Sammenligne mengder",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_toward_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du sammenligne mengder. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -143,13 +149,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvilken mengde er størst: fem blå eller tre røde?",
+        "model_answer": "A",
         "key_takeaway": "To mengder kan sammenlignes ved å pare ting fra hver mengde. Det som blir til overs, viser hvilken mengde som har flest.",
         "worked_example": {
           "explanation": "Fem blå brikker og tre røde: de blå er to flere.",
           "result": "Fem blå"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilken mengde er størst: fem blå eller tre røde?» blir «Fem blå».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -174,16 +180,19 @@
               "label": "Ingen"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "Fem blå",
           "explanation": "Fem blå brikker og tre røde: de blå er to flere.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g1-sammenligne-mengder-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilken mengde er størst: fem blå eller tre røde?",
           "model_answer": "Fem blå brikker og tre røde: de blå er to flere.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -200,25 +209,27 @@
           "back": "Fem blå brikker og tre røde: de blå er to flere."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g1-addisjon-til-10",
       "subject": "matematikk",
       "grade": 1,
-      "sequence": 3,
       "slug": "addisjon-til-10",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Addisjon til 10",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_toward_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du addisjon til 10. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -235,13 +246,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er 4 + 3?",
+        "model_answer": "A",
         "key_takeaway": "Addisjon betyr å samle antall. Bruk fingre eller en tegning for å vise hvordan mengdene blir til én.",
         "worked_example": {
           "explanation": "Fire epler og tre epler er sju epler: 4 + 3 = 7.",
           "result": "7"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 4 + 3?» blir «7».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -251,31 +262,34 @@
           "options": [
             {
               "key": "A",
-              "label": "7"
-            },
-            {
-              "key": "B",
               "label": "6"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "8"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "9"
+            },
+            {
+              "key": "D",
+              "label": "7"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "7",
           "explanation": "Fire epler og tre epler er sju epler: 4 + 3 = 7.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g1-addisjon-til-10-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 4 + 3?",
           "model_answer": "Fire epler og tre epler er sju epler: 4 + 3 = 7.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -292,25 +306,27 @@
           "back": "Fire epler og tre epler er sju epler: 4 + 3 = 7."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g1-subtraksjon-til-10",
       "subject": "matematikk",
       "grade": 1,
-      "sequence": 4,
       "slug": "subtraksjon-til-10",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Subtraksjon til 10",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_toward_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du subtraksjon til 10. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -327,13 +343,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er 9 − 2?",
+        "model_answer": "A",
         "key_takeaway": "Subtraksjon forteller hvor mye som blir igjen etter at noe tas bort. Tegn gjerne tingene før du regner.",
         "worked_example": {
           "explanation": "Du har ni steiner og gir bort to; ni minus to er sju.",
           "result": "7"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 9 − 2?» blir «7».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -343,31 +359,34 @@
           "options": [
             {
               "key": "A",
-              "label": "7"
-            },
-            {
-              "key": "B",
               "label": "6"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "8"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "11"
+            },
+            {
+              "key": "D",
+              "label": "7"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "7",
           "explanation": "Du har ni steiner og gir bort to; ni minus to er sju.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g1-subtraksjon-til-10-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 9 − 2?",
           "model_answer": "Du har ni steiner og gir bort to; ni minus to er sju.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -384,25 +403,27 @@
           "back": "Du har ni steiner og gir bort to; ni minus to er sju."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g1-figurmonstre",
       "subject": "matematikk",
       "grade": 1,
-      "sequence": 5,
       "slug": "figurmonstre",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Figurmønstre",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_toward_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du figurmønstre. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -419,13 +440,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er neste form etter sirkel, stjerne, sirkel, stjerne?",
+        "model_answer": "A",
         "key_takeaway": "Et gjentakende mønster består av en enhet som kommer igjen. Finn hele enheten for å forutsi neste form.",
         "worked_example": {
           "explanation": "Sirkel, stjerne, sirkel, stjerne: neste er sirkel.",
           "result": "Sirkel"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er neste form etter sirkel, stjerne, sirkel, stjerne?» blir «Sirkel».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -435,31 +456,34 @@
           "options": [
             {
               "key": "A",
-              "label": "Sirkel"
-            },
-            {
-              "key": "B",
               "label": "Stjerne"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "Firkant"
+            },
+            {
+              "key": "C",
+              "label": "Sirkel"
             },
             {
               "key": "D",
               "label": "Trekant"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "Sirkel",
           "explanation": "Sirkel, stjerne, sirkel, stjerne: neste er sirkel.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g1-figurmonstre-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er neste form etter sirkel, stjerne, sirkel, stjerne?",
           "model_answer": "Sirkel, stjerne, sirkel, stjerne: neste er sirkel.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -476,25 +500,27 @@
           "back": "Sirkel, stjerne, sirkel, stjerne: neste er sirkel."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g2-tiere-og-enere",
       "subject": "matematikk",
       "grade": 2,
-      "sequence": 1,
       "slug": "tiere-og-enere",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Tiere og enere",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du tiere og enere. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -511,13 +537,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvilket tall har fire tiere og to enere?",
+        "model_answer": "A",
         "key_takeaway": "Sifre har forskjellig verdi etter hvor de står i tallet. Fire tiere og to enere skrives 42.",
         "worked_example": {
           "explanation": "40 + 2 = 42.",
           "result": "42"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket tall har fire tiere og to enere?» blir «42».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -542,16 +568,19 @@
               "label": "12"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "42",
           "explanation": "40 + 2 = 42.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g2-tiere-og-enere-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket tall har fire tiere og to enere?",
           "model_answer": "40 + 2 = 42.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -568,25 +597,27 @@
           "back": "40 + 2 = 42."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g2-tallinje-og-hopp",
       "subject": "matematikk",
       "grade": 2,
-      "sequence": 2,
       "slug": "tallinje-og-hopp",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Tallinje og hopp",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du tallinje og hopp. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -603,13 +634,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor kommer du med tre hopp mot høyre fra 7?",
+        "model_answer": "A",
         "key_takeaway": "Høyre på tallinjen betyr større tall og venstre betyr mindre. Like store hopp gjør at vi kan regne effektivt.",
         "worked_example": {
           "explanation": "Fra 7 hopper du tre plasser høyre og lander på 10.",
           "result": "10"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor kommer du med tre hopp mot høyre fra 7?» blir «10».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -619,31 +650,34 @@
           "options": [
             {
               "key": "A",
-              "label": "10"
-            },
-            {
-              "key": "B",
               "label": "4"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "9"
+            },
+            {
+              "key": "C",
+              "label": "10"
             },
             {
               "key": "D",
               "label": "11"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "10",
           "explanation": "Fra 7 hopper du tre plasser høyre og lander på 10.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g2-tallinje-og-hopp-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor kommer du med tre hopp mot høyre fra 7?",
           "model_answer": "Fra 7 hopper du tre plasser høyre og lander på 10.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -660,25 +694,27 @@
           "back": "Fra 7 hopper du tre plasser høyre og lander på 10."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g2-partall-og-oddetall",
       "subject": "matematikk",
       "grade": 2,
-      "sequence": 3,
       "slug": "partall-og-oddetall",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Partall og oddetall",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du partall og oddetall. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -695,13 +731,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvilket tall er partall?",
+        "model_answer": "A",
         "key_takeaway": "Et partall kan fordeles i par uten en ting til overs. Oddetall gir en enslig ting.",
         "worked_example": {
           "explanation": "Åtte ting danner fire par; ni ting danner fire par og én til overs.",
           "result": "8"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket tall er partall?» blir «8».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -711,11 +747,11 @@
           "options": [
             {
               "key": "A",
-              "label": "8"
+              "label": "7"
             },
             {
               "key": "B",
-              "label": "7"
+              "label": "8"
             },
             {
               "key": "C",
@@ -726,16 +762,19 @@
               "label": "11"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "8",
           "explanation": "Åtte ting danner fire par; ni ting danner fire par og én til overs.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g2-partall-og-oddetall-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket tall er partall?",
           "model_answer": "Åtte ting danner fire par; ni ting danner fire par og én til overs.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -752,25 +791,27 @@
           "back": "Åtte ting danner fire par; ni ting danner fire par og én til overs."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g2-likhetstegn",
       "subject": "matematikk",
       "grade": 2,
-      "sequence": 4,
       "slug": "likhetstegn",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Likhetstegn",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du likhetstegn. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -787,13 +828,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva mangler i 3 + 4 = 5 + __?",
+        "model_answer": "A",
         "key_takeaway": "Likhetstegnet viser at to uttrykk har samme verdi. Det fungerer også når det er regnestykker på begge sider.",
         "worked_example": {
           "explanation": "3 + 4 = 5 + 2 fordi begge sider er 7.",
           "result": "2"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva mangler i 3 + 4 = 5 + __?» blir «2».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -803,31 +844,34 @@
           "options": [
             {
               "key": "A",
-              "label": "2"
-            },
-            {
-              "key": "B",
               "label": "1"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "3"
+            },
+            {
+              "key": "C",
+              "label": "2"
             },
             {
               "key": "D",
               "label": "7"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "2",
           "explanation": "3 + 4 = 5 + 2 fordi begge sider er 7.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g2-likhetstegn-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva mangler i 3 + 4 = 5 + __?",
           "model_answer": "3 + 4 = 5 + 2 fordi begge sider er 7.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -844,25 +888,27 @@
           "back": "3 + 4 = 5 + 2 fordi begge sider er 7."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g2-tid-og-klokke",
       "subject": "matematikk",
       "grade": 2,
-      "sequence": 5,
       "slug": "tid-og-klokke",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Tid og klokke",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 2,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 2,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du tid og klokke. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -879,13 +925,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor mange minutter varer en halv time?",
+        "model_answer": "A",
         "key_takeaway": "Tidsmåling gjør at vi kan sammenligne varighet. Én time har 60 minutter; en halv time har 30.",
         "worked_example": {
           "explanation": "To halve timer varer sammen 60 minutter.",
           "result": "30"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange minutter varer en halv time?» blir «30».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -895,31 +941,34 @@
           "options": [
             {
               "key": "A",
-              "label": "30"
-            },
-            {
-              "key": "B",
               "label": "15"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "45"
+            },
+            {
+              "key": "C",
+              "label": "30"
             },
             {
               "key": "D",
               "label": "60"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "30",
           "explanation": "To halve timer varer sammen 60 minutter.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g2-tid-og-klokke-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange minutter varer en halv time?",
           "model_answer": "To halve timer varer sammen 60 minutter.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -936,25 +985,27 @@
           "back": "To halve timer varer sammen 60 minutter."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g3-ganging-som-grupper",
       "subject": "matematikk",
       "grade": 3,
-      "sequence": 1,
       "slug": "ganging-som-grupper",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Ganging som grupper",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 3,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 3,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du ganging som grupper. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -971,13 +1022,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er 3 × 4?",
+        "model_answer": "A",
         "key_takeaway": "Ganging teller like store grupper. Tell hvor mange grupper du har, og hvor mange ting som er i hver.",
         "worked_example": {
           "explanation": "Tre poser med fire kuler blir 4 + 4 + 4 = 12.",
           "result": "12"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 3 × 4?» blir «12».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -987,31 +1038,34 @@
           "options": [
             {
               "key": "A",
-              "label": "12"
-            },
-            {
-              "key": "B",
               "label": "7"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "10"
+            },
+            {
+              "key": "C",
+              "label": "12"
             },
             {
               "key": "D",
               "label": "16"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "12",
           "explanation": "Tre poser med fire kuler blir 4 + 4 + 4 = 12.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g3-ganging-som-grupper-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 3 × 4?",
           "model_answer": "Tre poser med fire kuler blir 4 + 4 + 4 = 12.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1028,25 +1082,27 @@
           "back": "Tre poser med fire kuler blir 4 + 4 + 4 = 12."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g3-dobbelt-og-halvparten",
       "subject": "matematikk",
       "grade": 3,
-      "sequence": 2,
       "slug": "dobbelt-og-halvparten",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Dobbelt og halvparten",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 3,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 3,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du dobbelt og halvparten. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1063,13 +1119,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er det dobbelte av 8?",
+        "model_answer": "A",
         "key_takeaway": "Å doble betyr å gange med to. Å halvere betyr å dele i to like store mengder.",
         "worked_example": {
           "explanation": "Dobbelt av 8 er 16; halvparten av 16 er 8.",
           "result": "16"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er det dobbelte av 8?» blir «16».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1079,31 +1135,34 @@
           "options": [
             {
               "key": "A",
-              "label": "16"
-            },
-            {
-              "key": "B",
               "label": "10"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "12"
+            },
+            {
+              "key": "C",
+              "label": "16"
             },
             {
               "key": "D",
               "label": "24"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "16",
           "explanation": "Dobbelt av 8 er 16; halvparten av 16 er 8.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g3-dobbelt-og-halvparten-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er det dobbelte av 8?",
           "model_answer": "Dobbelt av 8 er 16; halvparten av 16 er 8.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1120,25 +1179,27 @@
           "back": "Dobbelt av 8 er 16; halvparten av 16 er 8."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g3-dele-likt",
       "subject": "matematikk",
       "grade": 3,
-      "sequence": 3,
       "slug": "dele-likt",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Dele likt",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 3,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 3,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du dele likt. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1155,13 +1216,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor mange kjeks får hvert barn av 12 fordelt likt på fire?",
+        "model_answer": "A",
         "key_takeaway": "Når noe fordeles jevnt mellom like grupper, kan vi bruke divisjon. Delene må inneholde like mange ting.",
         "worked_example": {
           "explanation": "Tolv kjeks fordelt på fire barn gir tre til hver.",
           "result": "3"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange kjeks får hvert barn av 12 fordelt likt på fire?» blir «3».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1171,31 +1232,34 @@
           "options": [
             {
               "key": "A",
-              "label": "3"
-            },
-            {
-              "key": "B",
               "label": "2"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "4"
+            },
+            {
+              "key": "C",
+              "label": "3"
             },
             {
               "key": "D",
               "label": "8"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "3",
           "explanation": "Tolv kjeks fordelt på fire barn gir tre til hver.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g3-dele-likt-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange kjeks får hvert barn av 12 fordelt likt på fire?",
           "model_answer": "Tolv kjeks fordelt på fire barn gir tre til hver.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1212,25 +1276,27 @@
           "back": "Tolv kjeks fordelt på fire barn gir tre til hver."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g3-hundrerplass",
       "subject": "matematikk",
       "grade": 3,
-      "sequence": 4,
       "slug": "hundrerplass",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Hundrerplass",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 3,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 3,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du hundrerplass. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1247,13 +1313,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er 300 + 0 + 5?",
+        "model_answer": "A",
         "key_takeaway": "Plassverdi betyr at en ener, tier og hundrer gir ulike tall selv om sifrene er de samme.",
         "worked_example": {
           "explanation": "305 består av tre hundrere, null tiere og fem enere.",
           "result": "305"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 300 + 0 + 5?» blir «305».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1278,16 +1344,19 @@
               "label": "3005"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "305",
           "explanation": "305 består av tre hundrere, null tiere og fem enere.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g3-hundrerplass-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 300 + 0 + 5?",
           "model_answer": "305 består av tre hundrere, null tiere og fem enere.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1304,25 +1373,27 @@
           "back": "305 består av tre hundrere, null tiere og fem enere."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g3-lengde-og-maleenhet",
       "subject": "matematikk",
       "grade": 3,
-      "sequence": 5,
       "slug": "lengde-og-maleenhet",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Lengde og måleenhet",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 3,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 3,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du lengde og måleenhet. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1339,13 +1410,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor stor er lengdeforskjellen mellom 15 cm og 10 cm?",
+        "model_answer": "A",
         "key_takeaway": "Du må bruke samme måleenhet når du sammenligner lengder. Skriv alltid enheten sammen med svaret.",
         "worked_example": {
           "explanation": "En blyant på 15 cm er fem cm lengre enn en på 10 cm.",
           "result": "5 cm"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor stor er lengdeforskjellen mellom 15 cm og 10 cm?» blir «5 cm».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1355,31 +1426,34 @@
           "options": [
             {
               "key": "A",
-              "label": "5 cm"
-            },
-            {
-              "key": "B",
               "label": "10 cm"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "15 cm"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "25 cm"
+            },
+            {
+              "key": "D",
+              "label": "5 cm"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "5 cm",
           "explanation": "En blyant på 15 cm er fem cm lengre enn en på 10 cm.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g3-lengde-og-maleenhet-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor stor er lengdeforskjellen mellom 15 cm og 10 cm?",
           "model_answer": "En blyant på 15 cm er fem cm lengre enn en på 10 cm.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1396,25 +1470,27 @@
           "back": "En blyant på 15 cm er fem cm lengre enn en på 10 cm."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g4-ganging-med-oppdeling",
       "subject": "matematikk",
       "grade": 4,
-      "sequence": 1,
       "slug": "ganging-med-oppdeling",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Ganging med oppdeling",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 4,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 4,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du ganging med oppdeling. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1431,13 +1507,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er 6 × 14?",
+        "model_answer": "A",
         "key_takeaway": "Den distributive loven lar deg dele opp et stort regnestykke i to enklere deler og summere resultatene.",
         "worked_example": {
           "explanation": "6 × 14 = 6 × 10 + 6 × 4 = 84.",
           "result": "84"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 6 × 14?» blir «84».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1447,11 +1523,11 @@
           "options": [
             {
               "key": "A",
-              "label": "84"
+              "label": "64"
             },
             {
               "key": "B",
-              "label": "64"
+              "label": "84"
             },
             {
               "key": "C",
@@ -1462,16 +1538,19 @@
               "label": "94"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "84",
           "explanation": "6 × 14 = 6 × 10 + 6 × 4 = 84.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g4-ganging-med-oppdeling-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 6 × 14?",
           "model_answer": "6 × 14 = 6 × 10 + 6 × 4 = 84.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1488,25 +1567,27 @@
           "back": "6 × 14 = 6 × 10 + 6 × 4 = 84."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g4-to-mater-a-dele-pa",
       "subject": "matematikk",
       "grade": 4,
-      "sequence": 2,
       "slug": "to-mater-a-dele-pa",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "To måter å dele på",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 4,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 4,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du to måter å dele på. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1523,13 +1604,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvor mange 3-meters biter kan vi klippe av 12 meter?",
+        "model_answer": "A",
         "key_takeaway": "Divisjon kan spørre hvor mange grupper det blir, eller hvor mange det er i hver gruppe. Begge bygger på like store deler.",
         "worked_example": {
           "explanation": "Tolv meter tau deles i biter på tre meter: fire biter.",
           "result": "4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange 3-meters biter kan vi klippe av 12 meter?» blir «4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1539,31 +1620,34 @@
           "options": [
             {
               "key": "A",
-              "label": "4"
-            },
-            {
-              "key": "B",
               "label": "3"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "6"
+            },
+            {
+              "key": "C",
+              "label": "4"
             },
             {
               "key": "D",
               "label": "9"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "4",
           "explanation": "Tolv meter tau deles i biter på tre meter: fire biter.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g4-to-mater-a-dele-pa-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange 3-meters biter kan vi klippe av 12 meter?",
           "model_answer": "Tolv meter tau deles i biter på tre meter: fire biter.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1580,25 +1664,27 @@
           "back": "Tolv meter tau deles i biter på tre meter: fire biter."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g4-brok-som-like-deler",
       "subject": "matematikk",
       "grade": 4,
-      "sequence": 3,
       "slug": "brok-som-like-deler",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Brøk som like deler",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 4,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 4,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du brøk som like deler. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1615,13 +1701,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er nevneren i 3/4?",
+        "model_answer": "A",
         "key_takeaway": "Nevneren viser hvor mange like deler en helhet er delt i. Telleren viser hvor mange slike deler vi snakker om.",
         "worked_example": {
           "explanation": "3/4 er tre av fire like store deler av en helhet.",
           "result": "4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er nevneren i 3/4?» blir «4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1631,11 +1717,11 @@
           "options": [
             {
               "key": "A",
-              "label": "4"
+              "label": "3"
             },
             {
               "key": "B",
-              "label": "3"
+              "label": "4"
             },
             {
               "key": "C",
@@ -1646,16 +1732,19 @@
               "label": "7"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "4",
           "explanation": "3/4 er tre av fire like store deler av en helhet.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g4-brok-som-like-deler-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er nevneren i 3/4?",
           "model_answer": "3/4 er tre av fire like store deler av en helhet.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1672,25 +1761,27 @@
           "back": "3/4 er tre av fire like store deler av en helhet."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g4-areal-og-omkrets",
       "subject": "matematikk",
       "grade": 4,
-      "sequence": 4,
       "slug": "areal-og-omkrets",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Areal og omkrets",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 4,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 4,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du areal og omkrets. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1707,13 +1798,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hva er arealet av et rektangel på 3 cm × 4 cm?",
+        "model_answer": "A",
         "key_takeaway": "Areal viser størrelsen på flaten, mens omkrets er lengden rundt. Areal av et rektangel finnes med lengde ganger bredde.",
         "worked_example": {
           "explanation": "3 cm × 4 cm gir areal 12 cm² og omkrets 14 cm.",
           "result": "12 cm²"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er arealet av et rektangel på 3 cm × 4 cm?» blir «12 cm²».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1738,16 +1829,19 @@
               "label": "24 cm²"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "12 cm²",
           "explanation": "3 cm × 4 cm gir areal 12 cm² og omkrets 14 cm.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g4-areal-og-omkrets-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er arealet av et rektangel på 3 cm × 4 cm?",
           "model_answer": "3 cm × 4 cm gir areal 12 cm² og omkrets 14 cm.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1764,25 +1858,27 @@
           "back": "3 cm × 4 cm gir areal 12 cm² og omkrets 14 cm."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g4-diagrammer-med-stolper",
       "subject": "matematikk",
       "grade": 4,
-      "sequence": 5,
       "slug": "diagrammer-med-stolper",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Diagrammer med stolper",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 4,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 4,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du diagrammer med stolper. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1799,13 +1895,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Bruk gjerne klosser, en tegning eller tallinjen før du svarer."
           }
         ],
+        "comprehension_check": "Hvilken frukt fikk flest stemmer: fem epler eller tre pærer?",
+        "model_answer": "A",
         "key_takeaway": "Et stolpediagram viser frekvenser. Høyere stolpe betyr flere svar når stolpene har samme skala.",
         "worked_example": {
           "explanation": "Fem valgte eple og tre valgte pære; eple ble valgt flest ganger.",
           "result": "Eple"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilken frukt fikk flest stemmer: fem epler eller tre pærer?» blir «Eple».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1815,31 +1911,34 @@
           "options": [
             {
               "key": "A",
-              "label": "Eple"
-            },
-            {
-              "key": "B",
               "label": "Pære"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "Like mange"
+            },
+            {
+              "key": "C",
+              "label": "Eple"
             },
             {
               "key": "D",
               "label": "Ingen"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "Eple",
           "explanation": "Fem valgte eple og tre valgte pære; eple ble valgt flest ganger.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g4-diagrammer-med-stolper-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilken frukt fikk flest stemmer: fem epler eller tre pærer?",
           "model_answer": "Fem valgte eple og tre valgte pære; eple ble valgt flest ganger.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1856,25 +1955,27 @@
           "back": "Fem valgte eple og tre valgte pære; eple ble valgt flest ganger."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g5-brok-og-prosent",
       "subject": "matematikk",
       "grade": 5,
-      "sequence": 1,
       "slug": "brok-og-prosent",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Brøk og prosent",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 5,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 5,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du brøk og prosent. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1891,13 +1992,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 1/2 i prosent?",
+        "model_answer": "A",
         "key_takeaway": "Samme del av en hel kan skrives med brøk, desimaltall eller prosent. Prosent betyr hundredeler.",
         "worked_example": {
           "explanation": "1/2 er samme del som 0,5 og 50 %.",
           "result": "50 %"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 1/2 i prosent?» blir «50 %».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1922,16 +2023,19 @@
               "label": "100 %"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "50 %",
           "explanation": "1/2 er samme del som 0,5 og 50 %.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g5-brok-og-prosent-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 1/2 i prosent?",
           "model_answer": "1/2 er samme del som 0,5 og 50 %.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -1948,25 +2052,27 @@
           "back": "1/2 er samme del som 0,5 og 50 %."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g5-brok-pa-tallinjen",
       "subject": "matematikk",
       "grade": 5,
-      "sequence": 2,
       "slug": "brok-pa-tallinjen",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Brøk på tallinjen",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 5,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 5,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du brøk på tallinjen. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -1983,13 +2089,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvilken brøk er minst: 1/4 eller 1/2?",
+        "model_answer": "A",
         "key_takeaway": "En brøk er et tall som kan ligge mellom hele tall. Brøkdelen har samme betydning på tallinjen som i en figur.",
         "worked_example": {
           "explanation": "En firedel er 0,25 og ligger til venstre for en halv på tallinjen.",
           "result": "1/4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilken brøk er minst: 1/4 eller 1/2?» blir «1/4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -1999,11 +2105,11 @@
           "options": [
             {
               "key": "A",
-              "label": "1/4"
+              "label": "1/2"
             },
             {
               "key": "B",
-              "label": "1/2"
+              "label": "1/4"
             },
             {
               "key": "C",
@@ -2014,16 +2120,19 @@
               "label": "1"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "1/4",
           "explanation": "En firedel er 0,25 og ligger til venstre for en halv på tallinjen.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g5-brok-pa-tallinjen-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilken brøk er minst: 1/4 eller 1/2?",
           "model_answer": "En firedel er 0,25 og ligger til venstre for en halv på tallinjen.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2040,25 +2149,27 @@
           "back": "En firedel er 0,25 og ligger til venstre for en halv på tallinjen."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g5-legge-sammen-broker",
       "subject": "matematikk",
       "grade": 5,
-      "sequence": 3,
       "slug": "legge-sammen-broker",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Legge sammen brøker",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 5,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 5,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du legge sammen brøker. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2075,13 +2186,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 2/8 + 3/8?",
+        "model_answer": "A",
         "key_takeaway": "Brøker med lik nevner har like store deler. Du kan legge sammen tellerne og beholde nevneren.",
         "worked_example": {
           "explanation": "2/8 + 3/8 = 5/8.",
           "result": "5/8"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 2/8 + 3/8?» blir «5/8».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2091,31 +2202,34 @@
           "options": [
             {
               "key": "A",
-              "label": "5/8"
-            },
-            {
-              "key": "B",
               "label": "5/16"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "6/8"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "1/8"
+            },
+            {
+              "key": "D",
+              "label": "5/8"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "5/8",
           "explanation": "2/8 + 3/8 = 5/8.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g5-legge-sammen-broker-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 2/8 + 3/8?",
           "model_answer": "2/8 + 3/8 = 5/8.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2132,25 +2246,27 @@
           "back": "2/8 + 3/8 = 5/8."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g5-geometriske-egenskaper",
       "subject": "matematikk",
       "grade": 5,
-      "sequence": 4,
       "slug": "geometriske-egenskaper",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Geometriske egenskaper",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 5,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 5,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du geometriske egenskaper. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2167,13 +2283,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvor mange rette vinkler har et rektangel?",
+        "model_answer": "A",
         "key_takeaway": "Beskriv figurer med presise ord som side, hjørne, rett vinkel og parallell. Et rektangel har fire rette vinkler.",
         "worked_example": {
           "explanation": "Et kvadrat er et rektangel med alle fire sidene like lange.",
           "result": "4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange rette vinkler har et rektangel?» blir «4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2183,31 +2299,34 @@
           "options": [
             {
               "key": "A",
-              "label": "4"
-            },
-            {
-              "key": "B",
               "label": "2"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "3"
+            },
+            {
+              "key": "C",
+              "label": "4"
             },
             {
               "key": "D",
               "label": "5"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "4",
           "explanation": "Et kvadrat er et rektangel med alle fire sidene like lange.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g5-geometriske-egenskaper-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange rette vinkler har et rektangel?",
           "model_answer": "Et kvadrat er et rektangel med alle fire sidene like lange.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2224,25 +2343,27 @@
           "back": "Et kvadrat er et rektangel med alle fire sidene like lange."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g5-enheter-og-omgjoring",
       "subject": "matematikk",
       "grade": 5,
-      "sequence": 5,
       "slug": "enheter-og-omgjoring",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Enheter og omgjøring",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 5,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 5,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du enheter og omgjøring. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2259,13 +2380,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvor mange centimeter er 1,5 meter?",
+        "model_answer": "A",
         "key_takeaway": "En måling består av tall og enhet. Når vi bytter enhet, må tallverdien endres slik at lengden er den samme.",
         "worked_example": {
           "explanation": "1,5 meter er 150 centimeter fordi en meter er 100 centimeter.",
           "result": "150"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange centimeter er 1,5 meter?» blir «150».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2290,16 +2411,19 @@
               "label": "1500"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "150",
           "explanation": "1,5 meter er 150 centimeter fordi en meter er 100 centimeter.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g5-enheter-og-omgjoring-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange centimeter er 1,5 meter?",
           "model_answer": "1,5 meter er 150 centimeter fordi en meter er 100 centimeter.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2316,25 +2440,27 @@
           "back": "1,5 meter er 150 centimeter fordi en meter er 100 centimeter."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g6-sammenligne-desimaltall",
       "subject": "matematikk",
       "grade": 6,
-      "sequence": 1,
       "slug": "sammenligne-desimaltall",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Sammenligne desimaltall",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 6,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 6,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du sammenligne desimaltall. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2351,13 +2477,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvilket er størst: 0,7 eller 0,65?",
+        "model_answer": "A",
         "key_takeaway": "Null på slutten av et desimaltall endrer ikke verdien. Sammenlign sifrenes plassverdi, ikke antall sifre.",
         "worked_example": {
           "explanation": "0,70 = 0,7 og 0,65 er litt mindre enn 0,7.",
           "result": "0,7"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket er størst: 0,7 eller 0,65?» blir «0,7».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2367,11 +2493,11 @@
           "options": [
             {
               "key": "A",
-              "label": "0,7"
+              "label": "0,65"
             },
             {
               "key": "B",
-              "label": "0,65"
+              "label": "0,7"
             },
             {
               "key": "C",
@@ -2382,16 +2508,19 @@
               "label": "0,07"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "0,7",
           "explanation": "0,70 = 0,7 og 0,65 er litt mindre enn 0,7.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g6-sammenligne-desimaltall-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket er størst: 0,7 eller 0,65?",
           "model_answer": "0,70 = 0,7 og 0,65 er litt mindre enn 0,7.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2408,25 +2537,27 @@
           "back": "0,70 = 0,7 og 0,65 er litt mindre enn 0,7."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g6-addere-desimaltall",
       "subject": "matematikk",
       "grade": 6,
-      "sequence": 2,
       "slug": "addere-desimaltall",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Addere desimaltall",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 6,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 6,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du addere desimaltall. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2443,13 +2574,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 2,4 + 1,35?",
+        "model_answer": "A",
         "key_takeaway": "Legg sammen like plassverdier og bruk overslag for å kontrollere. Desimaltegnene skal stå under hverandre i oppstilling.",
         "worked_example": {
           "explanation": "2,40 + 1,35 = 3,75.",
           "result": "3,75"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 2,4 + 1,35?» blir «3,75».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2474,16 +2605,19 @@
               "label": "13,75"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "3,75",
           "explanation": "2,40 + 1,35 = 3,75.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g6-addere-desimaltall-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 2,4 + 1,35?",
           "model_answer": "2,40 + 1,35 = 3,75.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2500,25 +2634,27 @@
           "back": "2,40 + 1,35 = 3,75."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g6-finne-en-prosentdel",
       "subject": "matematikk",
       "grade": 6,
-      "sequence": 3,
       "slug": "finne-en-prosentdel",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Finne en prosentdel",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 6,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 6,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du finne en prosentdel. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2535,13 +2671,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 25 % av 80 kroner?",
+        "model_answer": "A",
         "key_takeaway": "Prosent betyr per hundre. 25 % er det samme som en fjerdedel, og kan regnes med deling på fire.",
         "worked_example": {
           "explanation": "25 % av 80 kroner er 20 kroner.",
           "result": "20 kroner"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 25 % av 80 kroner?» blir «20 kroner».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2551,31 +2687,34 @@
           "options": [
             {
               "key": "A",
-              "label": "20 kroner"
-            },
-            {
-              "key": "B",
               "label": "10 kroner"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "25 kroner"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "40 kroner"
+            },
+            {
+              "key": "D",
+              "label": "20 kroner"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "20 kroner",
           "explanation": "25 % av 80 kroner er 20 kroner.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g6-finne-en-prosentdel-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 25 % av 80 kroner?",
           "model_answer": "25 % av 80 kroner er 20 kroner.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2592,25 +2731,27 @@
           "back": "25 % av 80 kroner er 20 kroner."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g6-volum-av-bokser",
       "subject": "matematikk",
       "grade": 6,
-      "sequence": 4,
       "slug": "volum-av-bokser",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Volum av bokser",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 6,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 6,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du volum av bokser. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2627,13 +2768,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er volumet av en boks med mål 2 × 3 × 4 cm?",
+        "model_answer": "A",
         "key_takeaway": "Volum forteller hvor mye plass en tredimensjonal form tar. Volum av et rektangulært prisme kan regnes som lengde × bredde × høyde.",
         "worked_example": {
           "explanation": "2 × 3 × 4 centimeter gir volum 24 kubikkcentimeter.",
           "result": "24 cm³"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er volumet av en boks med mål 2 × 3 × 4 cm?» blir «24 cm³».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2658,16 +2799,19 @@
               "label": "26 cm³"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "24 cm³",
           "explanation": "2 × 3 × 4 centimeter gir volum 24 kubikkcentimeter.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g6-volum-av-bokser-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er volumet av en boks med mål 2 × 3 × 4 cm?",
           "model_answer": "2 × 3 × 4 centimeter gir volum 24 kubikkcentimeter.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2684,25 +2828,27 @@
           "back": "2 × 3 × 4 centimeter gir volum 24 kubikkcentimeter."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g6-typetall-og-datasett",
       "subject": "matematikk",
       "grade": 6,
-      "sequence": 5,
       "slug": "typetall-og-datasett",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Typetall og datasett",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 6,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 6,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du typetall og datasett. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2719,13 +2865,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er typetallet til tallene 2, 3, 3, 4?",
+        "model_answer": "A",
         "key_takeaway": "Typetall er den verdien som forekommer flest ganger. Det er ikke nødvendigvis den største verdien i datasettet.",
         "worked_example": {
           "explanation": "For 2, 3, 3 og 4 er typetallet 3.",
           "result": "3"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er typetallet til tallene 2, 3, 3, 4?» blir «3».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2735,11 +2881,11 @@
           "options": [
             {
               "key": "A",
-              "label": "3"
+              "label": "2"
             },
             {
               "key": "B",
-              "label": "2"
+              "label": "3"
             },
             {
               "key": "C",
@@ -2750,16 +2896,19 @@
               "label": "12"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "3",
           "explanation": "For 2, 3, 3 og 4 er typetallet 3.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g6-typetall-og-datasett-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er typetallet til tallene 2, 3, 3, 4?",
           "model_answer": "For 2, 3, 3 og 4 er typetallet 3.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2776,25 +2925,27 @@
           "back": "For 2, 3, 3 og 4 er typetallet 3."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g7-brok-til-prosent",
       "subject": "matematikk",
       "grade": 7,
-      "sequence": 1,
       "slug": "brok-til-prosent",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Brøk til prosent",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 7,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 7,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du brøk til prosent. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2811,13 +2962,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 3/4 i prosent?",
+        "model_answer": "A",
         "key_takeaway": "Brøk, desimaltall og prosent kan vise samme andel av en helhet. Kontroller med en figur eller brøk som du kjenner.",
         "worked_example": {
           "explanation": "3/4 = 0,75 = 75 %.",
           "result": "75 %"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 3/4 i prosent?» blir «75 %».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2827,11 +2978,11 @@
           "options": [
             {
               "key": "A",
-              "label": "75 %"
+              "label": "25 %"
             },
             {
               "key": "B",
-              "label": "25 %"
+              "label": "75 %"
             },
             {
               "key": "C",
@@ -2842,16 +2993,19 @@
               "label": "80 %"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "75 %",
           "explanation": "3/4 = 0,75 = 75 %.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g7-brok-til-prosent-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 3/4 i prosent?",
           "model_answer": "3/4 = 0,75 = 75 %.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2868,25 +3022,27 @@
           "back": "3/4 = 0,75 = 75 %."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g7-negative-tall",
       "subject": "matematikk",
       "grade": 7,
-      "sequence": 2,
       "slug": "negative-tall",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Negative tall",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 7,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 7,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du negative tall. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2903,13 +3059,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvilket tall er minst: −5 eller −2?",
+        "model_answer": "A",
         "key_takeaway": "Negative tall ligger til venstre for null. Blant negative tall er det tallet lengst fra null mot venstre minst.",
         "worked_example": {
           "explanation": "På tallinjen ligger −5 til venstre for −2.",
           "result": "−5"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket tall er minst: −5 eller −2?» blir «−5».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -2934,16 +3090,19 @@
               "label": "2"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "−5",
           "explanation": "På tallinjen ligger −5 til venstre for −2.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g7-negative-tall-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket tall er minst: −5 eller −2?",
           "model_answer": "På tallinjen ligger −5 til venstre for −2.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -2960,25 +3119,27 @@
           "back": "På tallinjen ligger −5 til venstre for −2."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g7-regnerekkefolge",
       "subject": "matematikk",
       "grade": 7,
-      "sequence": 3,
       "slug": "regnerekkefolge",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Regnerekkefølge",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 7,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 7,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du regnerekkefølge. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -2995,13 +3156,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 3 + 4 × 2?",
+        "model_answer": "A",
         "key_takeaway": "Parenteser avgjør hva som regnes først. Deretter kommer gange og dele før pluss og minus når ingen parenteser endrer dette.",
         "worked_example": {
           "explanation": "3 + 4 × 2 = 3 + 8 = 11.",
           "result": "11"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 3 + 4 × 2?» blir «11».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3011,11 +3172,11 @@
           "options": [
             {
               "key": "A",
-              "label": "11"
+              "label": "14"
             },
             {
               "key": "B",
-              "label": "14"
+              "label": "11"
             },
             {
               "key": "C",
@@ -3026,16 +3187,19 @@
               "label": "18"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "11",
           "explanation": "3 + 4 × 2 = 3 + 8 = 11.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g7-regnerekkefolge-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 3 + 4 × 2?",
           "model_answer": "3 + 4 × 2 = 3 + 8 = 11.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3052,25 +3216,27 @@
           "back": "3 + 4 × 2 = 3 + 8 = 11."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g7-enkle-likninger",
       "subject": "matematikk",
       "grade": 7,
-      "sequence": 4,
       "slug": "enkle-likninger",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Enkle likninger",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 7,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 7,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du enkle likninger. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3087,13 +3253,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er x hvis x + 7 = 19?",
+        "model_answer": "A",
         "key_takeaway": "En ukjent verdi kan finnes ved å gjøre likeverdige operasjoner på hver side av likhetstegnet. Kontroller ved innsetting.",
         "worked_example": {
           "explanation": "x + 7 = 19 gir x = 12.",
           "result": "12"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er x hvis x + 7 = 19?» blir «12».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3103,31 +3269,34 @@
           "options": [
             {
               "key": "A",
-              "label": "12"
-            },
-            {
-              "key": "B",
               "label": "11"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "13"
+            },
+            {
+              "key": "C",
+              "label": "12"
             },
             {
               "key": "D",
               "label": "26"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "12",
           "explanation": "x + 7 = 19 gir x = 12.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g7-enkle-likninger-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er x hvis x + 7 = 19?",
           "model_answer": "x + 7 = 19 gir x = 12.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3144,25 +3313,27 @@
           "back": "x + 7 = 19 gir x = 12."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g7-enkel-sannsynlighet",
       "subject": "matematikk",
       "grade": 7,
-      "sequence": 5,
       "slug": "enkel-sannsynlighet",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Enkel sannsynlighet",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 7,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 7,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du enkel sannsynlighet. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3179,13 +3350,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er sannsynligheten for å trekke rød fra én rød og tre blå like kuler?",
+        "model_answer": "A",
         "key_takeaway": "Når alle utfall er like sannsynlige, er sannsynlighet antall gunstige utfall delt på antall mulige utfall.",
         "worked_example": {
           "explanation": "Én rød og tre blå like kuler gir sjansen 1/4 for rød.",
           "result": "1/4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er sannsynligheten for å trekke rød fra én rød og tre blå like kuler?» blir «1/4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3195,31 +3366,34 @@
           "options": [
             {
               "key": "A",
-              "label": "1/4"
-            },
-            {
-              "key": "B",
               "label": "1/2"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "3/4"
+            },
+            {
+              "key": "C",
+              "label": "1/4"
             },
             {
               "key": "D",
               "label": "4/4"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "1/4",
           "explanation": "Én rød og tre blå like kuler gir sjansen 1/4 for rød.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g7-enkel-sannsynlighet-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er sannsynligheten for å trekke rød fra én rød og tre blå like kuler?",
           "model_answer": "Én rød og tre blå like kuler gir sjansen 1/4 for rød.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3236,25 +3410,27 @@
           "back": "Én rød og tre blå like kuler gir sjansen 1/4 for rød."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_only"
     },
     {
       "id": "matematikk-g8-primtallsfaktorisering-og-brok",
       "subject": "matematikk",
       "grade": 8,
-      "sequence": 1,
       "slug": "primtallsfaktorisering-og-brok",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Primtallsfaktorisering og brøk",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 8,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 8,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du primtallsfaktorisering og brøk. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3271,13 +3447,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 18/24 forkortet helt?",
+        "model_answer": "A",
         "key_takeaway": "Primtall har bare faktorene 1 og seg selv. Finn felles primtallsfaktorer for å forkorte en brøk så langt som mulig.",
         "worked_example": {
           "explanation": "18 = 2·3·3 og 24 = 2·2·2·3, derfor 18/24 = 3/4.",
           "result": "3/4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 18/24 forkortet helt?» blir «3/4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3287,31 +3463,34 @@
           "options": [
             {
               "key": "A",
-              "label": "3/4"
-            },
-            {
-              "key": "B",
               "label": "9/12"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "6/8"
+            },
+            {
+              "key": "C",
+              "label": "3/4"
             },
             {
               "key": "D",
               "label": "2/3"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "3/4",
           "explanation": "18 = 2·3·3 og 24 = 2·2·2·3, derfor 18/24 = 3/4.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g8-primtallsfaktorisering-og-brok-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 18/24 forkortet helt?",
           "model_answer": "18 = 2·3·3 og 24 = 2·2·2·3, derfor 18/24 = 3/4.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3328,25 +3507,27 @@
           "back": "18 = 2·3·3 og 24 = 2·2·2·3, derfor 18/24 = 3/4."
         }
       ],
-      "is_existing_grade8_pilot": true
+      "existing_grade8_slug_preserved": true,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g8-potenser-og-kvadratrotter",
       "subject": "matematikk",
       "grade": 8,
-      "sequence": 2,
       "slug": "potenser-og-kvadratrotter",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Potenser og kvadratrøtter",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 8,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 8,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du potenser og kvadratrøtter. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3363,13 +3544,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 3³?",
+        "model_answer": "A",
         "key_takeaway": "I en potens er grunntallet faktoren som gjentas. En kvadratrot er et positivt tall som ganget med seg selv gir tallet under rottegnet.",
         "worked_example": {
           "explanation": "3³ = 27 og √81 = 9.",
           "result": "27"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 3³?» blir «27».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3379,11 +3560,11 @@
           "options": [
             {
               "key": "A",
-              "label": "27"
+              "label": "9"
             },
             {
               "key": "B",
-              "label": "9"
+              "label": "27"
             },
             {
               "key": "C",
@@ -3394,16 +3575,19 @@
               "label": "81"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "27",
           "explanation": "3³ = 27 og √81 = 9.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g8-potenser-og-kvadratrotter-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 3³?",
           "model_answer": "3³ = 27 og √81 = 9.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3420,25 +3604,27 @@
           "back": "3³ = 27 og √81 = 9."
         }
       ],
-      "is_existing_grade8_pilot": true
+      "existing_grade8_slug_preserved": true,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g8-algebraiske-uttrykk-og-monstre",
       "subject": "matematikk",
       "grade": 8,
-      "sequence": 3,
       "slug": "algebraiske-uttrykk-og-monstre",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Algebra og mønstre",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 8,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 8,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du algebra og mønstre. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3455,13 +3641,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvor mange brikker har figur 4 når regelen er 2n + 1?",
+        "model_answer": "A",
         "key_takeaway": "Variabler gjør det mulig å beskrive et mønster i én regel. Sett inn et konkret tall i variabelen for å finne et bestemt ledd.",
         "worked_example": {
           "explanation": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker.",
           "result": "9"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvor mange brikker har figur 4 når regelen er 2n + 1?» blir «9».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3471,31 +3657,34 @@
           "options": [
             {
               "key": "A",
-              "label": "9"
-            },
-            {
-              "key": "B",
               "label": "7"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "8"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "12"
+            },
+            {
+              "key": "D",
+              "label": "9"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "9",
           "explanation": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g8-algebraiske-uttrykk-og-monstre-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvor mange brikker har figur 4 når regelen er 2n + 1?",
           "model_answer": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3512,25 +3701,27 @@
           "back": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker."
         }
       ],
-      "is_existing_grade8_pilot": true
+      "existing_grade8_slug_preserved": true,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g8-likninger-og-ulikheter",
       "subject": "matematikk",
       "grade": 8,
-      "sequence": 4,
       "slug": "likninger-og-ulikheter",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Likninger og ulikheter",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 8,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 8,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du likninger og ulikheter. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3547,13 +3738,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er x i 3x + 2 = 14?",
+        "model_answer": "A",
         "key_takeaway": "Likninger beskriver likhet, mens ulikheter beskriver et helt område av mulige tall. Gjør samme operasjon på begge sider av en likning.",
         "worked_example": {
           "explanation": "3x + 2 = 14 gir x = 4.",
           "result": "4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er x i 3x + 2 = 14?» blir «4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3563,31 +3754,34 @@
           "options": [
             {
               "key": "A",
-              "label": "4"
-            },
-            {
-              "key": "B",
               "label": "3"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "5"
+            },
+            {
+              "key": "C",
+              "label": "4"
             },
             {
               "key": "D",
               "label": "12"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "4",
           "explanation": "3x + 2 = 14 gir x = 4.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g8-likninger-og-ulikheter-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er x i 3x + 2 = 14?",
           "model_answer": "3x + 2 = 14 gir x = 4.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3604,25 +3798,27 @@
           "back": "3x + 2 = 14 gir x = 4."
         }
       ],
-      "is_existing_grade8_pilot": true
+      "existing_grade8_slug_preserved": true,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g8-funksjoner-tabeller-og-grafer",
       "subject": "matematikk",
       "grade": 8,
-      "sequence": 5,
       "slug": "funksjoner-tabeller-og-grafer",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Funksjoner og grafer",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 8,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 8,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du funksjoner og grafer. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3639,13 +3835,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er y når y = 2x + 3 og x = 4?",
+        "model_answer": "A",
         "key_takeaway": "En funksjon kan beskrives med uttrykk, tabell og graf. Konstantleddet viser funksjonsverdien når x er null i en lineær funksjon.",
         "worked_example": {
           "explanation": "For y = 2x + 3 gir x = 4 resultatet 11.",
           "result": "11"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er y når y = 2x + 3 og x = 4?» blir «11».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3670,16 +3866,19 @@
               "label": "14"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "11",
           "explanation": "For y = 2x + 3 gir x = 4 resultatet 11.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g8-funksjoner-tabeller-og-grafer-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er y når y = 2x + 3 og x = 4?",
           "model_answer": "For y = 2x + 3 gir x = 4 resultatet 11.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3696,25 +3895,27 @@
           "back": "For y = 2x + 3 gir x = 4 resultatet 11."
         }
       ],
-      "is_existing_grade8_pilot": true
+      "existing_grade8_slug_preserved": true,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g9-fart-og-sammensatte-enheter",
       "subject": "matematikk",
       "grade": 9,
-      "sequence": 1,
       "slug": "fart-og-sammensatte-enheter",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Fart og sammensatte enheter",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 9,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 9,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du fart og sammensatte enheter. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3731,13 +3932,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er farten ved 120 km på 2 timer?",
+        "model_answer": "A",
         "key_takeaway": "En sammensatt enhet kombinerer måleenheter. Fart beskrives som avstand delt på tid og må oppgis med enhet.",
         "worked_example": {
           "explanation": "120 kilometer på to timer er 60 kilometer per time.",
           "result": "60 km/t"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er farten ved 120 km på 2 timer?» blir «60 km/t».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3762,16 +3963,19 @@
               "label": "240 km/t"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "60 km/t",
           "explanation": "120 kilometer på to timer er 60 kilometer per time.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g9-fart-og-sammensatte-enheter-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er farten ved 120 km på 2 timer?",
           "model_answer": "120 kilometer på to timer er 60 kilometer per time.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3788,25 +3992,27 @@
           "back": "120 kilometer på to timer er 60 kilometer per time."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g9-formlikhet-og-kongruens",
       "subject": "matematikk",
       "grade": 9,
-      "sequence": 2,
       "slug": "formlikhet-og-kongruens",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Formlikhet og kongruens",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 9,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 9,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du formlikhet og kongruens. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3823,13 +4029,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvilket ord beskriver to trekanter med sider 3–4–5 og 6–8–10?",
+        "model_answer": "A",
         "key_takeaway": "Formlike figurer har like vinkler og samme forhold mellom tilsvarende sider. Kongruente figurer har i tillegg samme størrelse.",
         "worked_example": {
           "explanation": "Trekanter med sider 3–4–5 og 6–8–10 er formlike, men ikke kongruente.",
           "result": "Formlike"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket ord beskriver to trekanter med sider 3–4–5 og 6–8–10?» blir «Formlike».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3839,31 +4045,34 @@
           "options": [
             {
               "key": "A",
-              "label": "Formlike"
-            },
-            {
-              "key": "B",
               "label": "Kongruente"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "Ulike i form"
+            },
+            {
+              "key": "C",
+              "label": "Formlike"
             },
             {
               "key": "D",
               "label": "Med lik omkrets"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "Formlike",
           "explanation": "Trekanter med sider 3–4–5 og 6–8–10 er formlike, men ikke kongruente.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g9-formlikhet-og-kongruens-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket ord beskriver to trekanter med sider 3–4–5 og 6–8–10?",
           "model_answer": "Trekanter med sider 3–4–5 og 6–8–10 er formlike, men ikke kongruente.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3880,25 +4089,27 @@
           "back": "Trekanter med sider 3–4–5 og 6–8–10 er formlike, men ikke kongruente."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g9-pytagoras",
       "subject": "matematikk",
       "grade": 9,
-      "sequence": 3,
       "slug": "pytagoras",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Pytagoras",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 9,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 9,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du pytagoras. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -3915,13 +4126,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er hypotenusen når katetene er 3 og 4 cm?",
+        "model_answer": "A",
         "key_takeaway": "I rettvinklede trekanter er kvadratet av den lengste siden summen av kvadratene på de korte sidene.",
         "worked_example": {
           "explanation": "3² + 4² = 5² fordi 9 + 16 = 25.",
           "result": "5 cm"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er hypotenusen når katetene er 3 og 4 cm?» blir «5 cm».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -3931,31 +4142,34 @@
           "options": [
             {
               "key": "A",
-              "label": "5 cm"
-            },
-            {
-              "key": "B",
               "label": "6 cm"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "7 cm"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "12 cm"
+            },
+            {
+              "key": "D",
+              "label": "5 cm"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "5 cm",
           "explanation": "3² + 4² = 5² fordi 9 + 16 = 25.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g9-pytagoras-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er hypotenusen når katetene er 3 og 4 cm?",
           "model_answer": "3² + 4² = 5² fordi 9 + 16 = 25.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -3972,25 +4186,27 @@
           "back": "3² + 4² = 5² fordi 9 + 16 = 25."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g9-malestokk",
       "subject": "matematikk",
       "grade": 9,
-      "sequence": 4,
       "slug": "malestokk",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Målestokk",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 9,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 9,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du målestokk. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4007,13 +4223,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva svarer 2 cm til i målestokk 1:100?",
+        "model_answer": "A",
         "key_takeaway": "Målestokk uttrykker forholdet mellom tegning og virkelighet. Sammenlign lengder i samme enhet før omgjøring.",
         "worked_example": {
           "explanation": "Ved målestokk 1:100 betyr 2 cm på tegningen 2 m i virkeligheten.",
           "result": "2 m"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva svarer 2 cm til i målestokk 1:100?» blir «2 m».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4023,31 +4239,34 @@
           "options": [
             {
               "key": "A",
-              "label": "2 m"
-            },
-            {
-              "key": "B",
               "label": "20 cm"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "20 m"
+            },
+            {
+              "key": "C",
+              "label": "2 m"
             },
             {
               "key": "D",
               "label": "200 m"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "2 m",
           "explanation": "Ved målestokk 1:100 betyr 2 cm på tegningen 2 m i virkeligheten.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g9-malestokk-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva svarer 2 cm til i målestokk 1:100?",
           "model_answer": "Ved målestokk 1:100 betyr 2 cm på tegningen 2 m i virkeligheten.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4064,25 +4283,27 @@
           "back": "Ved målestokk 1:100 betyr 2 cm på tegningen 2 m i virkeligheten."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g9-gjennomsnitt-og-diagramkritikk",
       "subject": "matematikk",
       "grade": 9,
-      "sequence": 5,
       "slug": "gjennomsnitt-og-diagramkritikk",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Gjennomsnitt og diagramkritikk",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 9,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 9,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du gjennomsnitt og diagramkritikk. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4099,13 +4320,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er gjennomsnittet av 2, 4 og 6?",
+        "model_answer": "A",
         "key_takeaway": "Et gjennomsnitt finnes ved å summere tallene og dele på antall tall. En avkuttet akse i et diagram kan overdrive inntrykket.",
         "worked_example": {
           "explanation": "Gjennomsnittet av 2, 4 og 6 er 4.",
           "result": "4"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er gjennomsnittet av 2, 4 og 6?» blir «4».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4115,31 +4336,34 @@
           "options": [
             {
               "key": "A",
-              "label": "4"
-            },
-            {
-              "key": "B",
               "label": "3"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "6"
             },
             {
-              "key": "D",
+              "key": "C",
               "label": "12"
+            },
+            {
+              "key": "D",
+              "label": "4"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "D",
+          "correct_answer": "4",
           "explanation": "Gjennomsnittet av 2, 4 og 6 er 4.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g9-gjennomsnitt-og-diagramkritikk-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er gjennomsnittet av 2, 4 og 6?",
           "model_answer": "Gjennomsnittet av 2, 4 og 6 er 4.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4156,25 +4380,27 @@
           "back": "Gjennomsnittet av 2, 4 og 6 er 4."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g10-algebraiske-regneregler",
       "subject": "matematikk",
       "grade": 10,
-      "sequence": 1,
       "slug": "algebraiske-regneregler",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Algebraiske regneregler",
-      "domain": "tall-og-regnearter",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 10,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 10,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du algebraiske regneregler. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4191,13 +4417,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er 3(x + 2) − x forenklet til?",
+        "model_answer": "A",
         "key_takeaway": "Distributivitet betyr å gange inn i hvert ledd i en parentes. Trekk sammen like ledd etterpå.",
         "worked_example": {
           "explanation": "3(x + 2) − x = 2x + 6.",
           "result": "2x + 6"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er 3(x + 2) − x forenklet til?» blir «2x + 6».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4222,16 +4448,19 @@
               "label": "4x + 6"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "A",
+          "correct_answer": "2x + 6",
           "explanation": "3(x + 2) − x = 2x + 6.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g10-algebraiske-regneregler-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er 3(x + 2) − x forenklet til?",
           "model_answer": "3(x + 2) − x = 2x + 6.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4248,25 +4477,27 @@
           "back": "3(x + 2) − x = 2x + 6."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g10-kvadratsetninger",
       "subject": "matematikk",
       "grade": 10,
-      "sequence": 2,
       "slug": "kvadratsetninger",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Kvadratsetninger",
-      "domain": "algebra-og-monstre",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 10,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 10,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du kvadratsetninger. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4283,13 +4514,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er (x + 3)²?",
+        "model_answer": "A",
         "key_takeaway": "Når du kvadrerer en sum, er det tre ledd: kvadratet av første, dobbeltproduktet og kvadratet av siste.",
         "worked_example": {
           "explanation": "(x + 3)² = x² + 6x + 9.",
           "result": "x² + 6x + 9"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er (x + 3)²?» blir «x² + 6x + 9».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4299,11 +4530,11 @@
           "options": [
             {
               "key": "A",
-              "label": "x² + 6x + 9"
+              "label": "x² + 9"
             },
             {
               "key": "B",
-              "label": "x² + 9"
+              "label": "x² + 6x + 9"
             },
             {
               "key": "C",
@@ -4314,16 +4545,19 @@
               "label": "x² + 6"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "B",
+          "correct_answer": "x² + 6x + 9",
           "explanation": "(x + 3)² = x² + 6x + 9.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g10-kvadratsetninger-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er (x + 3)²?",
           "model_answer": "(x + 3)² = x² + 6x + 9.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4340,25 +4574,27 @@
           "back": "(x + 3)² = x² + 6x + 9."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g10-ligningssett",
       "subject": "matematikk",
       "grade": 10,
-      "sequence": 3,
       "slug": "ligningssett",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Ligningssett",
-      "domain": "geometri-og-maling",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 10,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 10,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du ligningssett. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4375,13 +4611,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hvilket tallpar oppfyller x + y = 10 og x − y = 2?",
+        "model_answer": "A",
         "key_takeaway": "Et ligningssett består av flere likninger med samme ukjente. En riktig løsning må passe i alle likningene.",
         "worked_example": {
           "explanation": "x + y = 10 og x − y = 2 gir x = 6 og y = 4.",
           "result": "(6, 4)"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hvilket tallpar oppfyller x + y = 10 og x − y = 2?» blir «(6, 4)».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4391,31 +4627,34 @@
           "options": [
             {
               "key": "A",
-              "label": "(6, 4)"
-            },
-            {
-              "key": "B",
               "label": "(4, 6)"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "(5, 5)"
+            },
+            {
+              "key": "C",
+              "label": "(6, 4)"
             },
             {
               "key": "D",
               "label": "(7, 2)"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "(6, 4)",
           "explanation": "x + y = 10 og x − y = 2 gir x = 6 og y = 4.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g10-ligningssett-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hvilket tallpar oppfyller x + y = 10 og x − y = 2?",
           "model_answer": "x + y = 10 og x − y = 2 gir x = 6 og y = 4.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4432,25 +4671,27 @@
           "back": "x + y = 10 og x − y = 2 gir x = 6 og y = 4."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g10-lineaere-funksjoner",
       "subject": "matematikk",
       "grade": 10,
-      "sequence": 4,
       "slug": "lineaere-funksjoner",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Lineære funksjoner",
-      "domain": "statistikk-og-sannsynlighet",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 10,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 10,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du lineære funksjoner. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4467,13 +4708,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva er stigningstallet i y = 3x + 2?",
+        "model_answer": "A",
         "key_takeaway": "En lineær funksjon endres like mye hver gang x øker med én. Stigningstallet viser endring per x-enhet.",
         "worked_example": {
           "explanation": "y = 3x + 2 øker med 3 for hvert steg x øker.",
           "result": "3"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva er stigningstallet i y = 3x + 2?» blir «3».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4483,31 +4724,34 @@
           "options": [
             {
               "key": "A",
-              "label": "3"
-            },
-            {
-              "key": "B",
               "label": "2"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "5"
+            },
+            {
+              "key": "C",
+              "label": "3"
             },
             {
               "key": "D",
               "label": "6"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "3",
           "explanation": "y = 3x + 2 øker med 3 for hvert steg x øker.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g10-lineaere-funksjoner-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva er stigningstallet i y = 3x + 2?",
           "model_answer": "y = 3x + 2 øker med 3 for hvert steg x øker.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4524,25 +4768,27 @@
           "back": "y = 3x + 2 øker med 3 for hvert steg x øker."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
       "id": "matematikk-g10-prosentvis-endring",
       "subject": "matematikk",
       "grade": 10,
-      "sequence": 5,
       "slug": "prosentvis-endring",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
+      "locale": "nb",
       "title": "Prosentvis endring",
-      "domain": "funksjoner-og-modellering",
       "curriculum": {
         "code": "MAT01-06",
-        "official_checkpoint_after": 10,
-        "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
-        "individual_competence_goal_status": "requires_editorial_crosswalk"
+        "official_checkpoint_after_grade": 10,
+        "competence_goal_source_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+        "lesson_specific_goal_crosswalk": "unverified",
+        "topic_sequence_type": "local_sequence_at_checkpoint"
       },
-      "status": "draft",
-      "lesson_version": 1,
-      "locale": "nb",
       "article": {
         "intro": "I dette temaet undersøker du prosentvis endring. Du skal kunne forklare tankegangen bak svaret ditt, ikke bare gjette det riktige tallet.",
         "sections": [
@@ -4559,13 +4805,13 @@
             "text": "Se hvordan ideen i eksemplet kan brukes på et nytt tall eller en ny situasjon. Kontroller resultatet med en annen representasjon, et overslag eller ved å sette svaret inn igjen."
           }
         ],
+        "comprehension_check": "Hva blir 200 kr etter 20 prosent økning?",
+        "model_answer": "A",
         "key_takeaway": "Vekstfaktoren ved 20 prosent økning er 1,20, mens ved 20 prosent reduksjon er 0,80.",
         "worked_example": {
           "explanation": "200 kr økt med 20 prosent er 240 kr.",
           "result": "240 kr"
-        },
-        "reflection_prompt": "Forklar med egne ord hvorfor svaret på spørsmålet «Hva blir 200 kr etter 20 prosent økning?» blir «240 kr».",
-        "text_status": "original_editorial_draft"
+        }
       },
       "practice": [
         {
@@ -4575,31 +4821,34 @@
           "options": [
             {
               "key": "A",
-              "label": "240 kr"
-            },
-            {
-              "key": "B",
               "label": "220 kr"
             },
             {
-              "key": "C",
+              "key": "B",
               "label": "160 kr"
+            },
+            {
+              "key": "C",
+              "label": "240 kr"
             },
             {
               "key": "D",
               "label": "260 kr"
             }
           ],
-          "correct_option": "A",
+          "correct_key": "C",
+          "correct_answer": "240 kr",
           "explanation": "200 kr økt med 20 prosent er 240 kr.",
-          "scoring": "deterministic"
+          "source": "original_editorial",
+          "review_status": "draft"
         },
         {
           "id": "matematikk-g10-prosentvis-endring-q2",
-          "type": "explain",
+          "type": "open_response",
           "question": "Vis med egne ord eller en tegning hvordan du vil løse: Hva blir 200 kr etter 20 prosent økning?",
           "model_answer": "200 kr økt med 20 prosent er 240 kr.",
-          "assessment": "human_or_feedback_only"
+          "grading": "human_feedback_required",
+          "requires_human_review": true
         }
       ],
       "flashcards": [
@@ -4616,7 +4865,8 @@
           "back": "200 kr økt med 20 prosent er 240 kr."
         }
       ],
-      "is_existing_grade8_pilot": false
+      "existing_grade8_slug_preserved": false,
+      "assessment_mode": "formative_plus_non_official_mock_assessment"
     }
   ]
 }
