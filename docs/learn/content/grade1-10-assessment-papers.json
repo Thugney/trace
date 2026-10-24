@@ -1,7 +1,7 @@
 {
-  "schema_version": "1.0.0",
-  "description": "Fifty complete, keyed subject-review paper drafts (Grades1–10). No official grades. Existing Grade 8 exam data preserved; import as optional supplemental formative reviews.",
-  "status": "draft_review_required",
+  "schema_version": "1.1.0",
+  "description": "50 formative subject-review paper drafts, generated from final normalized topic answer keys; no authorized numerical grade",
+  "review_status": "draft",
   "subjects": [
     "matematikk",
     "norsk",
@@ -27,7 +27,7 @@
       "duration_minutes": 15,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g1-telle-og-antall-assessment-MC",
@@ -231,10 +231,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -256,7 +256,7 @@
       "duration_minutes": 15,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g2-tiere-og-enere-assessment-MC",
@@ -460,10 +460,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -485,7 +485,7 @@
       "duration_minutes": 15,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 3,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g3-ganging-som-grupper-assessment-MC",
@@ -689,10 +689,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -714,7 +714,7 @@
       "duration_minutes": 25,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g4-ganging-med-oppdeling-assessment-MC",
@@ -918,10 +918,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -943,7 +943,7 @@
       "duration_minutes": 25,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 5,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g5-brok-og-prosent-assessment-MC",
@@ -1147,10 +1147,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -1172,7 +1172,7 @@
       "duration_minutes": 25,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 6,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g6-sammenligne-desimaltall-assessment-MC",
@@ -1376,10 +1376,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -1401,7 +1401,7 @@
       "duration_minutes": 25,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "matematikk-g7-brok-til-prosent-assessment-MC",
@@ -1605,10 +1605,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -1630,7 +1630,7 @@
       "duration_minutes": 40,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 8,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "matematikk-g8-primtallsfaktorisering-og-brok-assessment-MC",
@@ -1834,10 +1834,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -1859,7 +1859,7 @@
       "duration_minutes": 40,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 9,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "matematikk-g9-fart-og-sammensatte-enheter-assessment-MC",
@@ -2063,10 +2063,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -2088,7 +2088,7 @@
       "duration_minutes": 40,
       "curriculum_code": "MAT01-06",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "matematikk-g10-algebraiske-regneregler-assessment-MC",
@@ -2292,10 +2292,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -2317,7 +2317,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g1-bokstaver-og-lyder-assessment-MC",
@@ -2521,10 +2521,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -2546,7 +2546,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g2-trekke-lyder-sammen-assessment-MC",
@@ -2750,10 +2750,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -2775,7 +2775,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g3-gjenfortelle-med-rekkefolge-assessment-MC",
@@ -2979,10 +2979,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -3004,7 +3004,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g4-lesestrategier-assessment-MC",
@@ -3208,10 +3208,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -3233,7 +3233,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g5-fortelling-og-synsvinkel-assessment-MC",
@@ -3437,10 +3437,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -3462,7 +3462,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g6-tema-og-budskap-assessment-MC",
@@ -3666,10 +3666,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -3691,7 +3691,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "norsk-g7-lese-mellom-linjene-assessment-MC",
@@ -3895,10 +3895,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -3920,7 +3920,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "norsk-g8-argumenterende-tekst-assessment-MC",
@@ -4124,10 +4124,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -4149,7 +4149,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "norsk-g9-tolke-skjonnlitteratur-assessment-MC",
@@ -4353,10 +4353,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -4378,7 +4378,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NOR01-08",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "norsk-g10-sammenligne-tekster-assessment-MC",
@@ -4582,10 +4582,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -4607,7 +4607,7 @@
       "duration_minutes": 15,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g1-colours-around-us-assessment-MC",
@@ -4811,10 +4811,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -4836,7 +4836,7 @@
       "duration_minutes": 15,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g2-introduce-yourself-assessment-MC",
@@ -5040,10 +5040,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -5065,7 +5065,7 @@
       "duration_minutes": 15,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g3-daily-routines-assessment-MC",
@@ -5269,10 +5269,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -5294,7 +5294,7 @@
       "duration_minutes": 25,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g4-past-events-assessment-MC",
@@ -5498,10 +5498,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -5523,7 +5523,7 @@
       "duration_minutes": 25,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g5-write-a-paragraph-assessment-MC",
@@ -5727,10 +5727,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -5752,7 +5752,7 @@
       "duration_minutes": 25,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g6-asking-follow-up-questions-assessment-MC",
@@ -5956,10 +5956,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -5981,7 +5981,7 @@
       "duration_minutes": 25,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "engelsk-g7-clear-explanations-assessment-MC",
@@ -6185,10 +6185,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -6210,7 +6210,7 @@
       "duration_minutes": 40,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "engelsk-g8-formal-and-informal-language-assessment-MC",
@@ -6414,10 +6414,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -6439,7 +6439,7 @@
       "duration_minutes": 40,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "engelsk-g9-persuasive-writing-assessment-MC",
@@ -6643,10 +6643,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -6668,7 +6668,7 @@
       "duration_minutes": 40,
       "curriculum_code": "ENG01-06",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "engelsk-g10-building-an-argument-assessment-MC",
@@ -6872,10 +6872,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -6897,7 +6897,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g1-sansene-vare-assessment-MC",
@@ -7101,10 +7101,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -7126,7 +7126,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g2-levende-og-ikke-levende-assessment-MC",
@@ -7330,10 +7330,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -7355,7 +7355,7 @@
       "duration_minutes": 15,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g3-stoffer-rundt-oss-assessment-MC",
@@ -7559,10 +7559,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -7584,7 +7584,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g4-hypotese-og-undersokelse-assessment-MC",
@@ -7788,10 +7788,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -7813,7 +7813,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g5-naeringskjeder-assessment-MC",
@@ -8017,10 +8017,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -8042,7 +8042,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g6-okosystem-og-samspill-assessment-MC",
@@ -8246,10 +8246,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -8271,7 +8271,7 @@
       "duration_minutes": 25,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "naturfag-g7-variabler-og-hypoteser-assessment-MC",
@@ -8475,10 +8475,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -8500,7 +8500,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "naturfag-g8-celler-assessment-MC",
@@ -8704,10 +8704,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -8729,7 +8729,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "naturfag-g9-genetikk-og-arv-assessment-MC",
@@ -8933,10 +8933,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -8958,7 +8958,7 @@
       "duration_minutes": 40,
       "curriculum_code": "NAT01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "naturfag-g10-evolusjon-og-biologisk-mangfold-assessment-MC",
@@ -9162,10 +9162,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -9187,7 +9187,7 @@
       "duration_minutes": 15,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g1-familie-og-fellesskap-assessment-MC",
@@ -9391,10 +9391,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -9416,7 +9416,7 @@
       "duration_minutes": 15,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 2,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g2-hvem-er-jeg-assessment-MC",
@@ -9620,10 +9620,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -9645,7 +9645,7 @@
       "duration_minutes": 15,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g3-historie-i-familien-og-naermiljoet-assessment-MC",
@@ -9849,10 +9849,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -9874,7 +9874,7 @@
       "duration_minutes": 25,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 4,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g4-norge-pa-kartet-assessment-MC",
@@ -10078,10 +10078,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -10103,7 +10103,7 @@
       "duration_minutes": 25,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g5-samisk-historie-og-kultur-assessment-MC",
@@ -10307,10 +10307,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -10332,7 +10332,7 @@
       "duration_minutes": 25,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g6-migrasjon-og-tilhorighet-assessment-MC",
@@ -10536,10 +10536,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -10561,7 +10561,7 @@
       "duration_minutes": 25,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 7,
-      "instructions": "Dette er læringsøving. Forklar hva du kan, og se hva du vil øve mer på. Ingen tallkarakter gis.",
+      "instructions": "Øv, forklar og reflekter over hva du har lært. Du får tilbakemelding, ingen tallkarakter.",
       "questions": [
         {
           "id": "samfunnsfag-g7-globalisering-og-avhengighet-assessment-MC",
@@ -10765,10 +10765,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "Primary grades 1–7 must not receive numeric school grade labels.",
+        "reason": "No numerical school grades for grades 1–7.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -10790,7 +10790,7 @@
       "duration_minutes": 40,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "samfunnsfag-g8-demokrati-og-medvirkning-assessment-MC",
@@ -10994,10 +10994,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -11019,7 +11019,7 @@
       "duration_minutes": 40,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "samfunnsfag-g9-okonomi-skatt-og-velferd-assessment-MC",
@@ -11223,10 +11223,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
@@ -11248,7 +11248,7 @@
       "duration_minutes": 40,
       "curriculum_code": "SAF01-05",
       "checkpoint_after_grade": 10,
-      "instructions": "Dette er en øvingsprøve, ikke en offisiell skoleprøve. Vis forståelse og begrunn svar.",
+      "instructions": "Dette er en egen øvingsprøve med tilbakemelding, ikke en skoleprøve. En karakter krever kalibrerte vurderingskriterier.",
       "questions": [
         {
           "id": "samfunnsfag-g10-menneskerettigheter-og-rettsstat-assessment-MC",
@@ -11452,10 +11452,10 @@
         "max_raw_points": 15,
         "authoritative_udir_grading_scheme": false,
         "numeric_grade_allowed": false,
-        "reason": "This small, nonvalidated paper has only five locally curated topic themes and five manual-response items; numeric estimate withheld pending educator calibration.",
+        "reason": "Uncalibrated short 5-topic paper with open responses requiring human review. No automated grade.",
         "learner_feedback": [
           "What was correct?",
-          "Which explanation needs improvement?",
+          "What explanation needs work?",
           "Which topic to revise next?"
         ]
       }
