@@ -25,8 +25,11 @@ import shoppingRoutes from './routes/shopping';
 import activitiesRoutes from './routes/activities';
 import h5pRoutes from './routes/h5p';
 import familiesRoutes from './routes/families';
+import learnRoutes from './routes/learn';
 import { initScheduler } from './services/scheduler';
 import { ensureAuthSessionSchema } from './services/authSessions';
+import { ensureLearnSchema } from './services/learn/schema';
+import { seedLearnCatalog } from './services/learn/catalog';
 import { migrateLegacyParentPin, migrateLegacyProfileCredentials } from './services/credentials';
 
 dotenv.config();
@@ -79,6 +82,14 @@ try {
   console.error('Credential migration error:', error.message);
 }
 
+// FamilyHub Learn: additive schema + idempotent reviewed-content library seed
+try {
+  ensureLearnSchema();
+  seedLearnCatalog();
+} catch (error: any) {
+  console.error('Learn initialization error:', error.message);
+}
+
 // Routes
 app.use('/api/profiles', profileRoutes);
 app.use('/api/diet', dietRoutes);
@@ -100,6 +111,7 @@ app.use('/api/shopping', shoppingRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/h5p', h5pRoutes);
 app.use('/api/families', familiesRoutes);
+app.use('/api/learn', learnRoutes);
 
 // Initialize scheduler after database
 initScheduler();

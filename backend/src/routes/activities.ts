@@ -21,6 +21,7 @@ import {
 import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { awardPoints } from '../services/economyControl';
+import { isRepeatLearnPracticeCompletion } from '../services/learn/practice';
 
 const router = Router();
 
@@ -882,6 +883,14 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       passed ? 1 : 0, competitionRank, competitionBonus, attemptId
     );
 
+    // FamilyHub Learn practice: only the first passed attempt earns economy points
+    const isRepeatLearnPractice = isRepeatLearnPracticeCompletion(attempt.session_id, attempt.profile_id, Number(attemptId));
+    if (isRepeatLearnPractice) {
+      pointsEarned = 0;
+      starsEarned = 0;
+      db.prepare('UPDATE session_attempts SET points_earned = 0, stars_earned = 0 WHERE id = ?').run(attemptId);
+    }
+
     // Award progress points using centralized economy-controlled system
     if (pointsEarned > 0 || starsEarned > 0) {
       const awardResult = awardPoints({
@@ -899,9 +908,9 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       }
     }
 
-    // Notify parent
+    // Notify parent (not for repeated Learn practice)
     const child: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(attempt.profile_id);
-    sendPushNotification(attempt.created_by, {
+    if (!isRepeatLearnPractice) sendPushNotification(attempt.created_by, {
       type: 'learning_completed' as any,
       title: passed ? 'Great Learning!' : 'Session Completed',
       message: `${child?.name || 'Your child'} scored ${scorePercentage}% on ${attempt.title}!`,
