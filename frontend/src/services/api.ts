@@ -28,6 +28,21 @@ import type {
   Notification
 } from '../types';
 
+import type {
+  LearnAssignment,
+  LearnerProgress,
+  LearnFlashcard,
+  LearnLesson,
+  LearnStatus,
+  LearnSubject,
+  MockAttemptResult,
+  MockAttemptStart,
+  MockExamInfo,
+  PracticeResult,
+  ReviewQueue,
+  TutorReply
+} from '../types/learn';
+
 export type { Reward, RewardClaim };
 
 // Use relative path for production (nginx proxy) or explicit URL for development
@@ -473,7 +488,7 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin }),
-  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean }>('/settings/features/flags'),
+  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean; school_only_allowed_features?: string[] }>('/settings/features/flags'),
 
   // Ollama management
   getOllamaStatus: () => api.get<OllamaStatus>('/settings/ollama/status'),
@@ -2797,3 +2812,50 @@ export const h5pAPI = {
 };
 
 export default api;
+
+// FamilyHub Learn (LK20 lessons, practice, mock exams)
+export const learnAPI = {
+  getStatus: () => api.get<LearnStatus>('/learn/status'),
+  setFamilyEnabled: (enabled: boolean) =>
+    api.put<{ enabled: boolean; family_heads: number }>('/learn/family/settings', { enabled }),
+
+  getCatalog: (grade = 8) => api.get<{ grade: number; subjects: LearnSubject[] }>('/learn/catalog', { params: { grade } }),
+  getLesson: (lessonId: number) => api.get<LearnLesson>(`/learn/lessons/${lessonId}`),
+  markRead: (lessonId: number) => api.post<{ ok: boolean }>(`/learn/lessons/${lessonId}/read`),
+  preparePractice: (lessonId: number) =>
+    api.post<{ session_id: number; result: PracticeResult | null }>(`/learn/lessons/${lessonId}/practice`),
+
+  getFlashcards: (lessonId: number) => api.get<{ lesson_id: number; cards: LearnFlashcard[] }>(`/learn/lessons/${lessonId}/flashcards`),
+  reviewFlashcard: (lessonId: number, cardKey: string, rating: 'known' | 'missed') =>
+    api.post<{ card_key: string; box: number; next_due_at: string }>(
+      `/learn/lessons/${lessonId}/flashcards/${encodeURIComponent(cardKey)}/review`, { rating }
+    ),
+  createCard: (lessonId: number, data: { front: string; back: string; forked_from_card_key?: string }) =>
+    api.post(`/learn/lessons/${lessonId}/cards`, data),
+  updateCard: (cardId: number, data: { front?: string; back?: string }) => api.put(`/learn/cards/${cardId}`, data),
+  deleteCard: (cardId: number) => api.delete(`/learn/cards/${cardId}`),
+
+  getMyProgress: () => api.get<LearnerProgress>('/learn/me/progress'),
+  getChildProgress: (childId: number) => api.get<LearnerProgress>(`/learn/children/${childId}/progress`),
+
+  getAssignments: () => api.get<LearnAssignment[]>('/learn/assignments'),
+  createAssignment: (data: { child_id: number; lesson_id?: number; mock_exam_id?: number; due_at?: string; note?: string; idempotency_key: string }) =>
+    api.post<LearnAssignment>('/learn/assignments', data),
+  cancelAssignment: (assignmentId: number) => api.patch<LearnAssignment>(`/learn/assignments/${assignmentId}`, { state: 'cancelled' }),
+
+  getMockExam: (examId: number) => api.get<MockExamInfo>(`/learn/mock-exams/${examId}`),
+  startMockExam: (examId: number) => api.post<MockAttemptStart>(`/learn/mock-exams/${examId}/start`),
+  submitMockAttempt: (attemptId: number, responses: Record<string, string>) =>
+    api.post<MockAttemptResult>(`/learn/mock-attempts/${attemptId}/submit`, { responses }),
+  getMockAttempt: (attemptId: number) => api.get<MockAttemptResult>(`/learn/mock-attempts/${attemptId}`),
+
+  askTutor: (lessonId: number, question: string) => api.post<TutorReply>('/learn/tutor', { lesson_id: lessonId, question }),
+
+  getReviewQueue: () => api.get<ReviewQueue>('/learn/admin/review-queue'),
+  reviewLesson: (lessonId: number, status: 'draft' | 'reviewed' | 'retired', notes?: string) =>
+    api.post(`/learn/lessons/${lessonId}/review`, { status, notes }),
+  reviewMockExam: (examId: number, status: 'draft' | 'reviewed' | 'retired') =>
+    api.post(`/learn/mock-exams/${examId}/review`, { status }),
+  verifyGoal: (goalId: number, data: { official_goal_ref?: string; source_url?: string }) =>
+    api.post(`/learn/goals/${goalId}/verify`, data)
+};

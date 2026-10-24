@@ -116,7 +116,7 @@ export type SubjectFixture = {
 };
 
 export const CURRICULUM_REVISION = 'LK20';
-export const AUTHORED_BY = 'FamilyHub Learn (AI-assisted draft, awaiting human review)';
+export const AUTHORED_BY = 'FamilyHub Learn (AI-assisted draft)';
 
 // Shared, deterministic grade bands for the indicative 1-6 estimate.
 const GRADE_BANDS = [
