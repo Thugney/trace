@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { h5pAPI } from '../services/api';
+import { h5pAPI, profilesAPI } from '../services/api';
 import { Loader2, AlertCircle, Award, RotateCcw, Star, Trophy, X } from 'lucide-react';
 
 interface H5PPlayerProps {
@@ -59,7 +59,7 @@ function serializeForInlineScript(value: unknown): string {
     .replace(/\u2029/g, '\\u2029');
 }
 
-function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null): string {
+function buildH5PSrcDoc(player: PlayerData['player'], accessToken: string | null): string {
   const styles = (player.styles || [])
     .map((styleUrl) => `<link rel="stylesheet" href="${escapeHtmlAttribute(styleUrl)}" />`)
     .join('\n');
@@ -67,7 +67,7 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
     .map((scriptUrl) => `<script src="${escapeHtmlAttribute(scriptUrl)}"></script>`)
     .join('\n');
   const integration = serializeForInlineScript(player.integration || {});
-  const serializedProfileId = serializeForInlineScript(profileId || '');
+  const serializedAccessToken = serializeForInlineScript(accessToken || '');
 
   return `<!doctype html>
 <html lang="en">
@@ -106,10 +106,11 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
 
   <script>
     (function () {
-      var profileId = ${serializedProfileId};
+      // Short-lived signed stream token (never the long-lived session token)
+      var accessToken = ${serializedAccessToken};
 
       function appendProfileAuth(input) {
-        if (!profileId || !input) {
+        if (!accessToken || !input) {
           return input;
         }
 
@@ -119,8 +120,8 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
             return input;
           }
 
-          if (!url.searchParams.has('profile_id')) {
-            url.searchParams.set('profile_id', profileId);
+          if (!url.searchParams.has('access_token')) {
+            url.searchParams.set('access_token', accessToken);
           }
 
           return url.pathname + url.search + url.hash;
@@ -129,41 +130,26 @@ function buildH5PSrcDoc(player: PlayerData['player'], profileId: string | null):
         }
       }
 
-      if (profileId && window.XMLHttpRequest) {
+      if (accessToken && window.XMLHttpRequest) {
         var originalOpen = XMLHttpRequest.prototype.open;
-        var originalSend = XMLHttpRequest.prototype.send;
 
         XMLHttpRequest.prototype.open = function (method, url) {
           return originalOpen.apply(this, [method, appendProfileAuth(url)].concat(Array.prototype.slice.call(arguments, 2)));
         };
-
-        XMLHttpRequest.prototype.send = function (body) {
-          try {
-            this.setRequestHeader('x-profile-id', profileId);
-          } catch (error) {
-            // Ignore requests that do not allow custom headers.
-          }
-          return originalSend.call(this, body);
-        };
       }
 
-      if (profileId && window.fetch) {
+      if (accessToken && window.fetch) {
         var originalFetch = window.fetch.bind(window);
         window.fetch = function (input, init) {
-          var nextInit = init ? Object.assign({}, init) : {};
-          var headers = new Headers(nextInit.headers || {});
-          headers.set('x-profile-id', profileId);
-          nextInit.headers = headers;
-
           if (typeof input === 'string') {
-            return originalFetch(appendProfileAuth(input), nextInit);
+            return originalFetch(appendProfileAuth(input), init);
           }
 
           if (input instanceof URL) {
-            return originalFetch(appendProfileAuth(input.toString()), nextInit);
+            return originalFetch(appendProfileAuth(input.toString()), init);
           }
 
-          return originalFetch(input, nextInit);
+          return originalFetch(input, init);
         };
       }
 
@@ -329,6 +315,7 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [result, setResult] = useState<CompletionResult | null>(null);
@@ -442,7 +429,11 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
       setResult(null);
       setFrameHeight(DEFAULT_FRAME_HEIGHT);
 
-      const response = await h5pAPI.getPlayerData(contentId);
+      const [response, streamToken] = await Promise.all([
+        h5pAPI.getPlayerData(contentId),
+        profilesAPI.getStreamToken()
+      ]);
+      setAccessToken(streamToken.data.token);
       setPlayerData(response.data);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || 'Failed to load content';
@@ -458,12 +449,8 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
       return '';
     }
 
-    const currentProfileId = typeof window !== 'undefined'
-      ? window.localStorage.getItem('currentProfileId')
-      : null;
-
-    return buildH5PSrcDoc(playerData.player, currentProfileId);
-  }, [playerData]);
+    return buildH5PSrcDoc(playerData.player, accessToken);
+  }, [playerData, accessToken]);
 
   const handleRetry = () => {
     loadContent();

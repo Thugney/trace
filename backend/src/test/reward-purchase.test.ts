@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import rewardsRoutes from '../routes/rewards.js';
-import { createTestProfile, createTestProgress } from './helpers.js';
+import { createTestProfile, createTestProgress, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 function createRewardsApp() {
@@ -50,7 +50,7 @@ describe('reward purchases', () => {
 
     const purchaseResponse = await request(app)
       .post(`/api/rewards/${rewardId}/purchase`)
-      .set('x-profile-id', String(child.id))
+      .set(authHeaders(child.id))
       .send({
         profileId: child.id,
         starsToSpend: 3
@@ -76,7 +76,7 @@ describe('reward purchases', () => {
 
     const rejectResponse = await request(app)
       .put(`/api/rewards/claims/${purchaseResponse.body.claim.id}/status`)
-      .set('x-profile-id', String(parent.id))
+      .set(authHeaders(parent.id))
       .send({
         status: 'rejected',
         notes: 'Try a different reward'

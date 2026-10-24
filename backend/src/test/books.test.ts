@@ -2,7 +2,7 @@ import path from 'path';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 let booksRouter: express.Router;
@@ -59,7 +59,7 @@ describe('Books API', () => {
 
     const response = await request(app)
       .get(`/api/books/generation-instructions/${parentB.id}`)
-      .set('x-profile-id', String(parentA.id));
+      .set(authHeaders(parentA.id));
 
     expect(response.status).toBe(403);
   });
@@ -69,7 +69,7 @@ describe('Books API', () => {
 
     const saveResponse = await request(app)
       .put(`/api/books/generation-instructions/${parent.id}`)
-      .set('x-profile-id', String(parent.id))
+      .set(authHeaders(parent.id))
       .send({ instructions: 'Use short sentences and gentle endings.' });
 
     expect(saveResponse.status).toBe(200);
@@ -77,7 +77,7 @@ describe('Books API', () => {
 
     const getResponse = await request(app)
       .get(`/api/books/generation-instructions/${parent.id}`)
-      .set('x-profile-id', String(parent.id));
+      .set(authHeaders(parent.id));
 
     expect(getResponse.status).toBe(200);
     expect(getResponse.body.instructions).toBe('Use short sentences and gentle endings.');
@@ -89,7 +89,7 @@ describe('Books API', () => {
 
     const response = await request(app)
       .post('/api/books/ai-generate')
-      .set('x-profile-id', String(parentA.id))
+      .set(authHeaders(parentA.id))
       .send({
         prompt: 'A bedtime story about a fox learning patience.',
         createdBy: parentB.id,
@@ -112,7 +112,7 @@ describe('Books API', () => {
 
     const allowedResponse = await request(app)
       .get(`/api/books/profile/${child.id}`)
-      .set('x-profile-id', String(parent.id));
+      .set(authHeaders(parent.id));
 
     expect(allowedResponse.status).toBe(200);
     expect(allowedResponse.body).toHaveLength(1);
@@ -120,7 +120,7 @@ describe('Books API', () => {
 
     const blockedResponse = await request(app)
       .get(`/api/books/profile/${child.id}`)
-      .set('x-profile-id', String(strangerParent.id));
+      .set(authHeaders(strangerParent.id));
 
     expect(blockedResponse.status).toBe(403);
   });

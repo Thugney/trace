@@ -6,6 +6,7 @@ import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { useProfileFeatures } from '../context/ProfileFeaturesContext';
 import { usePermissions } from '../context/PermissionsContext';
+import { clearStoredAuth, profilesAPI } from '../services/api';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
@@ -262,12 +263,13 @@ export default function Layout({ children }: LayoutProps) {
 
   const visibleNavItems = getNavItems();
 
-  const handleLogout = () => {
-    localStorage.removeItem('family_auth');
-    localStorage.removeItem('parent_profile');
-    localStorage.removeItem('currentProfileId');
-    localStorage.removeItem('user_permissions');
-    localStorage.removeItem('user_family');
+  const handleLogout = async () => {
+    try {
+      await profilesAPI.logout();
+    } catch {
+      // Session may already be gone; clearing local state is still correct
+    }
+    clearStoredAuth();
     setCurrentProfile(null);
     navigate('/');
     window.location.reload();

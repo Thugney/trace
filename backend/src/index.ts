@@ -26,6 +26,8 @@ import activitiesRoutes from './routes/activities';
 import h5pRoutes from './routes/h5p';
 import familiesRoutes from './routes/families';
 import { initScheduler } from './services/scheduler';
+import { ensureAuthSessionSchema } from './services/authSessions';
+import { migrateLegacyParentPin, migrateLegacyProfileCredentials } from './services/credentials';
 
 dotenv.config();
 
@@ -64,6 +66,18 @@ app.use(express.urlencoded({ extended: true }));
 
 // Initialize database
 initDatabase();
+
+// Auth sessions + repeat-safe hashing of legacy plaintext PINs/passwords
+ensureAuthSessionSchema();
+try {
+  const migrated = migrateLegacyProfileCredentials();
+  const parentPinMigrated = migrateLegacyParentPin();
+  if (migrated.pins || migrated.passwords || parentPinMigrated) {
+    console.log(`🔐 Hashed legacy credentials: ${migrated.pins} PIN(s), ${migrated.passwords} password(s)${parentPinMigrated ? ', parent PIN' : ''}`);
+  }
+} catch (error: any) {
+  console.error('Credential migration error:', error.message);
+}
 
 // Routes
 app.use('/api/profiles', profileRoutes);

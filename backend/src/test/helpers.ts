@@ -1,4 +1,11 @@
 import { testDb } from './setup.js';
+import { createSession } from '../services/authSessions.js';
+
+// Issue a real server-side session for a profile and return request headers
+export function authHeaders(profileId: number): Record<string, string> {
+  const { token } = createSession(profileId, 'vitest');
+  return { Authorization: `Bearer ${token}` };
+}
 
 // Create a test profile
 export function createTestProfile(overrides: Partial<{

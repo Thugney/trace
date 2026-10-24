@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import goalsRoutes from '../routes/goals.js';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 function createGoalsApp() {
@@ -90,7 +90,7 @@ describe('goal templates', () => {
 
     const response = await request(app)
       .get('/api/goals/templates/all')
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.categories).toEqual(['family_outing', 'screen_time']);
@@ -134,7 +134,7 @@ describe('goal templates', () => {
 
     const duplicateResponse = await request(app)
       .post('/api/goals/templates')
-      .set('x-profile-id', String(coParent.id))
+      .set(authHeaders(coParent.id))
       .send({
         name: 'Family Trip Jar',
         category: 'family_outing',

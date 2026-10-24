@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { User, Lock, LogOut } from 'lucide-react';
-import { profilesAPI } from '../services/api';
+import { clearStoredAuth, profilesAPI } from '../services/api';
 import { Profile } from '../types';
 import Onboarding from './Onboarding';
 import Avatar from '../components/Avatar';
@@ -54,10 +54,7 @@ export default function ProfileSelector({ parentProfile }: ProfileSelectorProps)
 
 
   const handleLogout = () => {
-    localStorage.removeItem('family_auth');
-    localStorage.removeItem('parent_profile');
-    localStorage.removeItem('user_permissions');
-    localStorage.removeItem('user_family');
+    clearStoredAuth();
     window.location.reload();
   };
 

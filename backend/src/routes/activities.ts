@@ -7,6 +7,17 @@ import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
+import {
+  canActOnAttempt,
+  canManageOwnedResource,
+  canViewAttempt,
+  ownedResourceParamGuard,
+  paramGuard,
+  parentParamGuard,
+  profileParamGuard,
+  resolveActingProfileId
+} from '../services/resourceAccess';
 import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { awardPoints } from '../services/economyControl';
@@ -124,6 +135,7 @@ const activityMediaUpload = multer({
 type AiJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 interface AiJob {
   id: string;
+  ownerId?: number;
   status: AiJobStatus;
   createdAt: number;
   updatedAt: number;
@@ -209,6 +221,35 @@ router.get('/media/:filename', (req: Request, res: Response) => {
 // ==================== AUTH MIDDLEWARE ====================
 
 router.use(authenticate, requireFeature('activities'));
+
+// ==================== OBJECT-LEVEL ACCESS ====================
+router.param('parentId', parentParamGuard);
+router.param('childId', profileParamGuard);
+router.param('profileId', profileParamGuard);
+// Assigned children may read, start and see the leaderboard of a session; all else requires manage access
+router.param('sessionId', ownedResourceParamGuard({
+  table: 'learning_sessions',
+  playSuffixes: /^\/sessions\/[^/]+\/(start|leaderboard)$/,
+  readForPlayers: true
+}));
+router.param('activityId', paramGuard((req, value) => {
+  const session = db.prepare(`
+    SELECT ls.created_by, ls.assigned_to
+    FROM learning_activities la
+    JOIN learning_sessions ls ON ls.id = la.session_id
+    WHERE la.id = ?
+  `).get(value) as any;
+  return session ? canManageOwnedResource(req.profile!, session) : 'not_found';
+}));
+router.param('attemptId', paramGuard((req, value) => {
+  const attempt = db.prepare('SELECT profile_id FROM session_attempts WHERE id = ?').get(value) as any;
+  if (!attempt) {
+    return 'not_found';
+  }
+  return req.method === 'GET'
+    ? canViewAttempt(req.profile!, attempt.profile_id)
+    : canActOnAttempt(req.profile!, attempt.profile_id);
+}));
 
 // ==================== ACTIVITY TYPES ====================
 
@@ -353,6 +394,14 @@ router.post('/sessions', (req: Request, res: Response) => {
 
     if (!title || !topic || !createdBy || !assignedTo) {
       return res.status(400).json({ error: 'Missing required fields: title, topic, createdBy, assignedTo' });
+    }
+
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create sessions as yourself' });
+    }
+    if (resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign sessions to your own children' });
     }
 
     const result = db.prepare(`
@@ -619,7 +668,11 @@ router.put('/sessions/:sessionId/activities/reorder', (req: Request, res: Respon
 router.post('/sessions/:sessionId/start', (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const { profileId } = req.body;
+    const profileId = resolveActingProfileId((req as AuthRequest).profile!, req.body.profileId);
+
+    if (profileId === null) {
+      return res.status(403).json({ error: 'You can only start sessions for yourself or your children' });
+    }
 
     const session: any = db.prepare(`
       SELECT ls.*,
@@ -687,8 +740,8 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
       SELECT la.*, at.name as activity_type
       FROM learning_activities la
       LEFT JOIN activity_types at ON la.activity_type_id = at.id
-      WHERE la.id = ?
-    `).get(activityId);
+      WHERE la.id = ? AND la.session_id = ?
+    `).get(activityId, attempt.session_id);
 
     if (!activity) {
       return res.status(404).json({ error: 'Activity not found' });
@@ -1008,6 +1061,14 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields: topic, createdBy, assignedTo' });
     }
 
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create sessions as yourself' });
+    }
+    if (resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign sessions to your own children' });
+    }
+
     // Check AI usage limits
     const estimatedCostValue = estimateCost(textProvider, null, 0);
     const usageCheck = canGenerateAi(createdBy, 'activity', estimatedCostValue);
@@ -1024,6 +1085,7 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
     pruneAiJobs();
     const job: AiJob = {
       id: createJobId(),
+      ownerId: Number(createdBy),
       status: 'queued',
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -1064,8 +1126,9 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
 router.get('/ai-generate/status/:jobId', (req: Request, res: Response) => {
   const { jobId } = req.params;
   const job = aiJobs.get(jobId);
+  const viewer = (req as AuthRequest).profile!;
 
-  if (!job) {
+  if (!job || (viewer.type !== 'admin' && job.ownerId !== undefined && Number(job.ownerId) !== viewer.id)) {
     return res.status(404).json({ error: 'Job not found or expired' });
   }
 

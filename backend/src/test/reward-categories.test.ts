@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import rewardsRoutes from '../routes/rewards.js';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 function createRewardsApp() {
@@ -50,7 +50,7 @@ describe('reward categories', () => {
 
     const categoriesResponse = await request(app)
       .get(`/api/rewards/categories/${coParent.id}`)
-      .set('x-profile-id', String(coParent.id));
+      .set(authHeaders(coParent.id));
 
     expect(categoriesResponse.status).toBe(200);
     expect(categoriesResponse.body).toHaveLength(2);
@@ -61,7 +61,7 @@ describe('reward categories', () => {
 
     const duplicateCreate = await request(app)
       .post('/api/rewards/categories')
-      .set('x-profile-id', String(coParent.id))
+      .set(authHeaders(coParent.id))
       .send({
         displayName: 'Screen Time',
         icon: '📱'
@@ -101,7 +101,7 @@ describe('reward categories', () => {
 
     const deleteResponse = await request(app)
       .delete(`/api/rewards/categories/${duplicateCategoryId}`)
-      .set('x-profile-id', String(parent.id));
+      .set(authHeaders(parent.id));
 
     expect(deleteResponse.status).toBe(200);
     expect(deleteResponse.body.rewardsMovedToGeneral).toBe(false);

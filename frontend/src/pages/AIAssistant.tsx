@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
-import { aiAPI } from '../services/api';
+import { aiAPI, profilesAPI } from '../services/api';
 import { AIConversation } from '../types';
 import { Send, Sparkles, Trash2, Lightbulb, Info } from 'lucide-react';
 
@@ -108,9 +108,10 @@ export default function AIAssistant() {
     setConversations(prev => [...prev, tempConversation]);
 
     try {
-      // Use EventSource for streaming
+      // EventSource cannot send headers: authenticate with a short-lived signed stream token
+      const { data: stream } = await profilesAPI.getStreamToken();
       const eventSource = new EventSource(
-        `${API_URL || ''}/api/ai/chat?profile_id=${currentProfile.id}&message=${encodeURIComponent(userMessage)}&context=${context}`
+        `${API_URL || ''}/api/ai/chat?access_token=${encodeURIComponent(stream.token)}&message=${encodeURIComponent(userMessage)}&context=${context}`
       );
 
       let fullResponse = '';

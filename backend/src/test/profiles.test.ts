@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import profilesRouter from '../routes/profiles.js';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 // Create test app with profiles router
@@ -67,7 +67,7 @@ describe('Profiles API', () => {
 
       const response = await request(app)
         .get(`/api/profiles/${parent.id}/progress`)
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('children');
@@ -107,7 +107,7 @@ describe('Profiles API', () => {
 
       const response = await request(app)
         .get(`/api/profiles/${parent.id}/progress`)
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body.children).toEqual([]);
@@ -127,7 +127,7 @@ describe('Profiles API', () => {
 
       const response = await request(app)
         .get(`/api/profiles/${parent.id}/progress`)
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body.children).toHaveLength(1);
@@ -196,7 +196,7 @@ describe('Profiles API', () => {
       // It's expected to fail in RED phase
       const response = await request(app)
         .get('/api/profiles/family/progress')
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('children');
@@ -236,7 +236,7 @@ describe('Profiles API', () => {
 
       const response = await request(app)
         .get('/api/profiles/family/progress')
-        .set('x-profile-id', String(coParent.id));
+        .set(authHeaders(coParent.id));
 
       expect(response.status).toBe(200);
       expect(response.body.children).toHaveLength(1);

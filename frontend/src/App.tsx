@@ -8,6 +8,7 @@ import { PermissionsProvider, usePermissions } from './context/PermissionsContex
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import { AUTH_TOKEN_KEY, clearStoredAuth } from './services/api';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
@@ -29,6 +30,12 @@ import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
 import H5PManager from './pages/H5PManager';
 import { useProfile } from './context/ProfileContext';
+
+// Logins from before server-issued session tokens have no token: require a fresh
+// login before any provider makes API calls with the stale state.
+if (localStorage.getItem('family_auth') === 'true' && !localStorage.getItem(AUTH_TOKEN_KEY)) {
+  clearStoredAuth();
+}
 
 // Protected Route Component - Role-based
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createTestProfile, createTestNote } from './helpers.js';
+import { createTestProfile, createTestNote, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 import notesRouter from '../routes/notes.js';
 
@@ -28,7 +28,7 @@ describe('Notes Routes', () => {
 
       const response = await request(app)
         .get(`/notes/${profile.id}`)
-        .set('x-profile-id', String(profile.id));
+        .set(authHeaders(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(2);
@@ -41,7 +41,7 @@ describe('Notes Routes', () => {
 
       const response = await request(app)
         .get(`/notes/${child.id}`)
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
@@ -58,7 +58,7 @@ describe('Notes Routes', () => {
       // parent2 trying to access child1's notes should be denied
       const response = await request(app)
         .get(`/notes/${child1.id}`)
-        .set('x-profile-id', String(parent2.id));
+        .set(authHeaders(parent2.id));
 
       expect(response.status).toBe(403);
       expect(response.body.error).toContain('denied');
@@ -71,7 +71,7 @@ describe('Notes Routes', () => {
 
       const response = await request(app)
         .post('/notes')
-        .set('x-profile-id', String(profile.id))
+        .set(authHeaders(profile.id))
         .send({
           profile_id: profile.id,
           title: 'New Note',
@@ -92,7 +92,7 @@ describe('Notes Routes', () => {
 
       const response = await request(app)
         .put(`/notes/${note.id}`)
-        .set('x-profile-id', String(profile.id))
+        .set(authHeaders(profile.id))
         .send({
           title: 'Updated Title',
           content: 'Updated content'
@@ -111,7 +111,7 @@ describe('Notes Routes', () => {
 
       const response = await request(app)
         .delete(`/notes/${note.id}`)
-        .set('x-profile-id', String(profile.id));
+        .set(authHeaders(profile.id));
 
       expect(response.status).toBe(200);
 
