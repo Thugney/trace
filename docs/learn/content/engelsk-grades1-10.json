@@ -1,0 +1,4262 @@
+{
+  "schema_version": "1.0.0",
+  "subject": "engelsk",
+  "grade_range": [
+    1,
+    10
+  ],
+  "count": 50,
+  "editorial_status": "unreviewed_draft",
+  "lessons": [
+    {
+      "id": "engelsk-g1-colours-around-us",
+      "subject": "engelsk",
+      "grade": 1,
+      "slug": "colours-around-us",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise colours around us. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Colour words describe what we see. Use the words red, blue, green and yellow while pointing to real objects."
+          },
+          {
+            "heading": "Example",
+            "text": "A red apple is red; the clear daytime sky can look blue."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which English word names the colour of a red apple?",
+        "sample_answer": "Red",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g1-colours-around-us-q1",
+          "type": "single_select",
+          "question": "Which English word names the colour of a red apple?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Red"
+            },
+            {
+              "key": "B",
+              "label": "Blue"
+            },
+            {
+              "key": "C",
+              "label": "Green"
+            },
+            {
+              "key": "D",
+              "label": "Yellow"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Colour words describe what we see. Use the words red, blue, green and yellow while pointing to real objects."
+        },
+        {
+          "id": "engelsk-g1-colours-around-us-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: colours around us. Use your own example.",
+          "model_answer": "A red apple is red; the clear daytime sky can look blue.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which English word names the colour of a red apple?",
+          "back": "Red"
+        },
+        {
+          "front": "What is important about colours around us?",
+          "back": "Colour words describe what we see. Use the words red, blue, green and yellow while pointing to real objects."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A red apple is red; the clear daytime sky can look blue."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g1-hello-and-goodbye",
+      "subject": "engelsk",
+      "grade": 1,
+      "slug": "hello-and-goodbye",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise hello and goodbye. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "We use hello to greet someone and goodbye when leaving. Friendly words make a conversation easier."
+          },
+          {
+            "heading": "Example",
+            "text": "You say «Hello, Mia!» when arriving and «Goodbye!» when going home."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "What do you say when you arrive and greet someone?",
+        "sample_answer": "Hello",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g1-hello-and-goodbye-q1",
+          "type": "single_select",
+          "question": "What do you say when you arrive and greet someone?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Hello"
+            },
+            {
+              "key": "B",
+              "label": "Goodbye"
+            },
+            {
+              "key": "C",
+              "label": "Tomorrow"
+            },
+            {
+              "key": "D",
+              "label": "Yesterday"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "We use hello to greet someone and goodbye when leaving. Friendly words make a conversation easier."
+        },
+        {
+          "id": "engelsk-g1-hello-and-goodbye-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: hello and goodbye. Use your own example.",
+          "model_answer": "You say «Hello, Mia!» when arriving and «Goodbye!» when going home.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What do you say when you arrive and greet someone?",
+          "back": "Hello"
+        },
+        {
+          "front": "What is important about hello and goodbye?",
+          "back": "We use hello to greet someone and goodbye when leaving. Friendly words make a conversation easier."
+        },
+        {
+          "front": "Give an example.",
+          "back": "You say «Hello, Mia!» when arriving and «Goodbye!» when going home."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g1-numbers-one-to-ten",
+      "subject": "engelsk",
+      "grade": 1,
+      "slug": "numbers-one-to-ten",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise numbers one to ten. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "English number words match amounts just as Norwegian number words do. Count objects while saying each word aloud."
+          },
+          {
+            "heading": "Example",
+            "text": "One, two, three, four: four pencils are shown by the number 4."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "What is the English word for the number 4?",
+        "sample_answer": "Four",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g1-numbers-one-to-ten-q1",
+          "type": "single_select",
+          "question": "What is the English word for the number 4?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Four"
+            },
+            {
+              "key": "B",
+              "label": "Five"
+            },
+            {
+              "key": "C",
+              "label": "Three"
+            },
+            {
+              "key": "D",
+              "label": "Nine"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "English number words match amounts just as Norwegian number words do. Count objects while saying each word aloud."
+        },
+        {
+          "id": "engelsk-g1-numbers-one-to-ten-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: numbers one to ten. Use your own example.",
+          "model_answer": "One, two, three, four: four pencils are shown by the number 4.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What is the English word for the number 4?",
+          "back": "Four"
+        },
+        {
+          "front": "What is important about numbers one to ten?",
+          "back": "English number words match amounts just as Norwegian number words do. Count objects while saying each word aloud."
+        },
+        {
+          "front": "Give an example.",
+          "back": "One, two, three, four: four pencils are shown by the number 4."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g1-classroom-objects",
+      "subject": "engelsk",
+      "grade": 1,
+      "slug": "classroom-objects",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise classroom objects. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Words like book, chair, pencil and desk name things at school. Say the word while pointing to its object."
+          },
+          {
+            "heading": "Example",
+            "text": "You write with a pencil, and you can read a book."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which object is used for writing on paper?",
+        "sample_answer": "Pencil",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g1-classroom-objects-q1",
+          "type": "single_select",
+          "question": "Which object is used for writing on paper?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Pencil"
+            },
+            {
+              "key": "B",
+              "label": "Chair"
+            },
+            {
+              "key": "C",
+              "label": "Window"
+            },
+            {
+              "key": "D",
+              "label": "Door"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Words like book, chair, pencil and desk name things at school. Say the word while pointing to its object."
+        },
+        {
+          "id": "engelsk-g1-classroom-objects-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: classroom objects. Use your own example.",
+          "model_answer": "You write with a pencil, and you can read a book.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which object is used for writing on paper?",
+          "back": "Pencil"
+        },
+        {
+          "front": "What is important about classroom objects?",
+          "back": "Words like book, chair, pencil and desk name things at school. Say the word while pointing to its object."
+        },
+        {
+          "front": "Give an example.",
+          "back": "You write with a pencil, and you can read a book."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g1-animals-and-sounds",
+      "subject": "engelsk",
+      "grade": 1,
+      "slug": "animals-and-sounds",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise animals and sounds. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Animal words help us describe stories and pictures. Use a simple sentence such as «I see a dog»."
+          },
+          {
+            "heading": "Example",
+            "text": "A dog barks; a cat meows in a children's story."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which animal is a cat?",
+        "sample_answer": "Cat",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g1-animals-and-sounds-q1",
+          "type": "single_select",
+          "question": "Which animal is a cat?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Cat"
+            },
+            {
+              "key": "B",
+              "label": "Dog"
+            },
+            {
+              "key": "C",
+              "label": "Bird"
+            },
+            {
+              "key": "D",
+              "label": "Fish"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Animal words help us describe stories and pictures. Use a simple sentence such as «I see a dog»."
+        },
+        {
+          "id": "engelsk-g1-animals-and-sounds-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: animals and sounds. Use your own example.",
+          "model_answer": "A dog barks; a cat meows in a children's story.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which animal is a cat?",
+          "back": "Cat"
+        },
+        {
+          "front": "What is important about animals and sounds?",
+          "back": "Animal words help us describe stories and pictures. Use a simple sentence such as «I see a dog»."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A dog barks; a cat meows in a children's story."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g2-introduce-yourself",
+      "subject": "engelsk",
+      "grade": 2,
+      "slug": "introduce-yourself",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise introduce yourself. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Use «My name is ...» to say your name, and «What is your name?» to ask another person."
+          },
+          {
+            "heading": "Example",
+            "text": "«My name is Sam. What is your name?» is a short introduction."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence introduces your name?",
+        "sample_answer": "My name is Sam.",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g2-introduce-yourself-q1",
+          "type": "single_select",
+          "question": "Which sentence introduces your name?",
+          "options": [
+            {
+              "key": "A",
+              "label": "My name is Sam."
+            },
+            {
+              "key": "B",
+              "label": "Where is my bag?"
+            },
+            {
+              "key": "C",
+              "label": "Open the window."
+            },
+            {
+              "key": "D",
+              "label": "It is raining."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Use «My name is ...» to say your name, and «What is your name?» to ask another person."
+        },
+        {
+          "id": "engelsk-g2-introduce-yourself-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: introduce yourself. Use your own example.",
+          "model_answer": "«My name is Sam. What is your name?» is a short introduction.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence introduces your name?",
+          "back": "My name is Sam."
+        },
+        {
+          "front": "What is important about introduce yourself?",
+          "back": "Use «My name is ...» to say your name, and «What is your name?» to ask another person."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«My name is Sam. What is your name?» is a short introduction."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g2-family-words",
+      "subject": "engelsk",
+      "grade": 2,
+      "slug": "family-words",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise family words. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Mother, father, sister and brother are family words. They describe relationships, not whether everyone lives together."
+          },
+          {
+            "heading": "Example",
+            "text": "In «My sister is reading», sister means a female sibling."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which word means a female sibling?",
+        "sample_answer": "Sister",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g2-family-words-q1",
+          "type": "single_select",
+          "question": "Which word means a female sibling?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sister"
+            },
+            {
+              "key": "B",
+              "label": "Brother"
+            },
+            {
+              "key": "C",
+              "label": "Uncle"
+            },
+            {
+              "key": "D",
+              "label": "Grandfather"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Mother, father, sister and brother are family words. They describe relationships, not whether everyone lives together."
+        },
+        {
+          "id": "engelsk-g2-family-words-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: family words. Use your own example.",
+          "model_answer": "In «My sister is reading», sister means a female sibling.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word means a female sibling?",
+          "back": "Sister"
+        },
+        {
+          "front": "What is important about family words?",
+          "back": "Mother, father, sister and brother are family words. They describe relationships, not whether everyone lives together."
+        },
+        {
+          "front": "Give an example.",
+          "back": "In «My sister is reading», sister means a female sibling."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g2-action-verbs",
+      "subject": "engelsk",
+      "grade": 2,
+      "slug": "action-verbs",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise action verbs. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A verb tells us what someone does. Run, jump, read and sing can describe actions in easy English sentences."
+          },
+          {
+            "heading": "Example",
+            "text": "«The child can jump» tells us an action the child can do."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which word is an action verb?",
+        "sample_answer": "Jump",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g2-action-verbs-q1",
+          "type": "single_select",
+          "question": "Which word is an action verb?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Jump"
+            },
+            {
+              "key": "B",
+              "label": "Table"
+            },
+            {
+              "key": "C",
+              "label": "Blue"
+            },
+            {
+              "key": "D",
+              "label": "Happy"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A verb tells us what someone does. Run, jump, read and sing can describe actions in easy English sentences."
+        },
+        {
+          "id": "engelsk-g2-action-verbs-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: action verbs. Use your own example.",
+          "model_answer": "«The child can jump» tells us an action the child can do.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word is an action verb?",
+          "back": "Jump"
+        },
+        {
+          "front": "What is important about action verbs?",
+          "back": "A verb tells us what someone does. Run, jump, read and sing can describe actions in easy English sentences."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«The child can jump» tells us an action the child can do."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g2-questions-and-answers",
+      "subject": "engelsk",
+      "grade": 2,
+      "slug": "questions-and-answers",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise questions and answers. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Who asks about people, where asks about places, and what asks about things or information."
+          },
+          {
+            "heading": "Example",
+            "text": "«Where is the library?» asks for a place."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which question word asks about a place?",
+        "sample_answer": "Where",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g2-questions-and-answers-q1",
+          "type": "single_select",
+          "question": "Which question word asks about a place?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Where"
+            },
+            {
+              "key": "B",
+              "label": "Who"
+            },
+            {
+              "key": "C",
+              "label": "When"
+            },
+            {
+              "key": "D",
+              "label": "Why"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Who asks about people, where asks about places, and what asks about things or information."
+        },
+        {
+          "id": "engelsk-g2-questions-and-answers-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: questions and answers. Use your own example.",
+          "model_answer": "«Where is the library?» asks for a place.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which question word asks about a place?",
+          "back": "Where"
+        },
+        {
+          "front": "What is important about questions and answers?",
+          "back": "Who asks about people, where asks about places, and what asks about things or information."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Where is the library?» asks for a place."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g2-a-short-story",
+      "subject": "engelsk",
+      "grade": 2,
+      "slug": "a-short-story",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 2,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise a short story. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A story has people or animals, a place and events. Answer simple questions using details given in the story."
+          },
+          {
+            "heading": "Example",
+            "text": "«Ben found a red ball in the garden.» The garden is where he found it."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Where did Ben find the ball?",
+        "sample_answer": "In the garden",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g2-a-short-story-q1",
+          "type": "single_select",
+          "question": "Where did Ben find the ball?",
+          "options": [
+            {
+              "key": "A",
+              "label": "In the garden"
+            },
+            {
+              "key": "B",
+              "label": "At school"
+            },
+            {
+              "key": "C",
+              "label": "On a bus"
+            },
+            {
+              "key": "D",
+              "label": "In a shop"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A story has people or animals, a place and events. Answer simple questions using details given in the story."
+        },
+        {
+          "id": "engelsk-g2-a-short-story-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: a short story. Use your own example.",
+          "model_answer": "«Ben found a red ball in the garden.» The garden is where he found it.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Where did Ben find the ball?",
+          "back": "In the garden"
+        },
+        {
+          "front": "What is important about a short story?",
+          "back": "A story has people or animals, a place and events. Answer simple questions using details given in the story."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Ben found a red ball in the garden.» The garden is where he found it."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g3-daily-routines",
+      "subject": "engelsk",
+      "grade": 3,
+      "slug": "daily-routines",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise daily routines. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Use everyday verbs to tell what you do at different times. A daily routine often happens repeatedly."
+          },
+          {
+            "heading": "Example",
+            "text": "«I eat breakfast in the morning» describes a repeated activity."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "When does the speaker eat breakfast?",
+        "sample_answer": "In the morning",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g3-daily-routines-q1",
+          "type": "single_select",
+          "question": "When does the speaker eat breakfast?",
+          "options": [
+            {
+              "key": "A",
+              "label": "In the morning"
+            },
+            {
+              "key": "B",
+              "label": "At midnight"
+            },
+            {
+              "key": "C",
+              "label": "Next year"
+            },
+            {
+              "key": "D",
+              "label": "Last winter"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Use everyday verbs to tell what you do at different times. A daily routine often happens repeatedly."
+        },
+        {
+          "id": "engelsk-g3-daily-routines-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: daily routines. Use your own example.",
+          "model_answer": "«I eat breakfast in the morning» describes a repeated activity.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "When does the speaker eat breakfast?",
+          "back": "In the morning"
+        },
+        {
+          "front": "What is important about daily routines?",
+          "back": "Use everyday verbs to tell what you do at different times. A daily routine often happens repeatedly."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I eat breakfast in the morning» describes a repeated activity."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g3-simple-present",
+      "subject": "engelsk",
+      "grade": 3,
+      "slug": "simple-present",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise simple present. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "The simple present often expresses facts and routines. With he or she, many verbs add -s."
+          },
+          {
+            "heading": "Example",
+            "text": "«She plays football» uses plays with the subject she."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence is correct?",
+        "sample_answer": "She plays football.",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g3-simple-present-q1",
+          "type": "single_select",
+          "question": "Which sentence is correct?",
+          "options": [
+            {
+              "key": "A",
+              "label": "She plays football."
+            },
+            {
+              "key": "B",
+              "label": "She play football."
+            },
+            {
+              "key": "C",
+              "label": "She playing football."
+            },
+            {
+              "key": "D",
+              "label": "She played tomorrow football."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "The simple present often expresses facts and routines. With he or she, many verbs add -s."
+        },
+        {
+          "id": "engelsk-g3-simple-present-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: simple present. Use your own example.",
+          "model_answer": "«She plays football» uses plays with the subject she.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence is correct?",
+          "back": "She plays football."
+        },
+        {
+          "front": "What is important about simple present?",
+          "back": "The simple present often expresses facts and routines. With he or she, many verbs add -s."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«She plays football» uses plays with the subject she."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g3-describing-people",
+      "subject": "engelsk",
+      "grade": 3,
+      "slug": "describing-people",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise describing people. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Adjectives can describe size, colour and feelings. Use them respectfully and do not assume feelings from appearance alone."
+          },
+          {
+            "heading": "Example",
+            "text": "«The friendly dog is small» includes two adjectives about the dog."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which word describes size in this sentence?",
+        "sample_answer": "Small",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g3-describing-people-q1",
+          "type": "single_select",
+          "question": "Which word describes size in this sentence?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Small"
+            },
+            {
+              "key": "B",
+              "label": "Dog"
+            },
+            {
+              "key": "C",
+              "label": "Is"
+            },
+            {
+              "key": "D",
+              "label": "The"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Adjectives can describe size, colour and feelings. Use them respectfully and do not assume feelings from appearance alone."
+        },
+        {
+          "id": "engelsk-g3-describing-people-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: describing people. Use your own example.",
+          "model_answer": "«The friendly dog is small» includes two adjectives about the dog.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word describes size in this sentence?",
+          "back": "Small"
+        },
+        {
+          "front": "What is important about describing people?",
+          "back": "Adjectives can describe size, colour and feelings. Use them respectfully and do not assume feelings from appearance alone."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«The friendly dog is small» includes two adjectives about the dog."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g3-listening-for-details",
+      "subject": "engelsk",
+      "grade": 3,
+      "slug": "listening-for-details",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise listening for details. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "While listening, identify who is speaking, the place and key words. You can ask for repetition if needed."
+          },
+          {
+            "heading": "Example",
+            "text": "«Please put the blue book on the desk» mentions both colour and location."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which colour is the book in the instruction?",
+        "sample_answer": "Blue",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g3-listening-for-details-q1",
+          "type": "single_select",
+          "question": "Which colour is the book in the instruction?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Blue"
+            },
+            {
+              "key": "B",
+              "label": "Red"
+            },
+            {
+              "key": "C",
+              "label": "Green"
+            },
+            {
+              "key": "D",
+              "label": "Yellow"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "While listening, identify who is speaking, the place and key words. You can ask for repetition if needed."
+        },
+        {
+          "id": "engelsk-g3-listening-for-details-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: listening for details. Use your own example.",
+          "model_answer": "«Please put the blue book on the desk» mentions both colour and location.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which colour is the book in the instruction?",
+          "back": "Blue"
+        },
+        {
+          "front": "What is important about listening for details?",
+          "back": "While listening, identify who is speaking, the place and key words. You can ask for repetition if needed."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Please put the blue book on the desk» mentions both colour and location."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g3-reading-signs-and-messages",
+      "subject": "engelsk",
+      "grade": 3,
+      "slug": "reading-signs-and-messages",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en-with-nb-scaffolding",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "Let's practise reading signs and messages. Read the English sentences with an adult if needed. Norsk støtte: Les og si ordene høyt.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Short English signs give useful instructions. Look for action words and familiar nouns."
+          },
+          {
+            "heading": "Example",
+            "text": "«Please close the door» asks someone to shut the door."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "What does «close the door» ask you to do?",
+        "sample_answer": "Shut the door",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g3-reading-signs-and-messages-q1",
+          "type": "single_select",
+          "question": "What does «close the door» ask you to do?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Shut the door"
+            },
+            {
+              "key": "B",
+              "label": "Open the window"
+            },
+            {
+              "key": "C",
+              "label": "Read a book"
+            },
+            {
+              "key": "D",
+              "label": "Draw a house"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Short English signs give useful instructions. Look for action words and familiar nouns."
+        },
+        {
+          "id": "engelsk-g3-reading-signs-and-messages-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: reading signs and messages. Use your own example.",
+          "model_answer": "«Please close the door» asks someone to shut the door.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What does «close the door» ask you to do?",
+          "back": "Shut the door"
+        },
+        {
+          "front": "What is important about reading signs and messages?",
+          "back": "Short English signs give useful instructions. Look for action words and familiar nouns."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Please close the door» asks someone to shut the door."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g4-past-events",
+      "subject": "engelsk",
+      "grade": 4,
+      "slug": "past-events",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise past events through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Use the simple past when telling about completed actions. Many regular verbs take -ed; some common verbs have irregular forms."
+          },
+          {
+            "heading": "Example",
+            "text": "«Yesterday I visited my friend» describes an action in the past."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which word signals that the event was in the past?",
+        "sample_answer": "Yesterday",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g4-past-events-q1",
+          "type": "single_select",
+          "question": "Which word signals that the event was in the past?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Yesterday"
+            },
+            {
+              "key": "B",
+              "label": "Tomorrow"
+            },
+            {
+              "key": "C",
+              "label": "Next week"
+            },
+            {
+              "key": "D",
+              "label": "Soon"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Use the simple past when telling about completed actions. Many regular verbs take -ed; some common verbs have irregular forms."
+        },
+        {
+          "id": "engelsk-g4-past-events-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: past events. Use your own example.",
+          "model_answer": "«Yesterday I visited my friend» describes an action in the past.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word signals that the event was in the past?",
+          "back": "Yesterday"
+        },
+        {
+          "front": "What is important about past events?",
+          "back": "Use the simple past when telling about completed actions. Many regular verbs take -ed; some common verbs have irregular forms."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Yesterday I visited my friend» describes an action in the past."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g4-wh-questions",
+      "subject": "engelsk",
+      "grade": 4,
+      "slug": "wh-questions",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise wh questions through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Who, what, when, where and why ask for different kinds of information. Choose the question word that fits your purpose."
+          },
+          {
+            "heading": "Example",
+            "text": "«When does the bus leave?» asks about time."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which question word asks about time?",
+        "sample_answer": "When",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g4-wh-questions-q1",
+          "type": "single_select",
+          "question": "Which question word asks about time?",
+          "options": [
+            {
+              "key": "A",
+              "label": "When"
+            },
+            {
+              "key": "B",
+              "label": "Who"
+            },
+            {
+              "key": "C",
+              "label": "Where"
+            },
+            {
+              "key": "D",
+              "label": "What"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Who, what, when, where and why ask for different kinds of information. Choose the question word that fits your purpose."
+        },
+        {
+          "id": "engelsk-g4-wh-questions-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: wh questions. Use your own example.",
+          "model_answer": "«When does the bus leave?» asks about time.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which question word asks about time?",
+          "back": "When"
+        },
+        {
+          "front": "What is important about wh questions?",
+          "back": "Who, what, when, where and why ask for different kinds of information. Choose the question word that fits your purpose."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«When does the bus leave?» asks about time."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g4-making-an-invitation",
+      "subject": "engelsk",
+      "grade": 4,
+      "slug": "making-an-invitation",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise making an invitation through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A polite invitation tells someone what you would like to do and gives them room to accept or decline."
+          },
+          {
+            "heading": "Example",
+            "text": "«Would you like to play after school?» is an invitation."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence is a polite invitation?",
+        "sample_answer": "Would you like to play?",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g4-making-an-invitation-q1",
+          "type": "single_select",
+          "question": "Which sentence is a polite invitation?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Would you like to play?"
+            },
+            {
+              "key": "B",
+              "label": "Go away now."
+            },
+            {
+              "key": "C",
+              "label": "You must leave."
+            },
+            {
+              "key": "D",
+              "label": "I already played."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A polite invitation tells someone what you would like to do and gives them room to accept or decline."
+        },
+        {
+          "id": "engelsk-g4-making-an-invitation-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: making an invitation. Use your own example.",
+          "model_answer": "«Would you like to play after school?» is an invitation.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence is a polite invitation?",
+          "back": "Would you like to play?"
+        },
+        {
+          "front": "What is important about making an invitation?",
+          "back": "A polite invitation tells someone what you would like to do and gives them room to accept or decline."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Would you like to play after school?» is an invitation."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g4-places-and-directions",
+      "subject": "engelsk",
+      "grade": 4,
+      "slug": "places-and-directions",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise places and directions through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Words like left, right, straight ahead and opposite help people find places. Give directions in clear steps."
+          },
+          {
+            "heading": "Example",
+            "text": "«Turn left at the shop» tells you to change direction at the shop."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "What does «turn left» tell you?",
+        "sample_answer": "Change direction to the left",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g4-places-and-directions-q1",
+          "type": "single_select",
+          "question": "What does «turn left» tell you?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Change direction to the left"
+            },
+            {
+              "key": "B",
+              "label": "Go straight"
+            },
+            {
+              "key": "C",
+              "label": "Turn right"
+            },
+            {
+              "key": "D",
+              "label": "Stop forever"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Words like left, right, straight ahead and opposite help people find places. Give directions in clear steps."
+        },
+        {
+          "id": "engelsk-g4-places-and-directions-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: places and directions. Use your own example.",
+          "model_answer": "«Turn left at the shop» tells you to change direction at the shop.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What does «turn left» tell you?",
+          "back": "Change direction to the left"
+        },
+        {
+          "front": "What is important about places and directions?",
+          "back": "Words like left, right, straight ahead and opposite help people find places. Give directions in clear steps."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Turn left at the shop» tells you to change direction at the shop."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g4-characters-and-setting",
+      "subject": "engelsk",
+      "grade": 4,
+      "slug": "characters-and-setting",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 4,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise characters and setting through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A story's characters are the people or animals in it. The setting tells us where and sometimes when the events happen."
+          },
+          {
+            "heading": "Example",
+            "text": "«Eva waited beside the lake» has Eva as a character and the lake as a setting."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Say the key words aloud and make one new sentence of your own."
+          }
+        ],
+        "sample_comprehension_question": "Where is the setting in the example?",
+        "sample_answer": "Beside the lake",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g4-characters-and-setting-q1",
+          "type": "single_select",
+          "question": "Where is the setting in the example?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Beside the lake"
+            },
+            {
+              "key": "B",
+              "label": "In a classroom"
+            },
+            {
+              "key": "C",
+              "label": "At the airport"
+            },
+            {
+              "key": "D",
+              "label": "At the cinema"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A story's characters are the people or animals in it. The setting tells us where and sometimes when the events happen."
+        },
+        {
+          "id": "engelsk-g4-characters-and-setting-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: characters and setting. Use your own example.",
+          "model_answer": "«Eva waited beside the lake» has Eva as a character and the lake as a setting.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Where is the setting in the example?",
+          "back": "Beside the lake"
+        },
+        {
+          "front": "What is important about characters and setting?",
+          "back": "A story's characters are the people or animals in it. The setting tells us where and sometimes when the events happen."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Eva waited beside the lake» has Eva as a character and the lake as a setting."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g5-write-a-paragraph",
+      "subject": "engelsk",
+      "grade": 5,
+      "slug": "write-a-paragraph",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise write a paragraph through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A paragraph should develop one main idea with supporting detail. Linking words help a reader follow the meaning."
+          },
+          {
+            "heading": "Example",
+            "text": "«I enjoy cycling. It keeps me active. I ride with friends» stays on one topic."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What holds the sentences in the example together?",
+        "sample_answer": "One main topic",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g5-write-a-paragraph-q1",
+          "type": "single_select",
+          "question": "What holds the sentences in the example together?",
+          "options": [
+            {
+              "key": "A",
+              "label": "One main topic"
+            },
+            {
+              "key": "B",
+              "label": "Different unrelated ideas"
+            },
+            {
+              "key": "C",
+              "label": "Only questions"
+            },
+            {
+              "key": "D",
+              "label": "Random words"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A paragraph should develop one main idea with supporting detail. Linking words help a reader follow the meaning."
+        },
+        {
+          "id": "engelsk-g5-write-a-paragraph-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: write a paragraph. Use your own example.",
+          "model_answer": "«I enjoy cycling. It keeps me active. I ride with friends» stays on one topic.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What holds the sentences in the example together?",
+          "back": "One main topic"
+        },
+        {
+          "front": "What is important about write a paragraph?",
+          "back": "A paragraph should develop one main idea with supporting detail. Linking words help a reader follow the meaning."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I enjoy cycling. It keeps me active. I ride with friends» stays on one topic."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g5-can-and-must",
+      "subject": "engelsk",
+      "grade": 5,
+      "slug": "can-and-must",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise can and must through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Can expresses ability or permission depending on context. Must expresses a strong requirement."
+          },
+          {
+            "heading": "Example",
+            "text": "«You must wear a helmet» states a rule; «I can swim» describes ability."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which word signals a strong requirement?",
+        "sample_answer": "Must",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g5-can-and-must-q1",
+          "type": "single_select",
+          "question": "Which word signals a strong requirement?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Must"
+            },
+            {
+              "key": "B",
+              "label": "Can"
+            },
+            {
+              "key": "C",
+              "label": "Might"
+            },
+            {
+              "key": "D",
+              "label": "Sometimes"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Can expresses ability or permission depending on context. Must expresses a strong requirement."
+        },
+        {
+          "id": "engelsk-g5-can-and-must-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: can and must. Use your own example.",
+          "model_answer": "«You must wear a helmet» states a rule; «I can swim» describes ability.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word signals a strong requirement?",
+          "back": "Must"
+        },
+        {
+          "front": "What is important about can and must?",
+          "back": "Can expresses ability or permission depending on context. Must expresses a strong requirement."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«You must wear a helmet» states a rule; «I can swim» describes ability."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g5-comparing-things",
+      "subject": "engelsk",
+      "grade": 5,
+      "slug": "comparing-things",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise comparing things through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Comparatives show differences between two people or things. Many short adjectives take -er."
+          },
+          {
+            "heading": "Example",
+            "text": "«This bag is heavier than that bag» compares weight."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which word is a comparative adjective?",
+        "sample_answer": "Heavier",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g5-comparing-things-q1",
+          "type": "single_select",
+          "question": "Which word is a comparative adjective?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Heavier"
+            },
+            {
+              "key": "B",
+              "label": "Bag"
+            },
+            {
+              "key": "C",
+              "label": "Than"
+            },
+            {
+              "key": "D",
+              "label": "This"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Comparatives show differences between two people or things. Many short adjectives take -er."
+        },
+        {
+          "id": "engelsk-g5-comparing-things-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: comparing things. Use your own example.",
+          "model_answer": "«This bag is heavier than that bag» compares weight.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word is a comparative adjective?",
+          "back": "Heavier"
+        },
+        {
+          "front": "What is important about comparing things?",
+          "back": "Comparatives show differences between two people or things. Many short adjectives take -er."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«This bag is heavier than that bag» compares weight."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g5-finding-meaning-in-a-story",
+      "subject": "engelsk",
+      "grade": 5,
+      "slug": "finding-meaning-in-a-story",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise finding meaning in a story through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Good readers ask why a character acts and support their ideas with events in the story."
+          },
+          {
+            "heading": "Example",
+            "text": "«Nora smiled after finding her lost keys» supports an inference that she felt relieved or happy."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which feeling is supported by Nora smiling after finding the keys?",
+        "sample_answer": "Happy or relieved",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g5-finding-meaning-in-a-story-q1",
+          "type": "single_select",
+          "question": "Which feeling is supported by Nora smiling after finding the keys?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Happy or relieved"
+            },
+            {
+              "key": "B",
+              "label": "Terrified"
+            },
+            {
+              "key": "C",
+              "label": "Angry at a stranger"
+            },
+            {
+              "key": "D",
+              "label": "Bored by the sea"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Good readers ask why a character acts and support their ideas with events in the story."
+        },
+        {
+          "id": "engelsk-g5-finding-meaning-in-a-story-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: finding meaning in a story. Use your own example.",
+          "model_answer": "«Nora smiled after finding her lost keys» supports an inference that she felt relieved or happy.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which feeling is supported by Nora smiling after finding the keys?",
+          "back": "Happy or relieved"
+        },
+        {
+          "front": "What is important about finding meaning in a story?",
+          "back": "Good readers ask why a character acts and support their ideas with events in the story."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Nora smiled after finding her lost keys» supports an inference that she felt relieved or happy."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g5-english-speaking-places",
+      "subject": "engelsk",
+      "grade": 5,
+      "slug": "english-speaking-places",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise english-speaking places through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "English is used in many places with different accents and local expressions. Learning about cultures involves curiosity rather than stereotypes."
+          },
+          {
+            "heading": "Example",
+            "text": "In Australia and Ireland people use English, though accents and expressions can differ."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which statement about English is correct?",
+        "sample_answer": "It is used in several countries",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g5-english-speaking-places-q1",
+          "type": "single_select",
+          "question": "Which statement about English is correct?",
+          "options": [
+            {
+              "key": "A",
+              "label": "It is used in several countries"
+            },
+            {
+              "key": "B",
+              "label": "It is spoken in only one country"
+            },
+            {
+              "key": "C",
+              "label": "All speakers have the same accent"
+            },
+            {
+              "key": "D",
+              "label": "It has only one variety"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "English is used in many places with different accents and local expressions. Learning about cultures involves curiosity rather than stereotypes."
+        },
+        {
+          "id": "engelsk-g5-english-speaking-places-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: english-speaking places. Use your own example.",
+          "model_answer": "In Australia and Ireland people use English, though accents and expressions can differ.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which statement about English is correct?",
+          "back": "It is used in several countries"
+        },
+        {
+          "front": "What is important about english-speaking places?",
+          "back": "English is used in many places with different accents and local expressions. Learning about cultures involves curiosity rather than stereotypes."
+        },
+        {
+          "front": "Give an example.",
+          "back": "In Australia and Ireland people use English, though accents and expressions can differ."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g6-asking-follow-up-questions",
+      "subject": "engelsk",
+      "grade": 6,
+      "slug": "asking-follow-up-questions",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise asking follow-up questions through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A good conversation involves listening and asking questions that relate to what someone said. Follow-up questions show attention."
+          },
+          {
+            "heading": "Example",
+            "text": "If a friend says «I went hiking», you can ask «Where did you go?»."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which question is a relevant follow-up to «I went hiking»?",
+        "sample_answer": "Where did you go?",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g6-asking-follow-up-questions-q1",
+          "type": "single_select",
+          "question": "Which question is a relevant follow-up to «I went hiking»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Where did you go?"
+            },
+            {
+              "key": "B",
+              "label": "What is 7 times 8?"
+            },
+            {
+              "key": "C",
+              "label": "Is the desk blue?"
+            },
+            {
+              "key": "D",
+              "label": "Do whales fly?"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A good conversation involves listening and asking questions that relate to what someone said. Follow-up questions show attention."
+        },
+        {
+          "id": "engelsk-g6-asking-follow-up-questions-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: asking follow-up questions. Use your own example.",
+          "model_answer": "If a friend says «I went hiking», you can ask «Where did you go?».",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which question is a relevant follow-up to «I went hiking»?",
+          "back": "Where did you go?"
+        },
+        {
+          "front": "What is important about asking follow-up questions?",
+          "back": "A good conversation involves listening and asking questions that relate to what someone said. Follow-up questions show attention."
+        },
+        {
+          "front": "Give an example.",
+          "back": "If a friend says «I went hiking», you can ask «Where did you go?»."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g6-talking-about-the-future",
+      "subject": "engelsk",
+      "grade": 6,
+      "slug": "talking-about-the-future",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise talking about the future through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Will and going to can refer to the future. The exact form depends on meaning and the sentence structure."
+          },
+          {
+            "heading": "Example",
+            "text": "«I am going to study tonight» describes a future plan."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence clearly expresses a future plan?",
+        "sample_answer": "I am going to study tonight.",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g6-talking-about-the-future-q1",
+          "type": "single_select",
+          "question": "Which sentence clearly expresses a future plan?",
+          "options": [
+            {
+              "key": "A",
+              "label": "I am going to study tonight."
+            },
+            {
+              "key": "B",
+              "label": "I studied yesterday."
+            },
+            {
+              "key": "C",
+              "label": "I study every Monday."
+            },
+            {
+              "key": "D",
+              "label": "I was studying last week."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Will and going to can refer to the future. The exact form depends on meaning and the sentence structure."
+        },
+        {
+          "id": "engelsk-g6-talking-about-the-future-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: talking about the future. Use your own example.",
+          "model_answer": "«I am going to study tonight» describes a future plan.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence clearly expresses a future plan?",
+          "back": "I am going to study tonight."
+        },
+        {
+          "front": "What is important about talking about the future?",
+          "back": "Will and going to can refer to the future. The exact form depends on meaning and the sentence structure."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I am going to study tonight» describes a future plan."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g6-linking-a-story",
+      "subject": "engelsk",
+      "grade": 6,
+      "slug": "linking-a-story",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise linking a story through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "First, then, after that and finally help organize events in a sequence. Good writing makes the order easy to follow."
+          },
+          {
+            "heading": "Example",
+            "text": "«First we packed, then we walked, finally we ate» follows time order."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which word often signals the last event?",
+        "sample_answer": "Finally",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g6-linking-a-story-q1",
+          "type": "single_select",
+          "question": "Which word often signals the last event?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Finally"
+            },
+            {
+              "key": "B",
+              "label": "First"
+            },
+            {
+              "key": "C",
+              "label": "Before"
+            },
+            {
+              "key": "D",
+              "label": "Initially"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "First, then, after that and finally help organize events in a sequence. Good writing makes the order easy to follow."
+        },
+        {
+          "id": "engelsk-g6-linking-a-story-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: linking a story. Use your own example.",
+          "model_answer": "«First we packed, then we walked, finally we ate» follows time order.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word often signals the last event?",
+          "back": "Finally"
+        },
+        {
+          "front": "What is important about linking a story?",
+          "back": "First, then, after that and finally help organize events in a sequence. Good writing makes the order easy to follow."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«First we packed, then we walked, finally we ate» follows time order."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g6-reading-informative-texts",
+      "subject": "engelsk",
+      "grade": 6,
+      "slug": "reading-informative-texts",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise reading informative texts through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Informative texts explain a topic using facts, headings and examples. Check the context before trusting a fact."
+          },
+          {
+            "heading": "Example",
+            "text": "A text titled «How bees pollinate flowers» explains a process rather than telling a fictional adventure."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What is the likely purpose of that text?",
+        "sample_answer": "To explain a process",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g6-reading-informative-texts-q1",
+          "type": "single_select",
+          "question": "What is the likely purpose of that text?",
+          "options": [
+            {
+              "key": "A",
+              "label": "To explain a process"
+            },
+            {
+              "key": "B",
+              "label": "To list football scores"
+            },
+            {
+              "key": "C",
+              "label": "To tell an unrelated joke"
+            },
+            {
+              "key": "D",
+              "label": "To advertise a bicycle"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Informative texts explain a topic using facts, headings and examples. Check the context before trusting a fact."
+        },
+        {
+          "id": "engelsk-g6-reading-informative-texts-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: reading informative texts. Use your own example.",
+          "model_answer": "A text titled «How bees pollinate flowers» explains a process rather than telling a fictional adventure.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What is the likely purpose of that text?",
+          "back": "To explain a process"
+        },
+        {
+          "front": "What is important about reading informative texts?",
+          "back": "Informative texts explain a topic using facts, headings and examples. Check the context before trusting a fact."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A text titled «How bees pollinate flowers» explains a process rather than telling a fictional adventure."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g6-checking-sources",
+      "subject": "engelsk",
+      "grade": 6,
+      "slug": "checking-sources",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise checking sources through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A trustworthy source makes it possible to check where information came from. Compare claims with reliable independent evidence."
+          },
+          {
+            "heading": "Example",
+            "text": "An identified science museum explaining a discovery is easier to verify than an anonymous comment."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which feature helps check the reliability of an online source?",
+        "sample_answer": "Named author and supporting evidence",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g6-checking-sources-q1",
+          "type": "single_select",
+          "question": "Which feature helps check the reliability of an online source?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Named author and supporting evidence"
+            },
+            {
+              "key": "B",
+              "label": "Bright background colour"
+            },
+            {
+              "key": "C",
+              "label": "Many emojis"
+            },
+            {
+              "key": "D",
+              "label": "Very large letters"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A trustworthy source makes it possible to check where information came from. Compare claims with reliable independent evidence."
+        },
+        {
+          "id": "engelsk-g6-checking-sources-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: checking sources. Use your own example.",
+          "model_answer": "An identified science museum explaining a discovery is easier to verify than an anonymous comment.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which feature helps check the reliability of an online source?",
+          "back": "Named author and supporting evidence"
+        },
+        {
+          "front": "What is important about checking sources?",
+          "back": "A trustworthy source makes it possible to check where information came from. Compare claims with reliable independent evidence."
+        },
+        {
+          "front": "Give an example.",
+          "back": "An identified science museum explaining a discovery is easier to verify than an anonymous comment."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g7-clear-explanations",
+      "subject": "engelsk",
+      "grade": 7,
+      "slug": "clear-explanations",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise clear explanations through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Explain an idea in steps and support it with examples. Linking expressions such as because and therefore make reasoning clearer."
+          },
+          {
+            "heading": "Example",
+            "text": "«The plant grew because it had light and water» expresses a reason."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which word introduces a reason in the sentence?",
+        "sample_answer": "Because",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g7-clear-explanations-q1",
+          "type": "single_select",
+          "question": "Which word introduces a reason in the sentence?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Because"
+            },
+            {
+              "key": "B",
+              "label": "Plant"
+            },
+            {
+              "key": "C",
+              "label": "Grew"
+            },
+            {
+              "key": "D",
+              "label": "And"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Explain an idea in steps and support it with examples. Linking expressions such as because and therefore make reasoning clearer."
+        },
+        {
+          "id": "engelsk-g7-clear-explanations-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: clear explanations. Use your own example.",
+          "model_answer": "«The plant grew because it had light and water» expresses a reason.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word introduces a reason in the sentence?",
+          "back": "Because"
+        },
+        {
+          "front": "What is important about clear explanations?",
+          "back": "Explain an idea in steps and support it with examples. Linking expressions such as because and therefore make reasoning clearer."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«The plant grew because it had light and water» expresses a reason."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g7-pronunciation-and-rhythm",
+      "subject": "engelsk",
+      "grade": 7,
+      "slug": "pronunciation-and-rhythm",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise pronunciation and rhythm through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Stress and intonation help make spoken English understandable. Listening to different English accents builds flexibility."
+          },
+          {
+            "heading": "Example",
+            "text": "A question can sound different from a statement because of intonation."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What feature helps show how a sentence is spoken?",
+        "sample_answer": "Intonation",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g7-pronunciation-and-rhythm-q1",
+          "type": "single_select",
+          "question": "What feature helps show how a sentence is spoken?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Intonation"
+            },
+            {
+              "key": "B",
+              "label": "Paper size"
+            },
+            {
+              "key": "C",
+              "label": "Font weight"
+            },
+            {
+              "key": "D",
+              "label": "Paragraph length"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Stress and intonation help make spoken English understandable. Listening to different English accents builds flexibility."
+        },
+        {
+          "id": "engelsk-g7-pronunciation-and-rhythm-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: pronunciation and rhythm. Use your own example.",
+          "model_answer": "A question can sound different from a statement because of intonation.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What feature helps show how a sentence is spoken?",
+          "back": "Intonation"
+        },
+        {
+          "front": "What is important about pronunciation and rhythm?",
+          "back": "Stress and intonation help make spoken English understandable. Listening to different English accents builds flexibility."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A question can sound different from a statement because of intonation."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g7-writing-emails",
+      "subject": "engelsk",
+      "grade": 7,
+      "slug": "writing-emails",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise writing emails through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "An email can include a subject, greeting, clear purpose and polite closing. The level of formality depends on the recipient."
+          },
+          {
+            "heading": "Example",
+            "text": "«Dear Ms Lee, I am writing to ask ... Kind regards» is a formal opening and closing."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which greeting best suits a formal message to a teacher?",
+        "sample_answer": "Dear Ms Lee,",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g7-writing-emails-q1",
+          "type": "single_select",
+          "question": "Which greeting best suits a formal message to a teacher?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Dear Ms Lee,"
+            },
+            {
+              "key": "B",
+              "label": "Hey dude!"
+            },
+            {
+              "key": "C",
+              "label": "Yo!"
+            },
+            {
+              "key": "D",
+              "label": "What's up?"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "An email can include a subject, greeting, clear purpose and polite closing. The level of formality depends on the recipient."
+        },
+        {
+          "id": "engelsk-g7-writing-emails-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: writing emails. Use your own example.",
+          "model_answer": "«Dear Ms Lee, I am writing to ask ... Kind regards» is a formal opening and closing.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which greeting best suits a formal message to a teacher?",
+          "back": "Dear Ms Lee,"
+        },
+        {
+          "front": "What is important about writing emails?",
+          "back": "An email can include a subject, greeting, clear purpose and polite closing. The level of formality depends on the recipient."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Dear Ms Lee, I am writing to ask ... Kind regards» is a formal opening and closing."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g7-reading-genres",
+      "subject": "engelsk",
+      "grade": 7,
+      "slug": "reading-genres",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise reading genres through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Fiction and nonfiction have different purposes. A novel tells a story; a factual report aims to inform."
+          },
+          {
+            "heading": "Example",
+            "text": "A biography of a scientist may be nonfiction, while a fantasy story is fiction."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which text is most likely nonfiction?",
+        "sample_answer": "A documented biography",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g7-reading-genres-q1",
+          "type": "single_select",
+          "question": "Which text is most likely nonfiction?",
+          "options": [
+            {
+              "key": "A",
+              "label": "A documented biography"
+            },
+            {
+              "key": "B",
+              "label": "A fairy tale with dragons"
+            },
+            {
+              "key": "C",
+              "label": "A made-up superhero story"
+            },
+            {
+              "key": "D",
+              "label": "An imaginary diary"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Fiction and nonfiction have different purposes. A novel tells a story; a factual report aims to inform."
+        },
+        {
+          "id": "engelsk-g7-reading-genres-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: reading genres. Use your own example.",
+          "model_answer": "A biography of a scientist may be nonfiction, while a fantasy story is fiction.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which text is most likely nonfiction?",
+          "back": "A documented biography"
+        },
+        {
+          "front": "What is important about reading genres?",
+          "back": "Fiction and nonfiction have different purposes. A novel tells a story; a factual report aims to inform."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A biography of a scientist may be nonfiction, while a fantasy story is fiction."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g7-culture-in-language",
+      "subject": "engelsk",
+      "grade": 7,
+      "slug": "culture-in-language",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 7,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise culture in language through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Language carries culture, humour and identity. Comparing expressions helps us notice differences without treating one variety as better."
+          },
+          {
+            "heading": "Example",
+            "text": "«Lift» in British English and «elevator» in American English can refer to the same machine."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which word is commonly used in American English for a lift?",
+        "sample_answer": "Elevator",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g7-culture-in-language-q1",
+          "type": "single_select",
+          "question": "Which word is commonly used in American English for a lift?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Elevator"
+            },
+            {
+              "key": "B",
+              "label": "Pavement"
+            },
+            {
+              "key": "C",
+              "label": "Biscuit"
+            },
+            {
+              "key": "D",
+              "label": "Queue"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Language carries culture, humour and identity. Comparing expressions helps us notice differences without treating one variety as better."
+        },
+        {
+          "id": "engelsk-g7-culture-in-language-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: culture in language. Use your own example.",
+          "model_answer": "«Lift» in British English and «elevator» in American English can refer to the same machine.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which word is commonly used in American English for a lift?",
+          "back": "Elevator"
+        },
+        {
+          "front": "What is important about culture in language?",
+          "back": "Language carries culture, humour and identity. Comparing expressions helps us notice differences without treating one variety as better."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Lift» in British English and «elevator» in American English can refer to the same machine."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g8-formal-and-informal-language",
+      "subject": "engelsk",
+      "grade": 8,
+      "slug": "formal-and-informal-language",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise formal and informal language through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Choose words, greetings and closings for purpose and audience. A school email often needs a more formal tone than a message to a close friend."
+          },
+          {
+            "heading": "Example",
+            "text": "«Dear teacher, could you explain the deadline?» is more formal than «Hey, when's it due?»."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which opening best suits a formal email to a teacher?",
+        "sample_answer": "Dear teacher,",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g8-formal-and-informal-language-q1",
+          "type": "single_select",
+          "question": "Which opening best suits a formal email to a teacher?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Dear teacher,"
+            },
+            {
+              "key": "B",
+              "label": "Hey buddy!"
+            },
+            {
+              "key": "C",
+              "label": "Yo!"
+            },
+            {
+              "key": "D",
+              "label": "Sup?"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Choose words, greetings and closings for purpose and audience. A school email often needs a more formal tone than a message to a close friend."
+        },
+        {
+          "id": "engelsk-g8-formal-and-informal-language-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: formal and informal language. Use your own example.",
+          "model_answer": "«Dear teacher, could you explain the deadline?» is more formal than «Hey, when's it due?».",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which opening best suits a formal email to a teacher?",
+          "back": "Dear teacher,"
+        },
+        {
+          "front": "What is important about formal and informal language?",
+          "back": "Choose words, greetings and closings for purpose and audience. A school email often needs a more formal tone than a message to a close friend."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Dear teacher, could you explain the deadline?» is more formal than «Hey, when's it due?»."
+        }
+      ],
+      "preserve_existing_grade8": true
+    },
+    {
+      "id": "engelsk-g8-reading-stories-and-inference",
+      "subject": "engelsk",
+      "grade": 8,
+      "slug": "reading-stories-and-inference",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise reading and inference through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "An inference combines details from the text with reasoning. It should be supported by words or events, not just a guess."
+          },
+          {
+            "heading": "Example",
+            "text": "«Mia hid under an umbrella when the rain began» suggests she wanted to avoid getting wet."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Why did Mia probably open the umbrella?",
+        "sample_answer": "To stay dry",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g8-reading-stories-and-inference-q1",
+          "type": "single_select",
+          "question": "Why did Mia probably open the umbrella?",
+          "options": [
+            {
+              "key": "A",
+              "label": "To stay dry"
+            },
+            {
+              "key": "B",
+              "label": "To see stars"
+            },
+            {
+              "key": "C",
+              "label": "To fix a bike"
+            },
+            {
+              "key": "D",
+              "label": "To feed a pet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "An inference combines details from the text with reasoning. It should be supported by words or events, not just a guess."
+        },
+        {
+          "id": "engelsk-g8-reading-stories-and-inference-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: reading and inference. Use your own example.",
+          "model_answer": "«Mia hid under an umbrella when the rain began» suggests she wanted to avoid getting wet.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Why did Mia probably open the umbrella?",
+          "back": "To stay dry"
+        },
+        {
+          "front": "What is important about reading and inference?",
+          "back": "An inference combines details from the text with reasoning. It should be supported by words or events, not just a guess."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Mia hid under an umbrella when the rain began» suggests she wanted to avoid getting wet."
+        }
+      ],
+      "preserve_existing_grade8": true
+    },
+    {
+      "id": "engelsk-g8-sentence-structure-and-grammar",
+      "subject": "engelsk",
+      "grade": 8,
+      "slug": "sentence-structure-and-grammar",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise grammar and clarity through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Correct tense and subject-verb agreement help readers know who did what and when. Review sentences to improve precision."
+          },
+          {
+            "heading": "Example",
+            "text": "«She goes to school» is present; «She went to school» is past."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence correctly describes a completed past action?",
+        "sample_answer": "She went to school.",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g8-sentence-structure-and-grammar-q1",
+          "type": "single_select",
+          "question": "Which sentence correctly describes a completed past action?",
+          "options": [
+            {
+              "key": "A",
+              "label": "She went to school."
+            },
+            {
+              "key": "B",
+              "label": "She goes yesterday."
+            },
+            {
+              "key": "C",
+              "label": "She going tomorrow."
+            },
+            {
+              "key": "D",
+              "label": "She go last week."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Correct tense and subject-verb agreement help readers know who did what and when. Review sentences to improve precision."
+        },
+        {
+          "id": "engelsk-g8-sentence-structure-and-grammar-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: grammar and clarity. Use your own example.",
+          "model_answer": "«She goes to school» is present; «She went to school» is past.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence correctly describes a completed past action?",
+          "back": "She went to school."
+        },
+        {
+          "front": "What is important about grammar and clarity?",
+          "back": "Correct tense and subject-verb agreement help readers know who did what and when. Review sentences to improve precision."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«She goes to school» is present; «She went to school» is past."
+        }
+      ],
+      "preserve_existing_grade8": true
+    },
+    {
+      "id": "engelsk-g8-speaking-vocabulary-and-dialogue",
+      "subject": "engelsk",
+      "grade": 8,
+      "slug": "speaking-vocabulary-and-dialogue",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise conversation and vocabulary through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Words should match situation and meaning. Useful conversations include responses and relevant follow-up questions."
+          },
+          {
+            "heading": "Example",
+            "text": "«I enjoyed the film.» «What did you like about it?» keeps a conversation going."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which reply is a helpful follow-up to «I enjoyed the film»?",
+        "sample_answer": "What did you like about it?",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g8-speaking-vocabulary-and-dialogue-q1",
+          "type": "single_select",
+          "question": "Which reply is a helpful follow-up to «I enjoyed the film»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "What did you like about it?"
+            },
+            {
+              "key": "B",
+              "label": "Where is the stapler?"
+            },
+            {
+              "key": "C",
+              "label": "Is 4 odd?"
+            },
+            {
+              "key": "D",
+              "label": "Close the gate."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Words should match situation and meaning. Useful conversations include responses and relevant follow-up questions."
+        },
+        {
+          "id": "engelsk-g8-speaking-vocabulary-and-dialogue-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: conversation and vocabulary. Use your own example.",
+          "model_answer": "«I enjoyed the film.» «What did you like about it?» keeps a conversation going.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which reply is a helpful follow-up to «I enjoyed the film»?",
+          "back": "What did you like about it?"
+        },
+        {
+          "front": "What is important about conversation and vocabulary?",
+          "back": "Words should match situation and meaning. Useful conversations include responses and relevant follow-up questions."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I enjoyed the film.» «What did you like about it?» keeps a conversation going."
+        }
+      ],
+      "preserve_existing_grade8": true
+    },
+    {
+      "id": "engelsk-g8-nonfiction-sources-and-reliability",
+      "subject": "engelsk",
+      "grade": 8,
+      "slug": "nonfiction-sources-and-reliability",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise nonfiction sources through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Facts in an English article need evidence. Notice whether the author is describing an observation or making a claim without support."
+          },
+          {
+            "heading": "Example",
+            "text": "A news report citing a named study is more checkable than an anonymous claim with no link."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which feature helps you verify a nonfiction claim?",
+        "sample_answer": "A traceable original source",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g8-nonfiction-sources-and-reliability-q1",
+          "type": "single_select",
+          "question": "Which feature helps you verify a nonfiction claim?",
+          "options": [
+            {
+              "key": "A",
+              "label": "A traceable original source"
+            },
+            {
+              "key": "B",
+              "label": "A flashy headline"
+            },
+            {
+              "key": "C",
+              "label": "Lots of capital letters"
+            },
+            {
+              "key": "D",
+              "label": "A funny picture"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Facts in an English article need evidence. Notice whether the author is describing an observation or making a claim without support."
+        },
+        {
+          "id": "engelsk-g8-nonfiction-sources-and-reliability-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: nonfiction sources. Use your own example.",
+          "model_answer": "A news report citing a named study is more checkable than an anonymous claim with no link.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which feature helps you verify a nonfiction claim?",
+          "back": "A traceable original source"
+        },
+        {
+          "front": "What is important about nonfiction sources?",
+          "back": "Facts in an English article need evidence. Notice whether the author is describing an observation or making a claim without support."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A news report citing a named study is more checkable than an anonymous claim with no link."
+        }
+      ],
+      "preserve_existing_grade8": true
+    },
+    {
+      "id": "engelsk-g9-persuasive-writing",
+      "subject": "engelsk",
+      "grade": 9,
+      "slug": "persuasive-writing",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise persuasive writing through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Persuasive texts give a position supported by reasons and evidence. They should represent opposing views fairly rather than misstate them."
+          },
+          {
+            "heading": "Example",
+            "text": "«Schools should plant trees because they provide shade» offers a clear claim and a reason."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What is needed to support a persuasive claim?",
+        "sample_answer": "Relevant evidence",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g9-persuasive-writing-q1",
+          "type": "single_select",
+          "question": "What is needed to support a persuasive claim?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Relevant evidence"
+            },
+            {
+              "key": "B",
+              "label": "Only an exclamation mark"
+            },
+            {
+              "key": "C",
+              "label": "Many unrelated examples"
+            },
+            {
+              "key": "D",
+              "label": "A longer title"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Persuasive texts give a position supported by reasons and evidence. They should represent opposing views fairly rather than misstate them."
+        },
+        {
+          "id": "engelsk-g9-persuasive-writing-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: persuasive writing. Use your own example.",
+          "model_answer": "«Schools should plant trees because they provide shade» offers a clear claim and a reason.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What is needed to support a persuasive claim?",
+          "back": "Relevant evidence"
+        },
+        {
+          "front": "What is important about persuasive writing?",
+          "back": "Persuasive texts give a position supported by reasons and evidence. They should represent opposing views fairly rather than misstate them."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Schools should plant trees because they provide shade» offers a clear claim and a reason."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g9-present-perfect",
+      "subject": "engelsk",
+      "grade": 9,
+      "slug": "present-perfect",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise present perfect through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Present perfect connects a past event to the present in different ways. It uses have or has plus a past participle."
+          },
+          {
+            "heading": "Example",
+            "text": "«I have visited London» is present perfect; «I visited London in 2023» is simple past."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which sentence uses present perfect?",
+        "sample_answer": "I have visited London.",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g9-present-perfect-q1",
+          "type": "single_select",
+          "question": "Which sentence uses present perfect?",
+          "options": [
+            {
+              "key": "A",
+              "label": "I have visited London."
+            },
+            {
+              "key": "B",
+              "label": "I visited London yesterday."
+            },
+            {
+              "key": "C",
+              "label": "I visit London yearly."
+            },
+            {
+              "key": "D",
+              "label": "I will visit London."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Present perfect connects a past event to the present in different ways. It uses have or has plus a past participle."
+        },
+        {
+          "id": "engelsk-g9-present-perfect-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: present perfect. Use your own example.",
+          "model_answer": "«I have visited London» is present perfect; «I visited London in 2023» is simple past.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which sentence uses present perfect?",
+          "back": "I have visited London."
+        },
+        {
+          "front": "What is important about present perfect?",
+          "back": "Present perfect connects a past event to the present in different ways. It uses have or has plus a past participle."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I have visited London» is present perfect; «I visited London in 2023» is simple past."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g9-literary-themes-and-symbols",
+      "subject": "engelsk",
+      "grade": 9,
+      "slug": "literary-themes-and-symbols",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise literary themes and symbols through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A story's theme is a central idea; a symbol may suggest something beyond its literal meaning. Interpretations need textual evidence."
+          },
+          {
+            "heading": "Example",
+            "text": "A locked door may suggest exclusion if the story repeatedly connects it to being left out."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What should support a claim that a door symbolises exclusion?",
+        "sample_answer": "Textual evidence",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g9-literary-themes-and-symbols-q1",
+          "type": "single_select",
+          "question": "What should support a claim that a door symbolises exclusion?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Textual evidence"
+            },
+            {
+              "key": "B",
+              "label": "Only the cover colour"
+            },
+            {
+              "key": "C",
+              "label": "The reader's guess alone"
+            },
+            {
+              "key": "D",
+              "label": "The book's price"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A story's theme is a central idea; a symbol may suggest something beyond its literal meaning. Interpretations need textual evidence."
+        },
+        {
+          "id": "engelsk-g9-literary-themes-and-symbols-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: literary themes and symbols. Use your own example.",
+          "model_answer": "A locked door may suggest exclusion if the story repeatedly connects it to being left out.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What should support a claim that a door symbolises exclusion?",
+          "back": "Textual evidence"
+        },
+        {
+          "front": "What is important about literary themes and symbols?",
+          "back": "A story's theme is a central idea; a symbol may suggest something beyond its literal meaning. Interpretations need textual evidence."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A locked door may suggest exclusion if the story repeatedly connects it to being left out."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g9-giving-a-presentation",
+      "subject": "engelsk",
+      "grade": 9,
+      "slug": "giving-a-presentation",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise giving a presentation through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A good oral presentation uses a clear structure, reliable information and audible speech. Visuals should support rather than replace explanation."
+          },
+          {
+            "heading": "Example",
+            "text": "A speaker first states the question, gives evidence and ends with a conclusion."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What belongs at the beginning of a factual presentation?",
+        "sample_answer": "A clear topic or question",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g9-giving-a-presentation-q1",
+          "type": "single_select",
+          "question": "What belongs at the beginning of a factual presentation?",
+          "options": [
+            {
+              "key": "A",
+              "label": "A clear topic or question"
+            },
+            {
+              "key": "B",
+              "label": "An unrelated video"
+            },
+            {
+              "key": "C",
+              "label": "The bibliography only"
+            },
+            {
+              "key": "D",
+              "label": "A random number"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A good oral presentation uses a clear structure, reliable information and audible speech. Visuals should support rather than replace explanation."
+        },
+        {
+          "id": "engelsk-g9-giving-a-presentation-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: giving a presentation. Use your own example.",
+          "model_answer": "A speaker first states the question, gives evidence and ends with a conclusion.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What belongs at the beginning of a factual presentation?",
+          "back": "A clear topic or question"
+        },
+        {
+          "front": "What is important about giving a presentation?",
+          "back": "A good oral presentation uses a clear structure, reliable information and audible speech. Visuals should support rather than replace explanation."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A speaker first states the question, gives evidence and ends with a conclusion."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g9-media-and-bias",
+      "subject": "engelsk",
+      "grade": 9,
+      "slug": "media-and-bias",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise media and bias through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Headlines, word choice and image selection can frame an event. Compare coverage and underlying evidence to avoid one-sided conclusions."
+          },
+          {
+            "heading": "Example",
+            "text": "Two articles may report the same event with different emphasis; reading both can reveal missing context."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "How can you reduce the risk of one-sided news interpretation?",
+        "sample_answer": "Compare reliable sources",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g9-media-and-bias-q1",
+          "type": "single_select",
+          "question": "How can you reduce the risk of one-sided news interpretation?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Compare reliable sources"
+            },
+            {
+              "key": "B",
+              "label": "Read only headlines"
+            },
+            {
+              "key": "C",
+              "label": "Choose the loudest post"
+            },
+            {
+              "key": "D",
+              "label": "Ignore the evidence"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Headlines, word choice and image selection can frame an event. Compare coverage and underlying evidence to avoid one-sided conclusions."
+        },
+        {
+          "id": "engelsk-g9-media-and-bias-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: media and bias. Use your own example.",
+          "model_answer": "Two articles may report the same event with different emphasis; reading both can reveal missing context.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "How can you reduce the risk of one-sided news interpretation?",
+          "back": "Compare reliable sources"
+        },
+        {
+          "front": "What is important about media and bias?",
+          "back": "Headlines, word choice and image selection can frame an event. Compare coverage and underlying evidence to avoid one-sided conclusions."
+        },
+        {
+          "front": "Give an example.",
+          "back": "Two articles may report the same event with different emphasis; reading both can reveal missing context."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g10-building-an-argument",
+      "subject": "engelsk",
+      "grade": 10,
+      "slug": "building-an-argument",
+      "sort_order": 1,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise building an argument through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A clear argument explains a claim, supports it with evidence and responds to an opposing point. Strong writing distinguishes evidence from opinion."
+          },
+          {
+            "heading": "Example",
+            "text": "«Public parks matter because they give people space to exercise» includes a claim and a reason."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What strengthens an academic argument?",
+        "sample_answer": "Relevant evidence and reasoning",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g10-building-an-argument-q1",
+          "type": "single_select",
+          "question": "What strengthens an academic argument?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Relevant evidence and reasoning"
+            },
+            {
+              "key": "B",
+              "label": "Only strong adjectives"
+            },
+            {
+              "key": "C",
+              "label": "Personal insults"
+            },
+            {
+              "key": "D",
+              "label": "Repeated slogans"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A clear argument explains a claim, supports it with evidence and responds to an opposing point. Strong writing distinguishes evidence from opinion."
+        },
+        {
+          "id": "engelsk-g10-building-an-argument-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: building an argument. Use your own example.",
+          "model_answer": "«Public parks matter because they give people space to exercise» includes a claim and a reason.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What strengthens an academic argument?",
+          "back": "Relevant evidence and reasoning"
+        },
+        {
+          "front": "What is important about building an argument?",
+          "back": "A clear argument explains a claim, supports it with evidence and responds to an opposing point. Strong writing distinguishes evidence from opinion."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«Public parks matter because they give people space to exercise» includes a claim and a reason."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g10-critical-source-evaluation",
+      "subject": "engelsk",
+      "grade": 10,
+      "slug": "critical-source-evaluation",
+      "sort_order": 2,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise critical source evaluation through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Check author, publication date, methods and independent verification. A confident tone does not establish truth."
+          },
+          {
+            "heading": "Example",
+            "text": "A report explaining how data were collected provides stronger grounds for evaluation than an unsupported assertion."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What is most useful when evaluating a scientific report?",
+        "sample_answer": "Its methods and evidence",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g10-critical-source-evaluation-q1",
+          "type": "single_select",
+          "question": "What is most useful when evaluating a scientific report?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Its methods and evidence"
+            },
+            {
+              "key": "B",
+              "label": "Its logo size"
+            },
+            {
+              "key": "C",
+              "label": "Its font colour"
+            },
+            {
+              "key": "D",
+              "label": "The number of emojis"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Check author, publication date, methods and independent verification. A confident tone does not establish truth."
+        },
+        {
+          "id": "engelsk-g10-critical-source-evaluation-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: critical source evaluation. Use your own example.",
+          "model_answer": "A report explaining how data were collected provides stronger grounds for evaluation than an unsupported assertion.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What is most useful when evaluating a scientific report?",
+          "back": "Its methods and evidence"
+        },
+        {
+          "front": "What is important about critical source evaluation?",
+          "back": "Check author, publication date, methods and independent verification. A confident tone does not establish truth."
+        },
+        {
+          "front": "Give an example.",
+          "back": "A report explaining how data were collected provides stronger grounds for evaluation than an unsupported assertion."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g10-extended-essay-writing",
+      "subject": "engelsk",
+      "grade": 10,
+      "slug": "extended-essay-writing",
+      "sort_order": 3,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise extended essay writing through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "Plan an essay around an introduction, developed paragraphs and a conclusion. Each paragraph should contribute to the question."
+          },
+          {
+            "heading": "Example",
+            "text": "An essay on technology separates benefits, risks and an argued conclusion into clear paragraphs."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "What should each body paragraph contribute?",
+        "sample_answer": "A point relevant to the essay question",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g10-extended-essay-writing-q1",
+          "type": "single_select",
+          "question": "What should each body paragraph contribute?",
+          "options": [
+            {
+              "key": "A",
+              "label": "A point relevant to the essay question"
+            },
+            {
+              "key": "B",
+              "label": "An unrelated story"
+            },
+            {
+              "key": "C",
+              "label": "Only the title"
+            },
+            {
+              "key": "D",
+              "label": "A random quotation"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Plan an essay around an introduction, developed paragraphs and a conclusion. Each paragraph should contribute to the question."
+        },
+        {
+          "id": "engelsk-g10-extended-essay-writing-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: extended essay writing. Use your own example.",
+          "model_answer": "An essay on technology separates benefits, risks and an argued conclusion into clear paragraphs.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "What should each body paragraph contribute?",
+          "back": "A point relevant to the essay question"
+        },
+        {
+          "front": "What is important about extended essay writing?",
+          "back": "Plan an essay around an introduction, developed paragraphs and a conclusion. Each paragraph should contribute to the question."
+        },
+        {
+          "front": "Give an example.",
+          "back": "An essay on technology separates benefits, risks and an argued conclusion into clear paragraphs."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g10-english-language-varieties",
+      "subject": "engelsk",
+      "grade": 10,
+      "slug": "english-language-varieties",
+      "sort_order": 4,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise english language varieties through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "English has regional and social varieties, and no accent alone reveals a person's knowledge or worth. Compare vocabulary and pronunciation respectfully."
+          },
+          {
+            "heading": "Example",
+            "text": "British «flat» and American «apartment» can describe the same type of home."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which American English word can mean the British English «flat»?",
+        "sample_answer": "Apartment",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g10-english-language-varieties-q1",
+          "type": "single_select",
+          "question": "Which American English word can mean the British English «flat»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Apartment"
+            },
+            {
+              "key": "B",
+              "label": "Schedule"
+            },
+            {
+              "key": "C",
+              "label": "Neighbour"
+            },
+            {
+              "key": "D",
+              "label": "Pavement"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "English has regional and social varieties, and no accent alone reveals a person's knowledge or worth. Compare vocabulary and pronunciation respectfully."
+        },
+        {
+          "id": "engelsk-g10-english-language-varieties-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: english language varieties. Use your own example.",
+          "model_answer": "British «flat» and American «apartment» can describe the same type of home.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which American English word can mean the British English «flat»?",
+          "back": "Apartment"
+        },
+        {
+          "front": "What is important about english language varieties?",
+          "back": "English has regional and social varieties, and no accent alone reveals a person's knowledge or worth. Compare vocabulary and pronunciation respectfully."
+        },
+        {
+          "front": "Give an example.",
+          "back": "British «flat» and American «apartment» can describe the same type of home."
+        }
+      ],
+      "preserve_existing_grade8": false
+    },
+    {
+      "id": "engelsk-g10-formal-discussion",
+      "subject": "engelsk",
+      "grade": 10,
+      "slug": "formal-discussion",
+      "sort_order": 5,
+      "version": 1,
+      "status": "draft",
+      "locale": "en",
+      "curriculum": {
+        "code": "ENG01-06",
+        "checkpoint_after_grade": 10,
+        "goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+        "goal_theme_status": "editorial_crosswalk_required"
+      },
+      "article": {
+        "intro": "In this lesson you will practise formal discussion through reading, speaking and writing.",
+        "sections": [
+          {
+            "heading": "Learn",
+            "text": "A discussion benefits from careful listening, precise language and fair treatment of alternative views. Respond to ideas rather than people."
+          },
+          {
+            "heading": "Example",
+            "text": "«I understand your point, but the evidence suggests ...» shows respectful disagreement."
+          },
+          {
+            "heading": "Try it yourself",
+            "text": "Explain how the example works, then write an original sentence or paragraph that uses the same idea."
+          }
+        ],
+        "sample_comprehension_question": "Which response expresses respectful disagreement?",
+        "sample_answer": "I see your point, but I disagree because...",
+        "original_content": true
+      },
+      "practice": [
+        {
+          "id": "engelsk-g10-formal-discussion-q1",
+          "type": "single_select",
+          "question": "Which response expresses respectful disagreement?",
+          "options": [
+            {
+              "key": "A",
+              "label": "I see your point, but I disagree because..."
+            },
+            {
+              "key": "B",
+              "label": "You are stupid."
+            },
+            {
+              "key": "C",
+              "label": "Nobody should speak."
+            },
+            {
+              "key": "D",
+              "label": "I will not listen."
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "A discussion benefits from careful listening, precise language and fair treatment of alternative views. Respond to ideas rather than people."
+        },
+        {
+          "id": "engelsk-g10-formal-discussion-q2",
+          "type": "short_response",
+          "question": "Explain or demonstrate: formal discussion. Use your own example.",
+          "model_answer": "«I understand your point, but the evidence suggests ...» shows respectful disagreement.",
+          "requires_human_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Which response expresses respectful disagreement?",
+          "back": "I see your point, but I disagree because..."
+        },
+        {
+          "front": "What is important about formal discussion?",
+          "back": "A discussion benefits from careful listening, precise language and fair treatment of alternative views. Respond to ideas rather than people."
+        },
+        {
+          "front": "Give an example.",
+          "back": "«I understand your point, but the evidence suggests ...» shows respectful disagreement."
+        }
+      ],
+      "preserve_existing_grade8": false
+    }
+  ]
+}
