@@ -1,0 +1,4262 @@
+{
+  "format": "familyhub-learn-authored-micro-lessons-v1",
+  "subject": "naturfag",
+  "grade_range": [
+    1,
+    10
+  ],
+  "lesson_count": 50,
+  "status": "draft_review_required",
+  "lessons": [
+    {
+      "id": "naturfag-g1-sansene-vare",
+      "subject": "naturfag",
+      "grade": 1,
+      "slug": "sansene-vare",
+      "title": "Sansene våre",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om sansene våre.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Øyne, ører, nese, tunge og hud hjelper oss å oppleve verden. Sanseinntrykk kan beskrive det vi ser, hører og føler."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Du kan høre fuglesang med ørene og se en rød blomst med øynene."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Øyne, ører, nese, tunge og hud hjelper oss å oppleve verden. Sanseinntrykk kan beskrive det vi ser, hører og føler.",
+        "example": "Du kan høre fuglesang med ørene og se en rød blomst med øynene."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g1-sansene-vare-q1",
+          "type": "single_select",
+          "question": "Hvilken kroppsdel bruker vi vanligvis for å høre fuglesang?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Ørene"
+            },
+            {
+              "key": "B",
+              "label": "Øynene"
+            },
+            {
+              "key": "C",
+              "label": "Nesen"
+            },
+            {
+              "key": "D",
+              "label": "Tungen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Øyne, ører, nese, tunge og hud hjelper oss å oppleve verden. Sanseinntrykk kan beskrive det vi ser, hører og føler."
+        },
+        {
+          "id": "naturfag-g1-sansene-vare-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Du kan høre fuglesang med ørene og se en rød blomst med øynene.",
+          "model_answer": "Øyne, ører, nese, tunge og hud hjelper oss å oppleve verden. Sanseinntrykk kan beskrive det vi ser, hører og føler.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken kroppsdel bruker vi vanligvis for å høre fuglesang?",
+          "back": "Ørene"
+        },
+        {
+          "front": "Hva sier naturfag om sansene våre?",
+          "back": "Øyne, ører, nese, tunge og hud hjelper oss å oppleve verden. Sanseinntrykk kan beskrive det vi ser, hører og føler."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Du kan høre fuglesang med ørene og se en rød blomst med øynene."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g1-dyr-i-naermiljoet",
+      "subject": "naturfag",
+      "grade": 1,
+      "slug": "dyr-i-naermiljoet",
+      "title": "Dyr i nærmiljøet",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om dyr i nærmiljøet.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Dyr trenger mat, vann og et egnet sted å leve. Vi kan observere dyr uten å forstyrre eller skade dem."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En meitemark kan finnes i fuktig jord der den lever av dødt plantemateriale."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Dyr trenger mat, vann og et egnet sted å leve. Vi kan observere dyr uten å forstyrre eller skade dem.",
+        "example": "En meitemark kan finnes i fuktig jord der den lever av dødt plantemateriale."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g1-dyr-i-naermiljoet-q1",
+          "type": "single_select",
+          "question": "Hvor kan vi ofte finne meitemark?",
+          "options": [
+            {
+              "key": "A",
+              "label": "I fuktig jord"
+            },
+            {
+              "key": "B",
+              "label": "På månen"
+            },
+            {
+              "key": "C",
+              "label": "Inne i sola"
+            },
+            {
+              "key": "D",
+              "label": "Midt i havet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Dyr trenger mat, vann og et egnet sted å leve. Vi kan observere dyr uten å forstyrre eller skade dem."
+        },
+        {
+          "id": "naturfag-g1-dyr-i-naermiljoet-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En meitemark kan finnes i fuktig jord der den lever av dødt plantemateriale.",
+          "model_answer": "Dyr trenger mat, vann og et egnet sted å leve. Vi kan observere dyr uten å forstyrre eller skade dem.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor kan vi ofte finne meitemark?",
+          "back": "I fuktig jord"
+        },
+        {
+          "front": "Hva sier naturfag om dyr i nærmiljøet?",
+          "back": "Dyr trenger mat, vann og et egnet sted å leve. Vi kan observere dyr uten å forstyrre eller skade dem."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En meitemark kan finnes i fuktig jord der den lever av dødt plantemateriale."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g1-vaeret-i-dag",
+      "subject": "naturfag",
+      "grade": 1,
+      "slug": "vaeret-i-dag",
+      "title": "Været i dag",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om været i dag.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Været kan beskrives med temperatur, vind, nedbør og skydekke. Observasjoner gjøres på et sted og tidspunkt."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "På en regnfull dag faller vanndråper fra skyene til bakken."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Været kan beskrives med temperatur, vind, nedbør og skydekke. Observasjoner gjøres på et sted og tidspunkt.",
+        "example": "På en regnfull dag faller vanndråper fra skyene til bakken."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g1-vaeret-i-dag-q1",
+          "type": "single_select",
+          "question": "Hva kalles vann som faller som dråper fra skyene?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Regn"
+            },
+            {
+              "key": "B",
+              "label": "Vind"
+            },
+            {
+              "key": "C",
+              "label": "Solskinn"
+            },
+            {
+              "key": "D",
+              "label": "Tåke"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Været kan beskrives med temperatur, vind, nedbør og skydekke. Observasjoner gjøres på et sted og tidspunkt."
+        },
+        {
+          "id": "naturfag-g1-vaeret-i-dag-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: På en regnfull dag faller vanndråper fra skyene til bakken.",
+          "model_answer": "Været kan beskrives med temperatur, vind, nedbør og skydekke. Observasjoner gjøres på et sted og tidspunkt.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kalles vann som faller som dråper fra skyene?",
+          "back": "Regn"
+        },
+        {
+          "front": "Hva sier naturfag om været i dag?",
+          "back": "Været kan beskrives med temperatur, vind, nedbør og skydekke. Observasjoner gjøres på et sted og tidspunkt."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "På en regnfull dag faller vanndråper fra skyene til bakken."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g1-arstider",
+      "subject": "naturfag",
+      "grade": 1,
+      "slug": "arstider",
+      "title": "Årstider",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om årstider.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Årstidene gir ulike forhold for lys, temperatur og planter. De skjer i et mønster gjennom året i Norge."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Mange løvtrær mister bladene om høsten og får nye blader om våren."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Årstidene gir ulike forhold for lys, temperatur og planter. De skjer i et mønster gjennom året i Norge.",
+        "example": "Mange løvtrær mister bladene om høsten og får nye blader om våren."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g1-arstider-q1",
+          "type": "single_select",
+          "question": "I hvilken årstid får mange løvtrær nye blader?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Våren"
+            },
+            {
+              "key": "B",
+              "label": "Høsten"
+            },
+            {
+              "key": "C",
+              "label": "Vinteren"
+            },
+            {
+              "key": "D",
+              "label": "Alle hver dag"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Årstidene gir ulike forhold for lys, temperatur og planter. De skjer i et mønster gjennom året i Norge."
+        },
+        {
+          "id": "naturfag-g1-arstider-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Mange løvtrær mister bladene om høsten og får nye blader om våren.",
+          "model_answer": "Årstidene gir ulike forhold for lys, temperatur og planter. De skjer i et mønster gjennom året i Norge.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "I hvilken årstid får mange løvtrær nye blader?",
+          "back": "Våren"
+        },
+        {
+          "front": "Hva sier naturfag om årstider?",
+          "back": "Årstidene gir ulike forhold for lys, temperatur og planter. De skjer i et mønster gjennom året i Norge."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Mange løvtrær mister bladene om høsten og får nye blader om våren."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g1-sortere-ting-fra-naturen",
+      "subject": "naturfag",
+      "grade": 1,
+      "slug": "sortere-ting-fra-naturen",
+      "title": "Sortere ting fra naturen",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om sortere ting fra naturen.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Når vi sorterer, ser vi etter en egenskap som tingene har felles. Vi kan sortere steiner etter form eller blader etter størrelse."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Store og små steiner kan legges i hver sin gruppe."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Når vi sorterer, ser vi etter en egenskap som tingene har felles. Vi kan sortere steiner etter form eller blader etter størrelse.",
+        "example": "Store og små steiner kan legges i hver sin gruppe."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g1-sortere-ting-fra-naturen-q1",
+          "type": "single_select",
+          "question": "Hvilken egenskap kan brukes til å sortere steiner?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Størrelse"
+            },
+            {
+              "key": "B",
+              "label": "Navnet på barnet"
+            },
+            {
+              "key": "C",
+              "label": "Ukedagen"
+            },
+            {
+              "key": "D",
+              "label": "Telefonnummer"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Når vi sorterer, ser vi etter en egenskap som tingene har felles. Vi kan sortere steiner etter form eller blader etter størrelse."
+        },
+        {
+          "id": "naturfag-g1-sortere-ting-fra-naturen-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Store og små steiner kan legges i hver sin gruppe.",
+          "model_answer": "Når vi sorterer, ser vi etter en egenskap som tingene har felles. Vi kan sortere steiner etter form eller blader etter størrelse.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken egenskap kan brukes til å sortere steiner?",
+          "back": "Størrelse"
+        },
+        {
+          "front": "Hva sier naturfag om sortere ting fra naturen?",
+          "back": "Når vi sorterer, ser vi etter en egenskap som tingene har felles. Vi kan sortere steiner etter form eller blader etter størrelse."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Store og små steiner kan legges i hver sin gruppe."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g2-levende-og-ikke-levende",
+      "subject": "naturfag",
+      "grade": 2,
+      "slug": "levende-og-ikke-levende",
+      "title": "Levende og ikke-levende",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om levende og ikke-levende.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Levende organismer trenger energi og kan vokse. En stein er ikke en levende organisme selv om den kan forandre form."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Et frø kan spire til en plante når forholdene passer; en vanlig stein spirer ikke."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Levende organismer trenger energi og kan vokse. En stein er ikke en levende organisme selv om den kan forandre form.",
+        "example": "Et frø kan spire til en plante når forholdene passer; en vanlig stein spirer ikke."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g2-levende-og-ikke-levende-q1",
+          "type": "single_select",
+          "question": "Hvilken av disse kan spire og vokse til en plante?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Et frø"
+            },
+            {
+              "key": "B",
+              "label": "En stein"
+            },
+            {
+              "key": "C",
+              "label": "En skrue"
+            },
+            {
+              "key": "D",
+              "label": "En glasskule"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Levende organismer trenger energi og kan vokse. En stein er ikke en levende organisme selv om den kan forandre form."
+        },
+        {
+          "id": "naturfag-g2-levende-og-ikke-levende-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Et frø kan spire til en plante når forholdene passer; en vanlig stein spirer ikke.",
+          "model_answer": "Levende organismer trenger energi og kan vokse. En stein er ikke en levende organisme selv om den kan forandre form.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken av disse kan spire og vokse til en plante?",
+          "back": "Et frø"
+        },
+        {
+          "front": "Hva sier naturfag om levende og ikke-levende?",
+          "back": "Levende organismer trenger energi og kan vokse. En stein er ikke en levende organisme selv om den kan forandre form."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Et frø kan spire til en plante når forholdene passer; en vanlig stein spirer ikke."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g2-fra-fro-til-plante",
+      "subject": "naturfag",
+      "grade": 2,
+      "slug": "fra-fro-til-plante",
+      "title": "Fra frø til plante",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om fra frø til plante.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Mange planter starter livet som et frø. De trenger blant annet vann og passende temperatur for å spire."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En bønne spirer når den får vann og varme, og kan senere utvikle blader."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Mange planter starter livet som et frø. De trenger blant annet vann og passende temperatur for å spire.",
+        "example": "En bønne spirer når den får vann og varme, og kan senere utvikle blader."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g2-fra-fro-til-plante-q1",
+          "type": "single_select",
+          "question": "Hva trenger mange frø for å begynne å spire?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Vann"
+            },
+            {
+              "key": "B",
+              "label": "Bare plast"
+            },
+            {
+              "key": "C",
+              "label": "Bare maling"
+            },
+            {
+              "key": "D",
+              "label": "Bare metall"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Mange planter starter livet som et frø. De trenger blant annet vann og passende temperatur for å spire."
+        },
+        {
+          "id": "naturfag-g2-fra-fro-til-plante-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En bønne spirer når den får vann og varme, og kan senere utvikle blader.",
+          "model_answer": "Mange planter starter livet som et frø. De trenger blant annet vann og passende temperatur for å spire.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva trenger mange frø for å begynne å spire?",
+          "back": "Vann"
+        },
+        {
+          "front": "Hva sier naturfag om fra frø til plante?",
+          "back": "Mange planter starter livet som et frø. De trenger blant annet vann og passende temperatur for å spire."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En bønne spirer når den får vann og varme, og kan senere utvikle blader."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g2-dyrenes-behov",
+      "subject": "naturfag",
+      "grade": 2,
+      "slug": "dyrenes-behov",
+      "title": "Dyrenes behov",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om dyrenes behov.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Dyr har forskjellige måter å skaffe mat og beskytte seg på. Se på miljøet der dyret lever."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En and bruker svømmeføttene til å bevege seg effektivt i vann."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Dyr har forskjellige måter å skaffe mat og beskytte seg på. Se på miljøet der dyret lever.",
+        "example": "En and bruker svømmeføttene til å bevege seg effektivt i vann."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g2-dyrenes-behov-q1",
+          "type": "single_select",
+          "question": "Hva hjelper en and å svømme?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Svømmeføtter"
+            },
+            {
+              "key": "B",
+              "label": "Bokstaver"
+            },
+            {
+              "key": "C",
+              "label": "Hjul"
+            },
+            {
+              "key": "D",
+              "label": "Tennplugger"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Dyr har forskjellige måter å skaffe mat og beskytte seg på. Se på miljøet der dyret lever."
+        },
+        {
+          "id": "naturfag-g2-dyrenes-behov-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En and bruker svømmeføttene til å bevege seg effektivt i vann.",
+          "model_answer": "Dyr har forskjellige måter å skaffe mat og beskytte seg på. Se på miljøet der dyret lever.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva hjelper en and å svømme?",
+          "back": "Svømmeføtter"
+        },
+        {
+          "front": "Hva sier naturfag om dyrenes behov?",
+          "back": "Dyr har forskjellige måter å skaffe mat og beskytte seg på. Se på miljøet der dyret lever."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En and bruker svømmeføttene til å bevege seg effektivt i vann."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g2-sol-og-skygge",
+      "subject": "naturfag",
+      "grade": 2,
+      "slug": "sol-og-skygge",
+      "title": "Sol og skygge",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om sol og skygge.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Solen gir lys, og ugjennomsiktige ting kan stanse lyset. Da oppstår en skygge på motsatt side av lyskilden."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En stolpe kan lage en skygge på bakken når solen skinner."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Solen gir lys, og ugjennomsiktige ting kan stanse lyset. Da oppstår en skygge på motsatt side av lyskilden.",
+        "example": "En stolpe kan lage en skygge på bakken når solen skinner."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g2-sol-og-skygge-q1",
+          "type": "single_select",
+          "question": "Hvorfor oppstår skyggen bak en stolpe?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Stolpen stanser noe av lyset"
+            },
+            {
+              "key": "B",
+              "label": "Stolpen lager regn"
+            },
+            {
+              "key": "C",
+              "label": "Skyggen lyser selv"
+            },
+            {
+              "key": "D",
+              "label": "Bakgrunnen er våt"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Solen gir lys, og ugjennomsiktige ting kan stanse lyset. Da oppstår en skygge på motsatt side av lyskilden."
+        },
+        {
+          "id": "naturfag-g2-sol-og-skygge-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En stolpe kan lage en skygge på bakken når solen skinner.",
+          "model_answer": "Solen gir lys, og ugjennomsiktige ting kan stanse lyset. Da oppstår en skygge på motsatt side av lyskilden.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvorfor oppstår skyggen bak en stolpe?",
+          "back": "Stolpen stanser noe av lyset"
+        },
+        {
+          "front": "Hva sier naturfag om sol og skygge?",
+          "back": "Solen gir lys, og ugjennomsiktige ting kan stanse lyset. Da oppstår en skygge på motsatt side av lyskilden."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En stolpe kan lage en skygge på bakken når solen skinner."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g2-stille-sporsmal-og-teste",
+      "subject": "naturfag",
+      "grade": 2,
+      "slug": "stille-sporsmal-og-teste",
+      "title": "Stille spørsmål og teste",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om stille spørsmål og teste.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Naturfag handler om å undre seg og undersøke. Vi kan endre én ting og observere hva som skjer i et ufarlig forsøk."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Legg to like isbiter i skygge og sol og se hvilken som smelter raskest."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Naturfag handler om å undre seg og undersøke. Vi kan endre én ting og observere hva som skjer i et ufarlig forsøk.",
+        "example": "Legg to like isbiter i skygge og sol og se hvilken som smelter raskest."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g2-stille-sporsmal-og-teste-q1",
+          "type": "single_select",
+          "question": "Hva bør være likt når to isbiter sammenlignes?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Størrelsen på isbitene"
+            },
+            {
+              "key": "B",
+              "label": "Navnet på elevene"
+            },
+            {
+              "key": "C",
+              "label": "Fargen på bordet alene"
+            },
+            {
+              "key": "D",
+              "label": "Klokkeslettet skrevet i boka"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Naturfag handler om å undre seg og undersøke. Vi kan endre én ting og observere hva som skjer i et ufarlig forsøk."
+        },
+        {
+          "id": "naturfag-g2-stille-sporsmal-og-teste-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Legg to like isbiter i skygge og sol og se hvilken som smelter raskest.",
+          "model_answer": "Naturfag handler om å undre seg og undersøke. Vi kan endre én ting og observere hva som skjer i et ufarlig forsøk.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør være likt når to isbiter sammenlignes?",
+          "back": "Størrelsen på isbitene"
+        },
+        {
+          "front": "Hva sier naturfag om stille spørsmål og teste?",
+          "back": "Naturfag handler om å undre seg og undersøke. Vi kan endre én ting og observere hva som skjer i et ufarlig forsøk."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Legg to like isbiter i skygge og sol og se hvilken som smelter raskest."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g3-stoffer-rundt-oss",
+      "subject": "naturfag",
+      "grade": 3,
+      "slug": "stoffer-rundt-oss",
+      "title": "Stoffer rundt oss",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om stoffer rundt oss.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Ting er laget av materialer som tre, glass og metall. Materialene har ulike egenskaper og brukes til forskjellige oppgaver."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Glass kan være gjennomsiktig, mens en treplanke vanligvis ikke er det."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Ting er laget av materialer som tre, glass og metall. Materialene har ulike egenskaper og brukes til forskjellige oppgaver.",
+        "example": "Glass kan være gjennomsiktig, mens en treplanke vanligvis ikke er det."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g3-stoffer-rundt-oss-q1",
+          "type": "single_select",
+          "question": "Hvilket materiale er ofte gjennomsiktig?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Glass"
+            },
+            {
+              "key": "B",
+              "label": "Tre"
+            },
+            {
+              "key": "C",
+              "label": "Betong"
+            },
+            {
+              "key": "D",
+              "label": "Leire"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Ting er laget av materialer som tre, glass og metall. Materialene har ulike egenskaper og brukes til forskjellige oppgaver."
+        },
+        {
+          "id": "naturfag-g3-stoffer-rundt-oss-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Glass kan være gjennomsiktig, mens en treplanke vanligvis ikke er det.",
+          "model_answer": "Ting er laget av materialer som tre, glass og metall. Materialene har ulike egenskaper og brukes til forskjellige oppgaver.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket materiale er ofte gjennomsiktig?",
+          "back": "Glass"
+        },
+        {
+          "front": "Hva sier naturfag om stoffer rundt oss?",
+          "back": "Ting er laget av materialer som tre, glass og metall. Materialene har ulike egenskaper og brukes til forskjellige oppgaver."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Glass kan være gjennomsiktig, mens en treplanke vanligvis ikke er det."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g3-vann-som-is-vaeske-og-damp",
+      "subject": "naturfag",
+      "grade": 3,
+      "slug": "vann-som-is-vaeske-og-damp",
+      "title": "Vann som is, væske og damp",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om vann som is, væske og damp.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Vann finnes som fast stoff, væske og gass. Når is smelter blir den flytende uten at vannet slutter å være vann."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En isbit som står i et varmt rom smelter til vann."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Vann finnes som fast stoff, væske og gass. Når is smelter blir den flytende uten at vannet slutter å være vann.",
+        "example": "En isbit som står i et varmt rom smelter til vann."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g3-vann-som-is-vaeske-og-damp-q1",
+          "type": "single_select",
+          "question": "Hva skjer når en isbit smelter?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Den blir flytende vann"
+            },
+            {
+              "key": "B",
+              "label": "Den blir stein"
+            },
+            {
+              "key": "C",
+              "label": "Den blir metall"
+            },
+            {
+              "key": "D",
+              "label": "Den forsvinner helt"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Vann finnes som fast stoff, væske og gass. Når is smelter blir den flytende uten at vannet slutter å være vann."
+        },
+        {
+          "id": "naturfag-g3-vann-som-is-vaeske-og-damp-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En isbit som står i et varmt rom smelter til vann.",
+          "model_answer": "Vann finnes som fast stoff, væske og gass. Når is smelter blir den flytende uten at vannet slutter å være vann.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva skjer når en isbit smelter?",
+          "back": "Den blir flytende vann"
+        },
+        {
+          "front": "Hva sier naturfag om vann som is, væske og damp?",
+          "back": "Vann finnes som fast stoff, væske og gass. Når is smelter blir den flytende uten at vannet slutter å være vann."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En isbit som står i et varmt rom smelter til vann."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g3-kroppens-sanser-og-helse",
+      "subject": "naturfag",
+      "grade": 3,
+      "slug": "kroppens-sanser-og-helse",
+      "title": "Kroppens sanser og helse",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om kroppens sanser og helse.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "God helse handler blant annet om søvn, mat, bevegelse og trivsel. Mennesker trenger også trygghet og fellesskap."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Å sove om natten hjelper kroppen med hvile og restitusjon."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "God helse handler blant annet om søvn, mat, bevegelse og trivsel. Mennesker trenger også trygghet og fellesskap.",
+        "example": "Å sove om natten hjelper kroppen med hvile og restitusjon."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g3-kroppens-sanser-og-helse-q1",
+          "type": "single_select",
+          "question": "Hvilken aktivitet gir kroppen hvile og restitusjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Søvn"
+            },
+            {
+              "key": "B",
+              "label": "Bare høy musikk"
+            },
+            {
+              "key": "C",
+              "label": "Alltid å hoppe"
+            },
+            {
+              "key": "D",
+              "label": "Å holde pusten"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "God helse handler blant annet om søvn, mat, bevegelse og trivsel. Mennesker trenger også trygghet og fellesskap."
+        },
+        {
+          "id": "naturfag-g3-kroppens-sanser-og-helse-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Å sove om natten hjelper kroppen med hvile og restitusjon.",
+          "model_answer": "God helse handler blant annet om søvn, mat, bevegelse og trivsel. Mennesker trenger også trygghet og fellesskap.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken aktivitet gir kroppen hvile og restitusjon?",
+          "back": "Søvn"
+        },
+        {
+          "front": "Hva sier naturfag om kroppens sanser og helse?",
+          "back": "God helse handler blant annet om søvn, mat, bevegelse og trivsel. Mennesker trenger også trygghet og fellesskap."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Å sove om natten hjelper kroppen med hvile og restitusjon."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g3-magneter",
+      "subject": "naturfag",
+      "grade": 3,
+      "slug": "magneter",
+      "title": "Magneter",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om magneter.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Magneter påvirker enkelte metaller uten direkte berøring. Ikke alle metaller tiltrekkes av vanlige magneter."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En magnet kan trekke til seg en binders av stål, men ikke en papirlapp."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Magneter påvirker enkelte metaller uten direkte berøring. Ikke alle metaller tiltrekkes av vanlige magneter.",
+        "example": "En magnet kan trekke til seg en binders av stål, men ikke en papirlapp."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g3-magneter-q1",
+          "type": "single_select",
+          "question": "Hvilken gjenstand blir vanligvis tiltrukket av en magnet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "En binders av stål"
+            },
+            {
+              "key": "B",
+              "label": "Et papirark"
+            },
+            {
+              "key": "C",
+              "label": "En trepinne"
+            },
+            {
+              "key": "D",
+              "label": "Et viskelær"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Magneter påvirker enkelte metaller uten direkte berøring. Ikke alle metaller tiltrekkes av vanlige magneter."
+        },
+        {
+          "id": "naturfag-g3-magneter-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En magnet kan trekke til seg en binders av stål, men ikke en papirlapp.",
+          "model_answer": "Magneter påvirker enkelte metaller uten direkte berøring. Ikke alle metaller tiltrekkes av vanlige magneter.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken gjenstand blir vanligvis tiltrukket av en magnet?",
+          "back": "En binders av stål"
+        },
+        {
+          "front": "Hva sier naturfag om magneter?",
+          "back": "Magneter påvirker enkelte metaller uten direkte berøring. Ikke alle metaller tiltrekkes av vanlige magneter."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En magnet kan trekke til seg en binders av stål, men ikke en papirlapp."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g3-beskrive-en-observasjon",
+      "subject": "naturfag",
+      "grade": 3,
+      "slug": "beskrive-en-observasjon",
+      "title": "Beskrive en observasjon",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om beskrive en observasjon.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En observasjon forteller hva vi la merke til. En forklaring sier hvorfor vi tror det skjedde, og bør kunne testes."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "«Isbiten ble mindre etter ti minutter» er en observasjon."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "En observasjon forteller hva vi la merke til. En forklaring sier hvorfor vi tror det skjedde, og bør kunne testes.",
+        "example": "«Isbiten ble mindre etter ti minutter» er en observasjon."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g3-beskrive-en-observasjon-q1",
+          "type": "single_select",
+          "question": "Hvilken setning er en direkte observasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Isbiten ble mindre"
+            },
+            {
+              "key": "B",
+              "label": "Det skjer alltid på grunn av salt"
+            },
+            {
+              "key": "C",
+              "label": "Is har tanker"
+            },
+            {
+              "key": "D",
+              "label": "Det vil aldri skje igjen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En observasjon forteller hva vi la merke til. En forklaring sier hvorfor vi tror det skjedde, og bør kunne testes."
+        },
+        {
+          "id": "naturfag-g3-beskrive-en-observasjon-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: «Isbiten ble mindre etter ti minutter» er en observasjon.",
+          "model_answer": "En observasjon forteller hva vi la merke til. En forklaring sier hvorfor vi tror det skjedde, og bør kunne testes.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken setning er en direkte observasjon?",
+          "back": "Isbiten ble mindre"
+        },
+        {
+          "front": "Hva sier naturfag om beskrive en observasjon?",
+          "back": "En observasjon forteller hva vi la merke til. En forklaring sier hvorfor vi tror det skjedde, og bør kunne testes."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "«Isbiten ble mindre etter ti minutter» er en observasjon."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g4-hypotese-og-undersokelse",
+      "subject": "naturfag",
+      "grade": 4,
+      "slug": "hypotese-og-undersokelse",
+      "title": "Hypotese og undersøkelse",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om hypotese og undersøkelse.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En hypotese er et forslag til forklaring som kan undersøkes. Vi bør beskrive hva vi endrer, og hva vi måler."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Hypotese: «En isbit smelter raskere i et varmt rom enn i et kjølig rom»."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "En hypotese er et forslag til forklaring som kan undersøkes. Vi bør beskrive hva vi endrer, og hva vi måler.",
+        "example": "Hypotese: «En isbit smelter raskere i et varmt rom enn i et kjølig rom»."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g4-hypotese-og-undersokelse-q1",
+          "type": "single_select",
+          "question": "Hva er en hypotese?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Et forslag som kan testes"
+            },
+            {
+              "key": "B",
+              "label": "En garanti for sannhet"
+            },
+            {
+              "key": "C",
+              "label": "En hemmelig kode"
+            },
+            {
+              "key": "D",
+              "label": "En hvilken som helst premie"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En hypotese er et forslag til forklaring som kan undersøkes. Vi bør beskrive hva vi endrer, og hva vi måler."
+        },
+        {
+          "id": "naturfag-g4-hypotese-og-undersokelse-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Hypotese: «En isbit smelter raskere i et varmt rom enn i et kjølig rom».",
+          "model_answer": "En hypotese er et forslag til forklaring som kan undersøkes. Vi bør beskrive hva vi endrer, og hva vi måler.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en hypotese?",
+          "back": "Et forslag som kan testes"
+        },
+        {
+          "front": "Hva sier naturfag om hypotese og undersøkelse?",
+          "back": "En hypotese er et forslag til forklaring som kan undersøkes. Vi bør beskrive hva vi endrer, og hva vi måler."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Hypotese: «En isbit smelter raskere i et varmt rom enn i et kjølig rom»."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g4-tabeller-med-malinger",
+      "subject": "naturfag",
+      "grade": 4,
+      "slug": "tabeller-med-malinger",
+      "title": "Tabeller med målinger",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om tabeller med målinger.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Tabeller organiserer observasjoner slik at vi kan sammenligne og trekke forsiktige konklusjoner."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Måler vi temperaturen hvert femte minutt, kan tid stå i én kolonne og temperatur i en annen."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Tabeller organiserer observasjoner slik at vi kan sammenligne og trekke forsiktige konklusjoner.",
+        "example": "Måler vi temperaturen hvert femte minutt, kan tid stå i én kolonne og temperatur i en annen."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g4-tabeller-med-malinger-q1",
+          "type": "single_select",
+          "question": "Hva bør stå i en tabell som følger temperatur over tid?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tid og temperatur"
+            },
+            {
+              "key": "B",
+              "label": "Bare elevnavn"
+            },
+            {
+              "key": "C",
+              "label": "Bare farger"
+            },
+            {
+              "key": "D",
+              "label": "Bare bilder uten tall"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Tabeller organiserer observasjoner slik at vi kan sammenligne og trekke forsiktige konklusjoner."
+        },
+        {
+          "id": "naturfag-g4-tabeller-med-malinger-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Måler vi temperaturen hvert femte minutt, kan tid stå i én kolonne og temperatur i en annen.",
+          "model_answer": "Tabeller organiserer observasjoner slik at vi kan sammenligne og trekke forsiktige konklusjoner.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør stå i en tabell som følger temperatur over tid?",
+          "back": "Tid og temperatur"
+        },
+        {
+          "front": "Hva sier naturfag om tabeller med målinger?",
+          "back": "Tabeller organiserer observasjoner slik at vi kan sammenligne og trekke forsiktige konklusjoner."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Måler vi temperaturen hvert femte minutt, kan tid stå i én kolonne og temperatur i en annen."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g4-blande-stoffer",
+      "subject": "naturfag",
+      "grade": 4,
+      "slug": "blande-stoffer",
+      "title": "Blande stoffer",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om blande stoffer.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Noen stoffer løser seg i vann, mens andre ikke gjør det. Ved å observere kan vi beskrive forskjellen uten farlige kjemikalier."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Sukker kan løses i et glass vann ved omrøring, mens sand vanligvis legger seg på bunnen."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Noen stoffer løser seg i vann, mens andre ikke gjør det. Ved å observere kan vi beskrive forskjellen uten farlige kjemikalier.",
+        "example": "Sukker kan løses i et glass vann ved omrøring, mens sand vanligvis legger seg på bunnen."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g4-blande-stoffer-q1",
+          "type": "single_select",
+          "question": "Hvilket stoff løser seg vanligvis i vann av sukker og sand?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sukker"
+            },
+            {
+              "key": "B",
+              "label": "Sand"
+            },
+            {
+              "key": "C",
+              "label": "Småstein"
+            },
+            {
+              "key": "D",
+              "label": "Glassperler"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Noen stoffer løser seg i vann, mens andre ikke gjør det. Ved å observere kan vi beskrive forskjellen uten farlige kjemikalier."
+        },
+        {
+          "id": "naturfag-g4-blande-stoffer-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Sukker kan løses i et glass vann ved omrøring, mens sand vanligvis legger seg på bunnen.",
+          "model_answer": "Noen stoffer løser seg i vann, mens andre ikke gjør det. Ved å observere kan vi beskrive forskjellen uten farlige kjemikalier.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket stoff løser seg vanligvis i vann av sukker og sand?",
+          "back": "Sukker"
+        },
+        {
+          "front": "Hva sier naturfag om blande stoffer?",
+          "back": "Noen stoffer løser seg i vann, mens andre ikke gjør det. Ved å observere kan vi beskrive forskjellen uten farlige kjemikalier."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Sukker kan løses i et glass vann ved omrøring, mens sand vanligvis legger seg på bunnen."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g4-temperatur-og-energi",
+      "subject": "naturfag",
+      "grade": 4,
+      "slug": "temperatur-og-energi",
+      "title": "Temperatur og energi",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om temperatur og energi.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Temperatur sier noe om hvor varmt eller kaldt det er. Vi måler temperatur med termometer."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En kopp vann på 40 °C er varmere enn en kopp på 20 °C."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Temperatur sier noe om hvor varmt eller kaldt det er. Vi måler temperatur med termometer.",
+        "example": "En kopp vann på 40 °C er varmere enn en kopp på 20 °C."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g4-temperatur-og-energi-q1",
+          "type": "single_select",
+          "question": "Hvilken temperatur er høyest: 40 °C eller 20 °C?",
+          "options": [
+            {
+              "key": "A",
+              "label": "40 °C"
+            },
+            {
+              "key": "B",
+              "label": "20 °C"
+            },
+            {
+              "key": "C",
+              "label": "Begge er like"
+            },
+            {
+              "key": "D",
+              "label": "0 °C"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Temperatur sier noe om hvor varmt eller kaldt det er. Vi måler temperatur med termometer."
+        },
+        {
+          "id": "naturfag-g4-temperatur-og-energi-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En kopp vann på 40 °C er varmere enn en kopp på 20 °C.",
+          "model_answer": "Temperatur sier noe om hvor varmt eller kaldt det er. Vi måler temperatur med termometer.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken temperatur er høyest: 40 °C eller 20 °C?",
+          "back": "40 °C"
+        },
+        {
+          "front": "Hva sier naturfag om temperatur og energi?",
+          "back": "Temperatur sier noe om hvor varmt eller kaldt det er. Vi måler temperatur med termometer."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En kopp vann på 40 °C er varmere enn en kopp på 20 °C."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g4-deler-i-tekniske-systemer",
+      "subject": "naturfag",
+      "grade": 4,
+      "slug": "deler-i-tekniske-systemer",
+      "title": "Deler i tekniske systemer",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om deler i tekniske systemer.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Et teknologisk system består av deler som samarbeider om en oppgave. Vi kan skissere og forbedre en enkel modell."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En sykkel har pedaler, kjede og hjul som sammen overfører bevegelse."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Beskriv hva du kan se og høre. Velg en trygg observasjon og noter resultatet."
+          }
+        ],
+        "summary": "Et teknologisk system består av deler som samarbeider om en oppgave. Vi kan skissere og forbedre en enkel modell.",
+        "example": "En sykkel har pedaler, kjede og hjul som sammen overfører bevegelse."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g4-deler-i-tekniske-systemer-q1",
+          "type": "single_select",
+          "question": "Hva overfører kraft fra pedalene til bakhjulet på mange sykler?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Kjedet"
+            },
+            {
+              "key": "B",
+              "label": "Styret alene"
+            },
+            {
+              "key": "C",
+              "label": "Refleksen"
+            },
+            {
+              "key": "D",
+              "label": "Ringeklokken"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Et teknologisk system består av deler som samarbeider om en oppgave. Vi kan skissere og forbedre en enkel modell."
+        },
+        {
+          "id": "naturfag-g4-deler-i-tekniske-systemer-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En sykkel har pedaler, kjede og hjul som sammen overfører bevegelse.",
+          "model_answer": "Et teknologisk system består av deler som samarbeider om en oppgave. Vi kan skissere og forbedre en enkel modell.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva overfører kraft fra pedalene til bakhjulet på mange sykler?",
+          "back": "Kjedet"
+        },
+        {
+          "front": "Hva sier naturfag om deler i tekniske systemer?",
+          "back": "Et teknologisk system består av deler som samarbeider om en oppgave. Vi kan skissere og forbedre en enkel modell."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En sykkel har pedaler, kjede og hjul som sammen overfører bevegelse."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g5-naeringskjeder",
+      "subject": "naturfag",
+      "grade": 5,
+      "slug": "naeringskjeder",
+      "title": "Næringskjeder",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om næringskjeder.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En næringskjede viser hvem som spiser hvem i et miljø. Energi kommer ofte inn i kjeden via plantenes fotosyntese."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Gress → hare → rev er en enkel næringskjede."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "En næringskjede viser hvem som spiser hvem i et miljø. Energi kommer ofte inn i kjeden via plantenes fotosyntese.",
+        "example": "Gress → hare → rev er en enkel næringskjede."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g5-naeringskjeder-q1",
+          "type": "single_select",
+          "question": "Hvem spiser gress i kjeden gress → hare → rev?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Haren"
+            },
+            {
+              "key": "B",
+              "label": "Reven først"
+            },
+            {
+              "key": "C",
+              "label": "Sola"
+            },
+            {
+              "key": "D",
+              "label": "Jorda"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En næringskjede viser hvem som spiser hvem i et miljø. Energi kommer ofte inn i kjeden via plantenes fotosyntese."
+        },
+        {
+          "id": "naturfag-g5-naeringskjeder-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Gress → hare → rev er en enkel næringskjede.",
+          "model_answer": "En næringskjede viser hvem som spiser hvem i et miljø. Energi kommer ofte inn i kjeden via plantenes fotosyntese.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvem spiser gress i kjeden gress → hare → rev?",
+          "back": "Haren"
+        },
+        {
+          "front": "Hva sier naturfag om næringskjeder?",
+          "back": "En næringskjede viser hvem som spiser hvem i et miljø. Energi kommer ofte inn i kjeden via plantenes fotosyntese."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Gress → hare → rev er en enkel næringskjede."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g5-planeter-og-solsystemet",
+      "subject": "naturfag",
+      "grade": 5,
+      "slug": "planeter-og-solsystemet",
+      "title": "Planeter og solsystemet",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om planeter og solsystemet.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Jorda går i bane rundt sola. Månen går i bane rundt jorda og reflekterer sollys."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Månen lyser ikke med sitt eget synlige lys; vi ser reflektert sollys."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Jorda går i bane rundt sola. Månen går i bane rundt jorda og reflekterer sollys.",
+        "example": "Månen lyser ikke med sitt eget synlige lys; vi ser reflektert sollys."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g5-planeter-og-solsystemet-q1",
+          "type": "single_select",
+          "question": "Hva er den viktigste kilden til lyset vi ser fra månen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sola"
+            },
+            {
+              "key": "B",
+              "label": "Månen selv"
+            },
+            {
+              "key": "C",
+              "label": "Jordas indre"
+            },
+            {
+              "key": "D",
+              "label": "Stjerner alene"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Jorda går i bane rundt sola. Månen går i bane rundt jorda og reflekterer sollys."
+        },
+        {
+          "id": "naturfag-g5-planeter-og-solsystemet-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Månen lyser ikke med sitt eget synlige lys; vi ser reflektert sollys.",
+          "model_answer": "Jorda går i bane rundt sola. Månen går i bane rundt jorda og reflekterer sollys.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er den viktigste kilden til lyset vi ser fra månen?",
+          "back": "Sola"
+        },
+        {
+          "front": "Hva sier naturfag om planeter og solsystemet?",
+          "back": "Jorda går i bane rundt sola. Månen går i bane rundt jorda og reflekterer sollys."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Månen lyser ikke med sitt eget synlige lys; vi ser reflektert sollys."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g5-krefter-og-bevegelse",
+      "subject": "naturfag",
+      "grade": 5,
+      "slug": "krefter-og-bevegelse",
+      "title": "Krefter og bevegelse",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om krefter og bevegelse.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Krefter kan endre fart eller retning på et objekt. Friksjon er en kraft som virker mot bevegelse mellom flater."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En ball som ruller på et gulv bremser blant annet på grunn av friksjon."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Krefter kan endre fart eller retning på et objekt. Friksjon er en kraft som virker mot bevegelse mellom flater.",
+        "example": "En ball som ruller på et gulv bremser blant annet på grunn av friksjon."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g5-krefter-og-bevegelse-q1",
+          "type": "single_select",
+          "question": "Hva kan få en rullende ball til å bremse?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Friksjon"
+            },
+            {
+              "key": "B",
+              "label": "Bokstavrekkefølge"
+            },
+            {
+              "key": "C",
+              "label": "Lydstyrke alene"
+            },
+            {
+              "key": "D",
+              "label": "Antall dager"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Krefter kan endre fart eller retning på et objekt. Friksjon er en kraft som virker mot bevegelse mellom flater."
+        },
+        {
+          "id": "naturfag-g5-krefter-og-bevegelse-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En ball som ruller på et gulv bremser blant annet på grunn av friksjon.",
+          "model_answer": "Krefter kan endre fart eller retning på et objekt. Friksjon er en kraft som virker mot bevegelse mellom flater.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan få en rullende ball til å bremse?",
+          "back": "Friksjon"
+        },
+        {
+          "front": "Hva sier naturfag om krefter og bevegelse?",
+          "back": "Krefter kan endre fart eller retning på et objekt. Friksjon er en kraft som virker mot bevegelse mellom flater."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En ball som ruller på et gulv bremser blant annet på grunn av friksjon."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g5-materialer-og-kretslop",
+      "subject": "naturfag",
+      "grade": 5,
+      "slug": "materialer-og-kretslop",
+      "title": "Materialer og kretsløp",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om materialer og kretsløp.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Materialer brukes, repareres og gjenvinnes på forskjellige måter. Mindre forbruk kan redusere ressursbruken."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En brukt aluminiumsboks kan gjenvinnes i stedet for å bli kastet i naturen."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Materialer brukes, repareres og gjenvinnes på forskjellige måter. Mindre forbruk kan redusere ressursbruken.",
+        "example": "En brukt aluminiumsboks kan gjenvinnes i stedet for å bli kastet i naturen."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g5-materialer-og-kretslop-q1",
+          "type": "single_select",
+          "question": "Hva kan være en fordel med å gjenvinne aluminium?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Man sparer råvarer og energi"
+            },
+            {
+              "key": "B",
+              "label": "Det øker alltid forsøpling"
+            },
+            {
+              "key": "C",
+              "label": "Metallet blir usynlig"
+            },
+            {
+              "key": "D",
+              "label": "Materialet blir plast"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Materialer brukes, repareres og gjenvinnes på forskjellige måter. Mindre forbruk kan redusere ressursbruken."
+        },
+        {
+          "id": "naturfag-g5-materialer-og-kretslop-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En brukt aluminiumsboks kan gjenvinnes i stedet for å bli kastet i naturen.",
+          "model_answer": "Materialer brukes, repareres og gjenvinnes på forskjellige måter. Mindre forbruk kan redusere ressursbruken.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan være en fordel med å gjenvinne aluminium?",
+          "back": "Man sparer råvarer og energi"
+        },
+        {
+          "front": "Hva sier naturfag om materialer og kretsløp?",
+          "back": "Materialer brukes, repareres og gjenvinnes på forskjellige måter. Mindre forbruk kan redusere ressursbruken."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En brukt aluminiumsboks kan gjenvinnes i stedet for å bli kastet i naturen."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g5-naturvennlig-feltarbeid",
+      "subject": "naturfag",
+      "grade": 5,
+      "slug": "naturvennlig-feltarbeid",
+      "title": "Naturvennlig feltarbeid",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om naturvennlig feltarbeid.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Vi kan undersøke naturen ved å observere dyr og planter uten å skade dem. Notater gjør det lettere å sammenligne funn."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Tell hvor mange meitemarker du ser på to små jordområder uten å grave opp alle."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Vi kan undersøke naturen ved å observere dyr og planter uten å skade dem. Notater gjør det lettere å sammenligne funn.",
+        "example": "Tell hvor mange meitemarker du ser på to små jordområder uten å grave opp alle."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g5-naturvennlig-feltarbeid-q1",
+          "type": "single_select",
+          "question": "Hva bør man gjøre med dyr under feltarbeid?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Observere uten unødig skade"
+            },
+            {
+              "key": "B",
+              "label": "Ta med alle hjem"
+            },
+            {
+              "key": "C",
+              "label": "Mate med plast"
+            },
+            {
+              "key": "D",
+              "label": "Forstyrre reir"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Vi kan undersøke naturen ved å observere dyr og planter uten å skade dem. Notater gjør det lettere å sammenligne funn."
+        },
+        {
+          "id": "naturfag-g5-naturvennlig-feltarbeid-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Tell hvor mange meitemarker du ser på to små jordområder uten å grave opp alle.",
+          "model_answer": "Vi kan undersøke naturen ved å observere dyr og planter uten å skade dem. Notater gjør det lettere å sammenligne funn.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør man gjøre med dyr under feltarbeid?",
+          "back": "Observere uten unødig skade"
+        },
+        {
+          "front": "Hva sier naturfag om naturvennlig feltarbeid?",
+          "back": "Vi kan undersøke naturen ved å observere dyr og planter uten å skade dem. Notater gjør det lettere å sammenligne funn."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Tell hvor mange meitemarker du ser på to små jordområder uten å grave opp alle."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g6-okosystem-og-samspill",
+      "subject": "naturfag",
+      "grade": 6,
+      "slug": "okosystem-og-samspill",
+      "title": "Økosystem og samspill",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om økosystem og samspill.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Et økosystem består av levende organismer og miljøet rundt. Endrer én del seg, kan andre bli påvirket."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Hvis mange blomster forsvinner, kan pollinerende insekter få mindre mat."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Et økosystem består av levende organismer og miljøet rundt. Endrer én del seg, kan andre bli påvirket.",
+        "example": "Hvis mange blomster forsvinner, kan pollinerende insekter få mindre mat."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g6-okosystem-og-samspill-q1",
+          "type": "single_select",
+          "question": "Hvem kan påvirkes når blomster blir borte?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Pollinerende insekter"
+            },
+            {
+              "key": "B",
+              "label": "Bare steiner"
+            },
+            {
+              "key": "C",
+              "label": "Bare skyer"
+            },
+            {
+              "key": "D",
+              "label": "Ingen organismer"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Et økosystem består av levende organismer og miljøet rundt. Endrer én del seg, kan andre bli påvirket."
+        },
+        {
+          "id": "naturfag-g6-okosystem-og-samspill-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Hvis mange blomster forsvinner, kan pollinerende insekter få mindre mat.",
+          "model_answer": "Et økosystem består av levende organismer og miljøet rundt. Endrer én del seg, kan andre bli påvirket.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvem kan påvirkes når blomster blir borte?",
+          "back": "Pollinerende insekter"
+        },
+        {
+          "front": "Hva sier naturfag om økosystem og samspill?",
+          "back": "Et økosystem består av levende organismer og miljøet rundt. Endrer én del seg, kan andre bli påvirket."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Hvis mange blomster forsvinner, kan pollinerende insekter få mindre mat."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g6-menneskekroppens-organsystemer",
+      "subject": "naturfag",
+      "grade": 6,
+      "slug": "menneskekroppens-organsystemer",
+      "title": "Menneskekroppens organsystemer",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om menneskekroppens organsystemer.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Organer samarbeider i systemer som løser viktige oppgaver. Lunger tar opp oksygen, og blodet frakter det til celler."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Når vi puster inn, kommer luft til lungene, der oksygen overføres til blodet."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Organer samarbeider i systemer som løser viktige oppgaver. Lunger tar opp oksygen, og blodet frakter det til celler.",
+        "example": "Når vi puster inn, kommer luft til lungene, der oksygen overføres til blodet."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g6-menneskekroppens-organsystemer-q1",
+          "type": "single_select",
+          "question": "Hvilket organ tar opp oksygen fra innåndingsluften?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Lungene"
+            },
+            {
+              "key": "B",
+              "label": "Magen"
+            },
+            {
+              "key": "C",
+              "label": "Håret"
+            },
+            {
+              "key": "D",
+              "label": "Neglene"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Organer samarbeider i systemer som løser viktige oppgaver. Lunger tar opp oksygen, og blodet frakter det til celler."
+        },
+        {
+          "id": "naturfag-g6-menneskekroppens-organsystemer-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Når vi puster inn, kommer luft til lungene, der oksygen overføres til blodet.",
+          "model_answer": "Organer samarbeider i systemer som løser viktige oppgaver. Lunger tar opp oksygen, og blodet frakter det til celler.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket organ tar opp oksygen fra innåndingsluften?",
+          "back": "Lungene"
+        },
+        {
+          "front": "Hva sier naturfag om menneskekroppens organsystemer?",
+          "back": "Organer samarbeider i systemer som løser viktige oppgaver. Lunger tar opp oksygen, og blodet frakter det til celler."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Når vi puster inn, kommer luft til lungene, der oksygen overføres til blodet."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g6-vannets-kretslop",
+      "subject": "naturfag",
+      "grade": 6,
+      "slug": "vannets-kretslop",
+      "title": "Vannets kretsløp",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om vannets kretsløp.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Vann fordamper, kondenserer til skyer og kommer tilbake som nedbør. Kretsløpet drives blant annet av energi fra sola."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Sol varmer havvann; noe fordamper og kan senere falle som regn."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Vann fordamper, kondenserer til skyer og kommer tilbake som nedbør. Kretsløpet drives blant annet av energi fra sola.",
+        "example": "Sol varmer havvann; noe fordamper og kan senere falle som regn."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g6-vannets-kretslop-q1",
+          "type": "single_select",
+          "question": "Hva kalles overgangen fra flytende vann til vanndamp?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Fordamping"
+            },
+            {
+              "key": "B",
+              "label": "Frysing"
+            },
+            {
+              "key": "C",
+              "label": "Smelting"
+            },
+            {
+              "key": "D",
+              "label": "Nedbrytning"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Vann fordamper, kondenserer til skyer og kommer tilbake som nedbør. Kretsløpet drives blant annet av energi fra sola."
+        },
+        {
+          "id": "naturfag-g6-vannets-kretslop-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Sol varmer havvann; noe fordamper og kan senere falle som regn.",
+          "model_answer": "Vann fordamper, kondenserer til skyer og kommer tilbake som nedbør. Kretsløpet drives blant annet av energi fra sola.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kalles overgangen fra flytende vann til vanndamp?",
+          "back": "Fordamping"
+        },
+        {
+          "front": "Hva sier naturfag om vannets kretsløp?",
+          "back": "Vann fordamper, kondenserer til skyer og kommer tilbake som nedbør. Kretsløpet drives blant annet av energi fra sola."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Sol varmer havvann; noe fordamper og kan senere falle som regn."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g6-elektriske-kretser",
+      "subject": "naturfag",
+      "grade": 6,
+      "slug": "elektriske-kretser",
+      "title": "Elektriske kretser",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om elektriske kretser.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En lukket elektrisk krets gjør at strøm kan gå. Batteri, ledning og lampe kan vise prinsippet ved lav spenning."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En liten batteridrevet lampe lyser når kretsen er lukket."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "En lukket elektrisk krets gjør at strøm kan gå. Batteri, ledning og lampe kan vise prinsippet ved lav spenning.",
+        "example": "En liten batteridrevet lampe lyser når kretsen er lukket."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g6-elektriske-kretser-q1",
+          "type": "single_select",
+          "question": "Hva må vanligvis til for at en enkel batteri-lampekrets skal lyse?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Lukket krets"
+            },
+            {
+              "key": "B",
+              "label": "Brutt ledning"
+            },
+            {
+              "key": "C",
+              "label": "Fjernet batteri"
+            },
+            {
+              "key": "D",
+              "label": "Bare plast"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En lukket elektrisk krets gjør at strøm kan gå. Batteri, ledning og lampe kan vise prinsippet ved lav spenning."
+        },
+        {
+          "id": "naturfag-g6-elektriske-kretser-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En liten batteridrevet lampe lyser når kretsen er lukket.",
+          "model_answer": "En lukket elektrisk krets gjør at strøm kan gå. Batteri, ledning og lampe kan vise prinsippet ved lav spenning.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva må vanligvis til for at en enkel batteri-lampekrets skal lyse?",
+          "back": "Lukket krets"
+        },
+        {
+          "front": "Hva sier naturfag om elektriske kretser?",
+          "back": "En lukket elektrisk krets gjør at strøm kan gå. Batteri, ledning og lampe kan vise prinsippet ved lav spenning."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En liten batteridrevet lampe lyser når kretsen er lukket."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g6-undersoke-baerekraft",
+      "subject": "naturfag",
+      "grade": 6,
+      "slug": "undersoke-baerekraft",
+      "title": "Undersøke bærekraft",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om undersøke bærekraft.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Bærekraft handler om å ta hensyn til miljø, mennesker og framtidige behov. Vi kan undersøke ressursbruk i hverdagen."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Å reparere en sekk kan forlenge levetiden og redusere behovet for ny produksjon."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Bærekraft handler om å ta hensyn til miljø, mennesker og framtidige behov. Vi kan undersøke ressursbruk i hverdagen.",
+        "example": "Å reparere en sekk kan forlenge levetiden og redusere behovet for ny produksjon."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g6-undersoke-baerekraft-q1",
+          "type": "single_select",
+          "question": "Hva er en mulig miljøgevinst ved reparasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Mindre behov for nye ressurser"
+            },
+            {
+              "key": "B",
+              "label": "Mer unødig avfall"
+            },
+            {
+              "key": "C",
+              "label": "Alltid mer produksjon"
+            },
+            {
+              "key": "D",
+              "label": "Mindre holdbarhet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Bærekraft handler om å ta hensyn til miljø, mennesker og framtidige behov. Vi kan undersøke ressursbruk i hverdagen."
+        },
+        {
+          "id": "naturfag-g6-undersoke-baerekraft-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Å reparere en sekk kan forlenge levetiden og redusere behovet for ny produksjon.",
+          "model_answer": "Bærekraft handler om å ta hensyn til miljø, mennesker og framtidige behov. Vi kan undersøke ressursbruk i hverdagen.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en mulig miljøgevinst ved reparasjon?",
+          "back": "Mindre behov for nye ressurser"
+        },
+        {
+          "front": "Hva sier naturfag om undersøke bærekraft?",
+          "back": "Bærekraft handler om å ta hensyn til miljø, mennesker og framtidige behov. Vi kan undersøke ressursbruk i hverdagen."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Å reparere en sekk kan forlenge levetiden og redusere behovet for ny produksjon."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g7-variabler-og-hypoteser",
+      "subject": "naturfag",
+      "grade": 7,
+      "slug": "variabler-og-hypoteser",
+      "title": "Variabler og hypoteser",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om variabler og hypoteser.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "I et forsøk er en variabel noe som kan endres eller måles. Kontrollerte variabler bør holdes like når én påvirkning undersøkes."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Test planters vekst med ulik lysmengde og samme type jord og vannmengde."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "I et forsøk er en variabel noe som kan endres eller måles. Kontrollerte variabler bør holdes like når én påvirkning undersøkes.",
+        "example": "Test planters vekst med ulik lysmengde og samme type jord og vannmengde."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g7-variabler-og-hypoteser-q1",
+          "type": "single_select",
+          "question": "Hvilken faktor endres i eksemplet med planter og ulik lysmengde?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Lysmengden"
+            },
+            {
+              "key": "B",
+              "label": "Jordtypen"
+            },
+            {
+              "key": "C",
+              "label": "Vannmengden"
+            },
+            {
+              "key": "D",
+              "label": "Plantearten"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "I et forsøk er en variabel noe som kan endres eller måles. Kontrollerte variabler bør holdes like når én påvirkning undersøkes."
+        },
+        {
+          "id": "naturfag-g7-variabler-og-hypoteser-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Test planters vekst med ulik lysmengde og samme type jord og vannmengde.",
+          "model_answer": "I et forsøk er en variabel noe som kan endres eller måles. Kontrollerte variabler bør holdes like når én påvirkning undersøkes.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken faktor endres i eksemplet med planter og ulik lysmengde?",
+          "back": "Lysmengden"
+        },
+        {
+          "front": "Hva sier naturfag om variabler og hypoteser?",
+          "back": "I et forsøk er en variabel noe som kan endres eller måles. Kontrollerte variabler bør holdes like når én påvirkning undersøkes."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Test planters vekst med ulik lysmengde og samme type jord og vannmengde."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g7-celler-og-mikroskop",
+      "subject": "naturfag",
+      "grade": 7,
+      "slug": "celler-og-mikroskop",
+      "title": "Celler og mikroskop",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om celler og mikroskop.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Levende organismer er bygd av celler. Et mikroskop kan gjøre små strukturer synlige, men vi må bruke preparater riktig."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Løkens ytterhud kan observeres som mange celler med cellevegger i mikroskop."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Levende organismer er bygd av celler. Et mikroskop kan gjøre små strukturer synlige, men vi må bruke preparater riktig.",
+        "example": "Løkens ytterhud kan observeres som mange celler med cellevegger i mikroskop."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g7-celler-og-mikroskop-q1",
+          "type": "single_select",
+          "question": "Hva bruker vi for å se små cellestrukturer?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Mikroskop"
+            },
+            {
+              "key": "B",
+              "label": "Teleskop"
+            },
+            {
+              "key": "C",
+              "label": "Kompass"
+            },
+            {
+              "key": "D",
+              "label": "Termostat"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Levende organismer er bygd av celler. Et mikroskop kan gjøre små strukturer synlige, men vi må bruke preparater riktig."
+        },
+        {
+          "id": "naturfag-g7-celler-og-mikroskop-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Løkens ytterhud kan observeres som mange celler med cellevegger i mikroskop.",
+          "model_answer": "Levende organismer er bygd av celler. Et mikroskop kan gjøre små strukturer synlige, men vi må bruke preparater riktig.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bruker vi for å se små cellestrukturer?",
+          "back": "Mikroskop"
+        },
+        {
+          "front": "Hva sier naturfag om celler og mikroskop?",
+          "back": "Levende organismer er bygd av celler. Et mikroskop kan gjøre små strukturer synlige, men vi må bruke preparater riktig."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Løkens ytterhud kan observeres som mange celler med cellevegger i mikroskop."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g7-mikroorganismer",
+      "subject": "naturfag",
+      "grade": 7,
+      "slug": "mikroorganismer",
+      "title": "Mikroorganismer",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om mikroorganismer.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Bakterier, sopp og andre mikroorganismer finnes mange steder. Noen er nyttige, andre kan gi sykdom, så hygiene er viktig."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Gjær er en mikroorganisme som brukes til å heve brøddeig."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Bakterier, sopp og andre mikroorganismer finnes mange steder. Noen er nyttige, andre kan gi sykdom, så hygiene er viktig.",
+        "example": "Gjær er en mikroorganisme som brukes til å heve brøddeig."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g7-mikroorganismer-q1",
+          "type": "single_select",
+          "question": "Hvilken mikroorganisme brukes ofte til å heve brøddeig?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Gjær"
+            },
+            {
+              "key": "B",
+              "label": "Tang"
+            },
+            {
+              "key": "C",
+              "label": "Bjørk"
+            },
+            {
+              "key": "D",
+              "label": "Torsk"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Bakterier, sopp og andre mikroorganismer finnes mange steder. Noen er nyttige, andre kan gi sykdom, så hygiene er viktig."
+        },
+        {
+          "id": "naturfag-g7-mikroorganismer-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Gjær er en mikroorganisme som brukes til å heve brøddeig.",
+          "model_answer": "Bakterier, sopp og andre mikroorganismer finnes mange steder. Noen er nyttige, andre kan gi sykdom, så hygiene er viktig.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken mikroorganisme brukes ofte til å heve brøddeig?",
+          "back": "Gjær"
+        },
+        {
+          "front": "Hva sier naturfag om mikroorganismer?",
+          "back": "Bakterier, sopp og andre mikroorganismer finnes mange steder. Noen er nyttige, andre kan gi sykdom, så hygiene er viktig."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Gjær er en mikroorganisme som brukes til å heve brøddeig."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g7-energioverganger",
+      "subject": "naturfag",
+      "grade": 7,
+      "slug": "energioverganger",
+      "title": "Energioverganger",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om energioverganger.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Energi kan overføres og omdannes fra én form til en annen. Vi må skille energimengde fra hvordan energien kan brukes."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "I en batteridrevet lommelykt blir kjemisk energi omdannet til blant annet lys og varme."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Energi kan overføres og omdannes fra én form til en annen. Vi må skille energimengde fra hvordan energien kan brukes.",
+        "example": "I en batteridrevet lommelykt blir kjemisk energi omdannet til blant annet lys og varme."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g7-energioverganger-q1",
+          "type": "single_select",
+          "question": "Hva er en energiform som kommer fra lommelykten?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Lysenergi"
+            },
+            {
+              "key": "B",
+              "label": "Geografisk energi"
+            },
+            {
+              "key": "C",
+              "label": "Tekstenergi"
+            },
+            {
+              "key": "D",
+              "label": "Ordklasseenergi"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Energi kan overføres og omdannes fra én form til en annen. Vi må skille energimengde fra hvordan energien kan brukes."
+        },
+        {
+          "id": "naturfag-g7-energioverganger-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: I en batteridrevet lommelykt blir kjemisk energi omdannet til blant annet lys og varme.",
+          "model_answer": "Energi kan overføres og omdannes fra én form til en annen. Vi må skille energimengde fra hvordan energien kan brukes.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en energiform som kommer fra lommelykten?",
+          "back": "Lysenergi"
+        },
+        {
+          "front": "Hva sier naturfag om energioverganger?",
+          "back": "Energi kan overføres og omdannes fra én form til en annen. Vi må skille energimengde fra hvordan energien kan brukes."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "I en batteridrevet lommelykt blir kjemisk energi omdannet til blant annet lys og varme."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g7-programmering-og-modeller",
+      "subject": "naturfag",
+      "grade": 7,
+      "slug": "programmering-og-modeller",
+      "title": "Programmering og modeller",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om programmering og modeller.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En modell kan beskrive hvordan et system fungerer, men er enklere enn virkeligheten. Programmer kan styre teknologiske systemer i trinn."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En robot kan programmeres til å gå framover tre steg og deretter svinge."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "En modell kan beskrive hvordan et system fungerer, men er enklere enn virkeligheten. Programmer kan styre teknologiske systemer i trinn.",
+        "example": "En robot kan programmeres til å gå framover tre steg og deretter svinge."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g7-programmering-og-modeller-q1",
+          "type": "single_select",
+          "question": "Hva kalles en tydelig liste over trinn i en løsning?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Algoritme"
+            },
+            {
+              "key": "B",
+              "label": "Fosil"
+            },
+            {
+              "key": "C",
+              "label": "Organ"
+            },
+            {
+              "key": "D",
+              "label": "Bergart"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En modell kan beskrive hvordan et system fungerer, men er enklere enn virkeligheten. Programmer kan styre teknologiske systemer i trinn."
+        },
+        {
+          "id": "naturfag-g7-programmering-og-modeller-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En robot kan programmeres til å gå framover tre steg og deretter svinge.",
+          "model_answer": "En modell kan beskrive hvordan et system fungerer, men er enklere enn virkeligheten. Programmer kan styre teknologiske systemer i trinn.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kalles en tydelig liste over trinn i en løsning?",
+          "back": "Algoritme"
+        },
+        {
+          "front": "Hva sier naturfag om programmering og modeller?",
+          "back": "En modell kan beskrive hvordan et system fungerer, men er enklere enn virkeligheten. Programmer kan styre teknologiske systemer i trinn."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En robot kan programmeres til å gå framover tre steg og deretter svinge."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g8-celler",
+      "subject": "naturfag",
+      "grade": 8,
+      "slug": "celler",
+      "title": "Cellers oppbygning",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om cellers oppbygning.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Alle levende organismer består av én eller flere celler. Celler har ulike deler som løser ulike oppgaver, og planteceller har blant annet cellevegg."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Planteceller har cellevegg og ofte kloroplaster; dyreceller mangler cellevegg."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Alle levende organismer består av én eller flere celler. Celler har ulike deler som løser ulike oppgaver, og planteceller har blant annet cellevegg.",
+        "example": "Planteceller har cellevegg og ofte kloroplaster; dyreceller mangler cellevegg."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g8-celler-q1",
+          "type": "single_select",
+          "question": "Hvilken struktur har planteceller, men normalt ikke dyreceller?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Cellevegg"
+            },
+            {
+              "key": "B",
+              "label": "Cellemembran"
+            },
+            {
+              "key": "C",
+              "label": "Cytoplasma"
+            },
+            {
+              "key": "D",
+              "label": "Ribosomer"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Alle levende organismer består av én eller flere celler. Celler har ulike deler som løser ulike oppgaver, og planteceller har blant annet cellevegg."
+        },
+        {
+          "id": "naturfag-g8-celler-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Planteceller har cellevegg og ofte kloroplaster; dyreceller mangler cellevegg.",
+          "model_answer": "Alle levende organismer består av én eller flere celler. Celler har ulike deler som løser ulike oppgaver, og planteceller har blant annet cellevegg.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken struktur har planteceller, men normalt ikke dyreceller?",
+          "back": "Cellevegg"
+        },
+        {
+          "front": "Hva sier naturfag om cellers oppbygning?",
+          "back": "Alle levende organismer består av én eller flere celler. Celler har ulike deler som løser ulike oppgaver, og planteceller har blant annet cellevegg."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Planteceller har cellevegg og ofte kloroplaster; dyreceller mangler cellevegg."
+        }
+      ],
+      "grade8_existing": true
+    },
+    {
+      "id": "naturfag-g8-vitenskapelige-undersokelser",
+      "subject": "naturfag",
+      "grade": 8,
+      "slug": "vitenskapelige-undersokelser",
+      "title": "Naturvitenskapelige undersøkelser",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om naturvitenskapelige undersøkelser.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En undersøkelse trenger et tydelig spørsmål, en hypotese og metoder for å måle. Variabler og mulige feilkilder må vurderes."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Undersøk effekten av lys på plantevekst ved å variere lys, men holde vann og jordtype likt."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "En undersøkelse trenger et tydelig spørsmål, en hypotese og metoder for å måle. Variabler og mulige feilkilder må vurderes.",
+        "example": "Undersøk effekten av lys på plantevekst ved å variere lys, men holde vann og jordtype likt."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g8-vitenskapelige-undersokelser-q1",
+          "type": "single_select",
+          "question": "Hva bør man holde likt når lysets effekt undersøkes?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Vannmengde og jordtype"
+            },
+            {
+              "key": "B",
+              "label": "Lysmengden"
+            },
+            {
+              "key": "C",
+              "label": "Den målte veksten"
+            },
+            {
+              "key": "D",
+              "label": "Antall dager dokumentasjon"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En undersøkelse trenger et tydelig spørsmål, en hypotese og metoder for å måle. Variabler og mulige feilkilder må vurderes."
+        },
+        {
+          "id": "naturfag-g8-vitenskapelige-undersokelser-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Undersøk effekten av lys på plantevekst ved å variere lys, men holde vann og jordtype likt.",
+          "model_answer": "En undersøkelse trenger et tydelig spørsmål, en hypotese og metoder for å måle. Variabler og mulige feilkilder må vurderes.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør man holde likt når lysets effekt undersøkes?",
+          "back": "Vannmengde og jordtype"
+        },
+        {
+          "front": "Hva sier naturfag om naturvitenskapelige undersøkelser?",
+          "back": "En undersøkelse trenger et tydelig spørsmål, en hypotese og metoder for å måle. Variabler og mulige feilkilder må vurderes."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Undersøk effekten av lys på plantevekst ved å variere lys, men holde vann og jordtype likt."
+        }
+      ],
+      "grade8_existing": true
+    },
+    {
+      "id": "naturfag-g8-atomer-og-kjemiske-reaksjoner",
+      "subject": "naturfag",
+      "grade": 8,
+      "slug": "atomer-og-kjemiske-reaksjoner",
+      "title": "Atomer og kjemiske reaksjoner",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om atomer og kjemiske reaksjoner.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Stoffer består av partikler som atomer og molekyler. I en kjemisk reaksjon omgrupperes atomene; i et lukket system bevares samlet masse."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Når hydrogen og oksygen reagerer og danner vann, er atomene de samme før og etter, men koblet på nye måter."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Stoffer består av partikler som atomer og molekyler. I en kjemisk reaksjon omgrupperes atomene; i et lukket system bevares samlet masse.",
+        "example": "Når hydrogen og oksygen reagerer og danner vann, er atomene de samme før og etter, men koblet på nye måter."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g8-atomer-og-kjemiske-reaksjoner-q1",
+          "type": "single_select",
+          "question": "Hva skjer med atomene i en kjemisk reaksjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "De omgrupperes"
+            },
+            {
+              "key": "B",
+              "label": "De skapes fra ingenting"
+            },
+            {
+              "key": "C",
+              "label": "De forsvinner alle"
+            },
+            {
+              "key": "D",
+              "label": "De blir alltid større"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Stoffer består av partikler som atomer og molekyler. I en kjemisk reaksjon omgrupperes atomene; i et lukket system bevares samlet masse."
+        },
+        {
+          "id": "naturfag-g8-atomer-og-kjemiske-reaksjoner-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Når hydrogen og oksygen reagerer og danner vann, er atomene de samme før og etter, men koblet på nye måter.",
+          "model_answer": "Stoffer består av partikler som atomer og molekyler. I en kjemisk reaksjon omgrupperes atomene; i et lukket system bevares samlet masse.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva skjer med atomene i en kjemisk reaksjon?",
+          "back": "De omgrupperes"
+        },
+        {
+          "front": "Hva sier naturfag om atomer og kjemiske reaksjoner?",
+          "back": "Stoffer består av partikler som atomer og molekyler. I en kjemisk reaksjon omgrupperes atomene; i et lukket system bevares samlet masse."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Når hydrogen og oksygen reagerer og danner vann, er atomene de samme før og etter, men koblet på nye måter."
+        }
+      ],
+      "grade8_existing": true
+    },
+    {
+      "id": "naturfag-g8-energi-og-energioverganger",
+      "subject": "naturfag",
+      "grade": 8,
+      "slug": "energi-og-energioverganger",
+      "title": "Energi og energioverganger",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om energi og energioverganger.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Energi kan endre form og overføres. Vi kan beskrive et energisystem ved å følge energien fra kilde til virkninger."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En elsykkel gjør elektrisk energi fra batteriet til bevegelse og noe varme."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Energi kan endre form og overføres. Vi kan beskrive et energisystem ved å følge energien fra kilde til virkninger.",
+        "example": "En elsykkel gjør elektrisk energi fra batteriet til bevegelse og noe varme."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g8-energi-og-energioverganger-q1",
+          "type": "single_select",
+          "question": "Hvilken energiform driver bevegelsen i en elsykkel fra batteriet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Elektrisk energi"
+            },
+            {
+              "key": "B",
+              "label": "Bare lyd"
+            },
+            {
+              "key": "C",
+              "label": "Bare solstråler uten batteri"
+            },
+            {
+              "key": "D",
+              "label": "Bare kjemisk varme fra dekk"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Energi kan endre form og overføres. Vi kan beskrive et energisystem ved å følge energien fra kilde til virkninger."
+        },
+        {
+          "id": "naturfag-g8-energi-og-energioverganger-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En elsykkel gjør elektrisk energi fra batteriet til bevegelse og noe varme.",
+          "model_answer": "Energi kan endre form og overføres. Vi kan beskrive et energisystem ved å følge energien fra kilde til virkninger.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken energiform driver bevegelsen i en elsykkel fra batteriet?",
+          "back": "Elektrisk energi"
+        },
+        {
+          "front": "Hva sier naturfag om energi og energioverganger?",
+          "back": "Energi kan endre form og overføres. Vi kan beskrive et energisystem ved å følge energien fra kilde til virkninger."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En elsykkel gjør elektrisk energi fra batteriet til bevegelse og noe varme."
+        }
+      ],
+      "grade8_existing": true
+    },
+    {
+      "id": "naturfag-g8-okosystemer-og-kretslop",
+      "subject": "naturfag",
+      "grade": 8,
+      "slug": "okosystemer-og-kretslop",
+      "title": "Økosystemer og kretsløp",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om økosystemer og kretsløp.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Planter, dyr, nedbrytere, jord, vann og lys virker sammen i et økosystem. Næringskjeder viser noe av energi- og stoffoverføringen."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Hvis en insektart minker, kan fugler som spiser arten få mindre mat."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Planter, dyr, nedbrytere, jord, vann og lys virker sammen i et økosystem. Næringskjeder viser noe av energi- og stoffoverføringen.",
+        "example": "Hvis en insektart minker, kan fugler som spiser arten få mindre mat."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g8-okosystemer-og-kretslop-q1",
+          "type": "single_select",
+          "question": "Hva kan skje med fugler som lever av insekter hvis insektmengden faller?",
+          "options": [
+            {
+              "key": "A",
+              "label": "De kan få mindre mat"
+            },
+            {
+              "key": "B",
+              "label": "De får automatisk mer mat"
+            },
+            {
+              "key": "C",
+              "label": "De slutter å trenge energi"
+            },
+            {
+              "key": "D",
+              "label": "Jorda slutter å rotere"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Planter, dyr, nedbrytere, jord, vann og lys virker sammen i et økosystem. Næringskjeder viser noe av energi- og stoffoverføringen."
+        },
+        {
+          "id": "naturfag-g8-okosystemer-og-kretslop-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Hvis en insektart minker, kan fugler som spiser arten få mindre mat.",
+          "model_answer": "Planter, dyr, nedbrytere, jord, vann og lys virker sammen i et økosystem. Næringskjeder viser noe av energi- og stoffoverføringen.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan skje med fugler som lever av insekter hvis insektmengden faller?",
+          "back": "De kan få mindre mat"
+        },
+        {
+          "front": "Hva sier naturfag om økosystemer og kretsløp?",
+          "back": "Planter, dyr, nedbrytere, jord, vann og lys virker sammen i et økosystem. Næringskjeder viser noe av energi- og stoffoverføringen."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Hvis en insektart minker, kan fugler som spiser arten få mindre mat."
+        }
+      ],
+      "grade8_existing": true
+    },
+    {
+      "id": "naturfag-g9-genetikk-og-arv",
+      "subject": "naturfag",
+      "grade": 9,
+      "slug": "genetikk-og-arv",
+      "title": "Genetikk og arv",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om genetikk og arv.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Arvematerialet DNA inneholder informasjon som kan påvirke egenskaper. Miljø kan også ha betydning for hvordan egenskaper utvikles."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Et barns hårfarge påvirkes av arvede genvarianter, men mange menneskelige trekk er sammensatte."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Arvematerialet DNA inneholder informasjon som kan påvirke egenskaper. Miljø kan også ha betydning for hvordan egenskaper utvikles.",
+        "example": "Et barns hårfarge påvirkes av arvede genvarianter, men mange menneskelige trekk er sammensatte."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g9-genetikk-og-arv-q1",
+          "type": "single_select",
+          "question": "Hva står DNA særlig for i cellene?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Lagring av arvelig informasjon"
+            },
+            {
+              "key": "B",
+              "label": "Transport av vann utenfor kroppen"
+            },
+            {
+              "key": "C",
+              "label": "Produksjon av vind"
+            },
+            {
+              "key": "D",
+              "label": "Måling av temperatur"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Arvematerialet DNA inneholder informasjon som kan påvirke egenskaper. Miljø kan også ha betydning for hvordan egenskaper utvikles."
+        },
+        {
+          "id": "naturfag-g9-genetikk-og-arv-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Et barns hårfarge påvirkes av arvede genvarianter, men mange menneskelige trekk er sammensatte.",
+          "model_answer": "Arvematerialet DNA inneholder informasjon som kan påvirke egenskaper. Miljø kan også ha betydning for hvordan egenskaper utvikles.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva står DNA særlig for i cellene?",
+          "back": "Lagring av arvelig informasjon"
+        },
+        {
+          "front": "Hva sier naturfag om genetikk og arv?",
+          "back": "Arvematerialet DNA inneholder informasjon som kan påvirke egenskaper. Miljø kan også ha betydning for hvordan egenskaper utvikles."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Et barns hårfarge påvirkes av arvede genvarianter, men mange menneskelige trekk er sammensatte."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g9-kjemiske-reaksjoner-og-tegn",
+      "subject": "naturfag",
+      "grade": 9,
+      "slug": "kjemiske-reaksjoner-og-tegn",
+      "title": "Kjemiske reaksjoner og tegn",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om kjemiske reaksjoner og tegn.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "En kjemisk reaksjon danner nye stoffer. Fargeendring, gassutvikling eller temperaturendring kan være tegn, men krever tolkning."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Jern kan reagere med oksygen og danne rust over tid."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "En kjemisk reaksjon danner nye stoffer. Fargeendring, gassutvikling eller temperaturendring kan være tegn, men krever tolkning.",
+        "example": "Jern kan reagere med oksygen og danne rust over tid."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g9-kjemiske-reaksjoner-og-tegn-q1",
+          "type": "single_select",
+          "question": "Hva er rusting et eksempel på?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Kjemisk reaksjon"
+            },
+            {
+              "key": "B",
+              "label": "Bare smelting"
+            },
+            {
+              "key": "C",
+              "label": "Bare mekanisk deling"
+            },
+            {
+              "key": "D",
+              "label": "Bare fordamping"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En kjemisk reaksjon danner nye stoffer. Fargeendring, gassutvikling eller temperaturendring kan være tegn, men krever tolkning."
+        },
+        {
+          "id": "naturfag-g9-kjemiske-reaksjoner-og-tegn-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Jern kan reagere med oksygen og danne rust over tid.",
+          "model_answer": "En kjemisk reaksjon danner nye stoffer. Fargeendring, gassutvikling eller temperaturendring kan være tegn, men krever tolkning.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er rusting et eksempel på?",
+          "back": "Kjemisk reaksjon"
+        },
+        {
+          "front": "Hva sier naturfag om kjemiske reaksjoner og tegn?",
+          "back": "En kjemisk reaksjon danner nye stoffer. Fargeendring, gassutvikling eller temperaturendring kan være tegn, men krever tolkning."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Jern kan reagere med oksygen og danne rust over tid."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g9-krefter-og-newtons-lover",
+      "subject": "naturfag",
+      "grade": 9,
+      "slug": "krefter-og-newtons-lover",
+      "title": "Krefter og Newtons lover",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om krefter og newtons lover.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Krefter kan endre bevegelsen til en gjenstand. Jo større samlet kraft på en gitt masse, desto større akselerasjon."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En handlekurv øker farten når du dytter den og friksjonen ikke stopper bevegelsen."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Krefter kan endre bevegelsen til en gjenstand. Jo større samlet kraft på en gitt masse, desto større akselerasjon.",
+        "example": "En handlekurv øker farten når du dytter den og friksjonen ikke stopper bevegelsen."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g9-krefter-og-newtons-lover-q1",
+          "type": "single_select",
+          "question": "Hva beskriver akselerasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Endring i fart eller retning over tid"
+            },
+            {
+              "key": "B",
+              "label": "Bare gjenstandens farge"
+            },
+            {
+              "key": "C",
+              "label": "Bare antall hjul"
+            },
+            {
+              "key": "D",
+              "label": "Bare stoffets lukt"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Krefter kan endre bevegelsen til en gjenstand. Jo større samlet kraft på en gitt masse, desto større akselerasjon."
+        },
+        {
+          "id": "naturfag-g9-krefter-og-newtons-lover-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En handlekurv øker farten når du dytter den og friksjonen ikke stopper bevegelsen.",
+          "model_answer": "Krefter kan endre bevegelsen til en gjenstand. Jo større samlet kraft på en gitt masse, desto større akselerasjon.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva beskriver akselerasjon?",
+          "back": "Endring i fart eller retning over tid"
+        },
+        {
+          "front": "Hva sier naturfag om krefter og newtons lover?",
+          "back": "Krefter kan endre bevegelsen til en gjenstand. Jo større samlet kraft på en gitt masse, desto større akselerasjon."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En handlekurv øker farten når du dytter den og friksjonen ikke stopper bevegelsen."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g9-klima-og-vaer",
+      "subject": "naturfag",
+      "grade": 9,
+      "slug": "klima-og-vaer",
+      "title": "Klima og vær",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om klima og vær.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Vær beskriver forholdene nå eller på kort sikt; klima beskriver typiske værmønstre over lengre tid. Enkeltdager avgjør ikke klimatrender."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En kald dag i juli sier lite alene om klimaet de siste tretti årene."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Vær beskriver forholdene nå eller på kort sikt; klima beskriver typiske værmønstre over lengre tid. Enkeltdager avgjør ikke klimatrender.",
+        "example": "En kald dag i juli sier lite alene om klimaet de siste tretti årene."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g9-klima-og-vaer-q1",
+          "type": "single_select",
+          "question": "Hva beskriver klima best?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Værmønstre over lang tid"
+            },
+            {
+              "key": "B",
+              "label": "Temperaturen i ett minutt"
+            },
+            {
+              "key": "C",
+              "label": "Vinden akkurat nå"
+            },
+            {
+              "key": "D",
+              "label": "Én tilfeldig regnbyge"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Vær beskriver forholdene nå eller på kort sikt; klima beskriver typiske værmønstre over lengre tid. Enkeltdager avgjør ikke klimatrender."
+        },
+        {
+          "id": "naturfag-g9-klima-og-vaer-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En kald dag i juli sier lite alene om klimaet de siste tretti årene.",
+          "model_answer": "Vær beskriver forholdene nå eller på kort sikt; klima beskriver typiske værmønstre over lengre tid. Enkeltdager avgjør ikke klimatrender.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva beskriver klima best?",
+          "back": "Værmønstre over lang tid"
+        },
+        {
+          "front": "Hva sier naturfag om klima og vær?",
+          "back": "Vær beskriver forholdene nå eller på kort sikt; klima beskriver typiske værmønstre over lengre tid. Enkeltdager avgjør ikke klimatrender."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En kald dag i juli sier lite alene om klimaet de siste tretti årene."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g9-vurdere-vitenskapelige-pastander",
+      "subject": "naturfag",
+      "grade": 9,
+      "slug": "vurdere-vitenskapelige-pastander",
+      "title": "Vurdere vitenskapelige påstander",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om vurdere vitenskapelige påstander.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Vitenskapelige påstander må vurderes mot data, metode og faglig kritikk. Sammenfall i tid viser ikke alltid årsakssammenheng."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "At to kurver øker samtidig, betyr ikke automatisk at den ene forårsaker den andre."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Vitenskapelige påstander må vurderes mot data, metode og faglig kritikk. Sammenfall i tid viser ikke alltid årsakssammenheng.",
+        "example": "At to kurver øker samtidig, betyr ikke automatisk at den ene forårsaker den andre."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g9-vurdere-vitenskapelige-pastander-q1",
+          "type": "single_select",
+          "question": "Hva må undersøkes før du hevder at én faktor forårsaker en annen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Alternative forklaringer og data"
+            },
+            {
+              "key": "B",
+              "label": "Bare om linjene har samme farge"
+            },
+            {
+              "key": "C",
+              "label": "Bare om grafen er stor"
+            },
+            {
+              "key": "D",
+              "label": "Bare hvem som snakker høyest"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Vitenskapelige påstander må vurderes mot data, metode og faglig kritikk. Sammenfall i tid viser ikke alltid årsakssammenheng."
+        },
+        {
+          "id": "naturfag-g9-vurdere-vitenskapelige-pastander-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: At to kurver øker samtidig, betyr ikke automatisk at den ene forårsaker den andre.",
+          "model_answer": "Vitenskapelige påstander må vurderes mot data, metode og faglig kritikk. Sammenfall i tid viser ikke alltid årsakssammenheng.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva må undersøkes før du hevder at én faktor forårsaker en annen?",
+          "back": "Alternative forklaringer og data"
+        },
+        {
+          "front": "Hva sier naturfag om vurdere vitenskapelige påstander?",
+          "back": "Vitenskapelige påstander må vurderes mot data, metode og faglig kritikk. Sammenfall i tid viser ikke alltid årsakssammenheng."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "At to kurver øker samtidig, betyr ikke automatisk at den ene forårsaker den andre."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g10-evolusjon-og-biologisk-mangfold",
+      "subject": "naturfag",
+      "grade": 10,
+      "slug": "evolusjon-og-biologisk-mangfold",
+      "title": "Evolusjon og biologisk mangfold",
+      "sort_order": 1,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om evolusjon og biologisk mangfold.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Evolusjon skjer når arvelige egenskaper i populasjoner endres gjennom generasjoner. Naturlig utvalg kan påvirke hvilke egenskaper som blir vanligere."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Bakterier med egenskaper som gir bedre overlevelse under bestemte forhold kan bli vanligere over generasjoner."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Evolusjon skjer når arvelige egenskaper i populasjoner endres gjennom generasjoner. Naturlig utvalg kan påvirke hvilke egenskaper som blir vanligere.",
+        "example": "Bakterier med egenskaper som gir bedre overlevelse under bestemte forhold kan bli vanligere over generasjoner."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g10-evolusjon-og-biologisk-mangfold-q1",
+          "type": "single_select",
+          "question": "Hva endrer seg ved biologisk evolusjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Fordelingen av arvelige egenskaper i populasjoner"
+            },
+            {
+              "key": "B",
+              "label": "Bare individets navn"
+            },
+            {
+              "key": "C",
+              "label": "Bare en dags temperatur"
+            },
+            {
+              "key": "D",
+              "label": "Alle organismer blir like"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Evolusjon skjer når arvelige egenskaper i populasjoner endres gjennom generasjoner. Naturlig utvalg kan påvirke hvilke egenskaper som blir vanligere."
+        },
+        {
+          "id": "naturfag-g10-evolusjon-og-biologisk-mangfold-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Bakterier med egenskaper som gir bedre overlevelse under bestemte forhold kan bli vanligere over generasjoner.",
+          "model_answer": "Evolusjon skjer når arvelige egenskaper i populasjoner endres gjennom generasjoner. Naturlig utvalg kan påvirke hvilke egenskaper som blir vanligere.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva endrer seg ved biologisk evolusjon?",
+          "back": "Fordelingen av arvelige egenskaper i populasjoner"
+        },
+        {
+          "front": "Hva sier naturfag om evolusjon og biologisk mangfold?",
+          "back": "Evolusjon skjer når arvelige egenskaper i populasjoner endres gjennom generasjoner. Naturlig utvalg kan påvirke hvilke egenskaper som blir vanligere."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Bakterier med egenskaper som gir bedre overlevelse under bestemte forhold kan bli vanligere over generasjoner."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g10-stoffer-og-periodesystemet",
+      "subject": "naturfag",
+      "grade": 10,
+      "slug": "stoffer-og-periodesystemet",
+      "title": "Stoffer og periodesystemet",
+      "sort_order": 2,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om stoffer og periodesystemet.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Grunnstoffer er ordnet i periodesystemet etter atomnummer. Et grunnstoff består av atomer med samme antall protoner i kjernen."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "Oksygen har atomnummer 8, som betyr åtte protoner i kjernen."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Grunnstoffer er ordnet i periodesystemet etter atomnummer. Et grunnstoff består av atomer med samme antall protoner i kjernen.",
+        "example": "Oksygen har atomnummer 8, som betyr åtte protoner i kjernen."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g10-stoffer-og-periodesystemet-q1",
+          "type": "single_select",
+          "question": "Hvor mange protoner har oksygenatomer?",
+          "options": [
+            {
+              "key": "A",
+              "label": "8"
+            },
+            {
+              "key": "B",
+              "label": "6"
+            },
+            {
+              "key": "C",
+              "label": "10"
+            },
+            {
+              "key": "D",
+              "label": "16"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Grunnstoffer er ordnet i periodesystemet etter atomnummer. Et grunnstoff består av atomer med samme antall protoner i kjernen."
+        },
+        {
+          "id": "naturfag-g10-stoffer-og-periodesystemet-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: Oksygen har atomnummer 8, som betyr åtte protoner i kjernen.",
+          "model_answer": "Grunnstoffer er ordnet i periodesystemet etter atomnummer. Et grunnstoff består av atomer med samme antall protoner i kjernen.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor mange protoner har oksygenatomer?",
+          "back": "8"
+        },
+        {
+          "front": "Hva sier naturfag om stoffer og periodesystemet?",
+          "back": "Grunnstoffer er ordnet i periodesystemet etter atomnummer. Et grunnstoff består av atomer med samme antall protoner i kjernen."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "Oksygen har atomnummer 8, som betyr åtte protoner i kjernen."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g10-elektrisitet-og-energi",
+      "subject": "naturfag",
+      "grade": 10,
+      "slug": "elektrisitet-og-energi",
+      "title": "Elektrisitet og energi",
+      "sort_order": 3,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om elektrisitet og energi.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Elektrisk strøm krever en ledende krets og en spenningskilde. Elektriske systemer må brukes med riktig sikkerhet; undervisningen bruker sikre, lave spenninger."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En liten lampe i en lukket krets kan omdanne elektrisk energi til lys og varme."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Elektrisk strøm krever en ledende krets og en spenningskilde. Elektriske systemer må brukes med riktig sikkerhet; undervisningen bruker sikre, lave spenninger.",
+        "example": "En liten lampe i en lukket krets kan omdanne elektrisk energi til lys og varme."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g10-elektrisitet-og-energi-q1",
+          "type": "single_select",
+          "question": "Hva gjør en lampe med noe av den elektriske energien?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Omdanner den til lys og varme"
+            },
+            {
+              "key": "B",
+              "label": "Fjerner all energi"
+            },
+            {
+              "key": "C",
+              "label": "Lagrer alt som mat"
+            },
+            {
+              "key": "D",
+              "label": "Forvandler metall til tre"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Elektrisk strøm krever en ledende krets og en spenningskilde. Elektriske systemer må brukes med riktig sikkerhet; undervisningen bruker sikre, lave spenninger."
+        },
+        {
+          "id": "naturfag-g10-elektrisitet-og-energi-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En liten lampe i en lukket krets kan omdanne elektrisk energi til lys og varme.",
+          "model_answer": "Elektrisk strøm krever en ledende krets og en spenningskilde. Elektriske systemer må brukes med riktig sikkerhet; undervisningen bruker sikre, lave spenninger.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva gjør en lampe med noe av den elektriske energien?",
+          "back": "Omdanner den til lys og varme"
+        },
+        {
+          "front": "Hva sier naturfag om elektrisitet og energi?",
+          "back": "Elektrisk strøm krever en ledende krets og en spenningskilde. Elektriske systemer må brukes med riktig sikkerhet; undervisningen bruker sikre, lave spenninger."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En liten lampe i en lukket krets kan omdanne elektrisk energi til lys og varme."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g10-natur-miljo-og-baerekraft",
+      "subject": "naturfag",
+      "grade": 10,
+      "slug": "natur-miljo-og-baerekraft",
+      "title": "Natur, miljø og bærekraft",
+      "sort_order": 4,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om natur, miljø og bærekraft.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Naturinngrep kan påvirke arter, økosystemer og mennesker på ulike måter. Bærekraftige valg krever vurdering av flere konsekvenser."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En ny vei kan gi kortere reisetid, men også dele opp leveområdet til dyr."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Naturinngrep kan påvirke arter, økosystemer og mennesker på ulike måter. Bærekraftige valg krever vurdering av flere konsekvenser.",
+        "example": "En ny vei kan gi kortere reisetid, men også dele opp leveområdet til dyr."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g10-natur-miljo-og-baerekraft-q1",
+          "type": "single_select",
+          "question": "Hva er en mulig økologisk konsekvens av å bygge vei gjennom skog?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Leveområder kan bli oppstykket"
+            },
+            {
+              "key": "B",
+              "label": "Alle arter blir flere"
+            },
+            {
+              "key": "C",
+              "label": "Naturen endres aldri"
+            },
+            {
+              "key": "D",
+              "label": "Alt vann forsvinner"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Naturinngrep kan påvirke arter, økosystemer og mennesker på ulike måter. Bærekraftige valg krever vurdering av flere konsekvenser."
+        },
+        {
+          "id": "naturfag-g10-natur-miljo-og-baerekraft-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En ny vei kan gi kortere reisetid, men også dele opp leveområdet til dyr.",
+          "model_answer": "Naturinngrep kan påvirke arter, økosystemer og mennesker på ulike måter. Bærekraftige valg krever vurdering av flere konsekvenser.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en mulig økologisk konsekvens av å bygge vei gjennom skog?",
+          "back": "Leveområder kan bli oppstykket"
+        },
+        {
+          "front": "Hva sier naturfag om natur, miljø og bærekraft?",
+          "back": "Naturinngrep kan påvirke arter, økosystemer og mennesker på ulike måter. Bærekraftige valg krever vurdering av flere konsekvenser."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En ny vei kan gi kortere reisetid, men også dele opp leveområdet til dyr."
+        }
+      ],
+      "grade8_existing": false
+    },
+    {
+      "id": "naturfag-g10-teknologi-og-datamodeller",
+      "subject": "naturfag",
+      "grade": 10,
+      "slug": "teknologi-og-datamodeller",
+      "title": "Teknologi og datamodeller",
+      "sort_order": 5,
+      "content_version": 1,
+      "publication_status": "draft",
+      "language": "nb",
+      "curriculum": {
+        "code": "NAT01-05",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+        "goal_crosswalk_verified": false
+      },
+      "article": {
+        "intro": "I naturfag lærer vi å undersøke og forklare fenomener. Dette temaet handler om teknologi og datamodeller.",
+        "sections": [
+          {
+            "heading": "Faglig forklaring",
+            "text": "Modeller og målinger brukes til å beskrive verden, men alle modeller har begrensninger. Bruk usikkerhet når du formidler konklusjoner."
+          },
+          {
+            "heading": "Se et eksempel",
+            "text": "En værmodell gir en prognose, men kan ikke garantere været nøyaktig flere uker fram."
+          },
+          {
+            "heading": "Undersøk videre",
+            "text": "Forsøk å skille observasjon fra forklaring. Sjekk hvilke kilder og målinger som kan støtte påstanden."
+          }
+        ],
+        "summary": "Modeller og målinger brukes til å beskrive verden, men alle modeller har begrensninger. Bruk usikkerhet når du formidler konklusjoner.",
+        "example": "En værmodell gir en prognose, men kan ikke garantere været nøyaktig flere uker fram."
+      },
+      "practice": [
+        {
+          "id": "naturfag-g10-teknologi-og-datamodeller-q1",
+          "type": "single_select",
+          "question": "Hva bør vi ta med når vi bruker en værprognose?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Usikkerhet"
+            },
+            {
+              "key": "B",
+              "label": "At den aldri endres"
+            },
+            {
+              "key": "C",
+              "label": "At alle modeller er identiske"
+            },
+            {
+              "key": "D",
+              "label": "At ingen data trengs"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Modeller og målinger brukes til å beskrive verden, men alle modeller har begrensninger. Bruk usikkerhet når du formidler konklusjoner."
+        },
+        {
+          "id": "naturfag-g10-teknologi-og-datamodeller-q2",
+          "type": "short_explanation",
+          "question": "Forklar hva vi kan lære av dette eksemplet: En værmodell gir en prognose, men kan ikke garantere været nøyaktig flere uker fram.",
+          "model_answer": "Modeller og målinger brukes til å beskrive verden, men alle modeller har begrensninger. Bruk usikkerhet når du formidler konklusjoner.",
+          "requires_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør vi ta med når vi bruker en værprognose?",
+          "back": "Usikkerhet"
+        },
+        {
+          "front": "Hva sier naturfag om teknologi og datamodeller?",
+          "back": "Modeller og målinger brukes til å beskrive verden, men alle modeller har begrensninger. Bruk usikkerhet når du formidler konklusjoner."
+        },
+        {
+          "front": "Hvilket eksempel hjelper oss å forstå temaet?",
+          "back": "En værmodell gir en prognose, men kan ikke garantere været nøyaktig flere uker fram."
+        }
+      ],
+      "grade8_existing": false
+    }
+  ]
+}
