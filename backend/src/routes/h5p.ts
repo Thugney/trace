@@ -11,6 +11,8 @@
 
 import { Router, Request, Response } from 'express';
 import { authenticateEventSource } from '../middleware/auth';
+import { canAccessOwnOrManagedChild } from '../services/familyAccess';
+import { canManageOwnedResource, paramGuard } from '../services/resourceAccess';
 import { requireFeature } from '../middleware/feature-access';
 import { db } from '../database/init';
 import {
@@ -555,6 +557,19 @@ router.use('/card-images', express.static(H5P_PATHS.cardImages, {
 // ==================== AUTHENTICATED ROUTES ====================
 
 router.use(authenticateEventSource, requireFeature('activities'));
+
+// Parents/admins may only reach content they (or a co-parent) created.
+// Children are checked against their assignments inside each handler.
+router.param('id', paramGuard((req, value) => {
+  if (req.profile!.type !== 'parent' && req.profile!.type !== 'admin') {
+    return true;
+  }
+  const content = db.prepare('SELECT created_by FROM h5p_content WHERE id = ?').get(value) as any;
+  if (!content) {
+    return 'not_found';
+  }
+  return canManageOwnedResource(req.profile!, { created_by: content.created_by });
+}));
 
 // H5P probes these endpoints even when we don't persist per-user state.
 // Returning a successful no-op response prevents noisy browser errors
@@ -2108,6 +2123,16 @@ router.post('/content/:id/assign', async (req: Request, res: Response) => {
 
     if (!Array.isArray(childIds) || childIds.length === 0) {
       return res.status(400).json({ error: 'childIds array is required' });
+    }
+
+    // Only the requester's own (managed) child profiles may be assigned
+    const unauthorized = childIds.filter((childId: unknown) => {
+      const numericId = Number(childId);
+      const target = db.prepare('SELECT type FROM profiles WHERE id = ?').get(numericId) as any;
+      return !target || target.type !== 'child' || !canAccessOwnOrManagedChild(profile, numericId);
+    });
+    if (unauthorized.length > 0) {
+      return res.status(403).json({ error: 'You can only assign content to your own children' });
     }
 
     const insertAssignment = db.prepare(`

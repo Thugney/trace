@@ -7,6 +7,17 @@ import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
+import {
+  canActOnAttempt,
+  canManageOwnedResource,
+  canViewAttempt,
+  ownedResourceParamGuard,
+  paramGuard,
+  parentParamGuard,
+  profileParamGuard,
+  resolveActingProfileId
+} from '../services/resourceAccess';
 import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { awardPoints } from '../services/economyControl';
@@ -567,6 +578,7 @@ type AiQuizJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 type AiQuizJob = {
   id: string;
+  ownerId?: number;
   status: AiQuizJobStatus;
   createdAt: number;
   updatedAt: number;
@@ -606,6 +618,7 @@ const createAiQuizJob = (payload: AiQuizPayload) => {
   pruneAiQuizJobs();
   const job: AiQuizJob = {
     id: createAiQuizJobId(),
+    ownerId: payload.createdBy,
     status: 'queued',
     createdAt: Date.now(),
     updatedAt: Date.now()
@@ -935,6 +948,35 @@ router.get('/media/:filename', (req: Request, res: Response) => {
 
 router.use(authenticate, requireFeature('quizzes'));
 
+// ==================== OBJECT-LEVEL ACCESS ====================
+// Every route naming one of these params is scoped to the viewer's family.
+router.param('parentId', parentParamGuard);
+router.param('childId', profileParamGuard);
+router.param('profileId', profileParamGuard);
+// Assigned children may start a quiz and see its leaderboard; all else requires manage access
+router.param('quizId', ownedResourceParamGuard({
+  table: 'family_quizzes',
+  playSuffixes: /^\/[^/]+\/(start|leaderboard)$/
+}));
+router.param('questionId', paramGuard((req, value) => {
+  const quiz = db.prepare(`
+    SELECT fq.created_by, fq.assigned_to
+    FROM family_quiz_questions q
+    JOIN family_quizzes fq ON fq.id = q.quiz_id
+    WHERE q.id = ?
+  `).get(value) as any;
+  return quiz ? canManageOwnedResource(req.profile!, quiz) : 'not_found';
+}));
+router.param('attemptId', paramGuard((req, value) => {
+  const attempt = db.prepare('SELECT profile_id FROM family_quiz_attempts WHERE id = ?').get(value) as any;
+  if (!attempt) {
+    return 'not_found';
+  }
+  return req.method === 'GET'
+    ? canViewAttempt(req.profile!, attempt.profile_id)
+    : canActOnAttempt(req.profile!, attempt.profile_id);
+}));
+
 // ==================== QUIZ CATEGORIES ====================
 
 // Get all quiz categories with theme configs
@@ -1002,6 +1044,14 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Prompt, categoryId, and createdBy are required' });
     }
 
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create quizzes as yourself' });
+    }
+    if (assignedTo !== undefined && assignedTo !== null && resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign quizzes to your own children' });
+    }
+
     // ===== AI USAGE CONTROL: Check if generation is allowed =====
     const normalizedQuestionCount = Math.min(Math.max(questionCount || 5, 1), 20);
     const imageCount = includeImages !== false ? normalizedQuestionCount : 0;
@@ -1053,7 +1103,8 @@ router.get('/ai-generate/status/:jobId', (req: Request, res: Response) => {
   const { jobId } = req.params;
   pruneAiQuizJobs();
   const job = aiQuizJobs.get(jobId);
-  if (!job) {
+  const viewer = (req as AuthRequest).profile!;
+  if (!job || (viewer.type !== 'admin' && job.ownerId !== undefined && Number(job.ownerId) !== viewer.id)) {
     return res.status(404).json({ error: 'AI generation job not found' });
   }
   res.json({
@@ -1213,6 +1264,14 @@ router.post('/', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Title, category, creator, and assignee required' });
     }
 
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create quizzes as yourself' });
+    }
+    if (resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign quizzes to your own children' });
+    }
+
     const result = db.prepare(`
       INSERT INTO family_quizzes (
         title, description, category_id, created_by, assigned_to,
@@ -1256,6 +1315,11 @@ router.put('/:quizId', (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
     const updates = req.body;
+
+    const reassignTo = updates.assignedTo ?? updates.assigned_to;
+    if (reassignTo !== undefined && resolveActingProfileId((req as AuthRequest).profile!, reassignTo) === null) {
+      return res.status(403).json({ error: 'You can only assign quizzes to your own children' });
+    }
 
     const allowedFields = [
       'title', 'description', 'category_id', 'assigned_to',
@@ -1496,10 +1560,10 @@ router.post('/:quizId/media', quizMediaUpload.single('media'), (req: Request, re
 router.post('/:quizId/start', (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
-    const { profileId } = req.body;
+    const profileId = resolveActingProfileId((req as AuthRequest).profile!, req.body.profileId);
 
-    if (!profileId) {
-      return res.status(400).json({ error: 'Profile ID required' });
+    if (profileId === null) {
+      return res.status(403).json({ error: 'You can only start quizzes for yourself or your children' });
     }
 
     const passedAttempt = db.prepare(`
@@ -1749,13 +1813,26 @@ router.post('/attempts/:attemptId/answer', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Question ID and answer required' });
     }
 
-    // Get the question to check answer
+    const attemptRow = db.prepare('SELECT quiz_id, completed_at FROM family_quiz_attempts WHERE id = ?').get(attemptId) as any;
+    if (attemptRow?.completed_at) {
+      return res.status(409).json({ error: 'Attempt already completed' });
+    }
+
+    // Get the question to check answer (must belong to this attempt's quiz)
     const question = db.prepare(`
-      SELECT correct_answer, explanation, points FROM family_quiz_questions WHERE id = ?
-    `).get(questionId) as any;
+      SELECT correct_answer, explanation, points FROM family_quiz_questions WHERE id = ? AND quiz_id = ?
+    `).get(questionId, attemptRow?.quiz_id) as any;
 
     if (!question) {
       return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Retries must not count the same question twice
+    const existingAnswer = db.prepare(`
+      SELECT is_correct FROM family_quiz_answers WHERE attempt_id = ? AND question_id = ?
+    `).get(attemptId, questionId) as any;
+    if (existingAnswer) {
+      return res.status(409).json({ error: 'Question already answered', isCorrect: existingAnswer.is_correct === 1 });
     }
 
     const isCorrect = selectedAnswer === question.correct_answer;
@@ -1811,6 +1888,17 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
 
     if (!attempt) {
       return res.status(404).json({ error: 'Attempt not found' });
+    }
+
+    // Idempotent completion: a retried request must not award points twice
+    if (attempt.completed_at) {
+      return res.status(409).json({
+        error: 'Attempt already completed',
+        attemptId: attempt.id,
+        scorePercentage: attempt.score_percentage,
+        passed: attempt.passed === 1,
+        pointsEarned: attempt.points_earned
+      });
     }
 
     // Calculate score
