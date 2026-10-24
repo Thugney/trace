@@ -1,0 +1,4262 @@
+{
+  "format": "familyhub-learn-authored-micro-lessons-v1",
+  "subject": "samfunnsfag",
+  "grade_range": [
+    1,
+    10
+  ],
+  "count": 50,
+  "review_status": "draft",
+  "lessons": [
+    {
+      "id": "samfunnsfag-g1-familie-og-fellesskap",
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "slug": "familie-og-fellesskap",
+      "title": "Familie og fellesskap",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er familie og fellesskap.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Familier kan se forskjellige ut, og mennesker hører til ulike fellesskap. Vi kan være ulike og likevel vise respekt for hverandre."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et barn kan tilhøre både en familie, en klasse og et idrettslag."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilket av disse er et eksempel på et fellesskap?",
+        "model_answer": "En klasse",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g1-familie-og-fellesskap-q1",
+          "kind": "single_select",
+          "stem": "Hvilket av disse er et eksempel på et fellesskap?",
+          "options": [
+            {
+              "key": "A",
+              "label": "En klasse"
+            },
+            {
+              "key": "B",
+              "label": "En stein"
+            },
+            {
+              "key": "C",
+              "label": "En stol"
+            },
+            {
+              "key": "D",
+              "label": "En blyant"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Familier kan se forskjellige ut, og mennesker hører til ulike fellesskap. Vi kan være ulike og likevel vise respekt for hverandre."
+        },
+        {
+          "id": "samfunnsfag-g1-familie-og-fellesskap-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Familie og fellesskap» med en egen situasjon eller kilde.",
+          "rubric_example": "Et barn kan tilhøre både en familie, en klasse og et idrettslag.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket av disse er et eksempel på et fellesskap?",
+          "back": "En klasse"
+        },
+        {
+          "front": "Hva er viktig ved familie og fellesskap?",
+          "back": "Familier kan se forskjellige ut, og mennesker hører til ulike fellesskap. Vi kan være ulike og likevel vise respekt for hverandre."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et barn kan tilhøre både en familie, en klasse og et idrettslag."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g1-steder-i-naermiljoet",
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "slug": "steder-i-naermiljoet",
+      "title": "Steder i nærmiljøet",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er steder i nærmiljøet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Nærmiljøet omfatter steder vi kjenner, som hjem, skole, park og bibliotek. Vi kan beskrive hvor steder ligger i forhold til hverandre."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Biblioteket ligger ved siden av skolen i et oppdiktet nabolag."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvor ligger biblioteket i eksemplet?",
+        "model_answer": "Ved siden av skolen",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g1-steder-i-naermiljoet-q1",
+          "kind": "single_select",
+          "stem": "Hvor ligger biblioteket i eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Ved siden av skolen"
+            },
+            {
+              "key": "B",
+              "label": "På månen"
+            },
+            {
+              "key": "C",
+              "label": "Under havet"
+            },
+            {
+              "key": "D",
+              "label": "Inne i bussen"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Nærmiljøet omfatter steder vi kjenner, som hjem, skole, park og bibliotek. Vi kan beskrive hvor steder ligger i forhold til hverandre."
+        },
+        {
+          "id": "samfunnsfag-g1-steder-i-naermiljoet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Steder i nærmiljøet» med en egen situasjon eller kilde.",
+          "rubric_example": "Biblioteket ligger ved siden av skolen i et oppdiktet nabolag.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor ligger biblioteket i eksemplet?",
+          "back": "Ved siden av skolen"
+        },
+        {
+          "front": "Hva er viktig ved steder i nærmiljøet?",
+          "back": "Nærmiljøet omfatter steder vi kjenner, som hjem, skole, park og bibliotek. Vi kan beskrive hvor steder ligger i forhold til hverandre."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Biblioteket ligger ved siden av skolen i et oppdiktet nabolag."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g1-trafikk-og-trygghet",
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "slug": "trafikk-og-trygghet",
+      "title": "Trafikk og trygghet",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er trafikk og trygghet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "I trafikken må vi følge med, være synlige og bruke trygge steder å krysse. Voksne hjelper barn med risikovurdering."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et gangfelt er et merket sted for fotgjengere som vil krysse veien, men vi må fortsatt se etter biler."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva bør du gjøre før du krysser i et gangfelt?",
+        "model_answer": "Se etter trafikk",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g1-trafikk-og-trygghet-q1",
+          "kind": "single_select",
+          "stem": "Hva bør du gjøre før du krysser i et gangfelt?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Se etter trafikk"
+            },
+            {
+              "key": "B",
+              "label": "Lukke øynene"
+            },
+            {
+              "key": "C",
+              "label": "Løpe uten å se"
+            },
+            {
+              "key": "D",
+              "label": "Snu ryggen til bilene"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "I trafikken må vi følge med, være synlige og bruke trygge steder å krysse. Voksne hjelper barn med risikovurdering."
+        },
+        {
+          "id": "samfunnsfag-g1-trafikk-og-trygghet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Trafikk og trygghet» med en egen situasjon eller kilde.",
+          "rubric_example": "Et gangfelt er et merket sted for fotgjengere som vil krysse veien, men vi må fortsatt se etter biler.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du gjøre før du krysser i et gangfelt?",
+          "back": "Se etter trafikk"
+        },
+        {
+          "front": "Hva er viktig ved trafikk og trygghet?",
+          "back": "I trafikken må vi følge med, være synlige og bruke trygge steder å krysse. Voksne hjelper barn med risikovurdering."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et gangfelt er et merket sted for fotgjengere som vil krysse veien, men vi må fortsatt se etter biler."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g1-regler-i-en-gruppe",
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "slug": "regler-i-en-gruppe",
+      "title": "Regler i en gruppe",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er regler i en gruppe.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Felles regler kan gjøre lek og læring tryggere. Vi kan snakke om hvorfor reglene finnes og hvordan de oppleves."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Å ta tur gjør at flere kan få si sin mening i klassesamtalen."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvorfor bruker en klasse ofte regelen om å ta tur?",
+        "model_answer": "For at alle skal bli hørt",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g1-regler-i-en-gruppe-q1",
+          "kind": "single_select",
+          "stem": "Hvorfor bruker en klasse ofte regelen om å ta tur?",
+          "options": [
+            {
+              "key": "A",
+              "label": "For at alle skal bli hørt"
+            },
+            {
+              "key": "B",
+              "label": "For at ingen skal snakke"
+            },
+            {
+              "key": "C",
+              "label": "For å fjerne lek"
+            },
+            {
+              "key": "D",
+              "label": "For å straffe tilfeldige"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Felles regler kan gjøre lek og læring tryggere. Vi kan snakke om hvorfor reglene finnes og hvordan de oppleves."
+        },
+        {
+          "id": "samfunnsfag-g1-regler-i-en-gruppe-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Regler i en gruppe» med en egen situasjon eller kilde.",
+          "rubric_example": "Å ta tur gjør at flere kan få si sin mening i klassesamtalen.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvorfor bruker en klasse ofte regelen om å ta tur?",
+          "back": "For at alle skal bli hørt"
+        },
+        {
+          "front": "Hva er viktig ved regler i en gruppe?",
+          "back": "Felles regler kan gjøre lek og læring tryggere. Vi kan snakke om hvorfor reglene finnes og hvordan de oppleves."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Å ta tur gjør at flere kan få si sin mening i klassesamtalen."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g1-hva-er-rettferdig",
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "slug": "hva-er-rettferdig",
+      "title": "Hva er rettferdig?",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er hva er rettferdig?.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Rettferdighet handler om å ta hensyn til andre. Noen ganger trenger mennesker ulike former for hjelp for å delta på like vilkår."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "To barn deler på turen i en lek, og ett barn trenger en rampe for å komme inn i rommet."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva bidrar en rampe til i eksemplet?",
+        "model_answer": "At flere kan delta",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g1-hva-er-rettferdig-q1",
+          "kind": "single_select",
+          "stem": "Hva bidrar en rampe til i eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "At flere kan delta"
+            },
+            {
+              "key": "B",
+              "label": "At døra forsvinner"
+            },
+            {
+              "key": "C",
+              "label": "At rommet blir mørkt"
+            },
+            {
+              "key": "D",
+              "label": "At alle må løpe"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Rettferdighet handler om å ta hensyn til andre. Noen ganger trenger mennesker ulike former for hjelp for å delta på like vilkår."
+        },
+        {
+          "id": "samfunnsfag-g1-hva-er-rettferdig-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Hva er rettferdig?» med en egen situasjon eller kilde.",
+          "rubric_example": "To barn deler på turen i en lek, og ett barn trenger en rampe for å komme inn i rommet.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bidrar en rampe til i eksemplet?",
+          "back": "At flere kan delta"
+        },
+        {
+          "front": "Hva er viktig ved hva er rettferdig??",
+          "back": "Rettferdighet handler om å ta hensyn til andre. Noen ganger trenger mennesker ulike former for hjelp for å delta på like vilkår."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "To barn deler på turen i en lek, og ett barn trenger en rampe for å komme inn i rommet."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g2-hvem-er-jeg",
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "slug": "hvem-er-jeg",
+      "title": "Hvem er jeg?",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er hvem er jeg?.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Identiteten vår formes blant annet av erfaringer, interesser og fellesskap. Ingen enkelt egenskap forteller alt om en person."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et barn kan både like fotball, snakke flere språk og være flink til å tegne."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva er en del av en persons identitet?",
+        "model_answer": "Interesser og erfaringer",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g2-hvem-er-jeg-q1",
+          "kind": "single_select",
+          "stem": "Hva er en del av en persons identitet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Interesser og erfaringer"
+            },
+            {
+              "key": "B",
+              "label": "Bare skostørrelse"
+            },
+            {
+              "key": "C",
+              "label": "Bare husnummer"
+            },
+            {
+              "key": "D",
+              "label": "Bare én karakter"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Identiteten vår formes blant annet av erfaringer, interesser og fellesskap. Ingen enkelt egenskap forteller alt om en person."
+        },
+        {
+          "id": "samfunnsfag-g2-hvem-er-jeg-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Hvem er jeg?» med en egen situasjon eller kilde.",
+          "rubric_example": "Et barn kan både like fotball, snakke flere språk og være flink til å tegne.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en del av en persons identitet?",
+          "back": "Interesser og erfaringer"
+        },
+        {
+          "front": "Hva er viktig ved hvem er jeg??",
+          "back": "Identiteten vår formes blant annet av erfaringer, interesser og fellesskap. Ingen enkelt egenskap forteller alt om en person."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et barn kan både like fotball, snakke flere språk og være flink til å tegne."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g2-rettigheter-for-barn",
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "slug": "rettigheter-for-barn",
+      "title": "Rettigheter for barn",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er rettigheter for barn.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Barn har rettigheter, blant annet til å bli hørt og til omsorg og trygghet. Barn har også rett til lek og opplæring."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et barn kan si hva det mener om noe som angår barnet, og voksne skal lytte etter alder og modenhet."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilken rettighet handler om å få si sin mening?",
+        "model_answer": "Retten til å bli hørt",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g2-rettigheter-for-barn-q1",
+          "kind": "single_select",
+          "stem": "Hvilken rettighet handler om å få si sin mening?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Retten til å bli hørt"
+            },
+            {
+              "key": "B",
+              "label": "Retten til å bestemme alt for alle"
+            },
+            {
+              "key": "C",
+              "label": "Retten til å plage andre"
+            },
+            {
+              "key": "D",
+              "label": "Retten til å være usynlig"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Barn har rettigheter, blant annet til å bli hørt og til omsorg og trygghet. Barn har også rett til lek og opplæring."
+        },
+        {
+          "id": "samfunnsfag-g2-rettigheter-for-barn-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Rettigheter for barn» med en egen situasjon eller kilde.",
+          "rubric_example": "Et barn kan si hva det mener om noe som angår barnet, og voksne skal lytte etter alder og modenhet.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken rettighet handler om å få si sin mening?",
+          "back": "Retten til å bli hørt"
+        },
+        {
+          "front": "Hva er viktig ved rettigheter for barn?",
+          "back": "Barn har rettigheter, blant annet til å bli hørt og til omsorg og trygghet. Barn har også rett til lek og opplæring."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et barn kan si hva det mener om noe som angår barnet, og voksne skal lytte etter alder og modenhet."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g2-kart-og-symboler",
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "slug": "kart-og-symboler",
+      "title": "Kart og symboler",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er kart og symboler.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Et kart viser steder sett ovenfra og bruker tegn for å vise hvor ting finnes. Et kart er en forenklet modell, ikke selve stedet."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et blått felt på et kart kan vise en innsjø når tegnforklaringen sier det."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva hjelper oss å forstå karttegn?",
+        "model_answer": "Tegnforklaringen",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g2-kart-og-symboler-q1",
+          "kind": "single_select",
+          "stem": "Hva hjelper oss å forstå karttegn?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tegnforklaringen"
+            },
+            {
+              "key": "B",
+              "label": "Bare kartets pris"
+            },
+            {
+              "key": "C",
+              "label": "Bare papirstørrelsen"
+            },
+            {
+              "key": "D",
+              "label": "Bare datoen"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Et kart viser steder sett ovenfra og bruker tegn for å vise hvor ting finnes. Et kart er en forenklet modell, ikke selve stedet."
+        },
+        {
+          "id": "samfunnsfag-g2-kart-og-symboler-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Kart og symboler» med en egen situasjon eller kilde.",
+          "rubric_example": "Et blått felt på et kart kan vise en innsjø når tegnforklaringen sier det.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva hjelper oss å forstå karttegn?",
+          "back": "Tegnforklaringen"
+        },
+        {
+          "front": "Hva er viktig ved kart og symboler?",
+          "back": "Et kart viser steder sett ovenfra og bruker tegn for å vise hvor ting finnes. Et kart er en forenklet modell, ikke selve stedet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et blått felt på et kart kan vise en innsjø når tegnforklaringen sier det."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g2-for-og-na",
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "slug": "for-og-na",
+      "title": "Før og nå",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er før og nå.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Historie handler om hvordan mennesker levde før og hvordan ting har endret seg. Bilder og gjenstander kan gi spor fra fortiden."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et gammelt skolebilde kan vise andre klær og møbler enn i dag."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva kan et gammelt skolebilde fortelle om?",
+        "model_answer": "Skoleliv i fortiden",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g2-for-og-na-q1",
+          "kind": "single_select",
+          "stem": "Hva kan et gammelt skolebilde fortelle om?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Skoleliv i fortiden"
+            },
+            {
+              "key": "B",
+              "label": "Morgendagens vær"
+            },
+            {
+              "key": "C",
+              "label": "En framtidig eksamenskarakter"
+            },
+            {
+              "key": "D",
+              "label": "Alle menneskers tanker"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Historie handler om hvordan mennesker levde før og hvordan ting har endret seg. Bilder og gjenstander kan gi spor fra fortiden."
+        },
+        {
+          "id": "samfunnsfag-g2-for-og-na-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Før og nå» med en egen situasjon eller kilde.",
+          "rubric_example": "Et gammelt skolebilde kan vise andre klær og møbler enn i dag.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan et gammelt skolebilde fortelle om?",
+          "back": "Skoleliv i fortiden"
+        },
+        {
+          "front": "Hva er viktig ved før og nå?",
+          "back": "Historie handler om hvordan mennesker levde før og hvordan ting har endret seg. Bilder og gjenstander kan gi spor fra fortiden."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et gammelt skolebilde kan vise andre klær og møbler enn i dag."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g2-fortelle-sant-om-noe",
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "slug": "fortelle-sant-om-noe",
+      "title": "Fortelle sant om noe",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 2,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er fortelle sant om noe.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Når vi forteller om en hendelse, kan vi skille mellom det vi så, og det vi tror skjedde. Begge deler kan være nyttige, men bør merkes tydelig."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "«Jeg så at ballen traff veggen» er en observasjon; «Noen gjorde det med vilje» er en tolkning."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilken setning er en direkte observasjon?",
+        "model_answer": "Ballen traff veggen",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g2-fortelle-sant-om-noe-q1",
+          "kind": "single_select",
+          "stem": "Hvilken setning er en direkte observasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Ballen traff veggen"
+            },
+            {
+              "key": "B",
+              "label": "Noen mente det sikkert"
+            },
+            {
+              "key": "C",
+              "label": "Alle visste hvorfor"
+            },
+            {
+              "key": "D",
+              "label": "Noen planla det"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Når vi forteller om en hendelse, kan vi skille mellom det vi så, og det vi tror skjedde. Begge deler kan være nyttige, men bør merkes tydelig."
+        },
+        {
+          "id": "samfunnsfag-g2-fortelle-sant-om-noe-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Fortelle sant om noe» med en egen situasjon eller kilde.",
+          "rubric_example": "«Jeg så at ballen traff veggen» er en observasjon; «Noen gjorde det med vilje» er en tolkning.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken setning er en direkte observasjon?",
+          "back": "Ballen traff veggen"
+        },
+        {
+          "front": "Hva er viktig ved fortelle sant om noe?",
+          "back": "Når vi forteller om en hendelse, kan vi skille mellom det vi så, og det vi tror skjedde. Begge deler kan være nyttige, men bør merkes tydelig."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg så at ballen traff veggen» er en observasjon; «Noen gjorde det med vilje» er en tolkning."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g3-historie-i-familien-og-naermiljoet",
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "slug": "historie-i-familien-og-naermiljoet",
+      "title": "Historie i familien og nærmiljøet",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er historie i familien og nærmiljøet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Mennesker husker fortiden gjennom fortellinger, bilder, brev og gjenstander. Forskjellige kilder kan vise ulike perspektiver."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et bilde av en gammel bro viser hvordan den så ut da fotografiet ble tatt."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva slags kilde er et gammelt fotografi?",
+        "model_answer": "En historisk kilde",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g3-historie-i-familien-og-naermiljoet-q1",
+          "kind": "single_select",
+          "stem": "Hva slags kilde er et gammelt fotografi?",
+          "options": [
+            {
+              "key": "A",
+              "label": "En historisk kilde"
+            },
+            {
+              "key": "B",
+              "label": "En værmelding for framtiden"
+            },
+            {
+              "key": "C",
+              "label": "En regneregel"
+            },
+            {
+              "key": "D",
+              "label": "En fantasifigur"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Mennesker husker fortiden gjennom fortellinger, bilder, brev og gjenstander. Forskjellige kilder kan vise ulike perspektiver."
+        },
+        {
+          "id": "samfunnsfag-g3-historie-i-familien-og-naermiljoet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Historie i familien og nærmiljøet» med en egen situasjon eller kilde.",
+          "rubric_example": "Et bilde av en gammel bro viser hvordan den så ut da fotografiet ble tatt.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva slags kilde er et gammelt fotografi?",
+          "back": "En historisk kilde"
+        },
+        {
+          "front": "Hva er viktig ved historie i familien og nærmiljøet?",
+          "back": "Mennesker husker fortiden gjennom fortellinger, bilder, brev og gjenstander. Forskjellige kilder kan vise ulike perspektiver."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et bilde av en gammel bro viser hvordan den så ut da fotografiet ble tatt."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g3-ulike-sprak-og-tradisjoner",
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "slug": "ulike-sprak-og-tradisjoner",
+      "title": "Ulike språk og tradisjoner",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er ulike språk og tradisjoner.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Mennesker i Norge bruker forskjellige språk og har ulike tradisjoner. Vi kan være nysgjerrige uten å anta at alle i en gruppe er like."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "På skolen kan elever feire forskjellige høytider eller snakke ulike hjemmespråk."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva er en god måte å møte en ukjent tradisjon på?",
+        "model_answer": "Spørre respektfullt",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g3-ulike-sprak-og-tradisjoner-q1",
+          "kind": "single_select",
+          "stem": "Hva er en god måte å møte en ukjent tradisjon på?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Spørre respektfullt"
+            },
+            {
+              "key": "B",
+              "label": "Gjør narr"
+            },
+            {
+              "key": "C",
+              "label": "Bestemme at den er feil"
+            },
+            {
+              "key": "D",
+              "label": "Unngå alle spørsmål"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Mennesker i Norge bruker forskjellige språk og har ulike tradisjoner. Vi kan være nysgjerrige uten å anta at alle i en gruppe er like."
+        },
+        {
+          "id": "samfunnsfag-g3-ulike-sprak-og-tradisjoner-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Ulike språk og tradisjoner» med en egen situasjon eller kilde.",
+          "rubric_example": "På skolen kan elever feire forskjellige høytider eller snakke ulike hjemmespråk.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en god måte å møte en ukjent tradisjon på?",
+          "back": "Spørre respektfullt"
+        },
+        {
+          "front": "Hva er viktig ved ulike språk og tradisjoner?",
+          "back": "Mennesker i Norge bruker forskjellige språk og har ulike tradisjoner. Vi kan være nysgjerrige uten å anta at alle i en gruppe er like."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "På skolen kan elever feire forskjellige høytider eller snakke ulike hjemmespråk."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g3-himmelretninger-og-kart",
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "slug": "himmelretninger-og-kart",
+      "title": "Himmelretninger og kart",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er himmelretninger og kart.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Nord, sør, øst og vest er fire hovedretninger på kart. En kompassrose hjelper oss å orientere oss."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "På et vanlig kart med nord opp ligger øst til høyre."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilken retning ligger vanligvis til høyre når nord er opp?",
+        "model_answer": "Øst",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g3-himmelretninger-og-kart-q1",
+          "kind": "single_select",
+          "stem": "Hvilken retning ligger vanligvis til høyre når nord er opp?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Øst"
+            },
+            {
+              "key": "B",
+              "label": "Vest"
+            },
+            {
+              "key": "C",
+              "label": "Sør"
+            },
+            {
+              "key": "D",
+              "label": "Nord"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Nord, sør, øst og vest er fire hovedretninger på kart. En kompassrose hjelper oss å orientere oss."
+        },
+        {
+          "id": "samfunnsfag-g3-himmelretninger-og-kart-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Himmelretninger og kart» med en egen situasjon eller kilde.",
+          "rubric_example": "På et vanlig kart med nord opp ligger øst til høyre.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken retning ligger vanligvis til høyre når nord er opp?",
+          "back": "Øst"
+        },
+        {
+          "front": "Hva er viktig ved himmelretninger og kart?",
+          "back": "Nord, sør, øst og vest er fire hovedretninger på kart. En kompassrose hjelper oss å orientere oss."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "På et vanlig kart med nord opp ligger øst til høyre."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g3-kommunen-rundt-oss",
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "slug": "kommunen-rundt-oss",
+      "title": "Kommunen rundt oss",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er kommunen rundt oss.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Kommunen har ansvar for mange lokale tjenester. Innbyggere kan påvirke gjennom valg og medvirkning."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Bibliotek og grunnskole er eksempler på tjenester som kommuner kan ha ansvar for."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilket av disse er ofte en kommunal tjeneste?",
+        "model_answer": "Folkebibliotek",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g3-kommunen-rundt-oss-q1",
+          "kind": "single_select",
+          "stem": "Hvilket av disse er ofte en kommunal tjeneste?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Folkebibliotek"
+            },
+            {
+              "key": "B",
+              "label": "Utenrikspolitikken"
+            },
+            {
+              "key": "C",
+              "label": "Nasjonal valuta"
+            },
+            {
+              "key": "D",
+              "label": "Tollregler alene"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Kommunen har ansvar for mange lokale tjenester. Innbyggere kan påvirke gjennom valg og medvirkning."
+        },
+        {
+          "id": "samfunnsfag-g3-kommunen-rundt-oss-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Kommunen rundt oss» med en egen situasjon eller kilde.",
+          "rubric_example": "Bibliotek og grunnskole er eksempler på tjenester som kommuner kan ha ansvar for.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket av disse er ofte en kommunal tjeneste?",
+          "back": "Folkebibliotek"
+        },
+        {
+          "front": "Hva er viktig ved kommunen rundt oss?",
+          "back": "Kommunen har ansvar for mange lokale tjenester. Innbyggere kan påvirke gjennom valg og medvirkning."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Bibliotek og grunnskole er eksempler på tjenester som kommuner kan ha ansvar for."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g3-etisk-bruk-av-bilder",
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "slug": "etisk-bruk-av-bilder",
+      "title": "Etisk bruk av bilder",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er etisk bruk av bilder.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Bilder av mennesker kan være private. Vi bør spørre om lov før vi deler bilder der andre kan kjennes igjen."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Før du deler et klassebilde på nettet, må du følge skolens regler og hensynet til samtykke."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva bør du undersøke før du publiserer et bilde av en annen elev?",
+        "model_answer": "Tillatelse og personvern",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g3-etisk-bruk-av-bilder-q1",
+          "kind": "single_select",
+          "stem": "Hva bør du undersøke før du publiserer et bilde av en annen elev?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tillatelse og personvern"
+            },
+            {
+              "key": "B",
+              "label": "Bare filstørrelsen"
+            },
+            {
+              "key": "C",
+              "label": "Bare antall likerklikk"
+            },
+            {
+              "key": "D",
+              "label": "Bare bildetittel"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Bilder av mennesker kan være private. Vi bør spørre om lov før vi deler bilder der andre kan kjennes igjen."
+        },
+        {
+          "id": "samfunnsfag-g3-etisk-bruk-av-bilder-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Etisk bruk av bilder» med en egen situasjon eller kilde.",
+          "rubric_example": "Før du deler et klassebilde på nettet, må du følge skolens regler og hensynet til samtykke.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du undersøke før du publiserer et bilde av en annen elev?",
+          "back": "Tillatelse og personvern"
+        },
+        {
+          "front": "Hva er viktig ved etisk bruk av bilder?",
+          "back": "Bilder av mennesker kan være private. Vi bør spørre om lov før vi deler bilder der andre kan kjennes igjen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Før du deler et klassebilde på nettet, må du følge skolens regler og hensynet til samtykke."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g4-norge-pa-kartet",
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "slug": "norge-pa-kartet",
+      "title": "Norge på kartet",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er norge på kartet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Norge har landsdeler, fylker og kommuner. Et kart kan vise fjell, fjorder, byer og grenser, men målestokken betyr noe."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Oslo ligger i Sør-Norge, mens Tromsø ligger mye lenger nord."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilken by ligger lenger nord av Oslo og Tromsø?",
+        "model_answer": "Tromsø",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g4-norge-pa-kartet-q1",
+          "kind": "single_select",
+          "stem": "Hvilken by ligger lenger nord av Oslo og Tromsø?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tromsø"
+            },
+            {
+              "key": "B",
+              "label": "Oslo"
+            },
+            {
+              "key": "C",
+              "label": "De ligger like langt nord"
+            },
+            {
+              "key": "D",
+              "label": "Ingen av dem"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Norge har landsdeler, fylker og kommuner. Et kart kan vise fjell, fjorder, byer og grenser, men målestokken betyr noe."
+        },
+        {
+          "id": "samfunnsfag-g4-norge-pa-kartet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Norge på kartet» med en egen situasjon eller kilde.",
+          "rubric_example": "Oslo ligger i Sør-Norge, mens Tromsø ligger mye lenger nord.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken by ligger lenger nord av Oslo og Tromsø?",
+          "back": "Tromsø"
+        },
+        {
+          "front": "Hva er viktig ved norge på kartet?",
+          "back": "Norge har landsdeler, fylker og kommuner. Et kart kan vise fjell, fjorder, byer og grenser, men målestokken betyr noe."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Oslo ligger i Sør-Norge, mens Tromsø ligger mye lenger nord."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g4-kilder-til-fortiden",
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "slug": "kilder-til-fortiden",
+      "title": "Kilder til fortiden",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er kilder til fortiden.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Historikere bruker blant annet fotografier, dokumenter, muntlige fortellinger og gjenstander. Hver kilde har styrker og begrensninger."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et gammelt brev kan fortelle hva avsenderen skrev, men ikke nødvendigvis hva alle andre mente."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva kan et historisk brev dokumentere direkte?",
+        "model_answer": "Hva avsenderen skrev",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g4-kilder-til-fortiden-q1",
+          "kind": "single_select",
+          "stem": "Hva kan et historisk brev dokumentere direkte?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Hva avsenderen skrev"
+            },
+            {
+              "key": "B",
+              "label": "Hva hele befolkningen tenkte"
+            },
+            {
+              "key": "C",
+              "label": "Framtidige hendelser"
+            },
+            {
+              "key": "D",
+              "label": "Hvorfor alt skjedde"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Historikere bruker blant annet fotografier, dokumenter, muntlige fortellinger og gjenstander. Hver kilde har styrker og begrensninger."
+        },
+        {
+          "id": "samfunnsfag-g4-kilder-til-fortiden-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Kilder til fortiden» med en egen situasjon eller kilde.",
+          "rubric_example": "Et gammelt brev kan fortelle hva avsenderen skrev, men ikke nødvendigvis hva alle andre mente.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan et historisk brev dokumentere direkte?",
+          "back": "Hva avsenderen skrev"
+        },
+        {
+          "front": "Hva er viktig ved kilder til fortiden?",
+          "back": "Historikere bruker blant annet fotografier, dokumenter, muntlige fortellinger og gjenstander. Hver kilde har styrker og begrensninger."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et gammelt brev kan fortelle hva avsenderen skrev, men ikke nødvendigvis hva alle andre mente."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g4-demokrati-i-klassen",
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "slug": "demokrati-i-klassen",
+      "title": "Demokrati i klassen",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er demokrati i klassen.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Å stemme kan være en måte å ta felles beslutninger på. Et demokrati innebærer også at vi tar hensyn til rettigheter og minoriteter."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Klassen stemmer over hvilken bok de vil lese, men alle skal fortsatt behandles respektfullt."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva er ett eksempel på demokratisk medvirkning?",
+        "model_answer": "Å delta i en avstemning",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g4-demokrati-i-klassen-q1",
+          "kind": "single_select",
+          "stem": "Hva er ett eksempel på demokratisk medvirkning?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Å delta i en avstemning"
+            },
+            {
+              "key": "B",
+              "label": "Å forby spørsmål"
+            },
+            {
+              "key": "C",
+              "label": "Å skjule alle forslag"
+            },
+            {
+              "key": "D",
+              "label": "Å nekte andre å snakke"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Å stemme kan være en måte å ta felles beslutninger på. Et demokrati innebærer også at vi tar hensyn til rettigheter og minoriteter."
+        },
+        {
+          "id": "samfunnsfag-g4-demokrati-i-klassen-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Demokrati i klassen» med en egen situasjon eller kilde.",
+          "rubric_example": "Klassen stemmer over hvilken bok de vil lese, men alle skal fortsatt behandles respektfullt.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er ett eksempel på demokratisk medvirkning?",
+          "back": "Å delta i en avstemning"
+        },
+        {
+          "front": "Hva er viktig ved demokrati i klassen?",
+          "back": "Å stemme kan være en måte å ta felles beslutninger på. Et demokrati innebærer også at vi tar hensyn til rettigheter og minoriteter."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Klassen stemmer over hvilken bok de vil lese, men alle skal fortsatt behandles respektfullt."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g4-rettigheter-og-plikter",
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "slug": "rettigheter-og-plikter",
+      "title": "Rettigheter og plikter",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er rettigheter og plikter.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Rettigheter beskytter mennesker, mens plikter innebærer ansvar vi har. Rett til opplæring henger sammen med fellesskapets ansvar for skole."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Barn har rett til et trygt skolemiljø og voksne må arbeide for å ivareta dette."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hva har barn rett til på skolen?",
+        "model_answer": "Et trygt skolemiljø",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g4-rettigheter-og-plikter-q1",
+          "kind": "single_select",
+          "stem": "Hva har barn rett til på skolen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Et trygt skolemiljø"
+            },
+            {
+              "key": "B",
+              "label": "Alltid å få viljen sin"
+            },
+            {
+              "key": "C",
+              "label": "Å plage medelever"
+            },
+            {
+              "key": "D",
+              "label": "Å bestemme andres karakterer"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Rettigheter beskytter mennesker, mens plikter innebærer ansvar vi har. Rett til opplæring henger sammen med fellesskapets ansvar for skole."
+        },
+        {
+          "id": "samfunnsfag-g4-rettigheter-og-plikter-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Rettigheter og plikter» med en egen situasjon eller kilde.",
+          "rubric_example": "Barn har rett til et trygt skolemiljø og voksne må arbeide for å ivareta dette.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva har barn rett til på skolen?",
+          "back": "Et trygt skolemiljø"
+        },
+        {
+          "front": "Hva er viktig ved rettigheter og plikter?",
+          "back": "Rettigheter beskytter mennesker, mens plikter innebærer ansvar vi har. Rett til opplæring henger sammen med fellesskapets ansvar for skole."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Barn har rett til et trygt skolemiljø og voksne må arbeide for å ivareta dette."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g4-penger-og-behov",
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "slug": "penger-og-behov",
+      "title": "Penger og behov",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 4,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er penger og behov.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Vi bruker penger til varer og tjenester, men behov og ønsker er ikke alltid det samme. Et budsjett hjelper oss å planlegge."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Mat er ofte et behov; en ny leke kan være et ønske."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Fortell hva du vet, og spør en voksen hvor vi kan sjekke det."
+          }
+        ],
+        "student_check": "Hvilket av disse er som regel et grunnleggende behov?",
+        "model_answer": "Mat",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g4-penger-og-behov-q1",
+          "kind": "single_select",
+          "stem": "Hvilket av disse er som regel et grunnleggende behov?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Mat"
+            },
+            {
+              "key": "B",
+              "label": "Den nyeste spillkonsollen"
+            },
+            {
+              "key": "C",
+              "label": "En ekstra leketøybil"
+            },
+            {
+              "key": "D",
+              "label": "Ti like capser"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Vi bruker penger til varer og tjenester, men behov og ønsker er ikke alltid det samme. Et budsjett hjelper oss å planlegge."
+        },
+        {
+          "id": "samfunnsfag-g4-penger-og-behov-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Penger og behov» med en egen situasjon eller kilde.",
+          "rubric_example": "Mat er ofte et behov; en ny leke kan være et ønske.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket av disse er som regel et grunnleggende behov?",
+          "back": "Mat"
+        },
+        {
+          "front": "Hva er viktig ved penger og behov?",
+          "back": "Vi bruker penger til varer og tjenester, men behov og ønsker er ikke alltid det samme. Et budsjett hjelper oss å planlegge."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Mat er ofte et behov; en ny leke kan være et ønske."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g5-samisk-historie-og-kultur",
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "slug": "samisk-historie-og-kultur",
+      "title": "Samisk historie og kultur",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er samisk historie og kultur.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Samer er et urfolk i Norge og andre deler av Sápmi. Samiske språk og kulturformer er mangfoldige, og historien omfatter også urett og fornorsking."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Det samiske flagget brukes av samer på tvers av landegrenser i Sápmi."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvem regnes som urfolk i Norge?",
+        "model_answer": "Samene",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g5-samisk-historie-og-kultur-q1",
+          "kind": "single_select",
+          "stem": "Hvem regnes som urfolk i Norge?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Samene"
+            },
+            {
+              "key": "B",
+              "label": "Alle turister"
+            },
+            {
+              "key": "C",
+              "label": "Alle kommunestyrer"
+            },
+            {
+              "key": "D",
+              "label": "Alle idrettslag"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Samer er et urfolk i Norge og andre deler av Sápmi. Samiske språk og kulturformer er mangfoldige, og historien omfatter også urett og fornorsking."
+        },
+        {
+          "id": "samfunnsfag-g5-samisk-historie-og-kultur-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Samisk historie og kultur» med en egen situasjon eller kilde.",
+          "rubric_example": "Det samiske flagget brukes av samer på tvers av landegrenser i Sápmi.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvem regnes som urfolk i Norge?",
+          "back": "Samene"
+        },
+        {
+          "front": "Hva er viktig ved samisk historie og kultur?",
+          "back": "Samer er et urfolk i Norge og andre deler av Sápmi. Samiske språk og kulturformer er mangfoldige, og historien omfatter også urett og fornorsking."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Det samiske flagget brukes av samer på tvers av landegrenser i Sápmi."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g5-europa-og-verdensdeler",
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "slug": "europa-og-verdensdeler",
+      "title": "Europa og verdensdeler",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er europa og verdensdeler.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Verdensdeler er store geografiske områder. Europa omfatter mange land med ulike språk, styresett og landskap."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Norge og Frankrike ligger begge i Europa, men har forskjellige språk og historie."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilken verdensdel ligger Norge i?",
+        "model_answer": "Europa",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g5-europa-og-verdensdeler-q1",
+          "kind": "single_select",
+          "stem": "Hvilken verdensdel ligger Norge i?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Europa"
+            },
+            {
+              "key": "B",
+              "label": "Asia"
+            },
+            {
+              "key": "C",
+              "label": "Afrika"
+            },
+            {
+              "key": "D",
+              "label": "Sør-Amerika"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Verdensdeler er store geografiske områder. Europa omfatter mange land med ulike språk, styresett og landskap."
+        },
+        {
+          "id": "samfunnsfag-g5-europa-og-verdensdeler-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Europa og verdensdeler» med en egen situasjon eller kilde.",
+          "rubric_example": "Norge og Frankrike ligger begge i Europa, men har forskjellige språk og historie.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken verdensdel ligger Norge i?",
+          "back": "Europa"
+        },
+        {
+          "front": "Hva er viktig ved europa og verdensdeler?",
+          "back": "Verdensdeler er store geografiske områder. Europa omfatter mange land med ulike språk, styresett og landskap."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Norge og Frankrike ligger begge i Europa, men har forskjellige språk og historie."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g5-handel-og-vareveier",
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "slug": "handel-og-vareveier",
+      "title": "Handel og vareveier",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er handel og vareveier.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Varer produseres ett sted og transporteres ofte til andre steder. Handel knytter mennesker og markeder sammen."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Kaffe kan dyrkes i ett land og selges i butikk i Norge etter transport."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er en varevei?",
+        "model_answer": "Veien en vare følger fra produksjon til salg",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g5-handel-og-vareveier-q1",
+          "kind": "single_select",
+          "stem": "Hva er en varevei?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Veien en vare følger fra produksjon til salg"
+            },
+            {
+              "key": "B",
+              "label": "Bare gaten utenfor skolen"
+            },
+            {
+              "key": "C",
+              "label": "En type mynt"
+            },
+            {
+              "key": "D",
+              "label": "En ren matematisk linje"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Varer produseres ett sted og transporteres ofte til andre steder. Handel knytter mennesker og markeder sammen."
+        },
+        {
+          "id": "samfunnsfag-g5-handel-og-vareveier-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Handel og vareveier» med en egen situasjon eller kilde.",
+          "rubric_example": "Kaffe kan dyrkes i ett land og selges i butikk i Norge etter transport.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en varevei?",
+          "back": "Veien en vare følger fra produksjon til salg"
+        },
+        {
+          "front": "Hva er viktig ved handel og vareveier?",
+          "back": "Varer produseres ett sted og transporteres ofte til andre steder. Handel knytter mennesker og markeder sammen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Kaffe kan dyrkes i ett land og selges i butikk i Norge etter transport."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g5-tidslinjer-i-historie",
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "slug": "tidslinjer-i-historie",
+      "title": "Tidslinjer i historie",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er tidslinjer i historie.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "En tidslinje setter hendelser i rekkefølge. Den kan hjelpe oss å se hva som skjedde før og etter noe annet."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "På en tidslinje ligger 1814 før 1905."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilket år kommer først: 1814 eller 1905?",
+        "model_answer": "1814",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g5-tidslinjer-i-historie-q1",
+          "kind": "single_select",
+          "stem": "Hvilket år kommer først: 1814 eller 1905?",
+          "options": [
+            {
+              "key": "A",
+              "label": "1814"
+            },
+            {
+              "key": "B",
+              "label": "1905"
+            },
+            {
+              "key": "C",
+              "label": "Begge samtidig"
+            },
+            {
+              "key": "D",
+              "label": "Ingen av dem"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "En tidslinje setter hendelser i rekkefølge. Den kan hjelpe oss å se hva som skjedde før og etter noe annet."
+        },
+        {
+          "id": "samfunnsfag-g5-tidslinjer-i-historie-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Tidslinjer i historie» med en egen situasjon eller kilde.",
+          "rubric_example": "På en tidslinje ligger 1814 før 1905.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket år kommer først: 1814 eller 1905?",
+          "back": "1814"
+        },
+        {
+          "front": "Hva er viktig ved tidslinjer i historie?",
+          "back": "En tidslinje setter hendelser i rekkefølge. Den kan hjelpe oss å se hva som skjedde før og etter noe annet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "På en tidslinje ligger 1814 før 1905."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g5-nettkilder-og-troverdighet",
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "slug": "nettkilder-og-troverdighet",
+      "title": "Nettkilder og troverdighet",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er nettkilder og troverdighet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Digitale kilder har ulik kvalitet. Avsender, dato, formål og dokumentasjon kan hjelpe oss å vurdere dem."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et kart på en offentlig nettside kan være nyttig, men vi må fortsatt sjekke hva kartet viser og når data ble oppdatert."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva bør du undersøke når du leser en nettartikkel?",
+        "model_answer": "Avsender og dokumentasjon",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g5-nettkilder-og-troverdighet-q1",
+          "kind": "single_select",
+          "stem": "Hva bør du undersøke når du leser en nettartikkel?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Avsender og dokumentasjon"
+            },
+            {
+              "key": "B",
+              "label": "Bare bakgrunnsfarge"
+            },
+            {
+              "key": "C",
+              "label": "Bare antall reklamer"
+            },
+            {
+              "key": "D",
+              "label": "Bare skrifttype"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Digitale kilder har ulik kvalitet. Avsender, dato, formål og dokumentasjon kan hjelpe oss å vurdere dem."
+        },
+        {
+          "id": "samfunnsfag-g5-nettkilder-og-troverdighet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Nettkilder og troverdighet» med en egen situasjon eller kilde.",
+          "rubric_example": "Et kart på en offentlig nettside kan være nyttig, men vi må fortsatt sjekke hva kartet viser og når data ble oppdatert.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du undersøke når du leser en nettartikkel?",
+          "back": "Avsender og dokumentasjon"
+        },
+        {
+          "front": "Hva er viktig ved nettkilder og troverdighet?",
+          "back": "Digitale kilder har ulik kvalitet. Avsender, dato, formål og dokumentasjon kan hjelpe oss å vurdere dem."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et kart på en offentlig nettside kan være nyttig, men vi må fortsatt sjekke hva kartet viser og når data ble oppdatert."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g6-migrasjon-og-tilhorighet",
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "slug": "migrasjon-og-tilhorighet",
+      "title": "Migrasjon og tilhørighet",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er migrasjon og tilhørighet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Mennesker flytter mellom steder av forskjellige grunner, som utdanning, arbeid, familie eller behov for trygghet. Hver persons historie er egen."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En familie kan flytte til en ny by fordi en forelder får jobb der."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva betyr migrasjon?",
+        "model_answer": "At mennesker flytter mellom steder",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g6-migrasjon-og-tilhorighet-q1",
+          "kind": "single_select",
+          "stem": "Hva betyr migrasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "At mennesker flytter mellom steder"
+            },
+            {
+              "key": "B",
+              "label": "At tiden stopper"
+            },
+            {
+              "key": "C",
+              "label": "At penger forsvinner"
+            },
+            {
+              "key": "D",
+              "label": "At fjell flytter seg"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Mennesker flytter mellom steder av forskjellige grunner, som utdanning, arbeid, familie eller behov for trygghet. Hver persons historie er egen."
+        },
+        {
+          "id": "samfunnsfag-g6-migrasjon-og-tilhorighet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Migrasjon og tilhørighet» med en egen situasjon eller kilde.",
+          "rubric_example": "En familie kan flytte til en ny by fordi en forelder får jobb der.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva betyr migrasjon?",
+          "back": "At mennesker flytter mellom steder"
+        },
+        {
+          "front": "Hva er viktig ved migrasjon og tilhørighet?",
+          "back": "Mennesker flytter mellom steder av forskjellige grunner, som utdanning, arbeid, familie eller behov for trygghet. Hver persons historie er egen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En familie kan flytte til en ny by fordi en forelder får jobb der."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g6-klima-ressurser-og-bosetting",
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "slug": "klima-ressurser-og-bosetting",
+      "title": "Klima, ressurser og bosetting",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er klima, ressurser og bosetting.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Naturforhold som klima og tilgang til vann påvirker bosetting, men teknologi og samfunnsforhold betyr også mye."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Byer ligger ofte ved kyst eller elver fordi transport og ressurser har vært viktige."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er én faktor som kan påvirke hvor mennesker bor?",
+        "model_answer": "Tilgang til vann",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g6-klima-ressurser-og-bosetting-q1",
+          "kind": "single_select",
+          "stem": "Hva er én faktor som kan påvirke hvor mennesker bor?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tilgang til vann"
+            },
+            {
+              "key": "B",
+              "label": "Bokstaven i fornavnet"
+            },
+            {
+              "key": "C",
+              "label": "Favorittfargen alene"
+            },
+            {
+              "key": "D",
+              "label": "Kalendernummeret"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Naturforhold som klima og tilgang til vann påvirker bosetting, men teknologi og samfunnsforhold betyr også mye."
+        },
+        {
+          "id": "samfunnsfag-g6-klima-ressurser-og-bosetting-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Klima, ressurser og bosetting» med en egen situasjon eller kilde.",
+          "rubric_example": "Byer ligger ofte ved kyst eller elver fordi transport og ressurser har vært viktige.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er én faktor som kan påvirke hvor mennesker bor?",
+          "back": "Tilgang til vann"
+        },
+        {
+          "front": "Hva er viktig ved klima, ressurser og bosetting?",
+          "back": "Naturforhold som klima og tilgang til vann påvirker bosetting, men teknologi og samfunnsforhold betyr også mye."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Byer ligger ofte ved kyst eller elver fordi transport og ressurser har vært viktige."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g6-kommunestyret-og-lokaldemokrati",
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "slug": "kommunestyret-og-lokaldemokrati",
+      "title": "Kommunestyret og lokaldemokrati",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er kommunestyret og lokaldemokrati.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Folkevalgte kommunestyrer tar beslutninger om lokale tjenester og prioriteringer. Innbyggerne kan delta i offentlige samtaler og valg."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et kommunestyre kan vedta prioriteringer i et lokalt budsjett."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilket organ tar politiske beslutninger i en kommune?",
+        "model_answer": "Kommunestyret",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g6-kommunestyret-og-lokaldemokrati-q1",
+          "kind": "single_select",
+          "stem": "Hvilket organ tar politiske beslutninger i en kommune?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Kommunestyret"
+            },
+            {
+              "key": "B",
+              "label": "Verdensbanken"
+            },
+            {
+              "key": "C",
+              "label": "EUs domstol"
+            },
+            {
+              "key": "D",
+              "label": "FNs sikkerhetsråd"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Folkevalgte kommunestyrer tar beslutninger om lokale tjenester og prioriteringer. Innbyggerne kan delta i offentlige samtaler og valg."
+        },
+        {
+          "id": "samfunnsfag-g6-kommunestyret-og-lokaldemokrati-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Kommunestyret og lokaldemokrati» med en egen situasjon eller kilde.",
+          "rubric_example": "Et kommunestyre kan vedta prioriteringer i et lokalt budsjett.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket organ tar politiske beslutninger i en kommune?",
+          "back": "Kommunestyret"
+        },
+        {
+          "front": "Hva er viktig ved kommunestyret og lokaldemokrati?",
+          "back": "Folkevalgte kommunestyrer tar beslutninger om lokale tjenester og prioriteringer. Innbyggerne kan delta i offentlige samtaler og valg."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et kommunestyre kan vedta prioriteringer i et lokalt budsjett."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g6-planlegge-et-budsjett",
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "slug": "planlegge-et-budsjett",
+      "title": "Planlegge et budsjett",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er planlegge et budsjett.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Et budsjett viser forventede inntekter og utgifter. Når utgiftene er større enn inntektene, må noe finansieres eller endres."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Har du 100 kr og bruker 30 kr på buss, er 70 kr igjen før andre kjøp."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvor mye har du igjen av 100 kr etter å ha brukt 30 kr?",
+        "model_answer": "70 kr",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g6-planlegge-et-budsjett-q1",
+          "kind": "single_select",
+          "stem": "Hvor mye har du igjen av 100 kr etter å ha brukt 30 kr?",
+          "options": [
+            {
+              "key": "A",
+              "label": "70 kr"
+            },
+            {
+              "key": "B",
+              "label": "30 kr"
+            },
+            {
+              "key": "C",
+              "label": "100 kr"
+            },
+            {
+              "key": "D",
+              "label": "130 kr"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Et budsjett viser forventede inntekter og utgifter. Når utgiftene er større enn inntektene, må noe finansieres eller endres."
+        },
+        {
+          "id": "samfunnsfag-g6-planlegge-et-budsjett-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Planlegge et budsjett» med en egen situasjon eller kilde.",
+          "rubric_example": "Har du 100 kr og bruker 30 kr på buss, er 70 kr igjen før andre kjøp.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor mye har du igjen av 100 kr etter å ha brukt 30 kr?",
+          "back": "70 kr"
+        },
+        {
+          "front": "Hva er viktig ved planlegge et budsjett?",
+          "back": "Et budsjett viser forventede inntekter og utgifter. Når utgiftene er større enn inntektene, må noe finansieres eller endres."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Har du 100 kr og bruker 30 kr på buss, er 70 kr igjen før andre kjøp."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g6-menneskerettigheter",
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "slug": "menneskerettigheter",
+      "title": "Menneskerettigheter",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er menneskerettigheter.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Menneskerettighetene beskytter grunnleggende rettigheter for alle mennesker. De gjelder uavhengig av bakgrunn og tilhørighet."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Retten til å ha og uttrykke meninger er viktig, samtidig som regler kan beskytte andre mot skade."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvem skal menneskerettighetene gjelde for?",
+        "model_answer": "Alle mennesker",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g6-menneskerettigheter-q1",
+          "kind": "single_select",
+          "stem": "Hvem skal menneskerettighetene gjelde for?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Alle mennesker"
+            },
+            {
+              "key": "B",
+              "label": "Bare voksne"
+            },
+            {
+              "key": "C",
+              "label": "Bare én nasjonalitet"
+            },
+            {
+              "key": "D",
+              "label": "Bare politikere"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Menneskerettighetene beskytter grunnleggende rettigheter for alle mennesker. De gjelder uavhengig av bakgrunn og tilhørighet."
+        },
+        {
+          "id": "samfunnsfag-g6-menneskerettigheter-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Menneskerettigheter» med en egen situasjon eller kilde.",
+          "rubric_example": "Retten til å ha og uttrykke meninger er viktig, samtidig som regler kan beskytte andre mot skade.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvem skal menneskerettighetene gjelde for?",
+          "back": "Alle mennesker"
+        },
+        {
+          "front": "Hva er viktig ved menneskerettigheter?",
+          "back": "Menneskerettighetene beskytter grunnleggende rettigheter for alle mennesker. De gjelder uavhengig av bakgrunn og tilhørighet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Retten til å ha og uttrykke meninger er viktig, samtidig som regler kan beskytte andre mot skade."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g7-globalisering-og-avhengighet",
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "slug": "globalisering-og-avhengighet",
+      "title": "Globalisering og avhengighet",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er globalisering og avhengighet.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Land og mennesker knyttes sammen gjennom handel, teknologi, kultur og migrasjon. Det kan gi muligheter og utfordringer."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En mobiltelefon kan ha deler laget i mange forskjellige land."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva viser produksjon i mange land?",
+        "model_answer": "Global sammenkobling",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g7-globalisering-og-avhengighet-q1",
+          "kind": "single_select",
+          "stem": "Hva viser produksjon i mange land?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Global sammenkobling"
+            },
+            {
+              "key": "B",
+              "label": "Fullstendig isolasjon"
+            },
+            {
+              "key": "C",
+              "label": "At handel ikke finnes"
+            },
+            {
+              "key": "D",
+              "label": "At alle varer er lokale"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Land og mennesker knyttes sammen gjennom handel, teknologi, kultur og migrasjon. Det kan gi muligheter og utfordringer."
+        },
+        {
+          "id": "samfunnsfag-g7-globalisering-og-avhengighet-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Globalisering og avhengighet» med en egen situasjon eller kilde.",
+          "rubric_example": "En mobiltelefon kan ha deler laget i mange forskjellige land.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva viser produksjon i mange land?",
+          "back": "Global sammenkobling"
+        },
+        {
+          "front": "Hva er viktig ved globalisering og avhengighet?",
+          "back": "Land og mennesker knyttes sammen gjennom handel, teknologi, kultur og migrasjon. Det kan gi muligheter og utfordringer."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En mobiltelefon kan ha deler laget i mange forskjellige land."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g7-baerekraftige-valg",
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "slug": "baerekraftige-valg",
+      "title": "Bærekraftige valg",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er bærekraftige valg.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Bærekraft handler om miljø, sosiale forhold og økonomi over tid. Et tiltak kan ha både fordeler og ulemper."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Å bruke buss kan redusere utslipp per passasjer når mange reiser sammen, men rute og energikilde spiller inn."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva må vurderes i en bærekraftig beslutning?",
+        "model_answer": "Flere konsekvenser over tid",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g7-baerekraftige-valg-q1",
+          "kind": "single_select",
+          "stem": "Hva må vurderes i en bærekraftig beslutning?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Flere konsekvenser over tid"
+            },
+            {
+              "key": "B",
+              "label": "Bare prislappen"
+            },
+            {
+              "key": "C",
+              "label": "Bare én reklame"
+            },
+            {
+              "key": "D",
+              "label": "Bare én persons følelser"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Bærekraft handler om miljø, sosiale forhold og økonomi over tid. Et tiltak kan ha både fordeler og ulemper."
+        },
+        {
+          "id": "samfunnsfag-g7-baerekraftige-valg-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Bærekraftige valg» med en egen situasjon eller kilde.",
+          "rubric_example": "Å bruke buss kan redusere utslipp per passasjer når mange reiser sammen, men rute og energikilde spiller inn.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva må vurderes i en bærekraftig beslutning?",
+          "back": "Flere konsekvenser over tid"
+        },
+        {
+          "front": "Hva er viktig ved bærekraftige valg?",
+          "back": "Bærekraft handler om miljø, sosiale forhold og økonomi over tid. Et tiltak kan ha både fordeler og ulemper."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Å bruke buss kan redusere utslipp per passasjer når mange reiser sammen, men rute og energikilde spiller inn."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g7-medier-og-pavirkning",
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "slug": "medier-og-pavirkning",
+      "title": "Medier og påvirkning",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er medier og påvirkning.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Medier velger hva de fremhever, og digitale systemer kan styre hva vi ser. Vi må sammenligne kilder og være bevisste på påvirkning."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "To aviser kan vektlegge forskjellige sider av den samme hendelsen."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva kan du gjøre for å få et bredere bilde av en sak?",
+        "model_answer": "Sammenligne flere pålitelige kilder",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g7-medier-og-pavirkning-q1",
+          "kind": "single_select",
+          "stem": "Hva kan du gjøre for å få et bredere bilde av en sak?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sammenligne flere pålitelige kilder"
+            },
+            {
+              "key": "B",
+              "label": "Bare lese én overskrift"
+            },
+            {
+              "key": "C",
+              "label": "Ignorere alle motargumenter"
+            },
+            {
+              "key": "D",
+              "label": "Tro alltid første innlegg"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Medier velger hva de fremhever, og digitale systemer kan styre hva vi ser. Vi må sammenligne kilder og være bevisste på påvirkning."
+        },
+        {
+          "id": "samfunnsfag-g7-medier-og-pavirkning-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Medier og påvirkning» med en egen situasjon eller kilde.",
+          "rubric_example": "To aviser kan vektlegge forskjellige sider av den samme hendelsen.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan du gjøre for å få et bredere bilde av en sak?",
+          "back": "Sammenligne flere pålitelige kilder"
+        },
+        {
+          "front": "Hva er viktig ved medier og påvirkning?",
+          "back": "Medier velger hva de fremhever, og digitale systemer kan styre hva vi ser. Vi må sammenligne kilder og være bevisste på påvirkning."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "To aviser kan vektlegge forskjellige sider av den samme hendelsen."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g7-historiske-spor-og-arsaker",
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "slug": "historiske-spor-og-arsaker",
+      "title": "Historiske spor og årsaker",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er historiske spor og årsaker.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Historie innebærer å undersøke kilder og forklare sammenhenger. Flere årsaker kan virke sammen når samfunnet endres."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En ny vei kan påvirke handel, bosetting og arbeidsliv over tid."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er viktig når vi forklarer historisk endring?",
+        "model_answer": "Se på flere mulige årsaker",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g7-historiske-spor-og-arsaker-q1",
+          "kind": "single_select",
+          "stem": "Hva er viktig når vi forklarer historisk endring?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Se på flere mulige årsaker"
+            },
+            {
+              "key": "B",
+              "label": "Bare gjette én årsak"
+            },
+            {
+              "key": "C",
+              "label": "Se bort fra kilder"
+            },
+            {
+              "key": "D",
+              "label": "Vurdere bare dagens vær"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Historie innebærer å undersøke kilder og forklare sammenhenger. Flere årsaker kan virke sammen når samfunnet endres."
+        },
+        {
+          "id": "samfunnsfag-g7-historiske-spor-og-arsaker-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Historiske spor og årsaker» med en egen situasjon eller kilde.",
+          "rubric_example": "En ny vei kan påvirke handel, bosetting og arbeidsliv over tid.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er viktig når vi forklarer historisk endring?",
+          "back": "Se på flere mulige årsaker"
+        },
+        {
+          "front": "Hva er viktig ved historiske spor og årsaker?",
+          "back": "Historie innebærer å undersøke kilder og forklare sammenhenger. Flere årsaker kan virke sammen når samfunnet endres."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En ny vei kan påvirke handel, bosetting og arbeidsliv over tid."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g7-identitet-og-livssynsmangfold",
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "slug": "identitet-og-livssynsmangfold",
+      "title": "Identitet og livssynsmangfold",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 7,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er identitet og livssynsmangfold.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Identitet kan knyttes til erfaringer, språk, kultur, tro og interesser. Vi viser respekt ved ikke å redusere mennesker til én gruppetilhørighet."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "To elever med samme hjemmespråk kan like forskjellige fag og ha helt ulike interesser."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva bør vi unngå når vi snakker om menneskers identitet?",
+        "model_answer": "Stereotypier",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g7-identitet-og-livssynsmangfold-q1",
+          "kind": "single_select",
+          "stem": "Hva bør vi unngå når vi snakker om menneskers identitet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Stereotypier"
+            },
+            {
+              "key": "B",
+              "label": "Å stille høflige spørsmål"
+            },
+            {
+              "key": "C",
+              "label": "Å lytte"
+            },
+            {
+              "key": "D",
+              "label": "Å respektere forskjeller"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Identitet kan knyttes til erfaringer, språk, kultur, tro og interesser. Vi viser respekt ved ikke å redusere mennesker til én gruppetilhørighet."
+        },
+        {
+          "id": "samfunnsfag-g7-identitet-og-livssynsmangfold-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Identitet og livssynsmangfold» med en egen situasjon eller kilde.",
+          "rubric_example": "To elever med samme hjemmespråk kan like forskjellige fag og ha helt ulike interesser.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør vi unngå når vi snakker om menneskers identitet?",
+          "back": "Stereotypier"
+        },
+        {
+          "front": "Hva er viktig ved identitet og livssynsmangfold?",
+          "back": "Identitet kan knyttes til erfaringer, språk, kultur, tro og interesser. Vi viser respekt ved ikke å redusere mennesker til én gruppetilhørighet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "To elever med samme hjemmespråk kan like forskjellige fag og ha helt ulike interesser."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g8-demokrati-og-medvirkning",
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "slug": "demokrati-og-medvirkning",
+      "title": "Demokrati og medvirkning",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er demokrati og medvirkning.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Norge har demokratiske institusjoner på nasjonalt og lokalt nivå. Å delta handler også om ytringsfrihet og respekt for rettigheter."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Stortinget vedtar lover, mens regjeringen leder den utøvende statsmakten."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilket organ vedtar lover i Norge?",
+        "model_answer": "Stortinget",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g8-demokrati-og-medvirkning-q1",
+          "kind": "single_select",
+          "stem": "Hvilket organ vedtar lover i Norge?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Stortinget"
+            },
+            {
+              "key": "B",
+              "label": "Regjeringen alene"
+            },
+            {
+              "key": "C",
+              "label": "Høyesterett"
+            },
+            {
+              "key": "D",
+              "label": "Kommunebiblioteket"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Norge har demokratiske institusjoner på nasjonalt og lokalt nivå. Å delta handler også om ytringsfrihet og respekt for rettigheter."
+        },
+        {
+          "id": "samfunnsfag-g8-demokrati-og-medvirkning-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Demokrati og medvirkning» med en egen situasjon eller kilde.",
+          "rubric_example": "Stortinget vedtar lover, mens regjeringen leder den utøvende statsmakten.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket organ vedtar lover i Norge?",
+          "back": "Stortinget"
+        },
+        {
+          "front": "Hva er viktig ved demokrati og medvirkning?",
+          "back": "Norge har demokratiske institusjoner på nasjonalt og lokalt nivå. Å delta handler også om ytringsfrihet og respekt for rettigheter."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Stortinget vedtar lover, mens regjeringen leder den utøvende statsmakten."
+        }
+      ],
+      "original_grade8_pilot": true
+    },
+    {
+      "id": "samfunnsfag-g8-medier-kilder-og-digitale-spor",
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "slug": "medier-kilder-og-digitale-spor",
+      "title": "Medier, kilder og digitale spor",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er medier, kilder og digitale spor.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Kritisk kildebruk krever at vi undersøker avsender og dokumentasjon. Digitale spor og algoritmer kan påvirke informasjon og personvern."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et oppslag kan spre seg raskt i sosiale medier uten at innholdet er kontrollert."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva bør du gjøre før du deler en oppsiktsvekkende påstand?",
+        "model_answer": "Sjekke kilden og dokumentasjonen",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g8-medier-kilder-og-digitale-spor-q1",
+          "kind": "single_select",
+          "stem": "Hva bør du gjøre før du deler en oppsiktsvekkende påstand?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sjekke kilden og dokumentasjonen"
+            },
+            {
+              "key": "B",
+              "label": "Dele uten å lese"
+            },
+            {
+              "key": "C",
+              "label": "Tro antall likerklikk"
+            },
+            {
+              "key": "D",
+              "label": "Bare se bildet"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Kritisk kildebruk krever at vi undersøker avsender og dokumentasjon. Digitale spor og algoritmer kan påvirke informasjon og personvern."
+        },
+        {
+          "id": "samfunnsfag-g8-medier-kilder-og-digitale-spor-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Medier, kilder og digitale spor» med en egen situasjon eller kilde.",
+          "rubric_example": "Et oppslag kan spre seg raskt i sosiale medier uten at innholdet er kontrollert.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du gjøre før du deler en oppsiktsvekkende påstand?",
+          "back": "Sjekke kilden og dokumentasjonen"
+        },
+        {
+          "front": "Hva er viktig ved medier, kilder og digitale spor?",
+          "back": "Kritisk kildebruk krever at vi undersøker avsender og dokumentasjon. Digitale spor og algoritmer kan påvirke informasjon og personvern."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et oppslag kan spre seg raskt i sosiale medier uten at innholdet er kontrollert."
+        }
+      ],
+      "original_grade8_pilot": true
+    },
+    {
+      "id": "samfunnsfag-g8-geografi-bosetting-og-levekar",
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "slug": "geografi-bosetting-og-levekar",
+      "title": "Geografi, bosetting og levekår",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er geografi, bosetting og levekår.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Klima, naturressurser, arbeidsplasser og politiske forhold påvirker hvor mennesker bosetter seg. Årsakene varierer mellom steder."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En by ved en havn kan ha vokst på grunn av handel og transport."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva kan bidra til bosetting ved en havn?",
+        "model_answer": "Handel og transport",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g8-geografi-bosetting-og-levekar-q1",
+          "kind": "single_select",
+          "stem": "Hva kan bidra til bosetting ved en havn?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Handel og transport"
+            },
+            {
+              "key": "B",
+              "label": "Bare byens navn"
+            },
+            {
+              "key": "C",
+              "label": "Bare et tilfeldig tall"
+            },
+            {
+              "key": "D",
+              "label": "Bare fargen på kartet"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Klima, naturressurser, arbeidsplasser og politiske forhold påvirker hvor mennesker bosetter seg. Årsakene varierer mellom steder."
+        },
+        {
+          "id": "samfunnsfag-g8-geografi-bosetting-og-levekar-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Geografi, bosetting og levekår» med en egen situasjon eller kilde.",
+          "rubric_example": "En by ved en havn kan ha vokst på grunn av handel og transport.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan bidra til bosetting ved en havn?",
+          "back": "Handel og transport"
+        },
+        {
+          "front": "Hva er viktig ved geografi, bosetting og levekår?",
+          "back": "Klima, naturressurser, arbeidsplasser og politiske forhold påvirker hvor mennesker bosetter seg. Årsakene varierer mellom steder."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En by ved en havn kan ha vokst på grunn av handel og transport."
+        }
+      ],
+      "original_grade8_pilot": true
+    },
+    {
+      "id": "samfunnsfag-g8-historie-endring-og-konflikt",
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "slug": "historie-endring-og-konflikt",
+      "title": "Historiske endringer og konflikter",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er historiske endringer og konflikter.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Historiske hendelser kan forstås gjennom årsaker, virkninger og kilder fra ulike perspektiver. Unngå å forklare komplekse hendelser med bare én grunn."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Industrialisering endret arbeidsliv og bosetting gjennom teknologi, fabrikker og flytting til byer."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva var én virkning av industrialisering?",
+        "model_answer": "Flere jobbet i fabrikker",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g8-historie-endring-og-konflikt-q1",
+          "kind": "single_select",
+          "stem": "Hva var én virkning av industrialisering?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Flere jobbet i fabrikker"
+            },
+            {
+              "key": "B",
+              "label": "Alle sluttet å arbeide"
+            },
+            {
+              "key": "C",
+              "label": "Byer ble avskaffet"
+            },
+            {
+              "key": "D",
+              "label": "All teknologi forsvant"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Historiske hendelser kan forstås gjennom årsaker, virkninger og kilder fra ulike perspektiver. Unngå å forklare komplekse hendelser med bare én grunn."
+        },
+        {
+          "id": "samfunnsfag-g8-historie-endring-og-konflikt-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Historiske endringer og konflikter» med en egen situasjon eller kilde.",
+          "rubric_example": "Industrialisering endret arbeidsliv og bosetting gjennom teknologi, fabrikker og flytting til byer.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva var én virkning av industrialisering?",
+          "back": "Flere jobbet i fabrikker"
+        },
+        {
+          "front": "Hva er viktig ved historiske endringer og konflikter?",
+          "back": "Historiske hendelser kan forstås gjennom årsaker, virkninger og kilder fra ulike perspektiver. Unngå å forklare komplekse hendelser med bare én grunn."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Industrialisering endret arbeidsliv og bosetting gjennom teknologi, fabrikker og flytting til byer."
+        }
+      ],
+      "original_grade8_pilot": true
+    },
+    {
+      "id": "samfunnsfag-g8-identitet-mangfold-og-rettigheter",
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "slug": "identitet-mangfold-og-rettigheter",
+      "title": "Identitet, mangfold og rettigheter",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er identitet, mangfold og rettigheter.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Mennesker tilhører ulike fellesskap og har rettigheter. Historie og maktforhold påvirker hvordan minoriteter behandles."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Diskriminering kan begrense deltakelse; likeverd innebærer at mennesker har samme menneskeverd."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva betyr likeverd?",
+        "model_answer": "Mennesker har samme menneskeverd",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g8-identitet-mangfold-og-rettigheter-q1",
+          "kind": "single_select",
+          "stem": "Hva betyr likeverd?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Mennesker har samme menneskeverd"
+            },
+            {
+              "key": "B",
+              "label": "Alle må ha samme interesser"
+            },
+            {
+              "key": "C",
+              "label": "Alle må snakke samme språk"
+            },
+            {
+              "key": "D",
+              "label": "Ulikhet er forbudt"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Mennesker tilhører ulike fellesskap og har rettigheter. Historie og maktforhold påvirker hvordan minoriteter behandles."
+        },
+        {
+          "id": "samfunnsfag-g8-identitet-mangfold-og-rettigheter-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Identitet, mangfold og rettigheter» med en egen situasjon eller kilde.",
+          "rubric_example": "Diskriminering kan begrense deltakelse; likeverd innebærer at mennesker har samme menneskeverd.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva betyr likeverd?",
+          "back": "Mennesker har samme menneskeverd"
+        },
+        {
+          "front": "Hva er viktig ved identitet, mangfold og rettigheter?",
+          "back": "Mennesker tilhører ulike fellesskap og har rettigheter. Historie og maktforhold påvirker hvordan minoriteter behandles."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Diskriminering kan begrense deltakelse; likeverd innebærer at mennesker har samme menneskeverd."
+        }
+      ],
+      "original_grade8_pilot": true
+    },
+    {
+      "id": "samfunnsfag-g9-okonomi-skatt-og-velferd",
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "slug": "okonomi-skatt-og-velferd",
+      "title": "Økonomi, skatt og velferd",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er økonomi, skatt og velferd.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Skatt bidrar til å finansiere offentlige tjenester. Hva som prioriteres, bestemmes gjennom politiske prosesser."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Kommunen kan bruke skatteinntekter og statlige overføringer til tjenester som skole og omsorg."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er et formål med skatter i Norge?",
+        "model_answer": "Finansiere offentlige tjenester",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g9-okonomi-skatt-og-velferd-q1",
+          "kind": "single_select",
+          "stem": "Hva er et formål med skatter i Norge?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Finansiere offentlige tjenester"
+            },
+            {
+              "key": "B",
+              "label": "Avskaffe alle lover"
+            },
+            {
+              "key": "C",
+              "label": "Bestemme privat smak"
+            },
+            {
+              "key": "D",
+              "label": "Hindre alle valg"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Skatt bidrar til å finansiere offentlige tjenester. Hva som prioriteres, bestemmes gjennom politiske prosesser."
+        },
+        {
+          "id": "samfunnsfag-g9-okonomi-skatt-og-velferd-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Økonomi, skatt og velferd» med en egen situasjon eller kilde.",
+          "rubric_example": "Kommunen kan bruke skatteinntekter og statlige overføringer til tjenester som skole og omsorg.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er et formål med skatter i Norge?",
+          "back": "Finansiere offentlige tjenester"
+        },
+        {
+          "front": "Hva er viktig ved økonomi, skatt og velferd?",
+          "back": "Skatt bidrar til å finansiere offentlige tjenester. Hva som prioriteres, bestemmes gjennom politiske prosesser."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Kommunen kan bruke skatteinntekter og statlige overføringer til tjenester som skole og omsorg."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g9-valg-og-maktfordeling",
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "slug": "valg-og-maktfordeling",
+      "title": "Valg og maktfordeling",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er valg og maktfordeling.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Demokratiske valg avgjør representasjon, mens maktfordeling og kontroll skal motvirke maktmisbruk. Institusjoner har ulike oppgaver."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Stortinget vedtar lover; domstolene avgjør rettslige tvister innenfor rettssystemet."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilken statsgren har dømmende myndighet?",
+        "model_answer": "Domstolene",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g9-valg-og-maktfordeling-q1",
+          "kind": "single_select",
+          "stem": "Hvilken statsgren har dømmende myndighet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Domstolene"
+            },
+            {
+              "key": "B",
+              "label": "Stortinget alene"
+            },
+            {
+              "key": "C",
+              "label": "Regjeringen alene"
+            },
+            {
+              "key": "D",
+              "label": "Skolebiblioteket"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Demokratiske valg avgjør representasjon, mens maktfordeling og kontroll skal motvirke maktmisbruk. Institusjoner har ulike oppgaver."
+        },
+        {
+          "id": "samfunnsfag-g9-valg-og-maktfordeling-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Valg og maktfordeling» med en egen situasjon eller kilde.",
+          "rubric_example": "Stortinget vedtar lover; domstolene avgjør rettslige tvister innenfor rettssystemet.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken statsgren har dømmende myndighet?",
+          "back": "Domstolene"
+        },
+        {
+          "front": "Hva er viktig ved valg og maktfordeling?",
+          "back": "Demokratiske valg avgjør representasjon, mens maktfordeling og kontroll skal motvirke maktmisbruk. Institusjoner har ulike oppgaver."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Stortinget vedtar lover; domstolene avgjør rettslige tvister innenfor rettssystemet."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g9-historiske-konflikter-og-perspektiver",
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "slug": "historiske-konflikter-og-perspektiver",
+      "title": "Historiske konflikter og perspektiver",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er historiske konflikter og perspektiver.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Konflikter må forstås gjennom flere kilder, interesser og forhold over tid. Kilder kan være uenige om årsaker og ansvar."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En historiker sammenligner offentlige dokumenter, brev og vitnefortellinger fra en konflikt."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva styrker undersøkelsen av en historisk konflikt?",
+        "model_answer": "Flere uavhengige kilder",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g9-historiske-konflikter-og-perspektiver-q1",
+          "kind": "single_select",
+          "stem": "Hva styrker undersøkelsen av en historisk konflikt?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Flere uavhengige kilder"
+            },
+            {
+              "key": "B",
+              "label": "Bare én plakat"
+            },
+            {
+              "key": "C",
+              "label": "Bare dagens mening"
+            },
+            {
+              "key": "D",
+              "label": "Bare en tilfeldig dato"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Konflikter må forstås gjennom flere kilder, interesser og forhold over tid. Kilder kan være uenige om årsaker og ansvar."
+        },
+        {
+          "id": "samfunnsfag-g9-historiske-konflikter-og-perspektiver-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Historiske konflikter og perspektiver» med en egen situasjon eller kilde.",
+          "rubric_example": "En historiker sammenligner offentlige dokumenter, brev og vitnefortellinger fra en konflikt.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva styrker undersøkelsen av en historisk konflikt?",
+          "back": "Flere uavhengige kilder"
+        },
+        {
+          "front": "Hva er viktig ved historiske konflikter og perspektiver?",
+          "back": "Konflikter må forstås gjennom flere kilder, interesser og forhold over tid. Kilder kan være uenige om årsaker og ansvar."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En historiker sammenligner offentlige dokumenter, brev og vitnefortellinger fra en konflikt."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g9-internasjonale-organisasjoner",
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "slug": "internasjonale-organisasjoner",
+      "title": "Internasjonale organisasjoner",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er internasjonale organisasjoner.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Organisasjoner som FN og Europarådet har forskjellige roller. Samarbeid mellom land kan støtte fred, utvikling og menneskerettigheter."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "FN har medlemsland som samarbeider om internasjonale spørsmål, selv om de ikke alltid er enige."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva står FN for på norsk?",
+        "model_answer": "De forente nasjoner",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g9-internasjonale-organisasjoner-q1",
+          "kind": "single_select",
+          "stem": "Hva står FN for på norsk?",
+          "options": [
+            {
+              "key": "A",
+              "label": "De forente nasjoner"
+            },
+            {
+              "key": "B",
+              "label": "Den frie naturen"
+            },
+            {
+              "key": "C",
+              "label": "Det føderale Norden"
+            },
+            {
+              "key": "D",
+              "label": "Den felles nemnda"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Organisasjoner som FN og Europarådet har forskjellige roller. Samarbeid mellom land kan støtte fred, utvikling og menneskerettigheter."
+        },
+        {
+          "id": "samfunnsfag-g9-internasjonale-organisasjoner-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Internasjonale organisasjoner» med en egen situasjon eller kilde.",
+          "rubric_example": "FN har medlemsland som samarbeider om internasjonale spørsmål, selv om de ikke alltid er enige.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva står FN for på norsk?",
+          "back": "De forente nasjoner"
+        },
+        {
+          "front": "Hva er viktig ved internasjonale organisasjoner?",
+          "back": "Organisasjoner som FN og Europarådet har forskjellige roller. Samarbeid mellom land kan støtte fred, utvikling og menneskerettigheter."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "FN har medlemsland som samarbeider om internasjonale spørsmål, selv om de ikke alltid er enige."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g9-digitale-medier-og-samfunn",
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "slug": "digitale-medier-og-samfunn",
+      "title": "Digitale medier og samfunn",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er digitale medier og samfunn.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Algoritmer og anbefalingssystemer kan påvirke hvilke saker vi ser. Personvern og kildekritikk er viktige for å forstå digital påvirkning."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En strøm av innlegg med likt syn kan gi et snevert inntrykk av hva folk mener."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er en mulig følge av et ensidig digitalt informasjonsutvalg?",
+        "model_answer": "Snever forståelse av en sak",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g9-digitale-medier-og-samfunn-q1",
+          "kind": "single_select",
+          "stem": "Hva er en mulig følge av et ensidig digitalt informasjonsutvalg?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Snever forståelse av en sak"
+            },
+            {
+              "key": "B",
+              "label": "At alle får flere kilder automatisk"
+            },
+            {
+              "key": "C",
+              "label": "At algoritmer slutter å virke"
+            },
+            {
+              "key": "D",
+              "label": "At fakta alltid blir enklere"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Algoritmer og anbefalingssystemer kan påvirke hvilke saker vi ser. Personvern og kildekritikk er viktige for å forstå digital påvirkning."
+        },
+        {
+          "id": "samfunnsfag-g9-digitale-medier-og-samfunn-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Digitale medier og samfunn» med en egen situasjon eller kilde.",
+          "rubric_example": "En strøm av innlegg med likt syn kan gi et snevert inntrykk av hva folk mener.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en mulig følge av et ensidig digitalt informasjonsutvalg?",
+          "back": "Snever forståelse av en sak"
+        },
+        {
+          "front": "Hva er viktig ved digitale medier og samfunn?",
+          "back": "Algoritmer og anbefalingssystemer kan påvirke hvilke saker vi ser. Personvern og kildekritikk er viktige for å forstå digital påvirkning."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En strøm av innlegg med likt syn kan gi et snevert inntrykk av hva folk mener."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g10-menneskerettigheter-og-rettsstat",
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "slug": "menneskerettigheter-og-rettsstat",
+      "title": "Menneskerettigheter og rettsstat",
+      "sort_order": 1,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er menneskerettigheter og rettsstat.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "En rettsstat bruker regler og uavhengige domstoler for å sikre rettssikkerhet. Menneskerettighetene setter viktige rammer for myndighetene."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Retten til en rettferdig rettergang er viktig for rettssikkerheten."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er en grunnleggende del av rettsstaten?",
+        "model_answer": "Rettssikkerhet",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g10-menneskerettigheter-og-rettsstat-q1",
+          "kind": "single_select",
+          "stem": "Hva er en grunnleggende del av rettsstaten?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Rettssikkerhet"
+            },
+            {
+              "key": "B",
+              "label": "Tilfeldig straff"
+            },
+            {
+              "key": "C",
+              "label": "Ingen domstoler"
+            },
+            {
+              "key": "D",
+              "label": "Ubegrenset myndighetsmakt"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "En rettsstat bruker regler og uavhengige domstoler for å sikre rettssikkerhet. Menneskerettighetene setter viktige rammer for myndighetene."
+        },
+        {
+          "id": "samfunnsfag-g10-menneskerettigheter-og-rettsstat-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Menneskerettigheter og rettsstat» med en egen situasjon eller kilde.",
+          "rubric_example": "Retten til en rettferdig rettergang er viktig for rettssikkerheten.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en grunnleggende del av rettsstaten?",
+          "back": "Rettssikkerhet"
+        },
+        {
+          "front": "Hva er viktig ved menneskerettigheter og rettsstat?",
+          "back": "En rettsstat bruker regler og uavhengige domstoler for å sikre rettssikkerhet. Menneskerettighetene setter viktige rammer for myndighetene."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Retten til en rettferdig rettergang er viktig for rettssikkerheten."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g10-politisk-system-og-deltakelse",
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "slug": "politisk-system-og-deltakelse",
+      "title": "Politisk system og deltakelse",
+      "sort_order": 2,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er politisk system og deltakelse.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Norge har parlamentarisk styresett og lokalt selvstyre. Valg, offentlig debatt og organisasjoner gir ulike måter å påvirke på."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Velgere velger representanter til Stortinget, som har lovgivende og kontrollerende oppgaver."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilket organ er Norges nasjonalforsamling?",
+        "model_answer": "Stortinget",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g10-politisk-system-og-deltakelse-q1",
+          "kind": "single_select",
+          "stem": "Hvilket organ er Norges nasjonalforsamling?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Stortinget"
+            },
+            {
+              "key": "B",
+              "label": "Kommunestyret"
+            },
+            {
+              "key": "C",
+              "label": "Høyesterett"
+            },
+            {
+              "key": "D",
+              "label": "Norges Bank"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Norge har parlamentarisk styresett og lokalt selvstyre. Valg, offentlig debatt og organisasjoner gir ulike måter å påvirke på."
+        },
+        {
+          "id": "samfunnsfag-g10-politisk-system-og-deltakelse-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Politisk system og deltakelse» med en egen situasjon eller kilde.",
+          "rubric_example": "Velgere velger representanter til Stortinget, som har lovgivende og kontrollerende oppgaver.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket organ er Norges nasjonalforsamling?",
+          "back": "Stortinget"
+        },
+        {
+          "front": "Hva er viktig ved politisk system og deltakelse?",
+          "back": "Norge har parlamentarisk styresett og lokalt selvstyre. Valg, offentlig debatt og organisasjoner gir ulike måter å påvirke på."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Velgere velger representanter til Stortinget, som har lovgivende og kontrollerende oppgaver."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g10-baerekraft-og-fordeling",
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "slug": "baerekraft-og-fordeling",
+      "title": "Bærekraft og fordeling",
+      "sort_order": 3,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er bærekraft og fordeling.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Bærekraftige beslutninger innebærer avveininger mellom miljø, økonomi og sosiale forhold. Fordelingsvirkninger bør vurderes."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Et klimatiltak kan kutte utslipp, men kreve investeringer og påvirke ulike grupper forskjellig."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva bør en analyse av et klimatiltak omfatte?",
+        "model_answer": "Miljømessige, økonomiske og sosiale følger",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g10-baerekraft-og-fordeling-q1",
+          "kind": "single_select",
+          "stem": "Hva bør en analyse av et klimatiltak omfatte?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Miljømessige, økonomiske og sosiale følger"
+            },
+            {
+              "key": "B",
+              "label": "Bare utslippsmålet"
+            },
+            {
+              "key": "C",
+              "label": "Bare fargen på planen"
+            },
+            {
+              "key": "D",
+              "label": "Bare ett slagord"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Bærekraftige beslutninger innebærer avveininger mellom miljø, økonomi og sosiale forhold. Fordelingsvirkninger bør vurderes."
+        },
+        {
+          "id": "samfunnsfag-g10-baerekraft-og-fordeling-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Bærekraft og fordeling» med en egen situasjon eller kilde.",
+          "rubric_example": "Et klimatiltak kan kutte utslipp, men kreve investeringer og påvirke ulike grupper forskjellig.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør en analyse av et klimatiltak omfatte?",
+          "back": "Miljømessige, økonomiske og sosiale følger"
+        },
+        {
+          "front": "Hva er viktig ved bærekraft og fordeling?",
+          "back": "Bærekraftige beslutninger innebærer avveininger mellom miljø, økonomi og sosiale forhold. Fordelingsvirkninger bør vurderes."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et klimatiltak kan kutte utslipp, men kreve investeringer og påvirke ulike grupper forskjellig."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g10-urfolk-og-minoritetsrettigheter",
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "slug": "urfolk-og-minoritetsrettigheter",
+      "title": "Urfolk og minoritetsrettigheter",
+      "sort_order": 4,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er urfolk og minoritetsrettigheter.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Samer er urfolk, og rettigheter til språk og kultur er sentrale i norsk og internasjonal sammenheng. Historisk fornorsking viser hvordan makt kan skade minoriteter."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "Samiske språkrettigheter er en del av arbeidet for å sikre kultur og deltakelse."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hvilken gruppe er anerkjent som urfolk i Norge?",
+        "model_answer": "Samene",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g10-urfolk-og-minoritetsrettigheter-q1",
+          "kind": "single_select",
+          "stem": "Hvilken gruppe er anerkjent som urfolk i Norge?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Samene"
+            },
+            {
+              "key": "B",
+              "label": "Alle turister"
+            },
+            {
+              "key": "C",
+              "label": "Alle kommunepolitikere"
+            },
+            {
+              "key": "D",
+              "label": "Alle nyinnflyttede"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Samer er urfolk, og rettigheter til språk og kultur er sentrale i norsk og internasjonal sammenheng. Historisk fornorsking viser hvordan makt kan skade minoriteter."
+        },
+        {
+          "id": "samfunnsfag-g10-urfolk-og-minoritetsrettigheter-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Urfolk og minoritetsrettigheter» med en egen situasjon eller kilde.",
+          "rubric_example": "Samiske språkrettigheter er en del av arbeidet for å sikre kultur og deltakelse.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken gruppe er anerkjent som urfolk i Norge?",
+          "back": "Samene"
+        },
+        {
+          "front": "Hva er viktig ved urfolk og minoritetsrettigheter?",
+          "back": "Samer er urfolk, og rettigheter til språk og kultur er sentrale i norsk og internasjonal sammenheng. Historisk fornorsking viser hvordan makt kan skade minoriteter."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Samiske språkrettigheter er en del av arbeidet for å sikre kultur og deltakelse."
+        }
+      ],
+      "original_grade8_pilot": false
+    },
+    {
+      "id": "samfunnsfag-g10-undersoke-samfunnsfaglig-pastander",
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "slug": "undersoke-samfunnsfaglig-pastander",
+      "title": "Undersøke samfunnsfaglig påstander",
+      "sort_order": 5,
+      "version": 1,
+      "review_status": "draft",
+      "curriculum": {
+        "code": "SAF01-05",
+        "official_goal_after_grade": 10,
+        "goal_source_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+        "goal_theme_crosswalk": "editor_must_verify"
+      },
+      "lesson": {
+        "intro": "I samfunnsfag undersøker vi mennesker, steder, historie og samfunnet vi lever i. Temaet denne gangen er undersøke samfunnsfaglig påstander.",
+        "sections": [
+          {
+            "heading": "Forstå sammenhengene",
+            "text": "Samfunnsfag bruker flere metoder og kilder for å forstå ulike sider av en sak. Skille observasjon, tolkning og vurdering."
+          },
+          {
+            "heading": "Eksempel fra hverdagen eller historien",
+            "text": "En statistikk over inntekt viser tall, men forklarer ikke alene alle årsaker til forskjellene."
+          },
+          {
+            "heading": "Tenk kritisk",
+            "text": "Spør hvem som er avsender, hvilke kilder som finnes, hvilke perspektiver vi mangler og hvordan konklusjonen kan begrunnes."
+          }
+        ],
+        "student_check": "Hva er en begrensning ved én statistisk figur?",
+        "model_answer": "Den gir ikke nødvendigvis alle forklaringer",
+        "original_editorial_text": true
+      },
+      "quiz": [
+        {
+          "id": "samfunnsfag-g10-undersoke-samfunnsfaglig-pastander-q1",
+          "kind": "single_select",
+          "stem": "Hva er en begrensning ved én statistisk figur?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Den gir ikke nødvendigvis alle forklaringer"
+            },
+            {
+              "key": "B",
+              "label": "Den beviser automatisk årsak"
+            },
+            {
+              "key": "C",
+              "label": "Den gjør alle kilder like"
+            },
+            {
+              "key": "D",
+              "label": "Den avgjør alle verdier"
+            }
+          ],
+          "correct_key": "A",
+          "explanation": "Samfunnsfag bruker flere metoder og kilder for å forstå ulike sider av en sak. Skille observasjon, tolkning og vurdering."
+        },
+        {
+          "id": "samfunnsfag-g10-undersoke-samfunnsfaglig-pastander-q2",
+          "kind": "reflect",
+          "stem": "Forklar eller drøft temaet «Undersøke samfunnsfaglig påstander» med en egen situasjon eller kilde.",
+          "rubric_example": "En statistikk over inntekt viser tall, men forklarer ikke alene alle årsaker til forskjellene.",
+          "manual_review_required": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er en begrensning ved én statistisk figur?",
+          "back": "Den gir ikke nødvendigvis alle forklaringer"
+        },
+        {
+          "front": "Hva er viktig ved undersøke samfunnsfaglig påstander?",
+          "back": "Samfunnsfag bruker flere metoder og kilder for å forstå ulike sider av en sak. Skille observasjon, tolkning og vurdering."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En statistikk over inntekt viser tall, men forklarer ikke alene alle årsaker til forskjellene."
+        }
+      ],
+      "original_grade8_pilot": false
+    }
+  ]
+}
