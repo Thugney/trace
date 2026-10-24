@@ -1,5 +1,5 @@
 import db from '../database/init';
-import { FEATURE_KEYS, type FeatureKey } from './feature-keys';
+import { FEATURE_KEYS, getFeatureDefault, type FeatureKey } from './feature-keys';
 
 export interface FeatureScopedProfile {
   id: number;
@@ -19,19 +19,20 @@ const getFamilyHeadId = (profile: FeatureScopedProfile): number | null => {
   return null;
 };
 
-const buildDefaultFeatureMap = () => {
+const buildFeatureMap = (resolveDefault: (featureKey: FeatureKey) => boolean) => {
   return FEATURE_KEYS.reduce((acc, featureKey) => {
-    acc[featureKey] = true;
+    acc[featureKey] = resolveDefault(featureKey);
     return acc;
   }, {} as Record<FeatureKey, boolean>);
 };
 
 export function getEffectiveFeaturesForProfile(profile: FeatureScopedProfile): Record<FeatureKey, boolean> {
   if (profile.type === 'admin') {
-    return buildDefaultFeatureMap();
+    return buildFeatureMap(() => true);
   }
 
-  const effectiveFeatures = buildDefaultFeatureMap();
+  // Pilot features (e.g. learn) default off until the family opts in
+  const effectiveFeatures = buildFeatureMap(getFeatureDefault);
   const familyHeadId = getFamilyHeadId(profile);
 
   if (familyHeadId) {

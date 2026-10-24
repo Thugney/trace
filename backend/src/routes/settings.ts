@@ -5,6 +5,7 @@ import db from '../database/init';
 import { authenticate, adminOnly, requireRole } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 import { verifySecret } from '../services/credentials';
+import { getSchoolOnlyAllowedFeatures } from '../middleware/feature-access';
 
 const router = express.Router();
 
@@ -32,7 +33,8 @@ router.get('/features/flags', (req, res) => {
 
     res.json({
       diet_enabled: dietSetting?.value === 'true',
-      school_only_mode: schoolOnlySetting?.value === 'true'
+      school_only_mode: schoolOnlySetting?.value === 'true',
+      school_only_allowed_features: getSchoolOnlyAllowedFeatures()
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

@@ -24,6 +24,11 @@ type ClassFormState = {
 
 type SubmissionWithClass = SchoolSubmission & { class_id?: number };
 
+// Class leaderboards stay off until the church-school organization boundary is
+// confirmed and an anonymized/opt-in design exists (docs/familyhub-learn-architecture.md §6).
+// The backend does not serve /school/leaderboard.
+const SCHOOL_LEADERBOARD_ENABLED = false;
+
 const emptyAssignmentForm: AssignmentFormState = {
   title: '',
   description: '',
@@ -238,7 +243,7 @@ export default function School() {
         setEnrolledClasses(enrollmentsRes.data);
 
         // Load leaderboard for the first enrolled class
-        if (enrollmentsRes.data.length > 0 && !selectedClassId) {
+        if (SCHOOL_LEADERBOARD_ENABLED && enrollmentsRes.data.length > 0 && !selectedClassId) {
           const firstClass = enrollmentsRes.data[0];
           setSelectedClassId(firstClass.id);
           try {
@@ -579,7 +584,7 @@ export default function School() {
       setSubmissions(refreshed.data as SubmissionWithClass[]);
 
       // Refresh leaderboard if viewing it
-      if (selectedClassId) {
+      if (SCHOOL_LEADERBOARD_ENABLED && selectedClassId) {
         loadLeaderboard(selectedClassId);
       }
 
@@ -631,7 +636,7 @@ export default function School() {
 
   // Load leaderboard when tab changes or period changes
   useEffect(() => {
-    if (teacherTab === 'leaderboard' && selectedClassId) {
+    if (SCHOOL_LEADERBOARD_ENABLED && teacherTab === 'leaderboard' && selectedClassId) {
       loadLeaderboard(selectedClassId);
     }
   }, [teacherTab, selectedClassId, leaderboardPeriod]);
@@ -839,7 +844,7 @@ export default function School() {
                   { id: 'assignments' as const, label: 'Assignments', icon: '📝' },
                   { id: 'students' as const, label: 'Students', icon: '👥' },
                   { id: 'submissions' as const, label: 'Grade', icon: '✏️' },
-                  { id: 'leaderboard' as const, label: 'Leaderboard', icon: '🏆' }
+                  ...(SCHOOL_LEADERBOARD_ENABLED ? [{ id: 'leaderboard' as const, label: 'Leaderboard', icon: '🏆' }] : [])
                 ].map(tab => (
                   <button
                     key={tab.id}
@@ -1610,7 +1615,7 @@ export default function School() {
           </div>
 
           {/* Class Leaderboard for Students */}
-          {enrolledClasses.length > 0 && (
+          {SCHOOL_LEADERBOARD_ENABLED && enrolledClasses.length > 0 && (
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">

@@ -6,7 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { authenticate, adminOnly, loadPermissions } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
-import { FEATURE_KEYS } from '../services/feature-keys';
+import { FEATURE_KEYS, getFeatureDefault } from '../services/feature-keys';
 import { authorizationService } from '../services/authorization';
 import { getEffectiveFeaturesForProfile } from '../services/profileFeatures';
 import {
@@ -1324,7 +1324,7 @@ router.get('/admin/families', authenticate, adminOnly, async (req: AuthRequest, 
       const featuresMap: Record<string, boolean> = {};
       FEATURE_KEYS.forEach(key => {
         const feature = features.find(f => f.feature_key === key);
-        featuresMap[key] = feature ? feature.enabled === 1 : true;
+        featuresMap[key] = feature ? feature.enabled === 1 : getFeatureDefault(key);
       });
 
       return {
@@ -1409,7 +1409,7 @@ router.get('/admin/families/:parentId/features', authenticate, adminOnly, async 
     const featuresMap: Record<string, boolean> = {};
     FEATURE_KEYS.forEach(key => {
       const feature = features.find(f => f.feature_key === key);
-      featuresMap[key] = feature ? feature.enabled === 1 : true;
+      featuresMap[key] = feature ? feature.enabled === 1 : getFeatureDefault(key);
     });
 
     res.json({

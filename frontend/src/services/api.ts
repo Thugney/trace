@@ -594,40 +594,7 @@ export const schoolAPI = {
         all_time_points: number;
       }[];
       current_user_id: number | null;
-    }>('/school/leaderboard', { params: { class_id, period } }),
-
-  // Student Stats
-  getStudentStats: (studentId: number) =>
-    api.get<{
-      student_id: number;
-      overall: {
-        total_points: number;
-        current_level: number;
-        total_submissions: number;
-        graded_submissions: number;
-        achievements_earned: number;
-      };
-      recent_grades: (SchoolSubmission & {
-        assignment_title: string;
-        max_points: number;
-        class_name: string;
-      })[];
-      achievements: {
-        id: number;
-        name: string;
-        description: string;
-        icon: string;
-        category: string;
-        badge_points: number;
-        earned_at: string;
-      }[];
-      enrolled_classes: {
-        class_id: number;
-        class_name: string;
-        class_rank: number;
-        total_students: number;
-      }[];
-    }>(`/school/students/${studentId}/stats`)
+    }>('/school/leaderboard', { params: { class_id, period } })
 };
 
 // Regular School (Home tracking)
