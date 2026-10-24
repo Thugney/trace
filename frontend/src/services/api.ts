@@ -40,13 +40,20 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add profile ID to all authenticated requests
-api.interceptors.request.use((config) => {
-  // Get current profile ID from localStorage
-  const currentProfileId = localStorage.getItem('currentProfileId');
+export const AUTH_TOKEN_KEY = 'auth_token';
 
-  if (currentProfileId) {
-    config.headers['x-profile-id'] = currentProfileId;
+const AUTH_STORAGE_KEYS = [AUTH_TOKEN_KEY, 'family_auth', 'parent_profile', 'currentProfileId', 'user_permissions', 'user_family'];
+
+export const clearStoredAuth = () => {
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
+// Request interceptor: identity comes from the server-issued session token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
@@ -54,10 +61,26 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// An expired or revoked session sends the user back to the login screen
+api.interceptors.response.use((response) => response, (error) => {
+  const code = error?.response?.data?.code;
+  if (
+    error?.response?.status === 401 &&
+    (code === 'session_invalid' || code === 'auth_required') &&
+    localStorage.getItem(AUTH_TOKEN_KEY)
+  ) {
+    clearStoredAuth();
+    window.location.reload();
+  }
+  return Promise.reject(error);
+});
+
 // Profiles
 export const profilesAPI = {
   getAll: () => api.get<Profile[]>('/profiles'),
   getForSelector: () => api.get<Profile[]>('/profiles/selector'),  // Public - no auth needed
+  logout: () => api.post<{ success: boolean }>('/profiles/logout'),
+  getStreamToken: () => api.post<{ token: string; expiresAt: string }>('/profiles/session/stream-token'),
   getOne: (id: number) => api.get<Profile>(`/profiles/${id}`),
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),

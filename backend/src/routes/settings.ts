@@ -1,20 +1,56 @@
 import express, { Response } from 'express';
 import axios from 'axios';
+import bcrypt from 'bcryptjs';
 import db from '../database/init';
-import { authenticate, adminOnly } from '../middleware/auth';
+import { authenticate, adminOnly, requireRole } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
+import { verifySecret } from '../services/credentials';
 
 const router = express.Router();
 
-// Get all settings
-router.get('/', (req, res) => {
+// Settings that are never returned and cannot be written through the generic API.
+const RESERVED_KEYS = new Set(['auth_token_secret', 'parent_pin']);
+// Settings whose value is a credential: reads only reveal whether they are configured.
+const SECRET_KEY_PATTERN = /(api_key|secret|token|password|_pin$)/i;
+const MASKED_VALUE = '********';
+
+const presentSetting = (key: string, value: any) => {
+  if (key === 'auth_token_secret') {
+    return undefined;
+  }
+  if (SECRET_KEY_PATTERN.test(key)) {
+    return value ? MASKED_VALUE : value;
+  }
+  return value;
+};
+
+// PUBLIC: non-sensitive feature flags used before login
+router.get('/features/flags', (req, res) => {
+  try {
+    const dietSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'diet_feature_enabled'").get();
+    const schoolOnlySetting: any = db.prepare("SELECT value FROM settings WHERE key = 'school_only_mode'").get();
+
+    res.json({
+      diet_enabled: dietSetting?.value === 'true',
+      school_only_mode: schoolOnlySetting?.value === 'true'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all settings (credentials are masked)
+router.get('/', authenticate, requireRole(['admin', 'parent', 'teacher']), (req, res) => {
   try {
     const settings = db.prepare('SELECT * FROM settings').all();
 
     // Convert to key-value object
     const settingsObj: Record<string, any> = {};
     settings.forEach((setting: any) => {
-      settingsObj[setting.key] = setting.value;
+      const value = presentSetting(setting.key, setting.value);
+      if (value !== undefined) {
+        settingsObj[setting.key] = value;
+      }
     });
 
     res.json(settingsObj);
@@ -23,49 +59,8 @@ router.get('/', (req, res) => {
   }
 });
 
-// Get single setting
-router.get('/:key', (req, res) => {
-  try {
-    const setting: any = db.prepare('SELECT * FROM settings WHERE key = ?').get(req.params.key);
-
-    if (!setting) {
-      return res.status(404).json({ error: 'Setting not found' });
-    }
-
-    res.json({ key: setting.key, value: setting.value });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update or create setting
-router.post('/:key', (req, res) => {
-  try {
-    const { key } = req.params;
-    const { value } = req.body;
-
-    if (value === undefined) {
-      return res.status(400).json({ error: 'value is required' });
-    }
-
-    // Upsert setting
-    db.prepare(`
-      INSERT INTO settings (key, value, updated_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(key) DO UPDATE SET
-        value = excluded.value,
-        updated_at = CURRENT_TIMESTAMP
-    `).run(key, value);
-
-    const setting = db.prepare('SELECT * FROM settings WHERE key = ?').get(key);
-    res.json(setting);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Verify parent PIN
-router.post('/verify-pin', (req, res) => {
+router.post('/verify-pin', authenticate, requireRole(['admin', 'parent']), async (req, res) => {
   try {
     const { pin } = req.body;
 
@@ -80,7 +75,9 @@ router.post('/verify-pin', (req, res) => {
       return res.status(401).json({ error: 'Parent PIN not configured', verified: false });
     }
 
-    const verified = setting.value === pin;
+    const verified = await verifySecret(String(pin), setting.value, (rehashed) => {
+      db.prepare("UPDATE settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE key = 'parent_pin'").run(rehashed);
+    });
 
     res.json({ verified });
   } catch (error: any) {
@@ -89,12 +86,12 @@ router.post('/verify-pin', (req, res) => {
 });
 
 // Set parent PIN
-router.post('/set-pin', (req, res) => {
+router.post('/set-pin', authenticate, requireRole(['admin', 'parent']), async (req, res) => {
   try {
     const { pin, current_pin } = req.body;
 
-    if (!pin) {
-      return res.status(400).json({ error: 'New PIN is required' });
+    if (!pin || String(pin).length < 4) {
+      return res.status(400).json({ error: 'New PIN must be at least 4 characters' });
     }
 
     // Check if PIN already exists
@@ -102,19 +99,20 @@ router.post('/set-pin', (req, res) => {
 
     // If PIN exists, verify current PIN
     if (existingSetting && existingSetting.value) {
-      if (!current_pin || current_pin !== existingSetting.value) {
+      const currentValid = current_pin ? await verifySecret(String(current_pin), existingSetting.value) : false;
+      if (!currentValid) {
         return res.status(401).json({ error: 'Current PIN is incorrect' });
       }
     }
 
-    // Set new PIN
+    // Set new PIN (hashed)
     db.prepare(`
       INSERT INTO settings (key, value, updated_at)
       VALUES ('parent_pin', ?, CURRENT_TIMESTAMP)
       ON CONFLICT(key) DO UPDATE SET
         value = excluded.value,
         updated_at = CURRENT_TIMESTAMP
-    `).run(pin);
+    `).run(await bcrypt.hash(String(pin), 10));
 
     res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
@@ -122,8 +120,54 @@ router.post('/set-pin', (req, res) => {
   }
 });
 
+// Get single setting (credentials are masked)
+router.get('/:key', authenticate, requireRole(['admin', 'parent', 'teacher']), (req, res) => {
+  try {
+    const setting: any = db.prepare('SELECT * FROM settings WHERE key = ?').get(req.params.key);
+    const value = setting ? presentSetting(setting.key, setting.value) : undefined;
+
+    if (!setting || value === undefined) {
+      return res.status(404).json({ error: 'Setting not found' });
+    }
+
+    res.json({ key: setting.key, value });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update or create setting (admin only - settings are global)
+router.post('/:key', ...adminOnly, (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+
+    if (RESERVED_KEYS.has(key)) {
+      return res.status(400).json({ error: 'This setting cannot be changed here' });
+    }
+
+    if (value === undefined) {
+      return res.status(400).json({ error: 'value is required' });
+    }
+
+    // Upsert setting
+    db.prepare(`
+      INSERT INTO settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(key, value);
+
+    const setting: any = db.prepare('SELECT * FROM settings WHERE key = ?').get(key);
+    res.json({ ...setting, value: presentSetting(setting.key, setting.value) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete setting
-router.delete('/:key', (req, res) => {
+router.delete('/:key', ...adminOnly, (req, res) => {
   try {
     const result = db.prepare('DELETE FROM settings WHERE key = ?').run(req.params.key);
 
@@ -132,22 +176,6 @@ router.delete('/:key', (req, res) => {
     }
 
     res.json({ message: 'Setting deleted successfully' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get feature flags - public endpoint for UI configuration
-router.get('/features/flags', (req, res) => {
-  try {
-    // Diet feature is hidden by default (can be enabled in settings later)
-    const dietSetting: any = db.prepare("SELECT value FROM settings WHERE key = 'diet_feature_enabled'").get();
-    const schoolOnlySetting: any = db.prepare("SELECT value FROM settings WHERE key = 'school_only_mode'").get();
-
-    res.json({
-      diet_enabled: dietSetting?.value === 'true',
-      school_only_mode: schoolOnlySetting?.value === 'true'
-    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -330,7 +358,7 @@ const getOllamaUrl = (): string | null => {
 };
 
 // Get Ollama status and available models
-router.get('/ollama/status', async (req, res) => {
+router.get('/ollama/status', ...adminOnly, async (req, res) => {
   try {
     const ollamaUrl = getOllamaUrl();
 
@@ -389,7 +417,7 @@ router.get('/ollama/status', async (req, res) => {
 });
 
 // Test Ollama with a specific model
-router.post('/ollama/test', async (req, res) => {
+router.post('/ollama/test', ...adminOnly, async (req, res) => {
   try {
     const { model } = req.body;
     const ollamaUrl = getOllamaUrl();
@@ -433,7 +461,7 @@ router.post('/ollama/test', async (req, res) => {
 });
 
 // Update Ollama settings (URL and model)
-router.post('/ollama/configure', async (req, res) => {
+router.post('/ollama/configure', ...adminOnly, async (req, res) => {
   try {
     const { url, model } = req.body;
 
@@ -469,7 +497,7 @@ router.post('/ollama/configure', async (req, res) => {
 });
 
 // Pull a new model (this can take a long time)
-router.post('/ollama/pull', async (req, res) => {
+router.post('/ollama/pull', ...adminOnly, async (req, res) => {
   try {
     const { model } = req.body;
     const ollamaUrl = getOllamaUrl();

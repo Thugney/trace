@@ -25,6 +25,16 @@ export function initTestDb() {
     )
   `);
 
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN username TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN password TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN gender TEXT`);
+  } catch {}
+
   testDb.exec(`
     CREATE TABLE IF NOT EXISTS families (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -631,6 +641,10 @@ export function initTestDb() {
 
 // Clear all data from tables
 export function clearTestDb() {
+  // auth_sessions is created lazily by services/authSessions
+  try {
+    testDb.exec('DELETE FROM auth_sessions');
+  } catch {}
   testDb.exec('DELETE FROM family_features');
   testDb.exec('DELETE FROM profile_features');
   testDb.exec('DELETE FROM guardian_students');

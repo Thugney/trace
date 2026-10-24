@@ -10,6 +10,15 @@ import { FEATURE_KEYS } from '../services/feature-keys';
 import { authorizationService } from '../services/authorization';
 import { getEffectiveFeaturesForProfile } from '../services/profileFeatures';
 import {
+  createSession,
+  createStreamToken,
+  extractBearerToken,
+  resolveSessionToken,
+  revokeSession,
+  revokeSessionsForProfile
+} from '../services/authSessions';
+import { hashSecret, verifySecret } from '../services/credentials';
+import {
   canAccessOwnOrManagedChild,
   canViewFamilyProfile,
   getManagedChildIdsForParent,
@@ -118,6 +127,44 @@ router.get('/selector', (req, res) => {
     `).all();
 
     res.json(profiles);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Authenticated: current session identity (derived server-side from the token)
+router.get('/session', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile: any = db.prepare(`
+      SELECT id, name, type, avatar, age, gender, parent_id, family_id, ai_enabled, diet_enabled, username
+      FROM profiles WHERE id = ?
+    `).get(req.profile!.id);
+
+    res.json({ profile, session: { id: req.authSession!.id } });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Authenticated: end the current session
+router.post('/logout', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    revokeSession(req.authSession!.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Authenticated: short-lived token for EventSource / H5P iframe requests that cannot send headers
+router.post('/session/stream-token', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const session = resolveSessionToken(extractBearerToken(req.headers.authorization));
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired or invalid', code: 'session_invalid' });
+    }
+
+    res.json(createStreamToken(session));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -768,17 +815,23 @@ router.post('/login', async (req, res) => {
         console.log(`[DEBUG] Child profile has no PIN set`);
         return res.status(401).json({ error: 'Invalid credentials' });
       }
-      isValid = await bcrypt.compare(pin, profile.pin);
+      isValid = await verifySecret(String(pin), profile.pin, (hash) => {
+        db.prepare('UPDATE profiles SET pin = ? WHERE id = ?').run(hash, profile.id);
+      });
       console.log(`[DEBUG] PIN verification for child: ${isValid}`);
     } else {
       // Adults use password (preferred) or PIN (backwards compatibility)
       if (profile.password) {
         // Password is set - use it
-        isValid = await bcrypt.compare(pin, profile.password);
+        isValid = await verifySecret(String(pin), profile.password, (hash) => {
+          db.prepare('UPDATE profiles SET password = ? WHERE id = ?').run(hash, profile.id);
+        });
         console.log(`[DEBUG] Password verification for ${profile.type}: ${isValid}`);
       } else if (profile.pin) {
         // Fallback to PIN for backwards compatibility
-        isValid = await bcrypt.compare(pin, profile.pin);
+        isValid = await verifySecret(String(pin), profile.pin, (hash) => {
+          db.prepare('UPDATE profiles SET pin = ? WHERE id = ?').run(hash, profile.id);
+        });
         console.log(`[DEBUG] PIN verification for ${profile.type} (backwards compat): ${isValid}`);
       } else {
         console.log(`[DEBUG] ${profile.type} profile has no password or PIN set`);
@@ -810,9 +863,13 @@ router.post('/login', async (req, res) => {
       }
     }
 
+    const session = createSession(profile.id, req.get('user-agent'));
+
     // Return profile info (exclude sensitive data)
     res.json({
       success: true,
+      token: session.token,
+      expires_at: session.expiresAt,
       profile: {
         id: profile.id,
         name: profile.name,
@@ -840,51 +897,71 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Verify profile PIN
-router.post('/:id/verify-pin', (req, res) => {
+// Verify profile PIN (self, managing guardian or admin only)
+router.post('/:id/verify-pin', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const targetId = Number(req.params.id);
     const { pin } = req.body;
 
-    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+    if (!Number.isInteger(targetId) || !canAccessOwnOrManagedChild(req.profile!, targetId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(targetId);
 
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // If no PIN is set, allow access
+    // A profile without a PIN cannot be verified by PIN
     if (!profile.pin) {
-      return res.json({ verified: true });
+      return res.json({ verified: false, pin_set: false });
     }
 
-    // Check if provided PIN matches
-    const verified = profile.pin === pin;
+    const verified = await verifySecret(String(pin ?? ''), profile.pin, (hash) => {
+      db.prepare('UPDATE profiles SET pin = ? WHERE id = ?').run(hash, targetId);
+    });
     res.json({ verified });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Set profile PIN
-router.post('/:id/set-pin', (req, res) => {
+// Set profile PIN (self with current PIN, or managing guardian/admin)
+router.post('/:id/set-pin', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const targetId = Number(req.params.id);
     const { pin, currentPin } = req.body;
+    const requester = req.profile!;
 
-    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(id);
+    if (!Number.isInteger(targetId) || !canAccessOwnOrManagedChild(requester, targetId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!pin || String(pin).length < 4) {
+      return res.status(400).json({ error: 'PIN must be at least 4 characters' });
+    }
+
+    const profile: any = db.prepare('SELECT pin FROM profiles WHERE id = ?').get(targetId);
 
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    // If PIN already exists, verify current PIN first
-    if (profile.pin && profile.pin !== currentPin) {
-      return res.status(403).json({ error: 'Current PIN is incorrect' });
+    // Changing your own existing PIN requires the current PIN
+    if (requester.id === targetId && profile.pin) {
+      const currentValid = await verifySecret(String(currentPin ?? ''), profile.pin);
+      if (!currentValid) {
+        return res.status(403).json({ error: 'Current PIN is incorrect' });
+      }
     }
 
-    // Update PIN
     db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(pin || null, id);
+      .run(await hashSecret(String(pin)), targetId);
+
+    if (requester.id !== targetId) {
+      revokeSessionsForProfile(targetId);
+    }
 
     res.json({ message: 'PIN updated successfully' });
   } catch (error: any) {
@@ -920,6 +997,7 @@ router.post('/:id/reset-password', authenticate, async (req: AuthRequest, res) =
       const hashedPin = await bcrypt.hash(newPin, SALT_ROUNDS);
       db.prepare('UPDATE profiles SET pin = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(hashedPin, id);
+      revokeSessionsForProfile(profile.id);
       console.log(`[DEBUG] PIN reset for child ${profile.name} by ${requester.type}`);
       res.json({ message: 'PIN reset successfully' });
     } else if (profile.type !== 'child' && newPassword) {
@@ -929,6 +1007,7 @@ router.post('/:id/reset-password', authenticate, async (req: AuthRequest, res) =
       const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
       db.prepare('UPDATE profiles SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(hashedPassword, id);
+      revokeSessionsForProfile(profile.id);
       console.log(`[DEBUG] Password reset for ${profile.type} ${profile.name} by admin`);
       res.json({ message: 'Password reset successfully' });
     } else {

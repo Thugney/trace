@@ -2,7 +2,7 @@ import path from 'node:path';
 import express from 'express';
 import request from 'supertest';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { createTestProfile, createTestTask } from './helpers.js';
+import { createTestProfile, createTestTask, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 import { formatDateOnly, getTodayDateOnly, parseDateOnly } from '../utils/date-only.js';
 
@@ -76,7 +76,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .post(`/tasks/${task.id}/complete`)
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.task.completed).toBe(1);
@@ -117,7 +117,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .post(`/tasks/${task.id}/complete`)
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.pointsEarned).toBe(5);
@@ -148,7 +148,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .post(`/tasks/${task.id}/verify-proof`)
-      .set('x-profile-id', String(parent.id))
+      .set(authHeaders(parent.id))
       .send({ approved: true });
 
     expect(response.status).toBe(200);
@@ -196,7 +196,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .post(`/tasks/${task.id}/timer/finish`)
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.task.completed).toBe(1);
@@ -237,7 +237,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .post(`/tasks/${task.id}/remind`)
-      .set('x-profile-id', String(parent.id));
+      .set(authHeaders(parent.id));
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
@@ -272,7 +272,7 @@ describe('Task Routes', () => {
 
     const response = await request(app)
       .put(`/tasks/${task.id}`)
-      .set('x-profile-id', String(parent.id))
+      .set(authHeaders(parent.id))
       .send({
         title: 'Updated Task',
         description: 'Use the new instructions',

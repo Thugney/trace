@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lock, Shield, User } from 'lucide-react';
 import axios from 'axios';
+import { AUTH_TOKEN_KEY } from '../services/api';
 
 // Use relative path for production (nginx proxy) or explicit URL for development
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -39,8 +40,9 @@ export default function Login({ onAuthenticated }: LoginProps) {
         pin: pin
       });
 
-      if (response.data.success) {
-        // Store authentication
+      if (response.data.success && response.data.token) {
+        // Store authentication (the session token is the only identity the server trusts)
+        localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         localStorage.setItem('family_auth', 'true');
         localStorage.setItem('parent_profile', JSON.stringify(response.data.profile));
 

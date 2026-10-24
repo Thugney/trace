@@ -2,7 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import tasksRoutes from '../routes/tasks.js';
-import { createTestProfile, createTestTask } from './helpers.js';
+import { createTestProfile, createTestTask, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 function createTasksApp() {
@@ -32,7 +32,7 @@ describe('task deletion', () => {
 
     const response = await request(app)
       .delete(`/api/tasks/${task.id}`)
-      .set('x-profile-id', String(parent.id));
+      .set(authHeaders(parent.id));
 
     expect(response.status).toBe(200);
     expect(response.body.soft_deleted).toBe(true);

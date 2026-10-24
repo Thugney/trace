@@ -6,7 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { requireFeature } from '../middleware/feature-access.js';
 import { getEffectiveFeaturesForProfile } from '../services/profileFeatures.js';
 import { testDb } from './setup.js';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 
 function createProfilesApp() {
   const app = express();
@@ -51,7 +51,7 @@ describe('profile feature access', () => {
 
     const response = await request(app)
       .get('/profiles/me/features')
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.features.ai).toBe(false);
@@ -63,7 +63,7 @@ describe('profile feature access', () => {
 
     const response = await request(app)
       .get('/protected-tasks')
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(200);
     expect(response.body.ok).toBe(true);
@@ -81,7 +81,7 @@ describe('profile feature access', () => {
 
     const response = await request(app)
       .get('/protected-ai')
-      .set('x-profile-id', String(child.id));
+      .set(authHeaders(child.id));
 
     expect(response.status).toBe(403);
     expect(response.body.error).toContain('disabled');
