@@ -1,0 +1,4259 @@
+{
+  "format": "familyhub-learn-authored-micro-lessons-v1",
+  "scope": "grades1-10",
+  "subject": "norsk",
+  "topic_count": 50,
+  "lesson_review_status": "draft - educational review required before publishing",
+  "lessons": [
+    {
+      "id": "norsk-g1-bokstaver-og-lyder",
+      "grade": 1,
+      "subject": "norsk",
+      "slug": "bokstaver-og-lyder",
+      "sort_order": 1,
+      "title": "Bokstaver og lyder",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med bokstaver og lyder.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Bokstaver er tegn som vi bruker for å skrive språklyder. Vi kan høre første lyd i et ord og finne bokstaven som passer."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Ordet sol begynner med s-lyden, som ofte skrives med bokstaven S."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilken bokstav kommer først i ordet sol?",
+        "model_answer": "S"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g1-bokstaver-og-lyder-q1",
+          "question": "Hvilken bokstav kommer først i ordet sol?",
+          "options": [
+            {
+              "key": "A",
+              "label": "S"
+            },
+            {
+              "key": "B",
+              "label": "L"
+            },
+            {
+              "key": "C",
+              "label": "O"
+            },
+            {
+              "key": "D",
+              "label": "T"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Ordet sol begynner med s-lyden, som ofte skrives med bokstaven S."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g1-bokstaver-og-lyder-q2",
+          "question": "Skriv eller fortell med egne ord hva bokstaver og lyder betyr. Bruk et eksempel.",
+          "sample_response": "Bokstaver er tegn som vi bruker for å skrive språklyder. Vi kan høre første lyd i et ord og finne bokstaven som passer.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken bokstav kommer først i ordet sol?",
+          "back": "S"
+        },
+        {
+          "front": "Hva lærer vi om bokstaver og lyder?",
+          "back": "Bokstaver er tegn som vi bruker for å skrive språklyder. Vi kan høre første lyd i et ord og finne bokstaven som passer."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Ordet sol begynner med s-lyden, som ofte skrives med bokstaven S."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g1-rim-og-stavelser",
+      "grade": 1,
+      "subject": "norsk",
+      "slug": "rim-og-stavelser",
+      "sort_order": 2,
+      "title": "Rim og stavelser",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med rim og stavelser.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Ord rimer når slutten høres lik ut. Stavelser er små rytmiske deler av ord som vi kan klappe."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Mus og hus rimer. Ordet sofa har to stavelser: so-fa."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord rimer på hus?",
+        "model_answer": "Mus"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g1-rim-og-stavelser-q1",
+          "question": "Hvilket ord rimer på hus?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Mus"
+            },
+            {
+              "key": "B",
+              "label": "Sol"
+            },
+            {
+              "key": "C",
+              "label": "Bord"
+            },
+            {
+              "key": "D",
+              "label": "Tre"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Mus og hus rimer. Ordet sofa har to stavelser: so-fa."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g1-rim-og-stavelser-q2",
+          "question": "Skriv eller fortell med egne ord hva rim og stavelser betyr. Bruk et eksempel.",
+          "sample_response": "Ord rimer når slutten høres lik ut. Stavelser er små rytmiske deler av ord som vi kan klappe.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord rimer på hus?",
+          "back": "Mus"
+        },
+        {
+          "front": "Hva lærer vi om rim og stavelser?",
+          "back": "Ord rimer når slutten høres lik ut. Stavelser er små rytmiske deler av ord som vi kan klappe."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Mus og hus rimer. Ordet sofa har to stavelser: so-fa."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g1-lytte-til-fortellinger",
+      "grade": 1,
+      "subject": "norsk",
+      "slug": "lytte-til-fortellinger",
+      "sort_order": 3,
+      "title": "Lytte til fortellinger",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med lytte til fortellinger.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Når vi lytter til en fortelling, kan vi beskrive hvem den handler om, hvor noe skjer og hva som skjer først."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "I fortellingen «Lina finner en ball i hagen» er Lina en person og hagen et sted."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvor fant Lina ballen i den korte fortellingen?",
+        "model_answer": "I hagen"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g1-lytte-til-fortellinger-q1",
+          "question": "Hvor fant Lina ballen i den korte fortellingen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "I hagen"
+            },
+            {
+              "key": "B",
+              "label": "På skolen"
+            },
+            {
+              "key": "C",
+              "label": "På bussen"
+            },
+            {
+              "key": "D",
+              "label": "I butikken"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "I fortellingen «Lina finner en ball i hagen» er Lina en person og hagen et sted."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g1-lytte-til-fortellinger-q2",
+          "question": "Skriv eller fortell med egne ord hva lytte til fortellinger betyr. Bruk et eksempel.",
+          "sample_response": "Når vi lytter til en fortelling, kan vi beskrive hvem den handler om, hvor noe skjer og hva som skjer først.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor fant Lina ballen i den korte fortellingen?",
+          "back": "I hagen"
+        },
+        {
+          "front": "Hva lærer vi om lytte til fortellinger?",
+          "back": "Når vi lytter til en fortelling, kan vi beskrive hvem den handler om, hvor noe skjer og hva som skjer først."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "I fortellingen «Lina finner en ball i hagen» er Lina en person og hagen et sted."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g1-setning-og-punktum",
+      "grade": 1,
+      "subject": "norsk",
+      "slug": "setning-og-punktum",
+      "sort_order": 4,
+      "title": "Setning og punktum",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med setning og punktum.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En setning begynner vanligvis med stor bokstav. Punktum kan markere at en fortellende setning er slutt."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Katten sover.» starter med stor K og slutter med punktum."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket tegn avslutter «Katten sover.»?",
+        "model_answer": "Punktum"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g1-setning-og-punktum-q1",
+          "question": "Hvilket tegn avslutter «Katten sover.»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Punktum"
+            },
+            {
+              "key": "B",
+              "label": "Spørsmålstegn"
+            },
+            {
+              "key": "C",
+              "label": "Komma"
+            },
+            {
+              "key": "D",
+              "label": "Kolon"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Katten sover.» starter med stor K og slutter med punktum."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g1-setning-og-punktum-q2",
+          "question": "Skriv eller fortell med egne ord hva setning og punktum betyr. Bruk et eksempel.",
+          "sample_response": "En setning begynner vanligvis med stor bokstav. Punktum kan markere at en fortellende setning er slutt.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket tegn avslutter «Katten sover.»?",
+          "back": "Punktum"
+        },
+        {
+          "front": "Hva lærer vi om setning og punktum?",
+          "back": "En setning begynner vanligvis med stor bokstav. Punktum kan markere at en fortellende setning er slutt."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Katten sover.» starter med stor K og slutter med punktum."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g1-fortelle-om-en-tekst",
+      "grade": 1,
+      "subject": "norsk",
+      "slug": "fortelle-om-en-tekst",
+      "sort_order": 5,
+      "title": "Fortelle om en tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fortelle om en tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Når vi snakker om en lest tekst, kan vi fortelle hva som hendte og hva vi følte. Si gjerne én grunn til meningen din."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg likte historien om valpen fordi den var morsom» sier både mening og grunn."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva er begrunnelsen i «Jeg likte historien fordi den var morsom»?",
+        "model_answer": "Fordi den var morsom"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g1-fortelle-om-en-tekst-q1",
+          "question": "Hva er begrunnelsen i «Jeg likte historien fordi den var morsom»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Fordi den var morsom"
+            },
+            {
+              "key": "B",
+              "label": "Jeg likte"
+            },
+            {
+              "key": "C",
+              "label": "Historien"
+            },
+            {
+              "key": "D",
+              "label": "Jeg"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg likte historien om valpen fordi den var morsom» sier både mening og grunn."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g1-fortelle-om-en-tekst-q2",
+          "question": "Skriv eller fortell med egne ord hva fortelle om en tekst betyr. Bruk et eksempel.",
+          "sample_response": "Når vi snakker om en lest tekst, kan vi fortelle hva som hendte og hva vi følte. Si gjerne én grunn til meningen din.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er begrunnelsen i «Jeg likte historien fordi den var morsom»?",
+          "back": "Fordi den var morsom"
+        },
+        {
+          "front": "Hva lærer vi om fortelle om en tekst?",
+          "back": "Når vi snakker om en lest tekst, kan vi fortelle hva som hendte og hva vi følte. Si gjerne én grunn til meningen din."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg likte historien om valpen fordi den var morsom» sier både mening og grunn."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g2-trekke-lyder-sammen",
+      "grade": 2,
+      "subject": "norsk",
+      "slug": "trekke-lyder-sammen",
+      "sort_order": 1,
+      "title": "Trekke lyder sammen",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med trekke lyder sammen.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Når vi leser nye ord, kan vi koble bokstavlyder sammen i riktig rekkefølge. Etterpå sjekker vi at ordet gir mening."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Lydene s-o-l kan trekkes sammen til ordet sol."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord får vi av lydene s-o-l?",
+        "model_answer": "Sol"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g2-trekke-lyder-sammen-q1",
+          "question": "Hvilket ord får vi av lydene s-o-l?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sol"
+            },
+            {
+              "key": "B",
+              "label": "Los"
+            },
+            {
+              "key": "C",
+              "label": "Sil"
+            },
+            {
+              "key": "D",
+              "label": "Sel"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Lydene s-o-l kan trekkes sammen til ordet sol."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g2-trekke-lyder-sammen-q2",
+          "question": "Skriv eller fortell med egne ord hva trekke lyder sammen betyr. Bruk et eksempel.",
+          "sample_response": "Når vi leser nye ord, kan vi koble bokstavlyder sammen i riktig rekkefølge. Etterpå sjekker vi at ordet gir mening.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord får vi av lydene s-o-l?",
+          "back": "Sol"
+        },
+        {
+          "front": "Hva lærer vi om trekke lyder sammen?",
+          "back": "Når vi leser nye ord, kan vi koble bokstavlyder sammen i riktig rekkefølge. Etterpå sjekker vi at ordet gir mening."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Lydene s-o-l kan trekkes sammen til ordet sol."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g2-sporsmal-til-tekst",
+      "grade": 2,
+      "subject": "norsk",
+      "slug": "sporsmal-til-tekst",
+      "sort_order": 2,
+      "title": "Spørsmål til tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med spørsmål til tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Spørsmålene hvem, hva, hvor og hvorfor hjelper oss å forstå en tekst. Svarene må hentes fra det teksten forteller."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Ola tar bussen til biblioteket.» Stedet er biblioteket, og transporten er buss."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvordan kommer Ola til biblioteket?",
+        "model_answer": "Med buss"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g2-sporsmal-til-tekst-q1",
+          "question": "Hvordan kommer Ola til biblioteket?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Med buss"
+            },
+            {
+              "key": "B",
+              "label": "Til fots"
+            },
+            {
+              "key": "C",
+              "label": "På sykkel"
+            },
+            {
+              "key": "D",
+              "label": "Med båt"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Ola tar bussen til biblioteket.» Stedet er biblioteket, og transporten er buss."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g2-sporsmal-til-tekst-q2",
+          "question": "Skriv eller fortell med egne ord hva spørsmål til tekst betyr. Bruk et eksempel.",
+          "sample_response": "Spørsmålene hvem, hva, hvor og hvorfor hjelper oss å forstå en tekst. Svarene må hentes fra det teksten forteller.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvordan kommer Ola til biblioteket?",
+          "back": "Med buss"
+        },
+        {
+          "front": "Hva lærer vi om spørsmål til tekst?",
+          "back": "Spørsmålene hvem, hva, hvor og hvorfor hjelper oss å forstå en tekst. Svarene må hentes fra det teksten forteller."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Ola tar bussen til biblioteket.» Stedet er biblioteket, og transporten er buss."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g2-skrive-korte-tekster",
+      "grade": 2,
+      "subject": "norsk",
+      "slug": "skrive-korte-tekster",
+      "sort_order": 3,
+      "title": "Skrive korte tekster",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med skrive korte tekster.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En liten tekst kan bestå av flere setninger om samme tema. Bruk stor bokstav, mellomrom og avsluttende tegn."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg har en hund. Den liker å løpe.» består av to setninger om hunden."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvor mange setninger står i «Jeg har en hund. Den liker å løpe.»?",
+        "model_answer": "2"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g2-skrive-korte-tekster-q1",
+          "question": "Hvor mange setninger står i «Jeg har en hund. Den liker å løpe.»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "2"
+            },
+            {
+              "key": "B",
+              "label": "1"
+            },
+            {
+              "key": "C",
+              "label": "3"
+            },
+            {
+              "key": "D",
+              "label": "4"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg har en hund. Den liker å løpe.» består av to setninger om hunden."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g2-skrive-korte-tekster-q2",
+          "question": "Skriv eller fortell med egne ord hva skrive korte tekster betyr. Bruk et eksempel.",
+          "sample_response": "En liten tekst kan bestå av flere setninger om samme tema. Bruk stor bokstav, mellomrom og avsluttende tegn.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvor mange setninger står i «Jeg har en hund. Den liker å løpe.»?",
+          "back": "2"
+        },
+        {
+          "front": "Hva lærer vi om skrive korte tekster?",
+          "back": "En liten tekst kan bestå av flere setninger om samme tema. Bruk stor bokstav, mellomrom og avsluttende tegn."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg har en hund. Den liker å løpe.» består av to setninger om hunden."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g2-samtale-og-tur",
+      "grade": 2,
+      "subject": "norsk",
+      "slug": "samtale-og-tur",
+      "sort_order": 4,
+      "title": "Samtale og tur",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med samtale og tur.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "I en god samtale lytter vi når andre snakker og stiller spørsmål som passer til det de sa. Det gjør samtalen trygg og tydelig."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Hvis en venn forteller om en bok, kan du spørre «Hva skjedde videre?»."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket spørsmål passer etter at noen har fortalt begynnelsen på en bok?",
+        "model_answer": "Hva skjedde videre?"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g2-samtale-og-tur-q1",
+          "question": "Hvilket spørsmål passer etter at noen har fortalt begynnelsen på en bok?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Hva skjedde videre?"
+            },
+            {
+              "key": "B",
+              "label": "Hva er klokka?"
+            },
+            {
+              "key": "C",
+              "label": "Hvor er sekken min?"
+            },
+            {
+              "key": "D",
+              "label": "Er det fredag?"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Hvis en venn forteller om en bok, kan du spørre «Hva skjedde videre?»."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g2-samtale-og-tur-q2",
+          "question": "Skriv eller fortell med egne ord hva samtale og tur betyr. Bruk et eksempel.",
+          "sample_response": "I en god samtale lytter vi når andre snakker og stiller spørsmål som passer til det de sa. Det gjør samtalen trygg og tydelig.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket spørsmål passer etter at noen har fortalt begynnelsen på en bok?",
+          "back": "Hva skjedde videre?"
+        },
+        {
+          "front": "Hva lærer vi om samtale og tur?",
+          "back": "I en god samtale lytter vi når andre snakker og stiller spørsmål som passer til det de sa. Det gjør samtalen trygg og tydelig."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Hvis en venn forteller om en bok, kan du spørre «Hva skjedde videre?»."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g2-bilde-og-tekst-sammen",
+      "grade": 2,
+      "subject": "norsk",
+      "slug": "bilde-og-tekst-sammen",
+      "sort_order": 5,
+      "title": "Bilde og tekst sammen",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 2,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med bilde og tekst sammen.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Bilder kan gi mer informasjon enn ordene alene. Teksten og bildet kan utfylle hverandre når vi leser."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En tekst sier «Det regnet», mens bildet viser at barnet har paraply."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva viser paraplyen i eksemplet?",
+        "model_answer": "Barnet skjermer seg mot regn"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g2-bilde-og-tekst-sammen-q1",
+          "question": "Hva viser paraplyen i eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Barnet skjermer seg mot regn"
+            },
+            {
+              "key": "B",
+              "label": "Barnet sykler"
+            },
+            {
+              "key": "C",
+              "label": "Det snør inne"
+            },
+            {
+              "key": "D",
+              "label": "Det er natt"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En tekst sier «Det regnet», mens bildet viser at barnet har paraply."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g2-bilde-og-tekst-sammen-q2",
+          "question": "Skriv eller fortell med egne ord hva bilde og tekst sammen betyr. Bruk et eksempel.",
+          "sample_response": "Bilder kan gi mer informasjon enn ordene alene. Teksten og bildet kan utfylle hverandre når vi leser.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva viser paraplyen i eksemplet?",
+          "back": "Barnet skjermer seg mot regn"
+        },
+        {
+          "front": "Hva lærer vi om bilde og tekst sammen?",
+          "back": "Bilder kan gi mer informasjon enn ordene alene. Teksten og bildet kan utfylle hverandre når vi leser."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En tekst sier «Det regnet», mens bildet viser at barnet har paraply."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g3-gjenfortelle-med-rekkefolge",
+      "grade": 3,
+      "subject": "norsk",
+      "slug": "gjenfortelle-med-rekkefolge",
+      "sort_order": 1,
+      "title": "Gjenfortelle med rekkefølge",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med gjenfortelle med rekkefølge.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Når du gjenforteller, velger du de viktigste hendelsene og setter dem i riktig rekkefølge. Bruk først, så og til slutt."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Først pakket vi mat. Så gikk vi tur. Til slutt spiste vi.» viser en tidsrekkefølge."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord markerer slutten av gjenfortellingen?",
+        "model_answer": "Til slutt"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g3-gjenfortelle-med-rekkefolge-q1",
+          "question": "Hvilket ord markerer slutten av gjenfortellingen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Til slutt"
+            },
+            {
+              "key": "B",
+              "label": "Først"
+            },
+            {
+              "key": "C",
+              "label": "Så"
+            },
+            {
+              "key": "D",
+              "label": "Kanskje"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Først pakket vi mat. Så gikk vi tur. Til slutt spiste vi.» viser en tidsrekkefølge."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g3-gjenfortelle-med-rekkefolge-q2",
+          "question": "Skriv eller fortell med egne ord hva gjenfortelle med rekkefølge betyr. Bruk et eksempel.",
+          "sample_response": "Når du gjenforteller, velger du de viktigste hendelsene og setter dem i riktig rekkefølge. Bruk først, så og til slutt.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord markerer slutten av gjenfortellingen?",
+          "back": "Til slutt"
+        },
+        {
+          "front": "Hva lærer vi om gjenfortelle med rekkefølge?",
+          "back": "Når du gjenforteller, velger du de viktigste hendelsene og setter dem i riktig rekkefølge. Bruk først, så og til slutt."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Først pakket vi mat. Så gikk vi tur. Til slutt spiste vi.» viser en tidsrekkefølge."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g3-fakta-i-en-fagtekst",
+      "grade": 3,
+      "subject": "norsk",
+      "slug": "fakta-i-en-fagtekst",
+      "sort_order": 2,
+      "title": "Fakta i en fagtekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fakta i en fagtekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En fagtekst har som mål å lære oss noe om verden. Se etter definisjoner, eksempler og bilder som forklarer innholdet."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Bier samler nektar fra blomster» er en etterprøvbar fagopplysning."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva slags tekst passer best til informasjon om hvordan bier lever?",
+        "model_answer": "Fagtekst"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g3-fakta-i-en-fagtekst-q1",
+          "question": "Hva slags tekst passer best til informasjon om hvordan bier lever?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Fagtekst"
+            },
+            {
+              "key": "B",
+              "label": "Eventyr"
+            },
+            {
+              "key": "C",
+              "label": "Vits"
+            },
+            {
+              "key": "D",
+              "label": "Dikt uten fakta"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Bier samler nektar fra blomster» er en etterprøvbar fagopplysning."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g3-fakta-i-en-fagtekst-q2",
+          "question": "Skriv eller fortell med egne ord hva fakta i en fagtekst betyr. Bruk et eksempel.",
+          "sample_response": "En fagtekst har som mål å lære oss noe om verden. Se etter definisjoner, eksempler og bilder som forklarer innholdet.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva slags tekst passer best til informasjon om hvordan bier lever?",
+          "back": "Fagtekst"
+        },
+        {
+          "front": "Hva lærer vi om fakta i en fagtekst?",
+          "back": "En fagtekst har som mål å lære oss noe om verden. Se etter definisjoner, eksempler og bilder som forklarer innholdet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Bier samler nektar fra blomster» er en etterprøvbar fagopplysning."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g3-avsnitt-med-ett-tema",
+      "grade": 3,
+      "subject": "norsk",
+      "slug": "avsnitt-med-ett-tema",
+      "sort_order": 3,
+      "title": "Avsnitt med ett tema",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med avsnitt med ett tema.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Et avsnitt samler setninger som hører sammen. Bytt avsnitt når du går videre til et nytt hovedpoeng."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Tre setninger om hundens mat passer i ett avsnitt; setninger om skolen passer i et annet."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør setningene i ett avsnitt ha felles?",
+        "model_answer": "Et hovedtema"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g3-avsnitt-med-ett-tema-q1",
+          "question": "Hva bør setningene i ett avsnitt ha felles?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Et hovedtema"
+            },
+            {
+              "key": "B",
+              "label": "Bare like lange ord"
+            },
+            {
+              "key": "C",
+              "label": "Samme første bokstav"
+            },
+            {
+              "key": "D",
+              "label": "Ingen sammenheng"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Tre setninger om hundens mat passer i ett avsnitt; setninger om skolen passer i et annet."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g3-avsnitt-med-ett-tema-q2",
+          "question": "Skriv eller fortell med egne ord hva avsnitt med ett tema betyr. Bruk et eksempel.",
+          "sample_response": "Et avsnitt samler setninger som hører sammen. Bytt avsnitt når du går videre til et nytt hovedpoeng.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør setningene i ett avsnitt ha felles?",
+          "back": "Et hovedtema"
+        },
+        {
+          "front": "Hva lærer vi om avsnitt med ett tema?",
+          "back": "Et avsnitt samler setninger som hører sammen. Bytt avsnitt når du går videre til et nytt hovedpoeng."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Tre setninger om hundens mat passer i ett avsnitt; setninger om skolen passer i et annet."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g3-substantiv-og-verb",
+      "grade": 3,
+      "subject": "norsk",
+      "slug": "substantiv-og-verb",
+      "sort_order": 4,
+      "title": "Substantiv og verb",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med substantiv og verb.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Substantiv navngir personer, steder og ting. Verb sier hva som skjer eller hva noen gjør."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "I «Hunden løper» er hunden et substantiv og løper et verb."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord er verb i «Hunden løper»?",
+        "model_answer": "Løper"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g3-substantiv-og-verb-q1",
+          "question": "Hvilket ord er verb i «Hunden løper»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Løper"
+            },
+            {
+              "key": "B",
+              "label": "Hunden"
+            },
+            {
+              "key": "C",
+              "label": "I"
+            },
+            {
+              "key": "D",
+              "label": "Et"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "I «Hunden løper» er hunden et substantiv og løper et verb."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g3-substantiv-og-verb-q2",
+          "question": "Skriv eller fortell med egne ord hva substantiv og verb betyr. Bruk et eksempel.",
+          "sample_response": "Substantiv navngir personer, steder og ting. Verb sier hva som skjer eller hva noen gjør.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord er verb i «Hunden løper»?",
+          "back": "Løper"
+        },
+        {
+          "front": "Hva lærer vi om substantiv og verb?",
+          "back": "Substantiv navngir personer, steder og ting. Verb sier hva som skjer eller hva noen gjør."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "I «Hunden løper» er hunden et substantiv og løper et verb."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g3-muntlig-presentasjon",
+      "grade": 3,
+      "subject": "norsk",
+      "slug": "muntlig-presentasjon",
+      "sort_order": 5,
+      "title": "Muntlig presentasjon",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med muntlig presentasjon.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En liten presentasjon blir lettere å følge når du har innledning, to viktige poeng og avslutning. Se på dem du snakker til."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg skal fortelle om humler» er en tydelig innledning til et tema."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva passer først i en enkel presentasjon?",
+        "model_answer": "En innledning"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g3-muntlig-presentasjon-q1",
+          "question": "Hva passer først i en enkel presentasjon?",
+          "options": [
+            {
+              "key": "A",
+              "label": "En innledning"
+            },
+            {
+              "key": "B",
+              "label": "En tilfeldig avslutning"
+            },
+            {
+              "key": "C",
+              "label": "En kildeliste uten innhold"
+            },
+            {
+              "key": "D",
+              "label": "Stillhet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg skal fortelle om humler» er en tydelig innledning til et tema."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g3-muntlig-presentasjon-q2",
+          "question": "Skriv eller fortell med egne ord hva muntlig presentasjon betyr. Bruk et eksempel.",
+          "sample_response": "En liten presentasjon blir lettere å følge når du har innledning, to viktige poeng og avslutning. Se på dem du snakker til.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva passer først i en enkel presentasjon?",
+          "back": "En innledning"
+        },
+        {
+          "front": "Hva lærer vi om muntlig presentasjon?",
+          "back": "En liten presentasjon blir lettere å følge når du har innledning, to viktige poeng og avslutning. Se på dem du snakker til."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg skal fortelle om humler» er en tydelig innledning til et tema."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g4-lesestrategier",
+      "grade": 4,
+      "subject": "norsk",
+      "slug": "lesestrategier",
+      "sort_order": 1,
+      "title": "Lesestrategier",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med lesestrategier.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Før du leser kan du se på overskriften. Under lesing kan du stoppe ved vanskelige ord og etterpå gjenfortelle hovedinnholdet."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Overskriften «Vannets kretsløp» forteller at teksten handler om hvordan vann beveger seg i naturen."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva kan en overskrift hjelpe deg med før lesing?",
+        "model_answer": "Forutsi temaet"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g4-lesestrategier-q1",
+          "question": "Hva kan en overskrift hjelpe deg med før lesing?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Forutsi temaet"
+            },
+            {
+              "key": "B",
+              "label": "Regne ut sidetall"
+            },
+            {
+              "key": "C",
+              "label": "Finne forfatterens alder"
+            },
+            {
+              "key": "D",
+              "label": "Lese uten tekst"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Overskriften «Vannets kretsløp» forteller at teksten handler om hvordan vann beveger seg i naturen."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g4-lesestrategier-q2",
+          "question": "Skriv eller fortell med egne ord hva lesestrategier betyr. Bruk et eksempel.",
+          "sample_response": "Før du leser kan du se på overskriften. Under lesing kan du stoppe ved vanskelige ord og etterpå gjenfortelle hovedinnholdet.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kan en overskrift hjelpe deg med før lesing?",
+          "back": "Forutsi temaet"
+        },
+        {
+          "front": "Hva lærer vi om lesestrategier?",
+          "back": "Før du leser kan du se på overskriften. Under lesing kan du stoppe ved vanskelige ord og etterpå gjenfortelle hovedinnholdet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Overskriften «Vannets kretsløp» forteller at teksten handler om hvordan vann beveger seg i naturen."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g4-fakta-og-mening",
+      "grade": 4,
+      "subject": "norsk",
+      "slug": "fakta-og-mening",
+      "sort_order": 2,
+      "title": "Fakta og mening",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fakta og mening.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En faktapåstand kan prøves mot informasjon. En mening uttrykker hva noen synes. En tekst kan inneholde begge deler."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jorda går rundt sola» er faktapåstand; «Sommer er best» er mening."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilken setning er en mening?",
+        "model_answer": "Sommer er best"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g4-fakta-og-mening-q1",
+          "question": "Hvilken setning er en mening?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sommer er best"
+            },
+            {
+              "key": "B",
+              "label": "Jorda har én måne"
+            },
+            {
+              "key": "C",
+              "label": "Is smelter når det blir varmt"
+            },
+            {
+              "key": "D",
+              "label": "Vann kan fryse"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jorda går rundt sola» er faktapåstand; «Sommer er best» er mening."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g4-fakta-og-mening-q2",
+          "question": "Skriv eller fortell med egne ord hva fakta og mening betyr. Bruk et eksempel.",
+          "sample_response": "En faktapåstand kan prøves mot informasjon. En mening uttrykker hva noen synes. En tekst kan inneholde begge deler.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken setning er en mening?",
+          "back": "Sommer er best"
+        },
+        {
+          "front": "Hva lærer vi om fakta og mening?",
+          "back": "En faktapåstand kan prøves mot informasjon. En mening uttrykker hva noen synes. En tekst kan inneholde begge deler."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jorda går rundt sola» er faktapåstand; «Sommer er best» er mening."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g4-begynnelse-midtdel-slutt",
+      "grade": 4,
+      "subject": "norsk",
+      "slug": "begynnelse-midtdel-slutt",
+      "sort_order": 3,
+      "title": "Begynnelse midtdel slutt",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med begynnelse midtdel slutt.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Fortellende tekster trenger en tydelig hendelsesrekke. En utfordring i midtdelen kan gjøre fortellingen interessant."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "I en historie mister Amir nøkkelen, leter og finner den igjen til slutt."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva skjer typisk i midtdelen i historien om nøkkelen?",
+        "model_answer": "Amir leter etter nøkkelen"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g4-begynnelse-midtdel-slutt-q1",
+          "question": "Hva skjer typisk i midtdelen i historien om nøkkelen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Amir leter etter nøkkelen"
+            },
+            {
+              "key": "B",
+              "label": "Amir introduseres"
+            },
+            {
+              "key": "C",
+              "label": "Historien er ferdig"
+            },
+            {
+              "key": "D",
+              "label": "Tittelen blir skrevet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "I en historie mister Amir nøkkelen, leter og finner den igjen til slutt."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g4-begynnelse-midtdel-slutt-q2",
+          "question": "Skriv eller fortell med egne ord hva begynnelse midtdel slutt betyr. Bruk et eksempel.",
+          "sample_response": "Fortellende tekster trenger en tydelig hendelsesrekke. En utfordring i midtdelen kan gjøre fortellingen interessant.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva skjer typisk i midtdelen i historien om nøkkelen?",
+          "back": "Amir leter etter nøkkelen"
+        },
+        {
+          "front": "Hva lærer vi om begynnelse midtdel slutt?",
+          "back": "Fortellende tekster trenger en tydelig hendelsesrekke. En utfordring i midtdelen kan gjøre fortellingen interessant."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "I en historie mister Amir nøkkelen, leter og finner den igjen til slutt."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g4-tegnsetting-og-komma",
+      "grade": 4,
+      "subject": "norsk",
+      "slug": "tegnsetting-og-komma",
+      "sort_order": 4,
+      "title": "Tegnsetting og komma",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med tegnsetting og komma.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Punktum avslutter en setning, spørsmålstegn viser et spørsmål og komma kan skille elementer i en oppramsing."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Vi kjøpte melk, brød og epler.» viser en oppramsing."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket tegn står mellom melk og brød?",
+        "model_answer": "Komma"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g4-tegnsetting-og-komma-q1",
+          "question": "Hvilket tegn står mellom melk og brød?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Komma"
+            },
+            {
+              "key": "B",
+              "label": "Punktum"
+            },
+            {
+              "key": "C",
+              "label": "Kolon"
+            },
+            {
+              "key": "D",
+              "label": "Spørsmålstegn"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Vi kjøpte melk, brød og epler.» viser en oppramsing."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g4-tegnsetting-og-komma-q2",
+          "question": "Skriv eller fortell med egne ord hva tegnsetting og komma betyr. Bruk et eksempel.",
+          "sample_response": "Punktum avslutter en setning, spørsmålstegn viser et spørsmål og komma kan skille elementer i en oppramsing.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket tegn står mellom melk og brød?",
+          "back": "Komma"
+        },
+        {
+          "front": "Hva lærer vi om tegnsetting og komma?",
+          "back": "Punktum avslutter en setning, spørsmålstegn viser et spørsmål og komma kan skille elementer i en oppramsing."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Vi kjøpte melk, brød og epler.» viser en oppramsing."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g4-norsk-og-andre-sprak",
+      "grade": 4,
+      "subject": "norsk",
+      "slug": "norsk-og-andre-sprak",
+      "sort_order": 5,
+      "title": "Norsk og andre språk",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 4,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med norsk og andre språk.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Ord og uttale kan variere mellom dialekter og språk. Bokmål og nynorsk er to skriftlige målformer i norsk."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg» på bokmål og «eg» på nynorsk betyr samme person."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord er nynorsk form i dette eksemplet?",
+        "model_answer": "Eg"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g4-norsk-og-andre-sprak-q1",
+          "question": "Hvilket ord er nynorsk form i dette eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Eg"
+            },
+            {
+              "key": "B",
+              "label": "Jeg"
+            },
+            {
+              "key": "C",
+              "label": "Mig"
+            },
+            {
+              "key": "D",
+              "label": "Jag"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg» på bokmål og «eg» på nynorsk betyr samme person."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g4-norsk-og-andre-sprak-q2",
+          "question": "Skriv eller fortell med egne ord hva norsk og andre språk betyr. Bruk et eksempel.",
+          "sample_response": "Ord og uttale kan variere mellom dialekter og språk. Bokmål og nynorsk er to skriftlige målformer i norsk.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord er nynorsk form i dette eksemplet?",
+          "back": "Eg"
+        },
+        {
+          "front": "Hva lærer vi om norsk og andre språk?",
+          "back": "Ord og uttale kan variere mellom dialekter og språk. Bokmål og nynorsk er to skriftlige målformer i norsk."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg» på bokmål og «eg» på nynorsk betyr samme person."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g5-fortelling-og-synsvinkel",
+      "grade": 5,
+      "subject": "norsk",
+      "slug": "fortelling-og-synsvinkel",
+      "sort_order": 1,
+      "title": "Fortelling og synsvinkel",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fortelling og synsvinkel.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Den som forteller historien, påvirker hva leseren får vite. I en jeg-fortelling får vi ofte vite direkte hva jeg-personen tenker."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg gikk inn i rommet og kjente meg redd» er førstepersonsfortelling."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket pronomen tyder på førstepersonsfortelling?",
+        "model_answer": "Jeg"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g5-fortelling-og-synsvinkel-q1",
+          "question": "Hvilket pronomen tyder på førstepersonsfortelling?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Jeg"
+            },
+            {
+              "key": "B",
+              "label": "Han"
+            },
+            {
+              "key": "C",
+              "label": "Hun"
+            },
+            {
+              "key": "D",
+              "label": "De"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg gikk inn i rommet og kjente meg redd» er førstepersonsfortelling."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g5-fortelling-og-synsvinkel-q2",
+          "question": "Skriv eller fortell med egne ord hva fortelling og synsvinkel betyr. Bruk et eksempel.",
+          "sample_response": "Den som forteller historien, påvirker hva leseren får vite. I en jeg-fortelling får vi ofte vite direkte hva jeg-personen tenker.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket pronomen tyder på førstepersonsfortelling?",
+          "back": "Jeg"
+        },
+        {
+          "front": "Hva lærer vi om fortelling og synsvinkel?",
+          "back": "Den som forteller historien, påvirker hva leseren får vite. I en jeg-fortelling får vi ofte vite direkte hva jeg-personen tenker."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg gikk inn i rommet og kjente meg redd» er førstepersonsfortelling."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g5-skildrende-sprak",
+      "grade": 5,
+      "subject": "norsk",
+      "slug": "skildrende-sprak",
+      "sort_order": 2,
+      "title": "Skildrende språk",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med skildrende språk.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Skildringer bruker sanseinntrykk og presise ord for å gjøre steder eller personer levende for leseren."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Den kalde vinden rusket i den våte jakken» lar oss kjenne været bedre enn «det var vær»."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva slags informasjon gir «den kalde vinden»?",
+        "model_answer": "Et sanseinntrykk"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g5-skildrende-sprak-q1",
+          "question": "Hva slags informasjon gir «den kalde vinden»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Et sanseinntrykk"
+            },
+            {
+              "key": "B",
+              "label": "En dato"
+            },
+            {
+              "key": "C",
+              "label": "En pris"
+            },
+            {
+              "key": "D",
+              "label": "Et regnestykke"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Den kalde vinden rusket i den våte jakken» lar oss kjenne været bedre enn «det var vær»."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g5-skildrende-sprak-q2",
+          "question": "Skriv eller fortell med egne ord hva skildrende språk betyr. Bruk et eksempel.",
+          "sample_response": "Skildringer bruker sanseinntrykk og presise ord for å gjøre steder eller personer levende for leseren.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva slags informasjon gir «den kalde vinden»?",
+          "back": "Et sanseinntrykk"
+        },
+        {
+          "front": "Hva lærer vi om skildrende språk?",
+          "back": "Skildringer bruker sanseinntrykk og presise ord for å gjøre steder eller personer levende for leseren."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Den kalde vinden rusket i den våte jakken» lar oss kjenne været bedre enn «det var vær»."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g5-tekststruktur-i-fagartikkel",
+      "grade": 5,
+      "subject": "norsk",
+      "slug": "tekststruktur-i-fagartikkel",
+      "sort_order": 3,
+      "title": "Tekststruktur i fagartikkel",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med tekststruktur i fagartikkel.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En fagartikkel kan ha tittel, innledning, mellomtitler og avslutning. Mellomtitler hjelper leseren å finne informasjon."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En artikkel om fugler kan ha mellomtitlene «Mat» og «Leveområde»."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva hjelper mellomtitler leseren med?",
+        "model_answer": "Finne relevant informasjon"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g5-tekststruktur-i-fagartikkel-q1",
+          "question": "Hva hjelper mellomtitler leseren med?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Finne relevant informasjon"
+            },
+            {
+              "key": "B",
+              "label": "Velge skrifttype automatisk"
+            },
+            {
+              "key": "C",
+              "label": "Løse alle oppgaver"
+            },
+            {
+              "key": "D",
+              "label": "Endre fakta"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En artikkel om fugler kan ha mellomtitlene «Mat» og «Leveområde»."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g5-tekststruktur-i-fagartikkel-q2",
+          "question": "Skriv eller fortell med egne ord hva tekststruktur i fagartikkel betyr. Bruk et eksempel.",
+          "sample_response": "En fagartikkel kan ha tittel, innledning, mellomtitler og avslutning. Mellomtitler hjelper leseren å finne informasjon.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva hjelper mellomtitler leseren med?",
+          "back": "Finne relevant informasjon"
+        },
+        {
+          "front": "Hva lærer vi om tekststruktur i fagartikkel?",
+          "back": "En fagartikkel kan ha tittel, innledning, mellomtitler og avslutning. Mellomtitler hjelper leseren å finne informasjon."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En artikkel om fugler kan ha mellomtitlene «Mat» og «Leveområde»."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g5-kilde-og-avsender",
+      "grade": 5,
+      "subject": "norsk",
+      "slug": "kilde-og-avsender",
+      "sort_order": 4,
+      "title": "Kilde og avsender",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med kilde og avsender.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Når du finner informasjon, spør hvem som har skrevet den og hvorfor. Opplysninger kan kontrolleres mot flere kilder."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En museumsside med forfatter og dato er lettere å ettergå enn en anonym påstand."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilken opplysning hjelper deg å vurdere en tekstkilde?",
+        "model_answer": "Hvem som er avsender"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g5-kilde-og-avsender-q1",
+          "question": "Hvilken opplysning hjelper deg å vurdere en tekstkilde?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Hvem som er avsender"
+            },
+            {
+              "key": "B",
+              "label": "Bakgrunnsfargen"
+            },
+            {
+              "key": "C",
+              "label": "Antall emojis"
+            },
+            {
+              "key": "D",
+              "label": "Størrelsen på logoen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En museumsside med forfatter og dato er lettere å ettergå enn en anonym påstand."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g5-kilde-og-avsender-q2",
+          "question": "Skriv eller fortell med egne ord hva kilde og avsender betyr. Bruk et eksempel.",
+          "sample_response": "Når du finner informasjon, spør hvem som har skrevet den og hvorfor. Opplysninger kan kontrolleres mot flere kilder.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken opplysning hjelper deg å vurdere en tekstkilde?",
+          "back": "Hvem som er avsender"
+        },
+        {
+          "front": "Hva lærer vi om kilde og avsender?",
+          "back": "Når du finner informasjon, spør hvem som har skrevet den og hvorfor. Opplysninger kan kontrolleres mot flere kilder."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En museumsside med forfatter og dato er lettere å ettergå enn en anonym påstand."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g5-sammensatte-tekster",
+      "grade": 5,
+      "subject": "norsk",
+      "slug": "sammensatte-tekster",
+      "sort_order": 5,
+      "title": "Sammensatte tekster",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med sammensatte tekster.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En sammensatt tekst kombinerer ord, bilder, lyd eller film. Delene kan påvirke hvordan vi forstår budskapet."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Et trafikkskilt bruker både symbol og farge for å gjøre budskapet raskt tydelig."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva kombineres i et trafikkskilt med symbol og farge?",
+        "model_answer": "Flere uttrykksformer"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g5-sammensatte-tekster-q1",
+          "question": "Hva kombineres i et trafikkskilt med symbol og farge?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Flere uttrykksformer"
+            },
+            {
+              "key": "B",
+              "label": "To forskjellige avsnitt"
+            },
+            {
+              "key": "C",
+              "label": "Bare lyd"
+            },
+            {
+              "key": "D",
+              "label": "Bare tall"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Et trafikkskilt bruker både symbol og farge for å gjøre budskapet raskt tydelig."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g5-sammensatte-tekster-q2",
+          "question": "Skriv eller fortell med egne ord hva sammensatte tekster betyr. Bruk et eksempel.",
+          "sample_response": "En sammensatt tekst kombinerer ord, bilder, lyd eller film. Delene kan påvirke hvordan vi forstår budskapet.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kombineres i et trafikkskilt med symbol og farge?",
+          "back": "Flere uttrykksformer"
+        },
+        {
+          "front": "Hva lærer vi om sammensatte tekster?",
+          "back": "En sammensatt tekst kombinerer ord, bilder, lyd eller film. Delene kan påvirke hvordan vi forstår budskapet."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et trafikkskilt bruker både symbol og farge for å gjøre budskapet raskt tydelig."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g6-tema-og-budskap",
+      "grade": 6,
+      "subject": "norsk",
+      "slug": "tema-og-budskap",
+      "sort_order": 1,
+      "title": "Tema og budskap",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med tema og budskap.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Tema er det teksten handler om på et overordnet nivå. Budskap kan være en tanke teksten vil formidle."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En fortelling om å dele mat kan ha vennskap som tema og omsorg som budskap."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva er tema i eksemplet om å dele mat?",
+        "model_answer": "Vennskap"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g6-tema-og-budskap-q1",
+          "question": "Hva er tema i eksemplet om å dele mat?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Vennskap"
+            },
+            {
+              "key": "B",
+              "label": "En sidehenvisning"
+            },
+            {
+              "key": "C",
+              "label": "Et punktum"
+            },
+            {
+              "key": "D",
+              "label": "Forfatterens adresse"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En fortelling om å dele mat kan ha vennskap som tema og omsorg som budskap."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g6-tema-og-budskap-q2",
+          "question": "Skriv eller fortell med egne ord hva tema og budskap betyr. Bruk et eksempel.",
+          "sample_response": "Tema er det teksten handler om på et overordnet nivå. Budskap kan være en tanke teksten vil formidle.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er tema i eksemplet om å dele mat?",
+          "back": "Vennskap"
+        },
+        {
+          "front": "Hva lærer vi om tema og budskap?",
+          "back": "Tema er det teksten handler om på et overordnet nivå. Budskap kan være en tanke teksten vil formidle."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En fortelling om å dele mat kan ha vennskap som tema og omsorg som budskap."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g6-fortellerperspektiv",
+      "grade": 6,
+      "subject": "norsk",
+      "slug": "fortellerperspektiv",
+      "sort_order": 2,
+      "title": "Fortellerperspektiv",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fortellerperspektiv.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En tekst fortalt av «jeg» gir leseren et nært perspektiv; tredjeperson bruker gjerne han, hun eller de."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Hun gikk stille over plassen» er skrevet i tredjeperson."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket fortellerperspektiv brukes i «Hun gikk stille»?",
+        "model_answer": "Tredjeperson"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g6-fortellerperspektiv-q1",
+          "question": "Hvilket fortellerperspektiv brukes i «Hun gikk stille»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tredjeperson"
+            },
+            {
+              "key": "B",
+              "label": "Førsteperson"
+            },
+            {
+              "key": "C",
+              "label": "Andreperson"
+            },
+            {
+              "key": "D",
+              "label": "Ingen person"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Hun gikk stille over plassen» er skrevet i tredjeperson."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g6-fortellerperspektiv-q2",
+          "question": "Skriv eller fortell med egne ord hva fortellerperspektiv betyr. Bruk et eksempel.",
+          "sample_response": "En tekst fortalt av «jeg» gir leseren et nært perspektiv; tredjeperson bruker gjerne han, hun eller de.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket fortellerperspektiv brukes i «Hun gikk stille»?",
+          "back": "Tredjeperson"
+        },
+        {
+          "front": "Hva lærer vi om fortellerperspektiv?",
+          "back": "En tekst fortalt av «jeg» gir leseren et nært perspektiv; tredjeperson bruker gjerne han, hun eller de."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Hun gikk stille over plassen» er skrevet i tredjeperson."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g6-begrunne-en-mening",
+      "grade": 6,
+      "subject": "norsk",
+      "slug": "begrunne-en-mening",
+      "sort_order": 3,
+      "title": "Begrunne en mening",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med begrunne en mening.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Et argument inneholder en påstand og en begrunnelse. Gode argumenter knytter begrunnelsen direkte til påstanden."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Vi bør ha lesestund fordi det gir ro til konsentrasjon» gir en grunn."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva er begrunnelsen for lesestund i eksemplet?",
+        "model_answer": "Det gir ro til konsentrasjon"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g6-begrunne-en-mening-q1",
+          "question": "Hva er begrunnelsen for lesestund i eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Det gir ro til konsentrasjon"
+            },
+            {
+              "key": "B",
+              "label": "Vi bør"
+            },
+            {
+              "key": "C",
+              "label": "Lesestund"
+            },
+            {
+              "key": "D",
+              "label": "Fordi"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Vi bør ha lesestund fordi det gir ro til konsentrasjon» gir en grunn."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g6-begrunne-en-mening-q2",
+          "question": "Skriv eller fortell med egne ord hva begrunne en mening betyr. Bruk et eksempel.",
+          "sample_response": "Et argument inneholder en påstand og en begrunnelse. Gode argumenter knytter begrunnelsen direkte til påstanden.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er begrunnelsen for lesestund i eksemplet?",
+          "back": "Det gir ro til konsentrasjon"
+        },
+        {
+          "front": "Hva lærer vi om begrunne en mening?",
+          "back": "Et argument inneholder en påstand og en begrunnelse. Gode argumenter knytter begrunnelsen direkte til påstanden."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Vi bør ha lesestund fordi det gir ro til konsentrasjon» gir en grunn."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g6-hovedsetning-og-leddsetning",
+      "grade": 6,
+      "subject": "norsk",
+      "slug": "hovedsetning-og-leddsetning",
+      "sort_order": 4,
+      "title": "Hovedsetning og leddsetning",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med hovedsetning og leddsetning.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En hovedsetning kan ofte stå alene. En leddsetning er knyttet til en annen setning og starter for eksempel med fordi."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg gikk hjem fordi jeg var trøtt» har en begrunnende leddsetning."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket ord innleder leddsetningen i eksemplet?",
+        "model_answer": "Fordi"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g6-hovedsetning-og-leddsetning-q1",
+          "question": "Hvilket ord innleder leddsetningen i eksemplet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Fordi"
+            },
+            {
+              "key": "B",
+              "label": "Jeg"
+            },
+            {
+              "key": "C",
+              "label": "Gikk"
+            },
+            {
+              "key": "D",
+              "label": "Hjem"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg gikk hjem fordi jeg var trøtt» har en begrunnende leddsetning."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g6-hovedsetning-og-leddsetning-q2",
+          "question": "Skriv eller fortell med egne ord hva hovedsetning og leddsetning betyr. Bruk et eksempel.",
+          "sample_response": "En hovedsetning kan ofte stå alene. En leddsetning er knyttet til en annen setning og starter for eksempel med fordi.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket ord innleder leddsetningen i eksemplet?",
+          "back": "Fordi"
+        },
+        {
+          "front": "Hva lærer vi om hovedsetning og leddsetning?",
+          "back": "En hovedsetning kan ofte stå alene. En leddsetning er knyttet til en annen setning og starter for eksempel med fordi."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg gikk hjem fordi jeg var trøtt» har en begrunnende leddsetning."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g6-samisk-og-nordiske-sprak",
+      "grade": 6,
+      "subject": "norsk",
+      "slug": "samisk-og-nordiske-sprak",
+      "sort_order": 5,
+      "title": "Samisk og nordiske språk",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med samisk og nordiske språk.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Norsk språk og kultur eksisterer sammen med samiske språk og andre nordiske språk. Respekt for språkene hjelper oss å forstå mangfold."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Norsk, svensk og dansk har likheter i ordforråd, men samiske språk tilhører en annen språkfamilie."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket av disse er et samisk språk?",
+        "model_answer": "Nordsamisk"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g6-samisk-og-nordiske-sprak-q1",
+          "question": "Hvilket av disse er et samisk språk?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Nordsamisk"
+            },
+            {
+              "key": "B",
+              "label": "Nynorsk"
+            },
+            {
+              "key": "C",
+              "label": "Dansk"
+            },
+            {
+              "key": "D",
+              "label": "Svensk"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Norsk, svensk og dansk har likheter i ordforråd, men samiske språk tilhører en annen språkfamilie."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g6-samisk-og-nordiske-sprak-q2",
+          "question": "Skriv eller fortell med egne ord hva samisk og nordiske språk betyr. Bruk et eksempel.",
+          "sample_response": "Norsk språk og kultur eksisterer sammen med samiske språk og andre nordiske språk. Respekt for språkene hjelper oss å forstå mangfold.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket av disse er et samisk språk?",
+          "back": "Nordsamisk"
+        },
+        {
+          "front": "Hva lærer vi om samisk og nordiske språk?",
+          "back": "Norsk språk og kultur eksisterer sammen med samiske språk og andre nordiske språk. Respekt for språkene hjelper oss å forstå mangfold."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Norsk, svensk og dansk har likheter i ordforråd, men samiske språk tilhører en annen språkfamilie."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g7-lese-mellom-linjene",
+      "grade": 7,
+      "subject": "norsk",
+      "slug": "lese-mellom-linjene",
+      "sort_order": 1,
+      "title": "Lese mellom linjene",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med lese mellom linjene.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En tolkning bruker spor i teksten, ikke bare en løs gjetning. Leseren kan trekke slutninger av handlinger og beskrivelser."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Sara ristet i hendene før talen» kan tyde på nervøsitet, selv om ordet ikke står der."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilken tolkning støttes av Saras skjelvende hender før talen?",
+        "model_answer": "Hun kan være nervøs"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g7-lese-mellom-linjene-q1",
+          "question": "Hvilken tolkning støttes av Saras skjelvende hender før talen?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Hun kan være nervøs"
+            },
+            {
+              "key": "B",
+              "label": "Hun har vunnet en premie"
+            },
+            {
+              "key": "C",
+              "label": "Hun sover"
+            },
+            {
+              "key": "D",
+              "label": "Hun er hjemme"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Sara ristet i hendene før talen» kan tyde på nervøsitet, selv om ordet ikke står der."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g7-lese-mellom-linjene-q2",
+          "question": "Skriv eller fortell med egne ord hva lese mellom linjene betyr. Bruk et eksempel.",
+          "sample_response": "En tolkning bruker spor i teksten, ikke bare en løs gjetning. Leseren kan trekke slutninger av handlinger og beskrivelser.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken tolkning støttes av Saras skjelvende hender før talen?",
+          "back": "Hun kan være nervøs"
+        },
+        {
+          "front": "Hva lærer vi om lese mellom linjene?",
+          "back": "En tolkning bruker spor i teksten, ikke bare en løs gjetning. Leseren kan trekke slutninger av handlinger og beskrivelser."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Sara ristet i hendene før talen» kan tyde på nervøsitet, selv om ordet ikke står der."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g7-kilder-pa-bibliotek-og-nett",
+      "grade": 7,
+      "subject": "norsk",
+      "slug": "kilder-pa-bibliotek-og-nett",
+      "sort_order": 2,
+      "title": "Kilder på bibliotek og nett",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med kilder på bibliotek og nett.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Pålitelige kilder bør ha synlig avsender, dokumentasjon og dato. Sammenlign opplysninger når noe virker tvilsomt."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "To fagkilder som viser samme måling er bedre kontroll enn ett anonymt innlegg."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør du gjøre når to kilder er uenige?",
+        "model_answer": "Kontrollere avsender og dokumentasjon"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g7-kilder-pa-bibliotek-og-nett-q1",
+          "question": "Hva bør du gjøre når to kilder er uenige?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Kontrollere avsender og dokumentasjon"
+            },
+            {
+              "key": "B",
+              "label": "Bare velge den korteste"
+            },
+            {
+              "key": "C",
+              "label": "Tro den med størst bilde"
+            },
+            {
+              "key": "D",
+              "label": "Slette begge"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "To fagkilder som viser samme måling er bedre kontroll enn ett anonymt innlegg."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g7-kilder-pa-bibliotek-og-nett-q2",
+          "question": "Skriv eller fortell med egne ord hva kilder på bibliotek og nett betyr. Bruk et eksempel.",
+          "sample_response": "Pålitelige kilder bør ha synlig avsender, dokumentasjon og dato. Sammenlign opplysninger når noe virker tvilsomt.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du gjøre når to kilder er uenige?",
+          "back": "Kontrollere avsender og dokumentasjon"
+        },
+        {
+          "front": "Hva lærer vi om kilder på bibliotek og nett?",
+          "back": "Pålitelige kilder bør ha synlig avsender, dokumentasjon og dato. Sammenlign opplysninger når noe virker tvilsomt."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "To fagkilder som viser samme måling er bedre kontroll enn ett anonymt innlegg."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g7-muntlig-diskusjon",
+      "grade": 7,
+      "subject": "norsk",
+      "slug": "muntlig-diskusjon",
+      "sort_order": 3,
+      "title": "Muntlig diskusjon",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med muntlig diskusjon.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En diskusjon blir saklig når du lytter, bygger videre på innspill og begrunner uenighet. Kritiser argumentet, ikke personen."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Jeg er uenig fordi tallene viser noe annet» er mer saklig enn et personangrep."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva kjennetegner en saklig uenighet?",
+        "model_answer": "Begrunnelse for standpunktet"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g7-muntlig-diskusjon-q1",
+          "question": "Hva kjennetegner en saklig uenighet?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Begrunnelse for standpunktet"
+            },
+            {
+              "key": "B",
+              "label": "Personangrep"
+            },
+            {
+              "key": "C",
+              "label": "Avbrytelser"
+            },
+            {
+              "key": "D",
+              "label": "Høyest volum"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Jeg er uenig fordi tallene viser noe annet» er mer saklig enn et personangrep."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g7-muntlig-diskusjon-q2",
+          "question": "Skriv eller fortell med egne ord hva muntlig diskusjon betyr. Bruk et eksempel.",
+          "sample_response": "En diskusjon blir saklig når du lytter, bygger videre på innspill og begrunner uenighet. Kritiser argumentet, ikke personen.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kjennetegner en saklig uenighet?",
+          "back": "Begrunnelse for standpunktet"
+        },
+        {
+          "front": "Hva lærer vi om muntlig diskusjon?",
+          "back": "En diskusjon blir saklig når du lytter, bygger videre på innspill og begrunner uenighet. Kritiser argumentet, ikke personen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Jeg er uenig fordi tallene viser noe annet» er mer saklig enn et personangrep."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g7-bearbeide-en-tekst",
+      "grade": 7,
+      "subject": "norsk",
+      "slug": "bearbeide-en-tekst",
+      "sort_order": 4,
+      "title": "Bearbeide en tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med bearbeide en tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Et førsteutkast er ikke en ferdig tekst. Bruk tilbakemeldinger til å tydeliggjøre struktur, ordvalg og rettskriving."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Bytt «ting» med et presist ord og legg inn manglende avsnitt når du reviderer."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva er målet med å revidere en tekst?",
+        "model_answer": "Gjøre teksten tydeligere"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g7-bearbeide-en-tekst-q1",
+          "question": "Hva er målet med å revidere en tekst?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Gjøre teksten tydeligere"
+            },
+            {
+              "key": "B",
+              "label": "Bare gjøre den lengre"
+            },
+            {
+              "key": "C",
+              "label": "Fjerne alle avsnitt"
+            },
+            {
+              "key": "D",
+              "label": "Bruke flest mulig vanskelige ord"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Bytt «ting» med et presist ord og legg inn manglende avsnitt når du reviderer."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g7-bearbeide-en-tekst-q2",
+          "question": "Skriv eller fortell med egne ord hva bearbeide en tekst betyr. Bruk et eksempel.",
+          "sample_response": "Et førsteutkast er ikke en ferdig tekst. Bruk tilbakemeldinger til å tydeliggjøre struktur, ordvalg og rettskriving.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er målet med å revidere en tekst?",
+          "back": "Gjøre teksten tydeligere"
+        },
+        {
+          "front": "Hva lærer vi om bearbeide en tekst?",
+          "back": "Et førsteutkast er ikke en ferdig tekst. Bruk tilbakemeldinger til å tydeliggjøre struktur, ordvalg og rettskriving."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Bytt «ting» med et presist ord og legg inn manglende avsnitt når du reviderer."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g7-prove-sidemal",
+      "grade": 7,
+      "subject": "norsk",
+      "slug": "prove-sidemal",
+      "sort_order": 5,
+      "title": "Prøve sidemål",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 7,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med prøve sidemål.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Bokmål og nynorsk har ulik bøying og enkelte ulike ord. En sammenligning kan vise både likhet og forskjell."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Bokmål «jeg er» og nynorsk «eg er» uttrykker det samme."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket uttrykk er på nynorsk?",
+        "model_answer": "Eg er"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g7-prove-sidemal-q1",
+          "question": "Hvilket uttrykk er på nynorsk?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Eg er"
+            },
+            {
+              "key": "B",
+              "label": "Jeg er"
+            },
+            {
+              "key": "C",
+              "label": "I am"
+            },
+            {
+              "key": "D",
+              "label": "Jag är"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Bokmål «jeg er» og nynorsk «eg er» uttrykker det samme."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g7-prove-sidemal-q2",
+          "question": "Skriv eller fortell med egne ord hva prøve sidemål betyr. Bruk et eksempel.",
+          "sample_response": "Bokmål og nynorsk har ulik bøying og enkelte ulike ord. En sammenligning kan vise både likhet og forskjell.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket uttrykk er på nynorsk?",
+          "back": "Eg er"
+        },
+        {
+          "front": "Hva lærer vi om prøve sidemål?",
+          "back": "Bokmål og nynorsk har ulik bøying og enkelte ulike ord. En sammenligning kan vise både likhet og forskjell."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Bokmål «jeg er» og nynorsk «eg er» uttrykker det samme."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g8-argumenterende-tekst",
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "argumenterende-tekst",
+      "sort_order": 1,
+      "title": "Argumenterende tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med argumenterende tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En argumenterende tekst har en tydelig påstand, begrunnelser og gjerne et motargument. Leseren bør kunne se hvorfor argumentene støtter saken."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Skolen bør ha mer lesetid fordi elevene får øve konsentrasjon» har påstand og grunn."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva kalles setningen som sier hva skribenten mener?",
+        "model_answer": "Påstand"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g8-argumenterende-tekst-q1",
+          "question": "Hva kalles setningen som sier hva skribenten mener?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Påstand"
+            },
+            {
+              "key": "B",
+              "label": "Kildeliste"
+            },
+            {
+              "key": "C",
+              "label": "Tittelnummer"
+            },
+            {
+              "key": "D",
+              "label": "Fotnote"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Skolen bør ha mer lesetid fordi elevene får øve konsentrasjon» har påstand og grunn."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g8-argumenterende-tekst-q2",
+          "question": "Skriv eller fortell med egne ord hva argumenterende tekst betyr. Bruk et eksempel.",
+          "sample_response": "En argumenterende tekst har en tydelig påstand, begrunnelser og gjerne et motargument. Leseren bør kunne se hvorfor argumentene støtter saken.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kalles setningen som sier hva skribenten mener?",
+          "back": "Påstand"
+        },
+        {
+          "front": "Hva lærer vi om argumenterende tekst?",
+          "back": "En argumenterende tekst har en tydelig påstand, begrunnelser og gjerne et motargument. Leseren bør kunne se hvorfor argumentene støtter saken."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Skolen bør ha mer lesetid fordi elevene får øve konsentrasjon» har påstand og grunn."
+        }
+      ],
+      "existing_grade8_pilot": true
+    },
+    {
+      "id": "norsk-g8-leseforstaelse-og-teksttolkning",
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "leseforstaelse-og-teksttolkning",
+      "sort_order": 2,
+      "title": "Noveller og virkemidler",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med noveller og virkemidler.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En novelle er ofte en kort fortelling med få sentrale hendelser. Forteller, konflikt og virkemidler påvirker hvordan vi tolker den."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Når regnet beskrives som «trommende», kan lyden forsterke uroen i scenen."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva kalles en språklig beskrivelse som «regnet trommet»?",
+        "model_answer": "Personifisering"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g8-leseforstaelse-og-teksttolkning-q1",
+          "question": "Hva kalles en språklig beskrivelse som «regnet trommet»?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Personifisering"
+            },
+            {
+              "key": "B",
+              "label": "Referat"
+            },
+            {
+              "key": "C",
+              "label": "Kildeføring"
+            },
+            {
+              "key": "D",
+              "label": "Instruksjon"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Når regnet beskrives som «trommende», kan lyden forsterke uroen i scenen."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g8-leseforstaelse-og-teksttolkning-q2",
+          "question": "Skriv eller fortell med egne ord hva noveller og virkemidler betyr. Bruk et eksempel.",
+          "sample_response": "En novelle er ofte en kort fortelling med få sentrale hendelser. Forteller, konflikt og virkemidler påvirker hvordan vi tolker den.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva kalles en språklig beskrivelse som «regnet trommet»?",
+          "back": "Personifisering"
+        },
+        {
+          "front": "Hva lærer vi om noveller og virkemidler?",
+          "back": "En novelle er ofte en kort fortelling med få sentrale hendelser. Forteller, konflikt og virkemidler påvirker hvordan vi tolker den."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Når regnet beskrives som «trommende», kan lyden forsterke uroen i scenen."
+        }
+      ],
+      "existing_grade8_pilot": true
+    },
+    {
+      "id": "norsk-g8-kildekritikk-og-kildebruk",
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "kildekritikk-og-kildebruk",
+      "sort_order": 3,
+      "title": "Kildekritikk i digitale tekster",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med kildekritikk i digitale tekster.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Påstander på nettet må undersøkes med spørsmål om avsender, bevis og formål. Et skjermbilde alene viser sjelden hele sammenhengen."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En anonym påstand uten kilder bør kontrolleres mot uavhengig dokumentasjon."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør du sjekke før du bruker en påstand fra et anonymt innlegg?",
+        "model_answer": "Dokumentasjon og avsender"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g8-kildekritikk-og-kildebruk-q1",
+          "question": "Hva bør du sjekke før du bruker en påstand fra et anonymt innlegg?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Dokumentasjon og avsender"
+            },
+            {
+              "key": "B",
+              "label": "Antall utropstegn"
+            },
+            {
+              "key": "C",
+              "label": "Bildestørrelse"
+            },
+            {
+              "key": "D",
+              "label": "Tekstfarge"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En anonym påstand uten kilder bør kontrolleres mot uavhengig dokumentasjon."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g8-kildekritikk-og-kildebruk-q2",
+          "question": "Skriv eller fortell med egne ord hva kildekritikk i digitale tekster betyr. Bruk et eksempel.",
+          "sample_response": "Påstander på nettet må undersøkes med spørsmål om avsender, bevis og formål. Et skjermbilde alene viser sjelden hele sammenhengen.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du sjekke før du bruker en påstand fra et anonymt innlegg?",
+          "back": "Dokumentasjon og avsender"
+        },
+        {
+          "front": "Hva lærer vi om kildekritikk i digitale tekster?",
+          "back": "Påstander på nettet må undersøkes med spørsmål om avsender, bevis og formål. Et skjermbilde alene viser sjelden hele sammenhengen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En anonym påstand uten kilder bør kontrolleres mot uavhengig dokumentasjon."
+        }
+      ],
+      "existing_grade8_pilot": true
+    },
+    {
+      "id": "norsk-g8-skriving-rettskriving-og-tekstbinding",
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "skriving-rettskriving-og-tekstbinding",
+      "sort_order": 4,
+      "title": "Skrive og revidere tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med skrive og revidere tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En tekst må passe til formål og mottaker. Les den gjennom med blikk for struktur, setningsflyt og presis argumentasjon."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Et leserinnlegg trenger tydelig mening; en fagtekst trenger presis informasjon og kilder."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør styre valg av språk og form i en tekst?",
+        "model_answer": "Formål og mottaker"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g8-skriving-rettskriving-og-tekstbinding-q1",
+          "question": "Hva bør styre valg av språk og form i en tekst?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Formål og mottaker"
+            },
+            {
+              "key": "B",
+              "label": "Bare antall ord"
+            },
+            {
+              "key": "C",
+              "label": "Bare tastaturet"
+            },
+            {
+              "key": "D",
+              "label": "Bare skriftfargen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Et leserinnlegg trenger tydelig mening; en fagtekst trenger presis informasjon og kilder."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g8-skriving-rettskriving-og-tekstbinding-q2",
+          "question": "Skriv eller fortell med egne ord hva skrive og revidere tekst betyr. Bruk et eksempel.",
+          "sample_response": "En tekst må passe til formål og mottaker. Les den gjennom med blikk for struktur, setningsflyt og presis argumentasjon.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør styre valg av språk og form i en tekst?",
+          "back": "Formål og mottaker"
+        },
+        {
+          "front": "Hva lærer vi om skrive og revidere tekst?",
+          "back": "En tekst må passe til formål og mottaker. Les den gjennom med blikk for struktur, setningsflyt og presis argumentasjon."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et leserinnlegg trenger tydelig mening; en fagtekst trenger presis informasjon og kilder."
+        }
+      ],
+      "existing_grade8_pilot": true
+    },
+    {
+      "id": "norsk-g8-sprakvariasjon-og-bokmal-nynorsk",
+      "grade": 8,
+      "subject": "norsk",
+      "slug": "sprakvariasjon-og-bokmal-nynorsk",
+      "sort_order": 5,
+      "title": "Språklig mangfold",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med språklig mangfold.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Norsk rommer dialekter, bokmål og nynorsk; andre språk hører også hjemme i det norske samfunnet. Språkvalg kan skape identitet og fellesskap."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Ordet «jeg» kan uttales ulikt i dialekter og skrives «eg» på nynorsk."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilke to målformer brukes i skriftlig norsk?",
+        "model_answer": "Bokmål og nynorsk"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g8-sprakvariasjon-og-bokmal-nynorsk-q1",
+          "question": "Hvilke to målformer brukes i skriftlig norsk?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Bokmål og nynorsk"
+            },
+            {
+              "key": "B",
+              "label": "Bokmål og engelsk"
+            },
+            {
+              "key": "C",
+              "label": "Svensk og dansk"
+            },
+            {
+              "key": "D",
+              "label": "Latin og tysk"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Ordet «jeg» kan uttales ulikt i dialekter og skrives «eg» på nynorsk."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g8-sprakvariasjon-og-bokmal-nynorsk-q2",
+          "question": "Skriv eller fortell med egne ord hva språklig mangfold betyr. Bruk et eksempel.",
+          "sample_response": "Norsk rommer dialekter, bokmål og nynorsk; andre språk hører også hjemme i det norske samfunnet. Språkvalg kan skape identitet og fellesskap.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilke to målformer brukes i skriftlig norsk?",
+          "back": "Bokmål og nynorsk"
+        },
+        {
+          "front": "Hva lærer vi om språklig mangfold?",
+          "back": "Norsk rommer dialekter, bokmål og nynorsk; andre språk hører også hjemme i det norske samfunnet. Språkvalg kan skape identitet og fellesskap."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Ordet «jeg» kan uttales ulikt i dialekter og skrives «eg» på nynorsk."
+        }
+      ],
+      "existing_grade8_pilot": true
+    },
+    {
+      "id": "norsk-g9-tolke-skjonnlitteratur",
+      "grade": 9,
+      "subject": "norsk",
+      "slug": "tolke-skjonnlitteratur",
+      "sort_order": 1,
+      "title": "Tolke skjønnlitteratur",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med tolke skjønnlitteratur.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Litterær analyse bygger på tekstbelegg og undersøker tema, fortellerperspektiv og virkemidler. Flere tolkninger kan være mulige når de begrunnes."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En tom stol i en novelle kan symbolisere savn dersom sammenhengen støtter det."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva trenger du for å begrunne en teksttolkning?",
+        "model_answer": "Tekstbelegg"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g9-tolke-skjonnlitteratur-q1",
+          "question": "Hva trenger du for å begrunne en teksttolkning?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Tekstbelegg"
+            },
+            {
+              "key": "B",
+              "label": "Bare en følelse"
+            },
+            {
+              "key": "C",
+              "label": "Kun tittelen"
+            },
+            {
+              "key": "D",
+              "label": "Bare sidetallet"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En tom stol i en novelle kan symbolisere savn dersom sammenhengen støtter det."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g9-tolke-skjonnlitteratur-q2",
+          "question": "Skriv eller fortell med egne ord hva tolke skjønnlitteratur betyr. Bruk et eksempel.",
+          "sample_response": "Litterær analyse bygger på tekstbelegg og undersøker tema, fortellerperspektiv og virkemidler. Flere tolkninger kan være mulige når de begrunnes.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva trenger du for å begrunne en teksttolkning?",
+          "back": "Tekstbelegg"
+        },
+        {
+          "front": "Hva lærer vi om tolke skjønnlitteratur?",
+          "back": "Litterær analyse bygger på tekstbelegg og undersøker tema, fortellerperspektiv og virkemidler. Flere tolkninger kan være mulige når de begrunnes."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En tom stol i en novelle kan symbolisere savn dersom sammenhengen støtter det."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g9-retoriske-appellformer",
+      "grade": 9,
+      "subject": "norsk",
+      "slug": "retoriske-appellformer",
+      "sort_order": 2,
+      "title": "Retoriske appellformer",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med retoriske appellformer.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Etos handler om troverdighet, logos om argumentasjon og patos om følelser. En tekst kan bruke flere samtidig."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En reklame bruker forskningsdata for logos og sterke bilder for patos."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilken appellform bruker logiske begrunnelser?",
+        "model_answer": "Logos"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g9-retoriske-appellformer-q1",
+          "question": "Hvilken appellform bruker logiske begrunnelser?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Logos"
+            },
+            {
+              "key": "B",
+              "label": "Etos"
+            },
+            {
+              "key": "C",
+              "label": "Patos"
+            },
+            {
+              "key": "D",
+              "label": "Ironi"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En reklame bruker forskningsdata for logos og sterke bilder for patos."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g9-retoriske-appellformer-q2",
+          "question": "Skriv eller fortell med egne ord hva retoriske appellformer betyr. Bruk et eksempel.",
+          "sample_response": "Etos handler om troverdighet, logos om argumentasjon og patos om følelser. En tekst kan bruke flere samtidig.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilken appellform bruker logiske begrunnelser?",
+          "back": "Logos"
+        },
+        {
+          "front": "Hva lærer vi om retoriske appellformer?",
+          "back": "Etos handler om troverdighet, logos om argumentasjon og patos om følelser. En tekst kan bruke flere samtidig."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En reklame bruker forskningsdata for logos og sterke bilder for patos."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g9-fagtekst-og-kildehenvisning",
+      "grade": 9,
+      "subject": "norsk",
+      "slug": "fagtekst-og-kildehenvisning",
+      "sort_order": 3,
+      "title": "Fagtekst og kildehenvisning",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med fagtekst og kildehenvisning.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En fagtekst forklarer med fagbegreper, etterprøvbare opplysninger og tydelig struktur. Kildelisten viser hvor stoffet kommer fra."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Når du bruker en rapport, oppgir du avsender, tittel og dato slik at leseren kan finne den."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvorfor fører vi kilder i en fagtekst?",
+        "model_answer": "For å gjøre opplysninger etterprøvbare"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g9-fagtekst-og-kildehenvisning-q1",
+          "question": "Hvorfor fører vi kilder i en fagtekst?",
+          "options": [
+            {
+              "key": "A",
+              "label": "For å gjøre opplysninger etterprøvbare"
+            },
+            {
+              "key": "B",
+              "label": "For å fylle sider"
+            },
+            {
+              "key": "C",
+              "label": "For å skjule avsender"
+            },
+            {
+              "key": "D",
+              "label": "For å unngå begrunnelser"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Når du bruker en rapport, oppgir du avsender, tittel og dato slik at leseren kan finne den."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g9-fagtekst-og-kildehenvisning-q2",
+          "question": "Skriv eller fortell med egne ord hva fagtekst og kildehenvisning betyr. Bruk et eksempel.",
+          "sample_response": "En fagtekst forklarer med fagbegreper, etterprøvbare opplysninger og tydelig struktur. Kildelisten viser hvor stoffet kommer fra.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvorfor fører vi kilder i en fagtekst?",
+          "back": "For å gjøre opplysninger etterprøvbare"
+        },
+        {
+          "front": "Hva lærer vi om fagtekst og kildehenvisning?",
+          "back": "En fagtekst forklarer med fagbegreper, etterprøvbare opplysninger og tydelig struktur. Kildelisten viser hvor stoffet kommer fra."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Når du bruker en rapport, oppgir du avsender, tittel og dato slik at leseren kan finne den."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g9-sidemal-og-grammatikk",
+      "grade": 9,
+      "subject": "norsk",
+      "slug": "sidemal-og-grammatikk",
+      "sort_order": 4,
+      "title": "Sidemål og grammatikk",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med sidemål og grammatikk.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Bokmål og nynorsk har ulike pronomen og bøyningsmønstre. Les autentiske tekster og kontroller skriveformer i ordbok."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "«Ei bok» og «boka» er norske hunkjønnsformer; nynorsk bruker obligatorisk hunkjønn."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvilket oppslagsverk bør brukes for å kontrollere en nynorsk bøying?",
+        "model_answer": "Ordbok"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g9-sidemal-og-grammatikk-q1",
+          "question": "Hvilket oppslagsverk bør brukes for å kontrollere en nynorsk bøying?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Ordbok"
+            },
+            {
+              "key": "B",
+              "label": "Værmelding"
+            },
+            {
+              "key": "C",
+              "label": "Telefonliste"
+            },
+            {
+              "key": "D",
+              "label": "Kart"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "«Ei bok» og «boka» er norske hunkjønnsformer; nynorsk bruker obligatorisk hunkjønn."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g9-sidemal-og-grammatikk-q2",
+          "question": "Skriv eller fortell med egne ord hva sidemål og grammatikk betyr. Bruk et eksempel.",
+          "sample_response": "Bokmål og nynorsk har ulike pronomen og bøyningsmønstre. Les autentiske tekster og kontroller skriveformer i ordbok.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvilket oppslagsverk bør brukes for å kontrollere en nynorsk bøying?",
+          "back": "Ordbok"
+        },
+        {
+          "front": "Hva lærer vi om sidemål og grammatikk?",
+          "back": "Bokmål og nynorsk har ulike pronomen og bøyningsmønstre. Les autentiske tekster og kontroller skriveformer i ordbok."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "«Ei bok» og «boka» er norske hunkjønnsformer; nynorsk bruker obligatorisk hunkjønn."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g9-medier-og-pavirkning",
+      "grade": 9,
+      "subject": "norsk",
+      "slug": "medier-og-pavirkning",
+      "sort_order": 5,
+      "title": "Medier og påvirkning",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med medier og påvirkning.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Overskrifter, bildevalg og algoritmer påvirker hva vi legger merke til. Sammenlign budskap med kildene bak før du deler."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En overskrift kan overdrive et forskningsfunn selv om rapporten har forbehold."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør du lese når en overskrift virker sensasjonell?",
+        "model_answer": "Den underliggende kilden"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g9-medier-og-pavirkning-q1",
+          "question": "Hva bør du lese når en overskrift virker sensasjonell?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Den underliggende kilden"
+            },
+            {
+              "key": "B",
+              "label": "Bare kommentarfeltet"
+            },
+            {
+              "key": "C",
+              "label": "Bare reklamen"
+            },
+            {
+              "key": "D",
+              "label": "Bare emneknaggen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En overskrift kan overdrive et forskningsfunn selv om rapporten har forbehold."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g9-medier-og-pavirkning-q2",
+          "question": "Skriv eller fortell med egne ord hva medier og påvirkning betyr. Bruk et eksempel.",
+          "sample_response": "Overskrifter, bildevalg og algoritmer påvirker hva vi legger merke til. Sammenlign budskap med kildene bak før du deler.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør du lese når en overskrift virker sensasjonell?",
+          "back": "Den underliggende kilden"
+        },
+        {
+          "front": "Hva lærer vi om medier og påvirkning?",
+          "back": "Overskrifter, bildevalg og algoritmer påvirker hva vi legger merke til. Sammenlign budskap med kildene bak før du deler."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En overskrift kan overdrive et forskningsfunn selv om rapporten har forbehold."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g10-sammenligne-tekster",
+      "grade": 10,
+      "subject": "norsk",
+      "slug": "sammenligne-tekster",
+      "sort_order": 1,
+      "title": "Sammenligne tekster",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med sammenligne tekster.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Sammenligning krever klare kriterier som tema, formål og virkemidler. Vis både likheter og forskjeller med konkrete tekstbelegg."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Et dikt og en fagartikkel kan beskrive naturen, men bruke ulik sjanger og språk."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva er et godt sammenligningskriterium for to tekster?",
+        "model_answer": "Formål og virkemidler"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g10-sammenligne-tekster-q1",
+          "question": "Hva er et godt sammenligningskriterium for to tekster?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Formål og virkemidler"
+            },
+            {
+              "key": "B",
+              "label": "Forfatterens postnummer"
+            },
+            {
+              "key": "C",
+              "label": "Antall komma alene"
+            },
+            {
+              "key": "D",
+              "label": "Sidefargen"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Et dikt og en fagartikkel kan beskrive naturen, men bruke ulik sjanger og språk."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g10-sammenligne-tekster-q2",
+          "question": "Skriv eller fortell med egne ord hva sammenligne tekster betyr. Bruk et eksempel.",
+          "sample_response": "Sammenligning krever klare kriterier som tema, formål og virkemidler. Vis både likheter og forskjeller med konkrete tekstbelegg.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva er et godt sammenligningskriterium for to tekster?",
+          "back": "Formål og virkemidler"
+        },
+        {
+          "front": "Hva lærer vi om sammenligne tekster?",
+          "back": "Sammenligning krever klare kriterier som tema, formål og virkemidler. Vis både likheter og forskjeller med konkrete tekstbelegg."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Et dikt og en fagartikkel kan beskrive naturen, men bruke ulik sjanger og språk."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g10-droftende-tekst",
+      "grade": 10,
+      "subject": "norsk",
+      "slug": "droftende-tekst",
+      "sort_order": 2,
+      "title": "Drøftende tekst",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med drøftende tekst.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Å drøfte betyr å belyse flere sider av en sak før du begrunner en konklusjon. Skillet mellom fakta og egne vurderinger bør være synlig."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En tekst om skjermtid kan vise både fordeler og ulemper og veie dem opp mot hverandre."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør en drøftende tekst gjøre?",
+        "model_answer": "Belyse flere sider med begrunnelser"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g10-droftende-tekst-q1",
+          "question": "Hva bør en drøftende tekst gjøre?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Belyse flere sider med begrunnelser"
+            },
+            {
+              "key": "B",
+              "label": "Bare gjenta én påstand"
+            },
+            {
+              "key": "C",
+              "label": "Droppe alle kilder"
+            },
+            {
+              "key": "D",
+              "label": "Bare bruke spørsmål"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En tekst om skjermtid kan vise både fordeler og ulemper og veie dem opp mot hverandre."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g10-droftende-tekst-q2",
+          "question": "Skriv eller fortell med egne ord hva drøftende tekst betyr. Bruk et eksempel.",
+          "sample_response": "Å drøfte betyr å belyse flere sider av en sak før du begrunner en konklusjon. Skillet mellom fakta og egne vurderinger bør være synlig.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør en drøftende tekst gjøre?",
+          "back": "Belyse flere sider med begrunnelser"
+        },
+        {
+          "front": "Hva lærer vi om drøftende tekst?",
+          "back": "Å drøfte betyr å belyse flere sider av en sak før du begrunner en konklusjon. Skillet mellom fakta og egne vurderinger bør være synlig."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En tekst om skjermtid kan vise både fordeler og ulemper og veie dem opp mot hverandre."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g10-etterrettelig-kildebruk",
+      "grade": 10,
+      "subject": "norsk",
+      "slug": "etterrettelig-kildebruk",
+      "sort_order": 3,
+      "title": "Etterrettelig kildebruk",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med etterrettelig kildebruk.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Sitater skal markeres slik at leseren vet hvilke ord som kommer fra andre. Et sammendrag må også vise kilden til informasjonen."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Siterer du to setninger fra en rapport, bruker du sitattegn og referanse."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva markerer du spesielt når du bruker noens eksakte ord?",
+        "model_answer": "Sitat"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g10-etterrettelig-kildebruk-q1",
+          "question": "Hva markerer du spesielt når du bruker noens eksakte ord?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Sitat"
+            },
+            {
+              "key": "B",
+              "label": "Egen overskrift"
+            },
+            {
+              "key": "C",
+              "label": "Et tilfeldig tall"
+            },
+            {
+              "key": "D",
+              "label": "Kapittelnummer"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Siterer du to setninger fra en rapport, bruker du sitattegn og referanse."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g10-etterrettelig-kildebruk-q2",
+          "question": "Skriv eller fortell med egne ord hva etterrettelig kildebruk betyr. Bruk et eksempel.",
+          "sample_response": "Sitater skal markeres slik at leseren vet hvilke ord som kommer fra andre. Et sammendrag må også vise kilden til informasjonen.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva markerer du spesielt når du bruker noens eksakte ord?",
+          "back": "Sitat"
+        },
+        {
+          "front": "Hva lærer vi om etterrettelig kildebruk?",
+          "back": "Sitater skal markeres slik at leseren vet hvilke ord som kommer fra andre. Et sammendrag må også vise kilden til informasjonen."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Siterer du to setninger fra en rapport, bruker du sitattegn og referanse."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g10-sprakhistorie-og-utvikling",
+      "grade": 10,
+      "subject": "norsk",
+      "slug": "sprakhistorie-og-utvikling",
+      "sort_order": 4,
+      "title": "Språkhistorie og utvikling",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med språkhistorie og utvikling.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "Norsk skriftspråk har en historie knyttet til dansk påvirkning og utviklingen av nynorsk. Språket fortsetter å endres med samfunn og teknologi."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "Ivar Aasen samlet dialektmateriale som grunnlag for landsmål, forløperen til nynorsk."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hvem er særlig kjent for arbeidet som ble grunnlaget for landsmål?",
+        "model_answer": "Ivar Aasen"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g10-sprakhistorie-og-utvikling-q1",
+          "question": "Hvem er særlig kjent for arbeidet som ble grunnlaget for landsmål?",
+          "options": [
+            {
+              "key": "A",
+              "label": "Ivar Aasen"
+            },
+            {
+              "key": "B",
+              "label": "Henrik Wergeland"
+            },
+            {
+              "key": "C",
+              "label": "Ludvig Holberg"
+            },
+            {
+              "key": "D",
+              "label": "Edvard Grieg"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "Ivar Aasen samlet dialektmateriale som grunnlag for landsmål, forløperen til nynorsk."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g10-sprakhistorie-og-utvikling-q2",
+          "question": "Skriv eller fortell med egne ord hva språkhistorie og utvikling betyr. Bruk et eksempel.",
+          "sample_response": "Norsk skriftspråk har en historie knyttet til dansk påvirkning og utviklingen av nynorsk. Språket fortsetter å endres med samfunn og teknologi.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hvem er særlig kjent for arbeidet som ble grunnlaget for landsmål?",
+          "back": "Ivar Aasen"
+        },
+        {
+          "front": "Hva lærer vi om språkhistorie og utvikling?",
+          "back": "Norsk skriftspråk har en historie knyttet til dansk påvirkning og utviklingen av nynorsk. Språket fortsetter å endres med samfunn og teknologi."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "Ivar Aasen samlet dialektmateriale som grunnlag for landsmål, forløperen til nynorsk."
+        }
+      ],
+      "existing_grade8_pilot": false
+    },
+    {
+      "id": "norsk-g10-muntlig-fagpresentasjon",
+      "grade": 10,
+      "subject": "norsk",
+      "slug": "muntlig-fagpresentasjon",
+      "sort_order": 5,
+      "title": "Muntlig fagpresentasjon",
+      "status": "draft",
+      "lesson_version": 1,
+      "language": "nb",
+      "curriculum": {
+        "code": "NOR01-08",
+        "checkpoint_after_grade": 10,
+        "source_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+        "goal_mapping_status": "needs_individual_goal_review"
+      },
+      "article": {
+        "intro": "Vi bruker norskfaget til å lese, skrive, samtale og forstå tekster. I denne økten arbeider du med muntlig fagpresentasjon.",
+        "sections": [
+          {
+            "heading": "Dette må du forstå",
+            "text": "En sterk presentasjon har et tydelig spørsmål, gjennomarbeidede faglige poeng og relevante kilder. Måten du snakker på må passe publikum."
+          },
+          {
+            "heading": "Et eksempel",
+            "text": "En presentasjon kan begynne med problemstillingen, gi to dokumenterte hovedpoeng og samle trådene i avslutningen."
+          },
+          {
+            "heading": "Bruk kunnskapen",
+            "text": "Les eksemplet én gang til. Finn ord eller setninger som begrunner svaret ditt. Når du skriver, skal leseren forstå hvordan du tenker."
+          }
+        ],
+        "comprehension_question": "Hva bør en muntlig fagpresentasjon ha i starten?",
+        "model_answer": "En tydelig problemstilling"
+      },
+      "practice": [
+        {
+          "type": "single_select",
+          "id": "norsk-g10-muntlig-fagpresentasjon-q1",
+          "question": "Hva bør en muntlig fagpresentasjon ha i starten?",
+          "options": [
+            {
+              "key": "A",
+              "label": "En tydelig problemstilling"
+            },
+            {
+              "key": "B",
+              "label": "Alle kildene lest ordrett"
+            },
+            {
+              "key": "C",
+              "label": "En tilfeldig vits"
+            },
+            {
+              "key": "D",
+              "label": "Konklusjonen uten forklaring"
+            }
+          ],
+          "correct_option": "A",
+          "explanation": "En presentasjon kan begynne med problemstillingen, gi to dokumenterte hovedpoeng og samle trådene i avslutningen."
+        },
+        {
+          "type": "written_reflection",
+          "id": "norsk-g10-muntlig-fagpresentasjon-q2",
+          "question": "Skriv eller fortell med egne ord hva muntlig fagpresentasjon betyr. Bruk et eksempel.",
+          "sample_response": "En sterk presentasjon har et tydelig spørsmål, gjennomarbeidede faglige poeng og relevante kilder. Måten du snakker på må passe publikum.",
+          "requires_human_or_formative_review": true
+        }
+      ],
+      "flashcards": [
+        {
+          "front": "Hva bør en muntlig fagpresentasjon ha i starten?",
+          "back": "En tydelig problemstilling"
+        },
+        {
+          "front": "Hva lærer vi om muntlig fagpresentasjon?",
+          "back": "En sterk presentasjon har et tydelig spørsmål, gjennomarbeidede faglige poeng og relevante kilder. Måten du snakker på må passe publikum."
+        },
+        {
+          "front": "Gi et eksempel",
+          "back": "En presentasjon kan begynne med problemstillingen, gi to dokumenterte hovedpoeng og samle trådene i avslutningen."
+        }
+      ],
+      "existing_grade8_pilot": false
+    }
+  ]
+}
