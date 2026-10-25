@@ -15,7 +15,7 @@ interface TutorPanelProps {
   onReadSection: (index: number) => void;
   onPractice: () => void;
 }
-type Exchange = { question: string; reply: TutorReply };
+type Exchange = { question: string; reply: TutorReply; locale: LearnLocale };
 const modeIcons = [BookOpen, Lightbulb, ListChecks, MessageCircle, ArrowRight];
 const modes: TutorMode[] = ['explain', 'hint', 'guided_practice', 'check_understanding', 'next_step'];
 
@@ -63,7 +63,7 @@ export default function TutorPanel({ lessonId, locale, lessonTitle, sections, pr
       const response = await learnAPI.askTutor(lessonId, trimmed, { mode, locale: language,
         ...(itemKey && ['hint', 'guided_practice'].includes(mode) ? { item_key: itemKey } : {}), hint_level: hintLevel, recovery });
       if (current !== generation.current) return;
-      setHistory(previous => [...previous.slice(-9), { question: trimmed || (recovery ? (en ? 'I don’t understand' : 'Jeg forstår ikke') : labels[modes.indexOf(mode)]), reply: response.data }]);
+      setHistory(previous => [...previous.slice(-9), { question: trimmed || (recovery ? (en ? 'I don’t understand' : 'Jeg forstår ikke') : labels[modes.indexOf(mode)]), reply: response.data, locale: language }]);
       if (mode === 'hint') setHintLevel(level => Math.min(2, level + 1));
       setQuestion('');
       revealResult();
@@ -111,12 +111,17 @@ export default function TutorPanel({ lessonId, locale, lessonTitle, sections, pr
                 <button type="button" className="tutor-starter" disabled={busy} onClick={() => void ask()}>{t('Let’s get started', 'La oss begynne')}<ArrowRight aria-hidden="true" /></button>
               </div>}
               <ol>{history.map((exchange, index) => <li key={index}>
-                <p className="tutor-request">{exchange.question}</p>
+                <p className="tutor-request" lang={exchange.locale}>{exchange.question}</p>
                 <p className="tutor-label"><span className="tutor-avatar"><Sparkles aria-hidden="true" /></span>{t('Lesson guide', 'Leksjonsveiledning')}</p>
                 <div className="tutor-answer">
-                  <p className="whitespace-pre-line">{exchange.reply.answer}</p>
+                  <p className="whitespace-pre-line" lang={exchange.locale}>{exchange.reply.answer}</p>
                   {(exchange.reply.references || []).map(ref => <button key={ref.section_index} type="button" onClick={() => onReadSection(ref.section_index)} className="tutor-sourcechip"><BookOpen aria-hidden="true" />{t('Read', 'Les')}: {ref.heading}</button>)}
-                  {exchange.reply.recommendation && <Link to={`/learn/lessons/${exchange.reply.recommendation.lesson_id}`} className="tutor-starter">{exchange.reply.recommendation.title}<ArrowRight aria-hidden="true" /></Link>}
+                  {exchange.reply.recommendation && (exchange.reply.recommendation.lesson_id === lessonId
+                    ? <button type="button" className="tutor-starter" disabled={busy}
+                        onClick={() => exchange.reply.recommendation?.reason === 'practice_not_passed' ? onPractice() : onReadSection(0)}>
+                        {exchange.reply.recommendation.title}<ArrowRight aria-hidden="true" />
+                      </button>
+                    : <Link to={`/learn/lessons/${exchange.reply.recommendation.lesson_id}`} className="tutor-starter">{exchange.reply.recommendation.title}<ArrowRight aria-hidden="true" /></Link>)}
                 </div>
                 {index === history.length - 1 && <div className="tutor-replyactions">
                   <button type="button" disabled={busy} onClick={() => void ask(true)}><RotateCcw aria-hidden="true" />{t('One smaller step', 'Et mindre steg')}</button>

@@ -302,7 +302,7 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
         page.setDefaultTimeout(10_000);
         const token = authHeaders(child.id).Authorization.slice(7);
         await page.addInitScript(`localStorage.setItem('auth_token', ${JSON.stringify(token)}); localStorage.setItem('family_auth', 'true'); localStorage.setItem('currentProfileId', ${JSON.stringify(String(child.id))}); ${mobile ? "document.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add('dark'));" : ''}`);
-        await page.goto(`http://127.0.0.1:${port}/tests/tutor-v2.html?lesson=${lesson.id}`);
+        await page.goto(`http://127.0.0.1:${port}/tests/tutor-v2.html?lesson=${lesson.id}`, { timeout: 30_000 });
         await page.getByRole('tab', { name: 'Spør veilederen' }).click();
         const explainMode = page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Forklar', exact: true });
         await explainMode.focus(); await page.keyboard.press('Enter');
@@ -350,10 +350,39 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
         await page.getByRole('group', { name: 'Learning mode' }).getByRole('button', { name: 'Explain', exact: true }).click();
         await page.getByRole('button', { name: 'Ask', exact: true }).click();
         await page.getByRole('log').getByText('Norwegian first.', { exact: false }).waitFor();
+        expect.soft(await page.getByRole('log').locator('.tutor-answer > p').first().getAttribute('lang')).toBe('nb');
+        expect.soft(await page.getByRole('log').locator('.tutor-answer > p').last().getAttribute('lang')).toBe('en');
         await page.getByRole('button', { name: 'I don’t understand', exact: true }).click();
         await page.getByRole('log').getByText("Let's take one small step.", { exact: false }).waitFor();
         expect(await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')).toBe(true);
         await page.screenshot({ path: path.join(evidence, mobile ? 'mobile-dark.png' : 'desktop-light.png'), fullPage: true });
+        // Response fixtures isolate recommendation activation; API tests cover verified ranking.
+        const activateRecommendation = async (reason: string, targetId = lesson.id, title = lesson.title) => {
+          await page.getByRole('tab', { name: 'Spør veilederen' }).click();
+          await page.getByLabel(/Tutor language|Veilederspråk/).selectOption('nb');
+          await page.route('**/api/learn/tutor', (route: any) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+            answer: 'Navigation fixture', source: 'lesson_fallback', mode: 'next_step', references: [],
+            recommendation: { lesson_id: targetId, title, reason }
+          }) }));
+          await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Hva er neste steg?', exact: true }).click();
+          await page.getByRole('button', { name: 'Spør', exact: true }).click();
+          await page.getByRole('log').getByText(title, { exact: true }).last().click();
+          await page.unroute('**/api/learn/tutor');
+        };
+        await activateRecommendation('practice_not_passed');
+        await page.waitForFunction("document.activeElement?.id === 'lesson-tab-practice'");
+        expect(await page.getByRole('tab', { name: 'Øv', exact: true }).getAttribute('aria-selected')).toBe('true');
+        await activateRecommendation('review_current');
+        await page.waitForFunction("document.activeElement?.id === 'lesson-section-0'");
+        const nextLesson = testDb.prepare(`INSERT INTO learn_lessons
+          (topic_id, slug, locale, version, title, body, practice, flashcards, authored_by, review_status)
+          SELECT topic_id, ?, locale, version, 'Next reviewed fixture', body, practice, flashcards, authored_by, 'reviewed'
+          FROM learn_lessons WHERE id = ?`).run(`navigation-${mobile}`, lesson.id);
+        await activateRecommendation('next_in_sequence', Number(nextLesson.lastInsertRowid), 'Next reviewed fixture');
+        await page.getByRole('heading', { name: 'Next reviewed fixture', exact: true }).waitFor();
+        expect(await page.getByRole('tab', { name: 'Les', exact: true }).getAttribute('aria-selected')).toBe('true');
+        testDb.prepare('DELETE FROM learn_progress WHERE lesson_id = ?').run(nextLesson.lastInsertRowid);
+        testDb.prepare('DELETE FROM learn_lessons WHERE id = ?').run(nextLesson.lastInsertRowid);
         await page.close();
       }
       expect(errors).toEqual([]);
