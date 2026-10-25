@@ -29,17 +29,29 @@ import type {
 } from '../types';
 
 import type {
+  AssignmentTargetKind,
+  CatalogOverviewGrade,
+  ContentImportStatus,
   LearnAssignment,
+  LearnCatalog,
   LearnerProgress,
+  LearnerSettings,
   LearnFlashcard,
   LearnLesson,
   LearnStatus,
-  LearnSubject,
+  LearnTopic,
   MockAttemptResult,
   MockAttemptStart,
   MockExamInfo,
+  OpenResponse,
   PracticeResult,
+  ReviewAttemptResult,
+  ReviewAttemptStart,
+  ReviewLessonDetail,
+  ReviewPaperDetail,
+  ReviewPaperInfo,
   ReviewQueue,
+  ReviewStatus,
   TutorReply
 } from '../types/learn';
 
@@ -2819,8 +2831,18 @@ export const learnAPI = {
   setFamilyEnabled: (enabled: boolean) =>
     api.put<{ enabled: boolean; family_heads: number }>('/learn/family/settings', { enabled }),
 
-  getCatalog: (grade = 8) => api.get<{ grade: number; subjects: LearnSubject[] }>('/learn/catalog', { params: { grade } }),
+  // Without a grade the backend uses the learner's saved school grade
+  getCatalog: (grade?: number) => api.get<LearnCatalog>('/learn/catalog', { params: grade ? { grade } : {} }),
+  getCatalogOverview: () => api.get<{ grades: CatalogOverviewGrade[] }>('/learn/catalog/overview'),
+  setMyGrade: (grade: number) => api.put<Omit<LearnerSettings, 'learn_enabled' | 'tutor_available'>>('/learn/me/settings', { grade }),
+  updateChildSettings: (childId: number, data: { grade?: number | null; learn_enabled?: boolean; tutor_enabled?: boolean }) =>
+    api.put<LearnerSettings & { child_id: number }>(`/learn/children/${childId}/settings`, data),
+  getTopic: (topicId: number) => api.get<LearnTopic>(`/learn/topics/${topicId}`),
   getLesson: (lessonId: number) => api.get<LearnLesson>(`/learn/lessons/${lessonId}`),
+  submitOpenResponse: (lessonId: number, itemKey: string, response: string) =>
+    api.post<OpenResponse>(`/learn/lessons/${lessonId}/open-responses/${encodeURIComponent(itemKey)}`, { response }),
+  giveOpenResponseFeedback: (responseId: number, feedback: string) =>
+    api.post(`/learn/open-responses/${responseId}/feedback`, { feedback }),
   markRead: (lessonId: number) => api.post<{ ok: boolean }>(`/learn/lessons/${lessonId}/read`),
   preparePractice: (lessonId: number) =>
     api.post<{ session_id: number; result: PracticeResult | null }>(`/learn/lessons/${lessonId}/practice`),
@@ -2839,8 +2861,10 @@ export const learnAPI = {
   getChildProgress: (childId: number) => api.get<LearnerProgress>(`/learn/children/${childId}/progress`),
 
   getAssignments: () => api.get<LearnAssignment[]>('/learn/assignments'),
-  createAssignment: (data: { child_id: number; lesson_id?: number; mock_exam_id?: number; due_at?: string; note?: string; idempotency_key: string }) =>
-    api.post<LearnAssignment>('/learn/assignments', data),
+  createAssignment: (data: {
+    child_id: number; lesson_id?: number; topic_id?: number; mock_exam_id?: number; review_paper_id?: number;
+    due_at?: string; note?: string; idempotency_key: string;
+  }) => api.post<LearnAssignment & { target_kind: AssignmentTargetKind }>('/learn/assignments', data),
   cancelAssignment: (assignmentId: number) => api.patch<LearnAssignment>(`/learn/assignments/${assignmentId}`, { state: 'cancelled' }),
 
   getMockExam: (examId: number) => api.get<MockExamInfo>(`/learn/mock-exams/${examId}`),
@@ -2849,9 +2873,24 @@ export const learnAPI = {
     api.post<MockAttemptResult>(`/learn/mock-attempts/${attemptId}/submit`, { responses }),
   getMockAttempt: (attemptId: number) => api.get<MockAttemptResult>(`/learn/mock-attempts/${attemptId}`),
 
+  getReviewPaper: (paperId: number) => api.get<ReviewPaperInfo>(`/learn/review-papers/${paperId}`),
+  startReviewPaper: (paperId: number) => api.post<ReviewAttemptStart>(`/learn/review-papers/${paperId}/start`),
+  submitReviewAttempt: (attemptId: number, responses: Record<string, string>) =>
+    api.post<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}/submit`, { responses }),
+  getReviewAttempt: (attemptId: number) => api.get<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}`),
+  giveReviewFeedback: (attemptId: number, data: { summary?: string; items?: Record<string, string> }) =>
+    api.post<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}/feedback`, data),
+
   askTutor: (lessonId: number, question: string) => api.post<TutorReply>('/learn/tutor', { lesson_id: lessonId, question }),
 
-  getReviewQueue: () => api.get<ReviewQueue>('/learn/admin/review-queue'),
+  getReviewQueue: (filters: { grade?: number; subject?: string; status?: ReviewStatus } = {}) =>
+    api.get<ReviewQueue>('/learn/admin/review-queue', { params: filters }),
+  getReviewLessonDetail: (lessonId: number) => api.get<ReviewLessonDetail>(`/learn/admin/lessons/${lessonId}`),
+  getReviewPaperDetail: (paperId: number) => api.get<ReviewPaperDetail>(`/learn/admin/review-papers/${paperId}`),
+  reviewPaper: (paperId: number, status: ReviewStatus, notes?: string) =>
+    api.post(`/learn/review-papers/${paperId}/review`, { status, notes }),
+  getContentImport: () => api.get<ContentImportStatus>('/learn/admin/content-import'),
+  runContentImport: (dryRun: boolean) => api.post('/learn/admin/content-import', { dry_run: dryRun }),
   reviewLesson: (lessonId: number, status: 'draft' | 'reviewed' | 'retired', notes?: string) =>
     api.post(`/learn/lessons/${lessonId}/review`, { status, notes }),
   reviewMockExam: (examId: number, status: 'draft' | 'reviewed' | 'retired') =>

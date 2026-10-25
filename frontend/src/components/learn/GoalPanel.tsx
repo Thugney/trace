@@ -7,10 +7,11 @@ interface GoalPanelProps {
   goals: LearnGoal[];
   udirCode: string;
   locale: LearnLocale;
+  grade: number;
 }
 
 // Shows how a topic maps to LK20: goal level, paraphrase/verification status and Udir attribution
-export default function GoalPanel({ goals, udirCode, locale }: GoalPanelProps) {
+export default function GoalPanel({ goals, udirCode, locale, grade }: GoalPanelProps) {
   const copy = learnCopy(locale);
 
   return (
@@ -42,7 +43,7 @@ export default function GoalPanel({ goals, udirCode, locale }: GoalPanelProps) {
             {goal.description_is_paraphrase && <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{copy.paraphrase}</p>}
             {goal.is_local_sequence && (
               <p className="mt-1 flex gap-1 text-xs text-slate-600 dark:text-slate-300">
-                <Info className="mt-0.5 h-3.5 w-3.5 flex-none" aria-hidden="true" /> {copy.localSequence}
+                <Info className="mt-0.5 h-3.5 w-3.5 flex-none" aria-hidden="true" /> {copy.localSequenceFor(grade, goal.goal_after_grade)}
               </p>
             )}
             <a

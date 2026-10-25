@@ -69,7 +69,7 @@ export default function LessonPractice({ lessonId, locale, result, onCompleted }
       setStartedAt(Date.now());
       setPhase('playing');
     } catch (err: any) {
-      setError(err?.response?.data?.error || copy.error);
+      setError(err?.response?.data?.code === 'exam_in_progress' ? copy.lockedDuringTest : err?.response?.data?.error || copy.error);
       setPhase('idle');
     }
   };

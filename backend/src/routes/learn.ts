@@ -1275,9 +1275,12 @@ router.get('/mock-exams/:examId', (req: AuthRequest, res: Response) => {
   if (!exam) return;
 
   const rubric = parseMockRubric(exam);
+  const topic = getTopicContext(exam.topic_id);
   res.json({
     id: exam.id,
     topic_id: exam.topic_id,
+    grade: topic?.grade ?? null,
+    locale: topic?.instruction_locale ?? 'nb',
     title: exam.title,
     version: exam.version,
     time_limit_minutes: exam.time_limit_minutes,
@@ -1561,6 +1564,8 @@ router.get('/review-attempts/:attemptId', (req: AuthRequest, res: Response) => {
     ...presentReviewAttempt(attempt),
     paper: { id: paper.id, title: paper.title, locale: getPaperContext(paper).instruction_locale, grade: getPaperContext(paper).grade },
     prompts: Object.fromEntries(parsePaperItems(paper).map((item) => [item.id, item.prompt])),
+    options: Object.fromEntries(parsePaperItems(paper)
+      .map((item) => [item.id, item.kind === 'single_select' ? item.options : undefined])),
     source_lessons: Object.fromEntries([...getSourceLessons(paper).values()]
       .filter((lesson) => lesson.review_status === 'reviewed' || isReviewer(req))
       .map((lesson) => [lesson.content_id, { id: lesson.id, title: lesson.title }]))

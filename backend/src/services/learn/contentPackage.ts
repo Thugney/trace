@@ -234,10 +234,18 @@ export type ContentPackage = {
   subjects: SourceSubjectPack[];
 };
 
+/** Machine-readable content warning, so the review UI can explain it in the reviewer's language. */
+export type ContentNotice = {
+  code: 'untitled_lessons' | 'article_model_answer_mismatch' | 'grade8_preserve_flag_mismatch' | 'assessment_mode_naming' | 'answer_key_skew';
+  count: number;
+  examples: string[];
+};
+
 export type ValidationReport = {
   ok: boolean;
   errors: string[];
   warnings: string[];
+  notices: ContentNotice[];
   stats: {
     subjects: number;
     grades: number;
@@ -336,6 +344,7 @@ export function articleModelAnswerMatches(lesson: SourceLesson): boolean {
 export function validateContentPackage(pkg: ContentPackage, options: { existingGrade8PilotTopics?: Array<{ subject: string; slug: string }> } = {}): ValidationReport {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const notices: ContentNotice[] = [];
   const keyDistribution: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
   let flashcards = 0;
   let modelAnswerMismatches = 0;
@@ -487,6 +496,7 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
   });
 
   if (untitled.length > 0) {
+    notices.push({ code: 'untitled_lessons', count: untitled.length, examples: untitled });
     warnings.push(
       `content: ${untitled.length} lessons have no title (e.g. ${untitled.slice(0, 3).join(', ')}). ` +
       'The display title is taken from the grade 8 topic map or the slug and flagged for reviewer confirmation.'
@@ -494,6 +504,7 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
   }
 
   if (modelAnswerMismatches > 0) {
+    notices.push({ code: 'article_model_answer_mismatch', count: modelAnswerMismatches, examples: modelAnswerMismatchIds });
     warnings.push(
       `content: ${modelAnswerMismatches} lessons have article.model_answer that disagrees with practice[0].correct_key/correct_answer ` +
       `(e.g. ${modelAnswerMismatchIds.slice(0, 3).join(', ')}). The keyed practice answer is used; article.model_answer is not shown to learners. ` +
@@ -594,6 +605,7 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
   }
 
   if (preserveFlagMismatches.length > 0) {
+    notices.push({ code: 'grade8_preserve_flag_mismatch', count: preserveFlagMismatches.length, examples: preserveFlagMismatches });
     warnings.push(
       `content: ${preserveFlagMismatches.length} grade 8 lessons set existing_grade8_slug_preserved but the topic map marks them as new ` +
       `(e.g. ${preserveFlagMismatches.slice(0, 3).join(', ')}). The topic map is used.`
@@ -602,6 +614,7 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
   const courseModes = new Set(courses.filter((course) => course.grade >= 8).map((course) => course.assessment_mode));
   const lessonModes = new Set([...lessonsById.values()].filter((lesson) => lesson.grade >= 8).map((lesson) => lesson.assessment_mode));
   if ([...courseModes].some((mode) => !lessonModes.has(mode))) {
+    notices.push({ code: 'assessment_mode_naming', count: courseModes.size + lessonModes.size, examples: [...courseModes, ...lessonModes] });
     warnings.push(
       `content: grade 8-10 assessment_mode is "${[...courseModes].join(', ')}" in the course map but "${[...lessonModes].join(', ')}" ` +
       'in the lessons; both are treated as formative practice with non-official results.'
@@ -624,7 +637,10 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
   if (stats.published_lessons !== 0) errors.push('manifest: package claims published lessons; only drafts are importable');
 
   for (const [slot, count] of Object.entries(keyDistribution)) {
-    if (count > lessonsById.size * 0.5) warnings.push(`answer keys: ${count} of ${lessonsById.size} are option ${slot}`);
+    if (count > lessonsById.size * 0.5) {
+      notices.push({ code: 'answer_key_skew', count, examples: [slot] });
+      warnings.push(`answer keys: ${count} of ${lessonsById.size} are option ${slot}`);
+    }
   }
 
   const practicePrompts = [...lessonsById.values()].reduce((sum, lesson) => sum + (lesson.practice?.length || 0), 0);
@@ -632,6 +648,7 @@ export function validateContentPackage(pkg: ContentPackage, options: { existingG
     ok: errors.length === 0,
     errors,
     warnings,
+    notices,
     stats: {
       subjects: pkg.subjects.length,
       grades: new Set([...lessonsById.values()].map((lesson) => lesson.grade)).size,

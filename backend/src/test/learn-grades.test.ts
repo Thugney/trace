@@ -148,6 +148,9 @@ describe('FamilyHub Learn Grades 1-10 content package', () => {
     expect(report.stats.untitled_lessons).toBe(50);
     expect(report.warnings.some((warning) => warning.includes('no title'))).toBe(true);
     expect(report.warnings.some((warning) => warning.includes('article.model_answer'))).toBe(true);
+    expect(report.notices.map((notice) => [notice.code, notice.count])).toEqual([
+      ['untitled_lessons', 50], ['article_model_answer_mismatch', 77], ['grade8_preserve_flag_mismatch', 20], ['assessment_mode_naming', 2]
+    ]);
   });
 
   it('rejects a package whose answer key does not match its options, or that allows numeric grades', () => {
