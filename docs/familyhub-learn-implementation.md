@@ -2,6 +2,7 @@
 
 Status: implemented on `feature/familyhub-learn` (from `origin/feature/quiz` @ `8067070`), not deployed.
 Contract: [familyhub-learn-architecture.md](familyhub-learn-architecture.md). This file records what was built, the decisions taken, how it was validated and how to deploy or roll it back.
+The Grades 1–10 extension (content importer, review papers, parent dashboard) is documented in [familyhub-learn-grades-1-10.md](familyhub-learn-grades-1-10.md).
 
 ## 1. Preflight (verified 2026-10-24)
 
