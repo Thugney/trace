@@ -98,7 +98,7 @@ export default function LessonPage() {
   };
 
   return (
-    <div className={learnSurface.page} lang={lesson.locale === 'en' ? 'en' : 'nb'}>
+    <div className={clsx(tab === 'tutor' ? 'tutor-page min-h-full rounded-3xl p-4 sm:p-6' : learnSurface.page)} lang={lesson.locale === 'en' ? 'en' : 'nb'}>
       <Link to="/learn" className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-primary-700 hover:underline dark:text-primary-300">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {copy.backToLearn}
       </Link>
@@ -109,7 +109,7 @@ export default function LessonPage() {
           {lesson.course_nav && <> · {copy.stepOf(lesson.course_nav.position)}</>}
           {lesson.meta?.estimated_minutes && <> · {copy.aboutMinutes(lesson.meta.estimated_minutes)}</>}
         </p>
-        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{lesson.title}</h1>
+        <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{tab === 'tutor' ? (lesson.locale === 'en' ? "Let’s work it out together." : "Vi finner ut av det sammen.") : lesson.title}</h1>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           v{lesson.version} · {lesson.authored_by}
           {lesson.reviewed_at && <> · {copy.reviewedBy} {new Date(lesson.reviewed_at).toLocaleDateString('nb-NO')}</>}
@@ -234,6 +234,7 @@ export default function LessonPage() {
         {tab === 'cards' && <LessonFlashcards lessonId={lesson.id} locale={lesson.locale} />}
 
         {tab === 'tutor' && <TutorPanel key={lesson.id} lessonId={lesson.id} locale={lesson.locale} practice={lesson.practice}
+          lessonTitle={lesson.title} sections={lesson.review_status === 'reviewed' ? lesson.body.sections : []}
           onReadSection={(index) => { setTab('read'); requestAnimationFrame(() => { const section = document.getElementById(`lesson-section-${index}`); section?.scrollIntoView({ block: 'center' }); section?.focus(); }); }}
           onPractice={() => { setTab('practice'); requestAnimationFrame(() => tabRefs.current.practice?.focus()); }} />}
 

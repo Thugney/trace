@@ -1,18 +1,21 @@
 import db from '../../database/init';
+import { getVisibleLessons } from './catalog';
 import { getPracticeResult } from './practice';
 import type { TutorRecommendation } from './tutorCoach';
 
 /** Read-only: never turn chat or client claims into progress. Identity comes from the session. */
 export function tutorNextStep(profileId: number, topicId: number, currentLessonId: number): TutorRecommendation | null {
   const current = db.prepare('SELECT subject_id, grade FROM learn_topics WHERE id = ?').get(topicId) as { subject_id: number; grade: number };
-  const lessons = db.prepare(`
-    SELECT l.id, l.title, l.content_id, l.topic_id, l.sort_order, t.sort_order as topic_order,
-      COALESCE(ct.position, t.sort_order) as sequence
-    FROM learn_lessons l JOIN learn_topics t ON t.id = l.topic_id
-    LEFT JOIN learn_course_topics ct ON ct.topic_id = t.id
-    WHERE l.review_status = 'reviewed' AND t.subject_id = ? AND t.grade = ?
-    ORDER BY sequence, l.sort_order, l.id
-  `).all(current.subject_id, current.grade) as { id: number; title: string; content_id: string | null; sequence: number; sort_order: number }[];
+  if (!current) return null;
+  const topics = db.prepare(`
+    SELECT t.id, COALESCE(MIN(ct.position), t.sort_order) as sequence
+    FROM learn_topics t LEFT JOIN learn_course_topics ct ON ct.topic_id = t.id
+    WHERE t.subject_id = ? AND t.grade = ?
+    GROUP BY t.id ORDER BY sequence, t.sort_order, t.id
+  `).all(current.subject_id, current.grade) as { id: number; sequence: number }[];
+  // Use the learner catalog's reviewed slug/locale/version selection. Historical
+  // results remain tied to their original lesson ID, never transferred to v2.
+  const lessons = topics.flatMap(topic => getVisibleLessons(topic.id, false));
   const recentReviews = db.prepare(`SELECT feedback FROM learn_review_attempts WHERE profile_id = ? AND submitted_at IS NOT NULL ORDER BY submitted_at DESC LIMIT 10`).all(profileId) as { feedback: string | null }[];
   const revise = new Set<string>();
   for (const review of recentReviews) {

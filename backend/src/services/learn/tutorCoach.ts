@@ -117,6 +117,38 @@ export function coachPrompt(context: TutorContext, request: TutorRequest) {
   };
 }
 
+// A conservative source-vocabulary gate, not an entailment verifier. It checks
+// output against the sections actually cited, independently of the model's flag.
+// Indirect/default questions are allowed: we never classify a learner's intent
+// from zero keyword overlap. Unverifiable paraphrases/translations use the
+// reviewed excerpt fallback; shared vocabulary still cannot prove factual truth.
+const connectiveWords = new Set((
+  'a an the and or but if then to of in on at by for from with as is are was were be been being ' +
+  'has have had it its this that these those you your we our i my they their each one ' +
+  'can could would should will do does did how what which why when where ' +
+  'en ei et den det de og eller men hvis så til av i på ved for fra med som er var være ' +
+  'har hadde du din ditt vi vår jeg min dem deres hver kan kunne vil skal hva hvilken hvordan hvorfor'
+).split(/\s+/));
+const sourceWords = (text: string) => text.normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu)?.filter(word =>
+  !connectiveWords.has(word)).map(word => word.length > 4 ? word.replace(/s$/, '') : word) ?? [];
+const coachingQuestions = /^(?:why|what do you notice|what does this mean in your own words|can you explain your thinking|hvorfor|hva legger du merke til|hva betyr dette med dine egne ord|kan du forklare tankegangen din)\?$/i;
+function hasSourceSupport(answer: string, context: TutorContext, references: TutorReference[]): boolean {
+  const vocabulary = new Set(sourceWords(references.map(ref => {
+    const section = context.body.sections[ref.section_index];
+    return `${section.heading} ${section.paragraphs.join(' ')}`;
+  }).join(' ')));
+  let anchored = false;
+  const sentences = answer.match(/[^.!?\n]+[.!?]?/g) ?? [];
+  for (const sentence of sentences) {
+    if (coachingQuestions.test(sentence.trim())) continue;
+    const words = sourceWords(sentence);
+    // No arbitrary new subject matter hidden behind one valid citation/keyword.
+    if (!words.length || words.some(word => !vocabulary.has(word))) return false;
+    anchored = true;
+  }
+  return anchored;
+}
+
 export function validateCoachAnswer(text: string, context: TutorContext, request: TutorRequest) {
   try {
     const value = JSON.parse(text);
@@ -126,6 +158,8 @@ export function validateCoachAnswer(text: string, context: TutorContext, request
       !Array.isArray(value.references) || value.references.length < 1 || value.references.length > 2 || new Set(value.references).size !== value.references.length ||
       value.references.some((index: unknown) => !Number.isInteger(index) || !available[Number(index)]) ||
       unsafeTutorText(value.answer) || /Udir|kompetansemål|competenc[ey]|official|karakter|grade\s*[:=]|[A-Z]{3}\d{2}-\d{2}|<[^>]+>/i.test(value.answer)) return null;
-    return { answer: value.answer.trim(), references: value.references.map((index: number) => available[index]) as TutorReference[] };
+    const references = value.references.map((index: number) => available[index]) as TutorReference[];
+    if (!hasSourceSupport(value.answer, context, references)) return null;
+    return { answer: value.answer.trim(), references };
   } catch { return null; }
 }
