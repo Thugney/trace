@@ -781,6 +781,9 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();
       await optIn(app, parentA.id);
+      // A mock exam belongs to school years 8-10, so the guardian puts this pupil in year 9
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id))
+        .send({ grade: 9 })).status).toBe(200);
       const examId = await reviewedPilotMockExam(app, admin.id);
       const child = authHeaders(childA.id);
       const parent = authHeaders(parentA.id);
@@ -824,6 +827,9 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();
       await optIn(app, parentA.id);
+      // A mock exam belongs to school years 8-10, so the guardian puts this pupil in year 9
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id))
+        .send({ grade: 9 })).status).toBe(200);
       const examId = await reviewedPilotMockExam(app, admin.id);
       const child = authHeaders(childA.id);
 
