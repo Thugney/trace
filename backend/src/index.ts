@@ -30,6 +30,7 @@ import { initScheduler } from './services/scheduler';
 import { ensureAuthSessionSchema } from './services/authSessions';
 import { ensureLearnSchema } from './services/learn/schema';
 import { seedLearnCatalog } from './services/learn/catalog';
+import { importPackagedLearnContent } from './services/learn/contentImport';
 import { migrateLegacyParentPin, migrateLegacyProfileCredentials } from './services/credentials';
 
 dotenv.config();
@@ -86,6 +87,8 @@ try {
 try {
   ensureLearnSchema();
   seedLearnCatalog();
+  // Grades 1-10 research package: validated, draft-only, repeat-safe (LEARN_CONTENT_AUTO_IMPORT=false to skip)
+  importPackagedLearnContent();
 } catch (error: any) {
   console.error('Learn initialization error:', error.message);
 }

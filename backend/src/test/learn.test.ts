@@ -2,71 +2,10 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { testDb } from './setup.js';
-import { createTestProfile, createTestProgress, authHeaders } from './helpers.js';
+import { createTestProfile, createTestProgress, authHeaders, createLearnEngineTables } from './helpers.js';
 import { ensureLearnSchema } from '../services/learn/schema.js';
 import { seedLearnCatalog } from '../services/learn/catalog.js';
 import { GRADE8_PILOT } from '../services/learn/curriculum.js';
-
-function createEngineTables() {
-  testDb.exec(`
-    CREATE TABLE IF NOT EXISTS audit_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT, entity_type TEXT, entity_id INTEGER, actor_id INTEGER, actor_type TEXT,
-      details TEXT, ip_address TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS ai_settings (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      profile_id INTEGER NOT NULL UNIQUE,
-      strict_mode INTEGER DEFAULT 1,
-      max_messages_per_day INTEGER DEFAULT 20,
-      content_filter_level TEXT DEFAULT 'strict',
-      custom_instructions TEXT DEFAULT ''
-    );
-    CREATE TABLE IF NOT EXISTS activity_types (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL UNIQUE,
-      display_name TEXT NOT NULL,
-      icon TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS learning_sessions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL, description TEXT, topic TEXT NOT NULL, age_range TEXT,
-      created_by INTEGER NOT NULL, assigned_to INTEGER NOT NULL,
-      points_per_activity INTEGER DEFAULT 20, stars_per_session INTEGER DEFAULT 1, bonus_points INTEGER DEFAULT 50,
-      time_limit_seconds INTEGER, pass_threshold INTEGER DEFAULT 70, is_ai_generated INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1, is_competition INTEGER DEFAULT 0, competition_ends_at DATETIME,
-      first_place_bonus INTEGER DEFAULT 50, second_place_bonus INTEGER DEFAULT 25, third_place_bonus INTEGER DEFAULT 10,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS learning_activities (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      session_id INTEGER NOT NULL, activity_type_id INTEGER NOT NULL, title TEXT NOT NULL, instructions TEXT,
-      content_data TEXT NOT NULL, correct_data TEXT NOT NULL, hints TEXT, explanation TEXT,
-      points INTEGER DEFAULT 20, time_limit_seconds INTEGER, order_index INTEGER DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS session_attempts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      session_id INTEGER NOT NULL, profile_id INTEGER NOT NULL,
-      started_at DATETIME DEFAULT CURRENT_TIMESTAMP, completed_at DATETIME,
-      total_activities INTEGER NOT NULL, completed_activities INTEGER DEFAULT 0,
-      total_score INTEGER DEFAULT 0, max_possible_score INTEGER NOT NULL,
-      score_percentage INTEGER DEFAULT 0, points_earned INTEGER DEFAULT 0, stars_earned INTEGER DEFAULT 0,
-      time_bonus_points INTEGER DEFAULT 0, time_taken_seconds INTEGER, passed INTEGER DEFAULT 0,
-      competition_rank INTEGER, bonus_awarded INTEGER DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS activity_results (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      attempt_id INTEGER NOT NULL, activity_id INTEGER NOT NULL, user_response TEXT,
-      score INTEGER DEFAULT 0, max_score INTEGER DEFAULT 0, is_correct INTEGER DEFAULT 0,
-      partial_score REAL DEFAULT 0, hints_used INTEGER DEFAULT 0, time_taken_seconds INTEGER,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-  testDb.exec(`
-    INSERT OR IGNORE INTO activity_types (name, display_name, icon) VALUES
-      ('multiple_choice', 'Multiple choice', '🔘'), ('fill_blanks', 'Fill in the blanks', '✏️')
-  `);
-}
 
 const LEARN_TABLES = [
   'learn_personal_cards', 'learn_flashcard_reviews', 'learn_mock_attempts', 'learn_assignments',
@@ -126,7 +65,7 @@ const mathFixture = GRADE8_PILOT.find((subject) => subject.slug === 'matematikk'
 
 describe('FamilyHub Learn', () => {
   beforeAll(() => {
-    createEngineTables();
+    createLearnEngineTables();
     ensureLearnSchema();
   });
 

@@ -8,6 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "db:init": "tsx src/database/init.ts",
+    "learn:validate": "tsx src/scripts/import-learn-content.ts --validate-only",
+    "learn:import": "tsx src/scripts/import-learn-content.ts",
+    "learn:sync-content": "tsx src/scripts/sync-learn-content.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
