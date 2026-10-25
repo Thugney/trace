@@ -17,6 +17,31 @@ import LearnParent from './LearnParent';
 
 const copy = learnCopy('nb');
 
+const browseGradeKey = (profileId: number) => `learn_browse_grade_${profileId}`;
+
+// The browsed year is a per-profile view preference, not the guardian-set school
+// year: remembering it here keeps the shelf a learner was reading when they come
+// back, and it cannot widen assessment, which the server derives from the
+// learner's own year
+const readBrowseGrade = (profileId?: number): number | null => {
+  if (!profileId) return null;
+  try {
+    const stored = Number(localStorage.getItem(browseGradeKey(profileId)));
+    return Number.isInteger(stored) && stored >= 1 && stored <= 10 ? stored : null;
+  } catch {
+    return null;
+  }
+};
+
+const rememberBrowseGrade = (profileId: number | undefined, grade: number) => {
+  if (!profileId) return;
+  try {
+    localStorage.setItem(browseGradeKey(profileId), String(grade));
+  } catch {
+    // A browser that refuses storage still browses; it just will not remember
+  }
+};
+
 export default function LearnHome() {
   const { currentProfile } = useProfile();
   const [status, setStatus] = useState<LearnStatus | null>(null);
@@ -46,10 +71,13 @@ export default function LearnHome() {
       const statusResponse = await learnAPI.getStatus();
       setStatus(statusResponse.data);
       if (statusResponse.data.enabled) {
-        const [overviewResponse, me] = await Promise.all([learnAPI.getCatalogOverview(), learnAPI.getMyProgress(), loadCatalog()]);
+        const remembered = readBrowseGrade(currentProfile?.id);
+        const [overviewResponse, me] = await Promise.all([
+          learnAPI.getCatalogOverview(), learnAPI.getMyProgress(), loadCatalog(remembered ?? undefined)
+        ]);
         setOverview(overviewResponse.data.grades);
         setProgress(me.data);
-        setPickingGrade(!statusResponse.data.grade && statusResponse.data.role !== 'admin');
+        setPickingGrade(!statusResponse.data.grade && !remembered && statusResponse.data.role !== 'admin');
       }
     } catch (err: any) {
       setError(err?.response?.data?.error || copy.error);
@@ -68,10 +96,10 @@ export default function LearnHome() {
     setSavingGrade(true);
     setError(null);
     try {
-      // The school grade is a guardian control: children and admins browse
-      // other years without saving one
-      if (status?.role === 'parent') await learnAPI.setMyGrade(next);
+      // The school grade stays a guardian control, set per child from the parent
+      // view; browsing another year only moves this profile's own view
       await loadCatalog(next);
+      rememberBrowseGrade(currentProfile?.id, next);
       setSubjectFilter('all');
       setPickingGrade(false);
     } catch (err: any) {
