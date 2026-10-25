@@ -52,7 +52,8 @@ import type {
   ReviewPaperInfo,
   ReviewQueue,
   ReviewStatus,
-  TutorReply
+  TutorReply,
+  TutorOptions
 } from '../types/learn';
 
 export type { Reward, RewardClaim };
@@ -2881,7 +2882,7 @@ export const learnAPI = {
   giveReviewFeedback: (attemptId: number, data: { summary?: string; items?: Record<string, string> }) =>
     api.post<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}/feedback`, data),
 
-  askTutor: (lessonId: number, question: string) => api.post<TutorReply>('/learn/tutor', { lesson_id: lessonId, question }),
+  askTutor: (lessonId: number, question: string, options: TutorOptions = {}) => api.post<TutorReply>('/learn/tutor', { lesson_id: lessonId, question, ...options }),
 
   getReviewQueue: (filters: { grade?: number; subject?: string; status?: ReviewStatus } = {}) =>
     api.get<ReviewQueue>('/learn/admin/review-queue', { params: filters }),

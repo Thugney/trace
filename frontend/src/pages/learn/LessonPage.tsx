@@ -156,8 +156,8 @@ export default function LessonPage() {
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
             <article className={clsx(learnSurface.card, 'space-y-6 text-[1.05rem] leading-relaxed')}>
               <p className="text-lg">{lesson.body.intro}</p>
-              {lesson.body.sections.map((section) => (
-                <section key={section.heading}>
+              {lesson.body.sections.map((section, sectionIndex) => (
+                <section key={section.heading} id={`lesson-section-${sectionIndex}`} tabIndex={-1}>
                   <h2 className="text-xl font-semibold">{section.heading}</h2>
                   {section.paragraphs.map((paragraph, index) => <p key={index} className="mt-2">{paragraph}</p>)}
                   {section.bullets && (
@@ -233,7 +233,9 @@ export default function LessonPage() {
 
         {tab === 'cards' && <LessonFlashcards lessonId={lesson.id} locale={lesson.locale} />}
 
-        {tab === 'tutor' && <TutorPanel lessonId={lesson.id} locale={lesson.locale} />}
+        {tab === 'tutor' && <TutorPanel key={lesson.id} lessonId={lesson.id} locale={lesson.locale} practice={lesson.practice}
+          onReadSection={(index) => { setTab('read'); requestAnimationFrame(() => { const section = document.getElementById(`lesson-section-${index}`); section?.scrollIntoView({ block: 'center' }); section?.focus(); }); }}
+          onPractice={() => { setTab('practice'); requestAnimationFrame(() => tabRefs.current.practice?.focus()); }} />}
 
         {tab === 'exam' && (
           <div className={clsx(learnSurface.card, 'space-y-4')}>
