@@ -28,9 +28,11 @@ async function createApp() {
 function setupFamilies() {
   const admin = createTestProfile({ name: 'Admin', type: 'admin' });
   const parentA = createTestProfile({ name: 'Parent A', type: 'parent' });
-  const childA = createTestProfile({ name: 'Child A', type: 'child', parent_id: parentA.id, ai_enabled: 1 });
+  // The pilot is grade 8: Norwegian Year 8 pupils turn 13 that school year, and
+  // its mock exams are only open to a learner of that year (contract §6)
+  const childA = createTestProfile({ name: 'Child A', type: 'child', parent_id: parentA.id, ai_enabled: 1, age: 13 });
   const parentB = createTestProfile({ name: 'Parent B', type: 'parent' });
-  const childB = createTestProfile({ name: 'Child B', type: 'child', parent_id: parentB.id });
+  const childB = createTestProfile({ name: 'Child B', type: 'child', parent_id: parentB.id, age: 13 });
   createTestProgress(childA.id);
   return { admin, parentA, childA, parentB, childB };
 }
