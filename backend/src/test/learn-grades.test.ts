@@ -662,6 +662,57 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
     });
   });
 
+  describe('authorization across families', () => {
+    it('denies cross-family reads, feedback, settings and assignments', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA, parentB, childB } = setupFamilies();
+      await optIn(app, parentA.id);
+      await optIn(app, parentB.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const lessonId = lessonRowId(GRADE3_MATH[0]);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      await request(app).post(`/learn/lessons/${lessonId}/open-responses/${GRADE3_MATH[0]}-q2`).set(authHeaders(childA.id)).send({ response: 'Svar A' });
+      const responseId = (testDb.prepare('SELECT id FROM learn_open_responses WHERE profile_id = ?').get(childA.id) as any).id;
+      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(authHeaders(childA.id));
+      await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(authHeaders(childA.id)).send({ responses: {} });
+
+      const b = authHeaders(parentB.id);
+      expect((await request(app).get(`/learn/children/${childA.id}/progress`).set(b)).status).toBe(403);
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(b).send({ learn_enabled: false })).status).toBe(403);
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(childA.id)).send({ tutor_enabled: true })).status).toBe(403);
+      expect((await request(app).post(`/learn/open-responses/${responseId}/feedback`).set(b).send({ feedback: 'x' })).status).toBe(404);
+      expect((await request(app).get(`/learn/review-attempts/${start.body.attempt_id}`).set(b)).status).toBe(404);
+      expect((await request(app).get(`/learn/review-attempts/${start.body.attempt_id}`).set(authHeaders(childB.id))).status).toBe(404);
+      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/feedback`).set(b).send({ summary: 'x' })).status).toBe(404);
+      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(authHeaders(childB.id)).send({})).status).toBe(404);
+      expect((await request(app).post('/learn/assignments').set(b)
+        .send({ child_id: childA.id, review_paper_id: paperId, idempotency_key: 'x' })).status).toBe(403);
+      expect((await request(app).post('/learn/assignments').set(authHeaders(parentA.id))
+        .send({ child_id: childA.id, topic_id: topicIdOf(GRADE3_MATH[0]), review_paper_id: paperId, idempotency_key: 'two' })).status).toBe(400);
+    });
+
+    it('lets a guardian switch Learn and the AI tutor off per child', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, [GRADE3_MATH[0]]);
+      testDb.prepare("INSERT OR IGNORE INTO ai_settings (profile_id) VALUES (?)").run(childA.id);
+      const lessonId = lessonRowId(GRADE3_MATH[0]);
+      const parent = authHeaders(parentA.id);
+
+      const off = await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ tutor_enabled: false });
+      expect(off.body.tutor_available).toBe(false);
+      const tutor = await request(app).post('/learn/tutor').set(authHeaders(childA.id)).send({ lesson_id: lessonId, question: 'Hjelp?' });
+      expect(tutor.status).toBe(403);
+      expect(tutor.body.code).toBe('ai_disabled');
+
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ learn_enabled: false });
+      expect((await request(app).get('/learn/catalog').set(authHeaders(childA.id))).status).toBe(403);
+      expect(count("SELECT COUNT(*) as n FROM audit_logs WHERE action = 'learn.child_settings_updated'")).toBe(2);
+    });
+  });
+
   describe('answer keys stay shut while another test is running', () => {
     const expire = (table: 'learn_review_attempts' | 'learn_mock_attempts', id: number) =>
       testDb.prepare(`UPDATE ${table} SET expires_at = ? WHERE id = ?`)
@@ -870,57 +921,6 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
         expect(JSON.stringify(body)).not.toContain('DRAFT ONLY');
         expect(JSON.stringify(body)).not.toContain('DRAFT SUMMARY');
       }
-    });
-  });
-
-  describe('authorization across families', () => {
-    it('denies cross-family reads, feedback, settings and assignments', async () => {
-      const app = await createApp();
-      const { admin, parentA, childA, parentB, childB } = setupFamilies();
-      await optIn(app, parentA.id);
-      await optIn(app, parentB.id);
-      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
-      const lessonId = lessonRowId(GRADE3_MATH[0]);
-      const paperId = paperRowId(GRADE3_MATH_PAPER);
-
-      await request(app).post(`/learn/lessons/${lessonId}/open-responses/${GRADE3_MATH[0]}-q2`).set(authHeaders(childA.id)).send({ response: 'Svar A' });
-      const responseId = (testDb.prepare('SELECT id FROM learn_open_responses WHERE profile_id = ?').get(childA.id) as any).id;
-      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(authHeaders(childA.id));
-      await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(authHeaders(childA.id)).send({ responses: {} });
-
-      const b = authHeaders(parentB.id);
-      expect((await request(app).get(`/learn/children/${childA.id}/progress`).set(b)).status).toBe(403);
-      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(b).send({ learn_enabled: false })).status).toBe(403);
-      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(childA.id)).send({ tutor_enabled: true })).status).toBe(403);
-      expect((await request(app).post(`/learn/open-responses/${responseId}/feedback`).set(b).send({ feedback: 'x' })).status).toBe(404);
-      expect((await request(app).get(`/learn/review-attempts/${start.body.attempt_id}`).set(b)).status).toBe(404);
-      expect((await request(app).get(`/learn/review-attempts/${start.body.attempt_id}`).set(authHeaders(childB.id))).status).toBe(404);
-      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/feedback`).set(b).send({ summary: 'x' })).status).toBe(404);
-      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(authHeaders(childB.id)).send({})).status).toBe(404);
-      expect((await request(app).post('/learn/assignments').set(b)
-        .send({ child_id: childA.id, review_paper_id: paperId, idempotency_key: 'x' })).status).toBe(403);
-      expect((await request(app).post('/learn/assignments').set(authHeaders(parentA.id))
-        .send({ child_id: childA.id, topic_id: topicIdOf(GRADE3_MATH[0]), review_paper_id: paperId, idempotency_key: 'two' })).status).toBe(400);
-    });
-
-    it('lets a guardian switch Learn and the AI tutor off per child', async () => {
-      const app = await createApp();
-      const { admin, parentA, childA } = setupFamilies();
-      await optIn(app, parentA.id);
-      await review(app, admin.id, [GRADE3_MATH[0]]);
-      testDb.prepare("INSERT OR IGNORE INTO ai_settings (profile_id) VALUES (?)").run(childA.id);
-      const lessonId = lessonRowId(GRADE3_MATH[0]);
-      const parent = authHeaders(parentA.id);
-
-      const off = await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ tutor_enabled: false });
-      expect(off.body.tutor_available).toBe(false);
-      const tutor = await request(app).post('/learn/tutor').set(authHeaders(childA.id)).send({ lesson_id: lessonId, question: 'Hjelp?' });
-      expect(tutor.status).toBe(403);
-      expect(tutor.body.code).toBe('ai_disabled');
-
-      await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ learn_enabled: false });
-      expect((await request(app).get('/learn/catalog').set(authHeaders(childA.id))).status).toBe(403);
-      expect(count("SELECT COUNT(*) as n FROM audit_logs WHERE action = 'learn.child_settings_updated'")).toBe(2);
     });
   });
 });
