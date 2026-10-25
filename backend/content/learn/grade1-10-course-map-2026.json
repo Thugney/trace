@@ -2865,7 +2865,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "matematikk-g8-primtallsfaktorisering-og-brok",
@@ -2947,7 +2947,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "norsk-g8-argumenterende-tekst",
@@ -3029,7 +3029,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "engelsk-g8-formal-and-informal-language",
@@ -3106,7 +3106,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "naturfag-g8-celler",
@@ -3188,7 +3188,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "samfunnsfag-g8-demokrati-og-medvirkning",
@@ -3270,7 +3270,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "matematikk-g9-fart-og-sammensatte-enheter",
@@ -3352,7 +3352,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "norsk-g9-tolke-skjonnlitteratur",
@@ -3434,7 +3434,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "engelsk-g9-persuasive-writing",
@@ -3511,7 +3511,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "naturfag-g9-genetikk-og-arv",
@@ -3593,7 +3593,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "samfunnsfag-g9-okonomi-skatt-og-velferd",
@@ -3675,7 +3675,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "matematikk-g10-algebraiske-regneregler",
@@ -3757,7 +3757,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "norsk-g10-sammenligne-tekster",
@@ -3839,7 +3839,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "engelsk-g10-building-an-argument",
@@ -3916,7 +3916,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "naturfag-g10-evolusjon-og-biologisk-mangfold",
@@ -3998,7 +3998,7 @@
         "guided",
         "free_topic"
       ],
-      "assessment_mode": "formative_with_optional_indicative_review_later",
+      "assessment_mode": "formative_plus_non_official_mock_assessment",
       "ordered_lessons": [
         {
           "lesson_id": "samfunnsfag-g10-menneskerettigheter-og-rettsstat",

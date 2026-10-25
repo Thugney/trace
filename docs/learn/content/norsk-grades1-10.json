@@ -3493,7 +3493,7 @@
           "back": "Når regnet beskrives som «trommende», kan lyden forsterke uroen i scenen."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3587,7 +3587,7 @@
           "back": "En anonym påstand uten kilder bør kontrolleres mot uavhengig dokumentasjon."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3681,7 +3681,7 @@
           "back": "Et leserinnlegg trenger tydelig mening; en fagtekst trenger presis informasjon og kilder."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3775,7 +3775,7 @@
           "back": "Ordet «jeg» kan uttales ulikt i dialekter og skrives «eg» på nynorsk."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
