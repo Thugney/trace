@@ -50,5 +50,23 @@ export function isLearnPracticeSession(sessionId: number): boolean {
   }
 }
 
+/**
+ * The learner's open assessment, unless it is the very attempt being acted on.
+ *
+ * Acting on the attempt that is running is legitimate; acting on a different one
+ * while a test is open is not. An attempt that expires unsubmitted drops out of
+ * `getOpenAssessment` (which counts only unexpired rows), so submitting it late
+ * would otherwise hand back the answer key of the test still in progress.
+ */
+export function getBlockingAssessment(
+  profileId: number,
+  self?: { kind: OpenAssessment['kind']; attempt_id: number }
+): OpenAssessment | null {
+  const open = getOpenAssessment(profileId);
+  if (!open) return null;
+  if (self && open.kind === self.kind && open.attempt_id === self.attempt_id) return null;
+  return open;
+}
+
 export const assessmentLocked = (res: Response, open: OpenAssessment) =>
   res.status(423).json({ error: 'Not available while a test is in progress', code: 'exam_in_progress', ...open });

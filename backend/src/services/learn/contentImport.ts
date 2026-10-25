@@ -355,7 +355,13 @@ export function importContentPackage(
           flashcards: JSON.stringify(toFlashcards(lesson)), open_prompts: JSON.stringify(toOpenPrompts(lesson)),
           content_meta: JSON.stringify(meta)
         });
-        if (!pilotKeys.has(`${lesson.subject}:${lesson.grade}:${lesson.slug}`)) {
+        // The topic row is shared by every version of the lesson, so correcting an
+        // unapproved draft must not rewrite metadata a learner is already shown. Only
+        // a topic with nothing reviewed in it can safely take the draft's wording.
+        const topicHasReviewedLesson = db.prepare(
+          "SELECT 1 FROM learn_lessons WHERE topic_id = ? AND review_status = 'reviewed' LIMIT 1"
+        ).get(topicId);
+        if (!pilotKeys.has(`${lesson.subject}:${lesson.grade}:${lesson.slug}`) && !topicHasReviewedLesson) {
           db.prepare('UPDATE learn_topics SET title = ?, summary = ? WHERE id = ?').run(title.title, lesson.article.intro, topicId);
         }
         summary.refreshed.lessons += 1;

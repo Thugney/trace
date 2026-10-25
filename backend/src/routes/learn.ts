@@ -29,7 +29,7 @@ import {
   type MockExamRow
 } from '../services/learn/catalog';
 import { ensurePracticeSession, getPracticeResult, PracticeUnavailableError } from '../services/learn/practice';
-import { assessmentLocked, getOpenAssessment } from '../services/learn/assessmentLock';
+import { assessmentLocked, getBlockingAssessment, getOpenAssessment } from '../services/learn/assessmentLock';
 import { scoreMockExam } from '../services/learn/mockScoring';
 import { buildTutorPrompt, buildTutorFallback } from '../services/learn/tutor';
 import {
@@ -830,6 +830,12 @@ router.get('/topics/:topicId', (req: AuthRequest, res: Response) => {
 
   const lessons = getVisibleLessons(topic.id, isReviewer(req));
   const exams = getVisibleMockExams(topic.id, isReviewer(req));
+  // A topic with nothing reviewed in it is unpublished content: its title, summary
+  // and goal mapping must not reach a learner through a direct ID either.
+  if (!isReviewer(req) && lessons.length === 0 && exams.length === 0) {
+    return res.status(404).json({ error: 'Topic not found' });
+  }
+
   res.json({
     ...topic,
     lessons: lessons.map((lesson) => ({ id: lesson.id, title: lesson.title, version: lesson.version, review_status: lesson.review_status })),
@@ -1369,6 +1375,12 @@ router.post('/mock-attempts/:attemptId/submit', (req: AuthRequest, res: Response
     return res.status(404).json({ error: 'Attempt not found' });
   }
 
+  // The scored evidence carries the exam's answer key, so it may only be produced or
+  // replayed for the attempt that is running - never for one that expired while a
+  // retake of the same exam is open.
+  const blockingMock = getBlockingAssessment(attempt.profile_id, { kind: 'mock_exam', attempt_id: attempt.id });
+  if (blockingMock) return assessmentLocked(res, blockingMock);
+
   // Idempotent: retries return the stored result instead of rescoring
   if (attempt.submitted_at) {
     return res.json({ ...presentAttempt(attempt), already_submitted: true });
@@ -1416,6 +1428,12 @@ router.get('/mock-attempts/:attemptId', (req: AuthRequest, res: Response) => {
   const attempt = attemptId ? db.prepare('SELECT * FROM learn_mock_attempts WHERE id = ?').get(attemptId) as any : null;
   if (!attempt || !canAccessOwnOrManagedChild(req.profile!, attempt.profile_id) || !attempt.submitted_at) {
     return res.status(404).json({ error: 'Attempt not found' });
+  }
+  // An earlier attempt's evidence is the answer key of the exam now running, so the
+  // learner's own review stays shut during a test. A guardian still needs it to respond.
+  if (attempt.profile_id === req.profile!.id) {
+    const open = getOpenAssessment(req.profile!.id);
+    if (open) return assessmentLocked(res, open);
   }
   res.json(presentAttempt(attempt));
 });
@@ -1498,11 +1516,14 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
   if (!attempt || attempt.profile_id !== req.profile!.id) {
     return res.status(404).json({ error: 'Attempt not found' });
   }
+  // Scoring returns the answer key, so it may only happen for the paper that is
+  // actually running. Replaying a submitted attempt, or submitting one that expired
+  // while a retake is open, would otherwise reveal the running paper's answers.
+  const blockingReview = getBlockingAssessment(attempt.profile_id, { kind: 'review_paper', attempt_id: attempt.id });
+  if (blockingReview) return assessmentLocked(res, blockingReview);
+
   // Idempotent: a retry returns the stored result and never rescores or re-awards
   if (attempt.submitted_at) {
-    // ...but once a retake is running, replaying this submit would hand back its answer key
-    const openRetake = getOpenAssessment(attempt.profile_id);
-    if (openRetake) return assessmentLocked(res, openRetake);
     return res.json({ ...presentReviewAttempt(attempt), already_submitted: true });
   }
 
