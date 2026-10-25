@@ -48,15 +48,28 @@ export function getPaperContext(paper: ReviewPaperRow) {
   };
 }
 
-/** Newest version of each source lesson, keyed by content_id (used for titles and links). */
-export function getSourceLessons(paper: ReviewPaperRow) {
+export type SourceLessonRow = { id: number; content_id: string; title: string; version: number; review_status: string };
+
+/**
+ * Newest *visible* version of each source lesson, keyed by content_id (titles and links).
+ *
+ * Visibility is filtered before the newest version is picked, because a learner
+ * only ever sees reviewed lessons: selecting the newest first would drop the link
+ * entirely whenever the content has since been drafted again or the newest version
+ * was retired, which is the ordinary draft-review publishing workflow. Reviewers
+ * pass includeUnreviewed to keep seeing the draft they are working on.
+ */
+export function getSourceLessons(paper: ReviewPaperRow, options: { includeUnreviewed?: boolean } = {}) {
   const ids = JSON.parse(paper.source_lesson_ids) as string[];
+  const byContentId = new Map<string, SourceLessonRow>();
+  if (ids.length === 0) return byContentId;
+
   const rows = db.prepare(`
     SELECT id, content_id, title, version, review_status FROM learn_lessons
     WHERE content_id IN (${ids.map(() => '?').join(',')})
+    ${options.includeUnreviewed ? '' : "AND review_status = 'reviewed'"}
     ORDER BY version DESC
-  `).all(...ids) as Array<{ id: number; content_id: string; title: string; version: number; review_status: string }>;
-  const byContentId = new Map<string, (typeof rows)[number]>();
+  `).all(...ids) as SourceLessonRow[];
   for (const row of rows) {
     if (!byContentId.has(row.content_id)) byContentId.set(row.content_id, row);
   }

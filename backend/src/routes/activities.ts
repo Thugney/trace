@@ -22,6 +22,7 @@ import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { awardPoints } from '../services/economyControl';
 import { isRepeatLearnPracticeCompletion } from '../services/learn/practice';
+import { assessmentLocked, getOpenAssessment, isLearnPracticeSession } from '../services/learn/assessmentLock';
 
 const router = Router();
 
@@ -345,6 +346,13 @@ router.get('/sessions/:sessionId', (req: Request, res: Response) => {
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Learn practice reuses the review-paper questions, so this answer key stays
+    // shut while the viewer has a test running
+    if (isLearnPracticeSession(session.id)) {
+      const open = getOpenAssessment((req as AuthRequest).profile!.id);
+      if (open) return assessmentLocked(res, open);
     }
 
     const activities = db.prepare(`
@@ -691,6 +699,12 @@ router.post('/sessions/:sessionId/start', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Session has no activities' });
     }
 
+    // No Learn practice run (new or resumed) while that learner has a test open
+    if (isLearnPracticeSession(session.id)) {
+      const open = getOpenAssessment(profileId);
+      if (open) return assessmentLocked(res, open);
+    }
+
     // Check for existing incomplete attempt
     const existingAttempt: any = db.prepare(`
       SELECT id FROM session_attempts
@@ -735,6 +749,12 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
 
     if (attempt.completed_at) {
       return res.status(400).json({ error: 'Attempt already completed' });
+    }
+
+    // Answering Learn practice would score the same items as the open paper
+    if (isLearnPracticeSession(attempt.session_id)) {
+      const open = getOpenAssessment(attempt.profile_id);
+      if (open) return assessmentLocked(res, open);
     }
 
     const activity: any = db.prepare(`

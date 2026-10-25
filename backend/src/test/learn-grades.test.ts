@@ -514,6 +514,126 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(JSON.stringify(seen.body)).not.toMatch(/indicative_grade|"numeric_grade":\s*[1-6]/);
     });
 
+    it('locks practice delivery and submission in the activity engine, not just its setup', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+      const lessonId = lessonRowId(GRADE3_MATH[0]);
+
+      // Materialize practice and open an engine attempt BEFORE the paper starts
+      const practice = await request(app).post(`/learn/lessons/${lessonId}/practice`).set(child);
+      expect(practice.status).toBe(200);
+      const sessionId = practice.body.session_id;
+      const opened = await request(app).post(`/activities/sessions/${sessionId}/start`).set(child).send({});
+      expect(opened.status).toBe(201);
+      const attemptId = opened.body.attemptId;
+      const activityId = (testDb.prepare('SELECT id FROM learning_activities WHERE session_id = ? ORDER BY order_index').get(sessionId) as any).id;
+
+      // A plain (non-Learn) session must keep working throughout
+      const plain = await request(app).post('/activities/sessions').set(authHeaders(parentA.id))
+        .send({ title: 'Vanlig økt', topic: 'Annet', createdBy: parentA.id, assignedTo: childA.id });
+      expect(plain.status).toBe(201);
+
+      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(start.status).toBe(201);
+
+      // The already-materialized session, its answer key and the open attempt are all shut
+      const locked = await request(app).get(`/activities/sessions/${sessionId}`).set(child);
+      expect(locked.status).toBe(423);
+      expect(locked.body.code).toBe('exam_in_progress');
+      expect(JSON.stringify(locked.body)).not.toContain('correctAnswer');
+      expect((await request(app).post(`/activities/sessions/${sessionId}/start`).set(child).send({})).status).toBe(423);
+      expect((await request(app).post(`/activities/attempts/${attemptId}/submit`).set(child)
+        .send({ activityId, userResponse: { answer: 'A' } })).status).toBe(423);
+      expect((await request(app).get(`/activities/sessions/${plain.body.id ?? plain.body.sessionId}`).set(child)).status).toBe(200);
+
+      // Submitting the paper reopens practice
+      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses: {} })).status).toBe(200);
+      expect((await request(app).get(`/activities/sessions/${sessionId}`).set(child)).status).toBe(200);
+      expect((await request(app).post(`/activities/attempts/${attemptId}/submit`).set(child)
+        .send({ activityId, userResponse: { answer: 'A' } })).status).toBe(200);
+    });
+
+    it('hides an earlier attempt\'s answer key while a retake is running', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const parent = authHeaders(parentA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      const first = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items.filter((item) => item.kind === 'single_select').map((item) => [item.id, item.correct_key]));
+      const firstId = first.body.attempt_id;
+      expect((await request(app).post(`/learn/review-attempts/${firstId}/submit`).set(child).send({ responses })).status).toBe(200);
+
+      // Between attempts the learner studies the full feedback
+      const between = await request(app).get(`/learn/review-attempts/${firstId}`).set(child);
+      expect(between.status).toBe(200);
+      expect(between.body.feedback.items.some((item: any) => item.correct_key)).toBe(true);
+
+      // A retake reuses the same items, so the first attempt's key is shut while it runs
+      const retake = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(retake.status).toBe(201);
+      const hidden = await request(app).get(`/learn/review-attempts/${firstId}`).set(child);
+      expect(hidden.status).toBe(423);
+      expect(hidden.body.code).toBe('exam_in_progress');
+      // ...including through the idempotent submit retry, which returns the same feedback
+      const replay = await request(app).post(`/learn/review-attempts/${firstId}/submit`).set(child).send({ responses: {} });
+      expect(replay.status).toBe(423);
+      for (const secret of ['correct_key', 'correct_answer', 'expected_content', 'explanation']) {
+        expect(JSON.stringify(hidden.body) + JSON.stringify(replay.body)).not.toContain(secret);
+      }
+
+      // A guardian still needs it to give feedback, and the learner gets it back after submitting
+      expect((await request(app).get(`/learn/review-attempts/${firstId}`).set(parent)).status).toBe(200);
+      expect((await request(app).post(`/learn/review-attempts/${retake.body.attempt_id}/submit`).set(child).send({ responses })).status).toBe(200);
+      expect((await request(app).get(`/learn/review-attempts/${firstId}`).set(child)).status).toBe(200);
+    });
+
+    it('keeps the reviewed source-lesson link when a newer draft version arrives', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+      const sourceContentId = (JSON.parse((testDb.prepare('SELECT source_lesson_ids FROM learn_review_papers WHERE id = ?')
+        .get(paperId) as any).source_lesson_ids) as string[])[0];
+      const reviewedRowId = lessonRowId(sourceContentId);
+
+      // Draft a new version of that source lesson: the ordinary publishing workflow
+      const edited = clonePackage();
+      edited.subjects[0].lessons.find((lesson) => lesson.id === sourceContentId)!.version = 2;
+      edited.courseMap.courses.find((course) => course.course_id === 'learn-matematikk-grade-3')!
+        .ordered_lessons.find((item) => item.lesson_id === sourceContentId)!.content_version = 2;
+      expect(importContentPackage(edited).ok).toBe(true);
+      expect(testDb.prepare('SELECT version, review_status FROM learn_lessons WHERE content_id = ? ORDER BY version').all(sourceContentId))
+        .toEqual([{ version: 1, review_status: 'reviewed' }, { version: 2, review_status: 'draft' }]);
+
+      // Paper information still links the revision, pointing at the reviewed version
+      const paper = await request(app).get(`/learn/review-papers/${paperId}`).set(child);
+      expect(paper.status).toBe(200);
+      expect(paper.body.source_lessons.find((lesson: any) => lesson.content_id === sourceContentId)).toMatchObject({ id: reviewedRowId });
+
+      // ...and so do the results
+      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses: {} })).status).toBe(200);
+      const attempt = await request(app).get(`/learn/review-attempts/${start.body.attempt_id}`).set(child);
+      expect(attempt.body.source_lessons[sourceContentId]).toMatchObject({ id: reviewedRowId });
+
+      // The reviewer keeps seeing the draft they are working on
+      const reviewerView = await request(app).get(`/learn/admin/review-papers/${paperId}`).set(authHeaders(admin.id));
+      expect(reviewerView.status).toBe(200);
+      expect(reviewerView.body.source_lessons.find((lesson: any) => lesson.content_id === sourceContentId))
+        .toMatchObject({ version: 2, review_status: 'draft' });
+    });
+
     it('never produces a numeric grade for grade 8-10 papers either', async () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();

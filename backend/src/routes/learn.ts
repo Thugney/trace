@@ -29,6 +29,7 @@ import {
   type MockExamRow
 } from '../services/learn/catalog';
 import { ensurePracticeSession, getPracticeResult, PracticeUnavailableError } from '../services/learn/practice';
+import { assessmentLocked, getOpenAssessment } from '../services/learn/assessmentLock';
 import { scoreMockExam } from '../services/learn/mockScoring';
 import { buildTutorPrompt, buildTutorFallback } from '../services/learn/tutor';
 import {
@@ -127,17 +128,6 @@ function getOpenReviewAttempt(profileId: number) {
     ORDER BY started_at DESC LIMIT 1
   `).get(profileId, nowIso()) as any;
 }
-
-/** Any running mock exam or review paper: tutor, practice keys and model answers are locked meanwhile. */
-function getOpenAssessment(profileId: number): { kind: 'mock_exam' | 'review_paper'; attempt_id: number } | null {
-  const mock = getOpenMockAttempt(profileId);
-  if (mock) return { kind: 'mock_exam', attempt_id: mock.id };
-  const review = getOpenReviewAttempt(profileId);
-  return review ? { kind: 'review_paper', attempt_id: review.id } : null;
-}
-
-const assessmentLocked = (res: Response, open: { kind: string; attempt_id: number }) =>
-  res.status(423).json({ error: 'Not available while a test is in progress', code: 'exam_in_progress', ...open });
 
 // ---------------------------------------------------------------- learner settings (profiles.settings JSON)
 
@@ -667,7 +657,7 @@ router.get('/admin/review-papers/:paperId', (req: AuthRequest, res: Response) =>
     items: parsePaperItems(paper),
     score_policy: parseScorePolicy(paper),
     source_lesson_ids: JSON.parse(paper.source_lesson_ids),
-    source_lessons: [...getSourceLessons(paper).values()],
+    source_lessons: [...getSourceLessons(paper, { includeUnreviewed: true }).values()],
     context: getPaperContext(paper)
   });
 });
@@ -1455,8 +1445,7 @@ router.get('/review-papers/:paperId', (req: AuthRequest, res: Response) => {
     curriculum_code: context.curriculum_code,
     numeric_grade_allowed: false,
     policy_reason: policy.reason,
-    source_lessons: [...getSourceLessons(paper).values()]
-      .filter((lesson) => lesson.review_status === 'reviewed' || isReviewer(req))
+    source_lessons: [...getSourceLessons(paper, { includeUnreviewed: isReviewer(req) }).values()]
       .map((lesson) => ({ id: lesson.id, content_id: lesson.content_id, title: lesson.title })),
     review_status: paper.review_status,
     previous_attempts: (db.prepare(`
@@ -1511,6 +1500,9 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
   }
   // Idempotent: a retry returns the stored result and never rescores or re-awards
   if (attempt.submitted_at) {
+    // ...but once a retake is running, replaying this submit would hand back its answer key
+    const openRetake = getOpenAssessment(attempt.profile_id);
+    if (openRetake) return assessmentLocked(res, openRetake);
     return res.json({ ...presentReviewAttempt(attempt), already_submitted: true });
   }
 
@@ -1570,6 +1562,12 @@ router.get('/review-attempts/:attemptId', (req: AuthRequest, res: Response) => {
   if (!attempt || !attempt.submitted_at || !canAccessOwnOrManagedChild(req.profile!, attempt.profile_id)) {
     return res.status(404).json({ error: 'Attempt not found' });
   }
+  // An earlier attempt's feedback is the answer key of the paper now running, so the
+  // learner's own review stays shut during a test. A guardian still needs it to respond.
+  if (attempt.profile_id === req.profile!.id) {
+    const open = getOpenAssessment(req.profile!.id);
+    if (open) return assessmentLocked(res, open);
+  }
   const paper = getReviewPaper(attempt.paper_id)!;
   res.json({
     ...presentReviewAttempt(attempt),
@@ -1577,8 +1575,7 @@ router.get('/review-attempts/:attemptId', (req: AuthRequest, res: Response) => {
     prompts: Object.fromEntries(parsePaperItems(paper).map((item) => [item.id, item.prompt])),
     options: Object.fromEntries(parsePaperItems(paper)
       .map((item) => [item.id, item.kind === 'single_select' ? item.options : undefined])),
-    source_lessons: Object.fromEntries([...getSourceLessons(paper).values()]
-      .filter((lesson) => lesson.review_status === 'reviewed' || isReviewer(req))
+    source_lessons: Object.fromEntries([...getSourceLessons(paper, { includeUnreviewed: isReviewer(req) }).values()]
       .map((lesson) => [lesson.content_id, { id: lesson.id, title: lesson.title }]))
   });
 });
