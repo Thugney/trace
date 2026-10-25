@@ -18,6 +18,7 @@ import {
   type ContentPackage
 } from '../services/learn/contentPackage.js';
 import { importContentPackage, pilotGrade8Topics } from '../services/learn/contentImport.js';
+import { GRADE8_PILOT } from '../services/learn/curriculum.js';
 
 const LEARN_TABLES = [
   'learn_open_responses', 'learn_review_attempts', 'learn_assignments', 'learn_review_papers', 'learn_course_topics',
@@ -659,6 +660,190 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       const start = await request(app).post(`/learn/mock-exams/${exam.lastInsertRowid}/start`).set(authHeaders(childA.id));
       expect(start.status).toBe(409);
       expect(start.body.code).toBe('formative_only');
+    });
+  });
+
+  // Contract §5.7 and §6: grades 1-7 never display numeric grades, and the
+  // indicative 1-6 of grades 8-10 is only ever reachable from a rubric-backed
+  // mock exam by a learner whose own school year allows it.
+  describe('numeric grade policy for grades 1-7', () => {
+    const pilotMathExamId = () => (testDb.prepare(`
+      SELECT e.id FROM learn_mock_exams e
+      JOIN learn_topics t ON t.id = e.topic_id
+      JOIN learn_subjects s ON s.id = t.subject_id
+      WHERE s.slug = 'matematikk' AND t.grade = 8
+    `).get() as { id: number }).id;
+
+    const pilotMathAnswers = () => Object.fromEntries(
+      GRADE8_PILOT.find((subject) => subject.slug === 'matematikk')!.topic.mockExam.items.map((item) => [item.key, item.answer])
+    );
+
+    async function reviewExam(app: express.Application, adminId: number, examId: number) {
+      expect((await request(app).post(`/learn/mock-exams/${examId}/review`).set(authHeaders(adminId)).send({ status: 'reviewed' })).status).toBe(200);
+    }
+
+    const openAttemptFor = (examId: number, profileId: number) => testDb.prepare(`
+      INSERT INTO learn_mock_attempts (exam_id, profile_id, rubric_version, started_at, expires_at) VALUES (?, ?, 1, ?, ?)
+    `).run(examId, profileId, new Date().toISOString(), new Date(Date.now() + 3600000).toISOString()).lastInsertRowid as number;
+
+    it('lets only a guardian set the school grade, and audits it', async () => {
+      const app = await createApp();
+      const { parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const child = authHeaders(childA.id);
+
+      const pinned = await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id)).send({ grade: 3 });
+      expect(pinned.body).toMatchObject({ grade: 3 });
+
+      // The learner cannot move itself into a year where numeric grades exist
+      const raise = await request(app).put('/learn/me/settings').set(child).send({ grade: 10 });
+      expect(raise.status).toBe(403);
+      expect(raise.body.code).toBe('guardian_only');
+      expect((await request(app).get('/learn/status').set(child)).body.grade).toBe(3);
+      expect(JSON.parse((testDb.prepare('SELECT settings FROM profiles WHERE id = ?').get(childA.id) as any).settings).learn_grade).toBe(3);
+
+      // A guardian still sets their own browsing grade, and it is audited
+      const own = await request(app).put('/learn/me/settings').set(authHeaders(parentA.id)).send({ grade: 9 });
+      expect(own.status).toBe(200);
+      expect(own.body.grade).toBe(9);
+      expect(count("SELECT COUNT(*) as n FROM audit_logs WHERE action = 'learn.own_grade_updated'")).toBe(1);
+    });
+
+    it('refuses a grade 3 learner an indicative grade from a grade 8 mock exam, at start and at submit', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const examId = pilotMathExamId();
+      await reviewExam(app, admin.id, examId);
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id)).send({ grade: 3 });
+      const child = authHeaders(childA.id);
+
+      const start = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(start.status).toBe(409);
+      expect(start.body.code).toBe('formative_only');
+
+      // An attempt row that exists anyway (a stale start, or a grade changed
+      // since) must not be scored into a number either
+      const attemptId = openAttemptFor(examId, childA.id);
+      const submit = await request(app).post(`/learn/mock-attempts/${attemptId}/submit`).set(child).send({ responses: pilotMathAnswers() });
+      expect(submit.status).toBe(409);
+      expect(submit.body.code).toBe('formative_only');
+      expect(testDb.prepare('SELECT indicative_grade, submitted_at FROM learn_mock_attempts WHERE id = ?').get(attemptId))
+        .toEqual({ indicative_grade: null, submitted_at: null });
+    });
+
+    it('refuses rather than assuming grade 8 when the material has no topic row', async () => {
+      const app = await createApp();
+      const { parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id)).send({ grade: 9 });
+      // A half-migrated database: an exam row whose topic is gone. The foreign
+      // key is lifted only to plant that state, never by the application.
+      testDb.pragma('foreign_keys = OFF');
+      const orphan = testDb.prepare(`
+        INSERT INTO learn_mock_exams (topic_id, slug, title, version, items, rubric, review_status)
+        VALUES (?, 'orphan', 'Orphan', 1, '[]', ?, 'reviewed')
+      `).run(
+        999999,
+        JSON.stringify({ criteria: [], limitations: [], disclaimer: '', gradeBands: [], minAnsweredRatio: 0.8, minItemsAnsweredPerCriterion: 2 })
+      ).lastInsertRowid as number;
+      testDb.pragma('foreign_keys = ON');
+
+      const start = await request(app).post(`/learn/mock-exams/${orphan}/start`).set(authHeaders(childA.id));
+      expect(start.status).toBe(409);
+      expect(start.body.code).toBe('formative_only');
+
+      const attemptId = openAttemptFor(orphan, childA.id);
+      expect((await request(app).post(`/learn/mock-attempts/${attemptId}/submit`).set(authHeaders(childA.id)).send({ responses: {} })).status).toBe(409);
+    });
+
+    it('still gives a legitimate grade 9 learner the indicative, non-official grade', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const examId = pilotMathExamId();
+      await reviewExam(app, admin.id, examId);
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id)).send({ grade: 9 });
+      const child = authHeaders(childA.id);
+
+      const start = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(start.status).toBe(201);
+      const submit = await request(app).post(`/learn/mock-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses: pilotMathAnswers() });
+      expect(submit.status).toBe(200);
+      expect(submit.body).toMatchObject({ outcome: 'graded', indicative_grade: 6, is_official_grade: false });
+      expect((await request(app).get(`/learn/mock-attempts/${start.body.attempt_id}`).set(child)).body.indicative_grade).toBe(6);
+
+      // A review paper stays formative at grade 9 too
+      await review(app, admin.id, [], ['familyhub-learn-naturfag-g9-review-v1']);
+      const paperId = paperRowId('familyhub-learn-naturfag-g9-review-v1');
+      const paper = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items.filter((item) => item.kind === 'single_select').map((item) => [item.id, item.correct_key]));
+      const paperSubmit = await request(app).post(`/learn/review-attempts/${paper.body.attempt_id}/submit`).set(child).send({ responses });
+      expect(paperSubmit.body).toMatchObject({ numeric_grade: null, is_official_grade: false });
+    });
+
+    it('hides the number on an older attempt once the learner is back in grades 1-7', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const examId = pilotMathExamId();
+      await reviewExam(app, admin.id, examId);
+      const parent = authHeaders(parentA.id);
+      const child = authHeaders(childA.id);
+
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ grade: 9 });
+      const start = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      const submit = await request(app).post(`/learn/mock-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses: pilotMathAnswers() });
+      expect(submit.body.indicative_grade).toBe(6);
+
+      // The guardian corrects the school year; the stored number stops being shown
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(parent).send({ grade: 7 });
+      expect((await request(app).get(`/learn/mock-attempts/${start.body.attempt_id}`).set(child)).body.indicative_grade).toBeNull();
+      expect((await request(app).get(`/learn/mock-attempts/${start.body.attempt_id}`).set(parent)).body.indicative_grade).toBeNull();
+      const progress = await request(app).get('/learn/me/progress').set(child);
+      expect(progress.body.mock_attempts[0]).toMatchObject({ score: 18, indicative_grade: null });
+      // The evidence behind it survives, so the feedback is still usable
+      expect(progress.body.mock_attempts[0].max_score).toBe(18);
+    });
+
+    it('shows a grade 3 learner no numeric grade anywhere, even while browsing grade 9', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await reviewExam(app, admin.id, pilotMathExamId());
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id)).send({ grade: 3 });
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      // Browsing another year's lessons stays open; the policy shown stays this learner's
+      const ahead = await request(app).get('/learn/catalog?grade=9').set(child);
+      expect(ahead.status).toBe(200);
+      expect(ahead.body.grade).toBe(9);
+      expect(ahead.body.learner_grade).toBe(3);
+      expect(ahead.body.assessment_policy).toMatchObject({ formative_only: true, numeric_grades_allowed: 'never' });
+
+      const paperStart = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items.filter((item) => item.kind === 'single_select').map((item) => [item.id, item.correct_key]));
+      const paperSubmit = await request(app).post(`/learn/review-attempts/${paperStart.body.attempt_id}/submit`).set(child).send({ responses });
+
+      const payloads = [
+        await request(app).get('/learn/status').set(child),
+        await request(app).get('/learn/catalog').set(child),
+        ahead,
+        await request(app).get(`/learn/lessons/${lessonRowId(GRADE3_MATH[0])}`).set(child),
+        await request(app).get(`/learn/topics/${topicIdOf(GRADE3_MATH[0])}`).set(child),
+        await request(app).get('/learn/me/progress').set(child),
+        await request(app).get(`/learn/review-papers/${paperId}`).set(child),
+        paperSubmit,
+        await request(app).get(`/learn/review-attempts/${paperStart.body.attempt_id}`).set(child)
+      ];
+      for (const payload of payloads) {
+        expect(payload.status, JSON.stringify(payload.body).slice(0, 200)).toBe(200);
+        expect(JSON.stringify(payload.body)).not.toMatch(/indicative_grade|"numeric_grade":\s*[1-6]/);
+      }
     });
   });
 

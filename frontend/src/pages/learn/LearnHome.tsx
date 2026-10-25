@@ -68,8 +68,9 @@ export default function LearnHome() {
     setSavingGrade(true);
     setError(null);
     try {
-      // Admins browse grades without saving a school grade
-      if (status?.role !== 'admin') await learnAPI.setMyGrade(next);
+      // The school grade is a guardian control: children and admins browse
+      // other years without saving one
+      if (status?.role === 'parent') await learnAPI.setMyGrade(next);
       await loadCatalog(next);
       setSubjectFilter('all');
       setPickingGrade(false);

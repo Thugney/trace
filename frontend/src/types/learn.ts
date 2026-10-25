@@ -110,6 +110,9 @@ export interface AssessmentPolicy {
 
 export interface LearnCatalog {
   grade: number;
+  // The learner's own school year, which may differ from the grade being browsed;
+  // assessment_policy always follows the learner, never the browsed grade
+  learner_grade?: number | null;
   assessment_policy?: AssessmentPolicy;
   subjects: LearnSubject[];
 }
