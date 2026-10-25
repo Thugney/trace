@@ -13,6 +13,7 @@ import {
   DEFAULT_CONTENT_DIR,
   loadContentPackage,
   packageFileList,
+  titleOf,
   validateContentPackage,
   type ContentPackage
 } from '../services/learn/contentPackage.js';
@@ -143,14 +144,32 @@ describe('FamilyHub Learn Grades 1-10 content package', () => {
     expect([1, 3, 8].map((grade) => checkpoint('matematikk', grade))).toEqual([2, 3, 8]);
   });
 
-  it('reports content gaps instead of filling them', () => {
+  it('has no open content notices after the 2026-10-25 data fixes', () => {
     const report = validateContentPackage(pkg);
-    expect(report.stats.untitled_lessons).toBe(50);
-    expect(report.warnings.some((warning) => warning.includes('no title'))).toBe(true);
-    expect(report.warnings.some((warning) => warning.includes('article.model_answer'))).toBe(true);
-    expect(report.notices.map((notice) => [notice.code, notice.count])).toEqual([
-      ['untitled_lessons', 50], ['article_model_answer_mismatch', 77], ['grade8_preserve_flag_mismatch', 20], ['assessment_mode_naming', 2]
+    expect(report.notices).toEqual([]);
+    expect(report.warnings).toEqual([]);
+    expect(report.stats).toMatchObject({ untitled_lessons: 0, article_model_answer_mismatches: 0 });
+  });
+
+  it('reports content gaps as structured notices instead of filling them', () => {
+    const broken = clonePackage();
+    const english = broken.subjects[2].lessons[0];
+    delete english.title;
+    const maths = broken.subjects[0].lessons[0];
+    maths.article.model_answer = ['A', 'B', 'C', 'D'].find((key) => key !== maths.practice[0].correct_key)!;
+    broken.subjects[0].lessons.find((lesson) => lesson.id === 'matematikk-g8-potenser-og-kvadratrotter')!.existing_grade8_slug_preserved = true;
+    broken.courseMap.courses.find((course) => course.grade === 9)!.assessment_mode = 'formative_with_optional_indicative_review_later';
+
+    const report = validateContentPackage(broken);
+    expect(report.ok).toBe(true);
+    expect(report.notices).toEqual([
+      { code: 'untitled_lessons', count: 1, examples: [english.id] },
+      { code: 'article_model_answer_mismatch', count: 1, examples: [maths.id] },
+      { code: 'grade8_preserve_flag_mismatch', count: 1, examples: ['matematikk-g8-potenser-og-kvadratrotter'] },
+      expect.objectContaining({ code: 'assessment_mode_naming' })
     ]);
+    // The display title falls back to supplied data and is flagged, never invented
+    expect(titleOf(english, broken.grade8TopicMap)).toEqual({ title: 'Colours around us', source: 'slug' });
   });
 
   it('rejects a package whose answer key does not match its options, or that allows numeric grades', () => {
@@ -242,6 +261,40 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(count('SELECT COUNT(*) as n FROM learn_progress WHERE profile_id = ? AND lesson_id = ?', childA.id, lessonId)).toBe(1);
     });
 
+    it('corrects unapproved, unused drafts in place but never drafts a learner has used', async () => {
+      const app = await createApp();
+      const { parentA, childA, admin } = setupFamilies();
+      await optIn(app, parentA.id);
+      const [unused, used] = GRADE3_MATH;
+      // A learner touched `used` while an admin previewed it; it then went back to draft
+      await review(app, admin.id, [used]);
+      await request(app).post(`/learn/lessons/${lessonRowId(used)}/read`).set(authHeaders(childA.id));
+      await request(app).post(`/learn/lessons/${lessonRowId(used)}/review`).set(authHeaders(admin.id)).send({ status: 'draft' });
+
+      const edited = clonePackage();
+      for (const id of [unused, used]) {
+        edited.subjects[0].lessons.find((lesson) => lesson.id === id)!.article.key_takeaway = `Rettet: ${id}`;
+      }
+      const paper = edited.assessments.assessments.find((item) => item.id === GRADE3_MATH_PAPER)!;
+      paper.instructions = 'Rettet instruksjon';
+      const before = count('SELECT COUNT(*) as n FROM learn_lessons');
+
+      const result = importContentPackage(edited);
+      expect(result.summary!.refreshed).toEqual({ lessons: 1, review_papers: 1 });
+      expect(result.summary!.skipped).toEqual([expect.stringContaining(`${used} v1`)]);
+      expect(count('SELECT COUNT(*) as n FROM learn_lessons')).toBe(before);
+
+      const body = (id: string) => JSON.parse((testDb.prepare('SELECT body FROM learn_lessons WHERE content_id = ?').get(id) as any).body);
+      expect(body(unused).keyTakeaway).toBe(`Rettet: ${unused}`);
+      expect(body(used).keyTakeaway).not.toBe(`Rettet: ${used}`);
+      expect(testDb.prepare('SELECT review_status FROM learn_lessons WHERE content_id = ?').get(unused)).toEqual({ review_status: 'draft' });
+      expect((testDb.prepare('SELECT instructions FROM learn_review_papers WHERE content_id = ?').get(GRADE3_MATH_PAPER) as any).instructions)
+        .toBe('Rettet instruksjon');
+
+      // Repeating the corrected import is a no-op
+      expect(importContentPackage(edited).summary!.refreshed).toEqual({ lessons: 0, review_papers: 0 });
+    });
+
     it('refuses an invalid package without writing anything', () => {
       const broken = clonePackage();
       broken.subjects[1].lessons.pop();
@@ -304,7 +357,7 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(detail.status).toBe(200);
       expect(detail.body.practice_items[0].correct).toEqual({ correctAnswer: 'C' });
       expect(detail.body.open_prompts[0].model_answer).toBeTruthy();
-      expect(detail.body.content_meta.content_warnings).toContain('title_missing_in_source_used_slug');
+      expect(detail.body.content_meta).toMatchObject({ content_warnings: [], title_source: 'lesson' });
       expect(detail.body.title).toBe('Colours around us');
 
       const paper = await request(app).get(`/learn/admin/review-papers/${paperRowId(GRADE3_MATH_PAPER)}`).set(authHeaders(admin.id));

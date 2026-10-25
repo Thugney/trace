@@ -11,7 +11,7 @@ Contract: [GRADES1-10-CODEX-CLAUDE-IMPORT-CONTRACT.md](learn/GRADES1-10-CODEX-CL
 |---|---|
 | Content packaging | `backend/content/learn/` is a byte-identical copy of `docs/learn/` (the backend Docker context is `./backend`). Sync it with `npm run learn:sync-content`, or check it with `npm run learn:sync-content -- --check`. A test fails if the two copies drift. |
 | Validator | `services/learn/contentPackage.ts` checks all 5 subjects, 10 grades, the 50 courses, 250 lesson IDs (`<subject>-g<grade>-<slug>`), 5 lessons per grade/subject, checkpoint stage and URL against the registry, `crosswalk = unverified`, 4 distinct options with the key matching its label, open prompts that need human review, 3 flashcards, 50 papers kept in sync with the lesson keys, `numeric_grade_allowed = false` and the manifest counts. Content defects become structured `notices`, not silent fixes. |
-| Importer | `services/learn/contentImport.ts` is draft-only and runs in one transaction. Identity is `(content_id, version)`. Stored versions are never updated, so a changed lesson must come as a new version, which starts as a draft. It refuses to write anything if validation fails, and every run is logged in `learn_content_imports`. It runs at startup (`LEARN_CONTENT_AUTO_IMPORT=false` disables this) and is skipped when the package hash is unchanged. It is also available as a CLI and as an audited admin endpoint (dry run by default). |
+| Importer | `services/learn/contentImport.ts` is draft-only and runs in one transaction. Identity is `(content_id, version)`. A stored version is corrected in place only while it is still an unapproved draft that no learner has used (no progress, practice, cards, answers, attempts or assignments). Approved, retired or used versions are never changed: a correction to them must come as a new version, which starts as a draft. The review page lists the lessons an import skipped for this reason. It refuses to write anything if validation fails, and every run is logged in `learn_content_imports`. It runs at startup (`LEARN_CONTENT_AUTO_IMPORT=false` disables this) and is skipped when the package hash is unchanged. It is also available as a CLI and as an audited admin endpoint (dry run by default). |
 | Reuse | Lessons go into the existing `learn_lessons` table, and the keyed question becomes an activity-engine `multiple_choice` item: server-scored, with points for the first pass only. Flashcards use the existing Leitner/personal-card model. The tutor uses the existing provider chain and quota. Notifications and the audit log are reused. |
 | Learner UI | `/learn` has a grade picker (reviewed-topic counts per grade), subject cards, the ordered course path (prerequisites are suggestions, not locks), free topic search, resume and assignments with deadlines. The lesson page adds a key takeaway, open responses, course previous/next and review papers. `/learn/papers/:id` and `/learn/review-attempts/:id` cover review papers. |
 | Parent UI | Per child: school grade, Learn on/off, AI tutor on/off, a needs-practice list (failed practice, missed flashcards, wrong review-paper items), a feedback queue for open answers, review results and assignments of a topic, lesson, review paper or (grade 8+) mock exam, with due date and overdue status. |
@@ -65,7 +65,7 @@ Before and after, compare the row counts of `books`, `school_*`, `regular_school
 
 ## 4. Validation evidence (2026-10-25)
 
-- Backend: 145 of 146 tests pass. The new `learn-grades.test.ts` has 17 tests covering the package, the importer, the draft gate, the full parent → child → practice → feedback → progress loop, review papers, Grade 1–7 policy, cross-family access and per-child controls. `tsc` is clean.
+- Backend: 147 of 148 tests pass. The new `learn-grades.test.ts` has 19 tests covering the package, the importer (including in-place correction of unused drafts), the draft gate, the full parent → child → practice → feedback → progress loop, review papers, Grade 1–7 policy, cross-family access and per-child controls. `tsc` is clean.
 - The one failure is the baseline test `gamification > family-leaderboard … period boundaries`. It also fails on the untouched PR #10 head because it depends on the date (today is a Sunday). On the baseline, `learning-access > family quizzes` also timed out once and is flaky. Neither failure comes from this work.
 - Frontend: `tsc` is clean and `vite build` succeeds. ESLint still has no config, as on the baseline.
 - Import into a throwaway database: 250 lessons, 50 papers, 50 courses, 245 new topics plus the 5 shared pilot topics, 25 checkpoint goals. A second run created 0 and left 250 lessons and 50 papers unchanged.
@@ -81,13 +81,22 @@ Before and after, compare the row counts of `books`, `school_*`, `regular_school
 ## 5. Content awaiting human action (not a code task)
 
 1. **All 250 lessons and 50 review papers are drafts.** Each needs editorial review and approval in `/learn/review`.
-2. **All 50 English lessons have no `title`.** The slug is shown instead and flagged in the review queue.
-3. **77 lessons have an `article.model_answer` that disagrees with the practice key.** The practice key is used, and the field is hidden.
-4. **20 Grade 8 lessons set `existing_grade8_slug_preserved = true`**, but the topic map says only 5 are existing pilot topics.
-5. **The Grade 8–10 `assessment_mode` is named differently** in the course map and the lessons.
-6. **Review-paper `learner_feedback` prompts exist only in English**, so they are hidden on Bokmål papers.
-7. **No individual competence-goal crosswalk exists.** Topics link only to checkpoint pages, which are `unverified`.
-8. **Articles are short (median 68 words)**, and each lesson has one keyed question, one open question and three flashcards.
+2. **Review-paper `learner_feedback` prompts exist only in English**, so they are hidden on Bokmål papers.
+3. **No individual competence-goal crosswalk exists.** Topics link only to checkpoint pages, which are `unverified`.
+4. **Articles are short (median 68 words)**, and each lesson has one keyed question, one open question and three flashcards.
+
+### Data fixes applied 2026-10-25 (approved by the repository owner)
+
+The validator reported four inconsistencies in `docs/learn`. They were fixed mechanically, without writing new educational text, and the packaged copy was re-synced. The package now validates with no warnings.
+
+| Issue | Fix |
+|---|---|
+| 77 lessons had an `article.model_answer` that contradicted `practice[0]` | Set to the practice key (letter form) or the answer (text form), which also matches the review papers. |
+| 20 Grade 8 lessons set `existing_grade8_slug_preserved = true` | Set to the topic map's value. Only the 5 PR #9 pilot topics are `true`. |
+| The course map used `formative_with_optional_indicative_review_later` in 15 Grade 8–10 courses | Renamed to the lessons' name, `formative_plus_non_official_mock_assessment`. |
+| All 50 English lessons had no `title` | Filled with the title already shown in the app: the Grade 8 topic map title, otherwise the slug's words (e.g. "Colours around us"). These are still subject to editorial review. |
+
+The validator still detects these issues and reports them as structured `notices`. The review page explains each one in Bokmål and links every affected lesson.
 
 ## 6. Known pre-existing issues seen (out of scope)
 

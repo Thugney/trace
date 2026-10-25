@@ -707,7 +707,18 @@ router.get('/admin/content-import', (req: AuthRequest, res: Response) => {
   let validation: unknown = null;
   try {
     const pkg = loadContentPackage();
-    validation = { source_hash: pkg.sourceHash, ...validateContentPackage(pkg, { existingGrade8PilotTopics: pilotGrade8Topics() }) };
+    const report = validateContentPackage(pkg, { existingGrade8PilotTopics: pilotGrade8Topics() });
+    // Newest stored lesson per affected content ID (notices and lessons the last import skipped),
+    // so the reviewer can open each one
+    const skippedIds = runs.find((run) => !run.dry_run)?.summary?.skipped?.map((item: string) => item.split(' ')[0]) || [];
+    const affected = [...new Set([...report.notices.flatMap((notice) => notice.examples), ...skippedIds])];
+    const lessonLinks = affected.length
+      ? Object.fromEntries((db.prepare(`
+          SELECT content_id, MAX(id) as id FROM learn_lessons
+          WHERE content_id IN (${affected.map(() => '?').join(',')}) GROUP BY content_id
+        `).all(...affected) as Array<{ content_id: string; id: number }>).map((row) => [row.content_id, row.id]))
+      : {};
+    validation = { source_hash: pkg.sourceHash, ...report, lesson_links: lessonLinks };
   } catch (error: any) {
     validation = { ok: false, errors: [`package unreadable: ${error.message}`], warnings: [] };
   }

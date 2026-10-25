@@ -63,7 +63,8 @@ function print(value: unknown) {
   validation.warnings.forEach((warning: string) => console.log(`  WARN  ${warning}`));
   if (report.summary) {
     console.log(`${report.summary.dry_run ? 'Dry run (rolled back)' : 'Imported'}:`, JSON.stringify(report.summary.created));
-    console.log('Unchanged:', JSON.stringify(report.summary.unchanged), 'Preserved pilot topics:', report.summary.preserved_pilot_topics.length);
+    console.log('Unchanged:', JSON.stringify(report.summary.unchanged), 'Corrected unused drafts:', JSON.stringify(report.summary.refreshed));
+    console.log('Preserved pilot topics:', report.summary.preserved_pilot_topics.length);
     report.summary.skipped.forEach((item: string) => console.log(`  SKIP  ${item}`));
   }
 }

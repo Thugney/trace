@@ -548,6 +548,7 @@ export interface ContentImportStatus {
     errors: string[];
     warnings: string[];
     notices?: { code: string; count: number; examples: string[] }[];
+    lesson_links?: Record<string, number>;
     stats?: Record<string, unknown>;
     source_hash?: string;
   } | null;

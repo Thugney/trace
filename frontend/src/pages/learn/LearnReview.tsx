@@ -153,7 +153,12 @@ export default function LearnReview() {
     try {
       const response: any = await learnAPI.runContentImport(dryRun);
       const created = response.data.summary?.created || {};
-      setNotice(`${dryRun ? 'Tørrkjøring' : 'Import'} OK – nye leksjoner: ${created.lessons ?? 0}, nye repetisjonsprøver: ${created.review_papers ?? 0}.`);
+      const refreshed = response.data.summary?.refreshed || {};
+      const skipped = response.data.summary?.skipped?.length ?? 0;
+      setNotice(
+        `${dryRun ? 'Tørrkjøring' : 'Import'} OK – nye leksjoner: ${created.lessons ?? 0}, nye repetisjonsprøver: ${created.review_papers ?? 0}, ` +
+        `rettede utkast: ${(refreshed.lessons ?? 0) + (refreshed.review_papers ?? 0)}, hoppet over (godkjent eller i bruk): ${skipped}.`
+      );
       await Promise.all([loadImports(), load()]);
     } catch (err: any) {
       setError(err?.response?.data?.validation?.errors?.[0] || err?.response?.data?.error || copy.error);
@@ -197,11 +202,39 @@ export default function LearnReview() {
               {latestRun && <> · Sist importert {new Date(latestRun.created_at).toLocaleString('nb-NO')}</>}
             </p>
             {(imports.validation?.errors || []).slice(0, 5).map((item) => <p key={item} className="text-sm text-rose-700 dark:text-rose-300">{item}</p>)}
+            {(latestRun?.summary?.skipped || []).length > 0 && (
+              <details className="mt-3 rounded-xl bg-slate-100 p-3 text-sm dark:bg-slate-800/70">
+                <summary className="cursor-pointer font-semibold">
+                  {latestRun!.summary.skipped!.length} godkjente eller brukte leksjoner er eldre enn kildefilene
+                </summary>
+                <p className={clsx('mt-1', learnSurface.muted)}>
+                  Disse ble ikke endret, fordi de er godkjent eller allerede brukt av et barn. Rettelsen må komme som en ny versjon
+                  (øk «version» i kildefilen), som så må godkjennes.
+                </p>
+                <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs">
+                  {latestRun!.summary.skipped!.map((item) => {
+                    const contentId = item.split(' ')[0];
+                    const lessonId = imports.validation?.lesson_links?.[contentId];
+                    return (
+                      <li key={item}>
+                        {lessonId ? <Link to={`/learn/lessons/${lessonId}`} className="text-primary-700 hover:underline dark:text-primary-300">{contentId}</Link> : contentId}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            )}
+            {imports.validation?.ok && (imports.validation.notices || []).length === 0 && (
+              <p className="mt-2 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Ingen avvik i kildedataene.
+              </p>
+            )}
             {(imports.validation?.notices || []).length > 0 && (
               <>
                 <p className={clsx('mt-3 text-sm', learnSurface.muted)}>
-                  Pakken er importert, men kildedataene har disse avvikene. De stopper ikke importen og vises ikke for elever,
-                  men bør rettes i kildefilene (docs/learn) av den som eier innholdet.
+                  Pakken er importert, men kildedataene har disse avvikene. De stopper ikke importen og vises ikke for elever.
+                  Rett dem i kildefilene (docs/learn), kjør <code>npm run learn:sync-content</code> og importer på nytt:
+                  utkast som ingen har brukt, oppdateres da automatisk.
                 </p>
                 <ul className="mt-2 space-y-2 text-sm">
                   {imports.validation!.notices!.map((notice) => {
@@ -213,8 +246,19 @@ export default function LearnReview() {
                           <p className="font-semibold">{text ? text.title(notice.count) : notice.code}</p>
                           {text && <p className="mt-0.5">{text.detail}</p>}
                           <details className="mt-1">
-                            <summary className="cursor-pointer text-xs font-medium">Vis berørte ID-er ({notice.examples.length})</summary>
-                            <p className="mt-1 break-words font-mono text-xs">{notice.examples.join(', ')}</p>
+                            <summary className="cursor-pointer text-xs font-medium">Vis berørte leksjoner ({notice.examples.length})</summary>
+                            <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs">
+                              {notice.examples.map((example) => {
+                                const lessonId = imports.validation?.lesson_links?.[example];
+                                return (
+                                  <li key={example}>
+                                    {lessonId
+                                      ? <Link to={`/learn/lessons/${lessonId}`} className="text-primary-700 underline-offset-2 hover:underline dark:text-primary-300">{example}</Link>
+                                      : example}
+                                  </li>
+                                );
+                              })}
+                            </ul>
                           </details>
                         </div>
                       </li>

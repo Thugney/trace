@@ -21,10 +21,12 @@ import {
  *
  * Invariants:
  * - Refuses to write anything when validation fails.
- * - Lessons and review papers are identified by (content_id, version) and are
- *   immutable once stored: a repeated import never updates, re-drafts or
- *   deletes them, so reviewed status and learner history stay valid. Changed
- *   content must arrive as a new version, which starts as `draft`.
+ * - Lessons and review papers are identified by (content_id, version). A stored
+ *   version is only corrected in place while it is still an unapproved draft
+ *   that no learner has used (no progress, practice, cards, answers, attempts
+ *   or assignments). Reviewed, retired or used versions are never updated,
+ *   re-drafted or deleted; changed content for them must arrive as a new
+ *   version, which starts as `draft`.
  * - Existing pilot rows (subjects, goals, topics, lessons) are never modified;
  *   the five preserved grade 8 topics only gain course/checkpoint links.
  * - Checkpoint links point at real Udir stage pages; no individual official
@@ -35,6 +37,7 @@ export type ImportSummary = {
   dry_run: boolean;
   created: Record<'subjects' | 'goals' | 'courses' | 'topics' | 'topic_goals' | 'course_topics' | 'lessons' | 'review_papers', number>;
   unchanged: Record<'lessons' | 'review_papers', number>;
+  refreshed: Record<'lessons' | 'review_papers', number>;
   preserved_pilot_topics: string[];
   skipped: string[];
 };
@@ -113,6 +116,25 @@ export const toFlashcards = (lesson: SourceLesson): Flashcard[] =>
 
 class DryRunRollback extends Error {}
 
+const exists = (sql: string, id: number) => Boolean(db.prepare(sql).get(id));
+
+/** Any learner record pointing at the lesson makes it immutable for the importer. */
+export function isLessonInUse(lessonId: number): boolean {
+  return [
+    'SELECT 1 FROM learn_progress WHERE lesson_id = ? LIMIT 1',
+    'SELECT 1 FROM learn_resource_links WHERE lesson_id = ? LIMIT 1',
+    'SELECT 1 FROM learn_flashcard_reviews WHERE lesson_id = ? LIMIT 1',
+    'SELECT 1 FROM learn_personal_cards WHERE lesson_id = ? LIMIT 1',
+    'SELECT 1 FROM learn_open_responses WHERE lesson_id = ? LIMIT 1',
+    'SELECT 1 FROM learn_assignments WHERE lesson_id = ? LIMIT 1'
+  ].some((sql) => exists(sql, lessonId));
+}
+
+export function isPaperInUse(paperId: number): boolean {
+  return exists('SELECT 1 FROM learn_review_attempts WHERE paper_id = ? LIMIT 1', paperId)
+    || exists('SELECT 1 FROM learn_assignments WHERE review_paper_id = ? LIMIT 1', paperId);
+}
+
 export const pilotGrade8Topics = () => GRADE8_PILOT.map((subject) => ({ subject: subject.slug, slug: subject.topic.slug }));
 
 export function importContentPackage(
@@ -143,6 +165,7 @@ export function importContentPackage(
     dry_run: dryRun,
     created: { subjects: 0, goals: 0, courses: 0, topics: 0, topic_goals: 0, course_topics: 0, lessons: 0, review_papers: 0 },
     unchanged: { lessons: 0, review_papers: 0 },
+    refreshed: { lessons: 0, review_papers: 0 },
     preserved_pilot_topics: [],
     skipped: []
   };
@@ -189,6 +212,11 @@ export function importContentPackage(
       topic_id, slug, sort_order, locale, version, title, body, practice, flashcards, authored_by,
       review_status, content_id, content_meta, open_prompts
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)
+  `);
+  const refreshLesson = db.prepare(`
+    UPDATE learn_lessons SET title = @title, sort_order = @sort_order, locale = @locale, body = @body, practice = @practice,
+      flashcards = @flashcards, open_prompts = @open_prompts, content_meta = @content_meta
+    WHERE id = @id AND review_status = 'draft'
   `);
   const insertPaper = db.prepare(`
     INSERT INTO learn_review_papers (
@@ -277,21 +305,23 @@ export function importContentPackage(
 
     for (const lesson of lessons.values()) {
       const hash = contentHash(lesson);
-      const stored = db.prepare('SELECT id, content_meta FROM learn_lessons WHERE content_id = ? AND version = ?')
-        .get(lesson.id, lesson.version) as { id: number; content_meta: string } | undefined;
-      if (stored) {
-        const storedHash = JSON.parse(stored.content_meta || '{}')?.source?.content_hash;
-        if (storedHash === hash) {
-          summary.unchanged.lessons += 1;
-        } else {
-          summary.skipped.push(`${lesson.id} v${lesson.version}: stored version differs from the package; publish changes as a new version`);
-        }
+      const stored = db.prepare('SELECT id, content_meta, review_status FROM learn_lessons WHERE content_id = ? AND version = ?')
+        .get(lesson.id, lesson.version) as { id: number; content_meta: string; review_status: string } | undefined;
+      const storedHash = stored ? JSON.parse(stored.content_meta || '{}')?.source?.content_hash : null;
+      if (stored && storedHash === hash) {
+        summary.unchanged.lessons += 1;
+        continue;
+      }
+      if (stored && (stored.review_status !== 'draft' || isLessonInUse(stored.id))) {
+        summary.skipped.push(
+          `${lesson.id} v${lesson.version}: stored version differs from the package but is ${stored.review_status !== 'draft' ? stored.review_status : 'already used by a learner'}; publish changes as a new version`
+        );
         continue;
       }
 
       const topicId = topicIds.get(lesson.id)!;
       const locale = uiLocaleOf(lesson);
-      const collision = idOf('SELECT id FROM learn_lessons WHERE topic_id = ? AND slug = ? AND locale = ? AND version = ?', topicId, lesson.slug, locale, lesson.version);
+      const collision = stored ? null : idOf('SELECT id FROM learn_lessons WHERE topic_id = ? AND slug = ? AND locale = ? AND version = ?', topicId, lesson.slug, locale, lesson.version);
       if (collision) {
         summary.skipped.push(`${lesson.id} v${lesson.version}: topic already has lesson ${collision} with this slug/version`);
         continue;
@@ -316,6 +346,22 @@ export function importContentPackage(
         estimated_minutes: courseItem.estimated_reading_minutes,
         content_warnings: warnings
       };
+
+      if (stored) {
+        // Unapproved and untouched by learners: safe to correct in place (still a draft afterwards)
+        refreshLesson.run({
+          id: stored.id, title: title.title, sort_order: lesson.sort_order, locale,
+          body: JSON.stringify(toLessonBody(lesson)), practice: JSON.stringify(toPracticeItems(lesson)),
+          flashcards: JSON.stringify(toFlashcards(lesson)), open_prompts: JSON.stringify(toOpenPrompts(lesson)),
+          content_meta: JSON.stringify(meta)
+        });
+        if (!pilotKeys.has(`${lesson.subject}:${lesson.grade}:${lesson.slug}`)) {
+          db.prepare('UPDATE learn_topics SET title = ?, summary = ? WHERE id = ?').run(title.title, lesson.article.intro, topicId);
+        }
+        summary.refreshed.lessons += 1;
+        continue;
+      }
+
       insertLesson.run(
         topicId, lesson.slug, lesson.sort_order, locale, lesson.version, title.title,
         JSON.stringify(toLessonBody(lesson)), JSON.stringify(toPracticeItems(lesson)), JSON.stringify(toFlashcards(lesson)),
@@ -326,14 +372,28 @@ export function importContentPackage(
 
     for (const paper of pkg.assessments.assessments) {
       const hash = contentHash(paper);
-      const stored = db.prepare('SELECT id, content_hash FROM learn_review_papers WHERE content_id = ? AND version = ?')
-        .get(paper.id, paper.version) as { id: number; content_hash: string } | undefined;
+      const stored = db.prepare('SELECT id, content_hash, review_status FROM learn_review_papers WHERE content_id = ? AND version = ?')
+        .get(paper.id, paper.version) as { id: number; content_hash: string; review_status: string } | undefined;
+      const locale = paper.subject === 'engelsk' ? 'en' : 'nb';
       if (stored) {
-        if (stored.content_hash === hash) summary.unchanged.review_papers += 1;
-        else summary.skipped.push(`${paper.id} v${paper.version}: stored version differs from the package; publish changes as a new version`);
+        if (stored.content_hash === hash) {
+          summary.unchanged.review_papers += 1;
+        } else if (stored.review_status === 'draft' && !isPaperInUse(stored.id)) {
+          db.prepare(`
+            UPDATE learn_review_papers SET mode = ?, duration_minutes = ?, instructions = ?, items = ?, score_policy = ?,
+              source_lesson_ids = ?, content_hash = ? WHERE id = ? AND review_status = 'draft'
+          `).run(
+            paper.mode, paper.duration_minutes, paper.instructions, JSON.stringify(paper.questions),
+            JSON.stringify(paper.score_policy), JSON.stringify(paper.source_lesson_ids), hash, stored.id
+          );
+          summary.refreshed.review_papers += 1;
+        } else {
+          summary.skipped.push(
+            `${paper.id} v${paper.version}: stored version differs from the package but is ${stored.review_status !== 'draft' ? stored.review_status : 'already used by a learner'}; publish changes as a new version`
+          );
+        }
         continue;
       }
-      const locale = paper.subject === 'engelsk' ? 'en' : 'nb';
       insertPaper.run(
         paper.id, paper.version, courseIds.get(`${paper.subject}:${paper.grade}`),
         paperTitle(locale, subjectTitles.get(paper.subject) || paper.subject, paper.grade),
@@ -375,8 +435,11 @@ export function importPackagedLearnContent(dir?: string): ImportResult | null {
     }
     const result = importContentPackage(pkg);
     if (result.ok) {
-      const { created, unchanged } = result.summary!;
-      console.log(`📚 Learn content: ${created.lessons} new draft lessons, ${created.review_papers} new review papers (${unchanged.lessons} lessons unchanged)`);
+      const { created, unchanged, refreshed, skipped } = result.summary!;
+      console.log(
+        `📚 Learn content: ${created.lessons} new draft lessons, ${created.review_papers} new review papers, ` +
+        `${refreshed.lessons + refreshed.review_papers} unused drafts corrected (${unchanged.lessons} lessons unchanged, ${skipped.length} skipped)`
+      );
     } else {
       console.error('❌ Learn content import refused:', result.validation.errors.slice(0, 5).join(' | '));
     }
