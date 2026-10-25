@@ -31,7 +31,9 @@ import {
 import { ensurePracticeSession, getPracticeResult, PracticeUnavailableError } from '../services/learn/practice';
 import { assessmentLocked, getOpenAssessment } from '../services/learn/assessmentLock';
 import { scoreMockExam } from '../services/learn/mockScoring';
-import { buildTutorPrompt, buildTutorFallback } from '../services/learn/tutor';
+import rateLimit from 'express-rate-limit';
+import { coachPrompt, deterministicTutor, parseTutorRequest, safeTutorPractice, unsafeTutorText, validateCoachAnswer } from '../services/learn/tutorCoach';
+import { tutorNextStep } from '../services/learn/tutorProgress';
 import {
   getPaperContext,
   getReviewPaper,
@@ -1619,17 +1621,30 @@ router.post('/review-attempts/:attemptId/feedback', (req: AuthRequest, res: Resp
 
 // ------------------------------------------------------------ AI tutor
 
-router.post('/tutor', async (req: AuthRequest, res: Response) => {
+const tutorRateLimit = rateLimit({ windowMs: 60_000, max: 20, keyGenerator: (req: AuthRequest) => String(req.profile!.id),
+  handler: (_req, res) => res.status(429).json({ error: 'Please wait before asking again', code: 'tutor_rate_limited' }) });
+
+/** Controls/review status can change while a provider request is pending. */
+function tutorStillAuthorized(req: AuthRequest, res: Response, lessonId: number): boolean {
   const viewer = req.profile!;
-  const lessonId = parseId(req.body?.lesson_id);
-  const question = typeof req.body?.question === 'string' ? req.body.question.trim() : '';
-  if (!lessonId || !question || question.length > 500) {
-    return res.status(400).json({ error: 'lesson_id and a question (max 500 characters) are required' });
+  if (getOpenAssessment(viewer.id)) { res.status(423).json({ error: 'The tutor is turned off during a test', code: 'exam_in_progress' }); return false; }
+  if (!isLearnGloballyEnabled()) { res.status(403).json({ error: 'Learn disabled', code: 'learn_disabled' }); return false; }
+  if (viewer.type !== 'admin' && !isFeatureEnabledForProfile(viewer, 'learn')) { res.status(403).json({ error: 'Learn disabled', code: 'learn_disabled' }); return false; }
+  if (!isTutorAvailable(viewer)) { res.status(403).json({ error: 'Tutor disabled', code: 'ai_disabled' }); return false; }
+  if (getLesson(lessonId)?.review_status !== 'reviewed') { res.status(404).json({ error: 'Reviewed lesson not found', code: 'lesson_unavailable' }); return false; }
+  return true;
+}
+
+router.post('/tutor', tutorRateLimit, async (req: AuthRequest, res: Response) => {
+  const viewer = req.profile!;
+  const input = parseTutorRequest(req.body);
+  if (!input) {
+    return res.status(400).json({ error: 'Invalid tutor request', code: 'invalid_tutor_request' });
   }
 
-  const lesson = getLesson(lessonId);
-  if (!lesson || (lesson.review_status !== 'reviewed' && viewer.type !== 'admin')) {
-    return res.status(404).json({ error: 'Lesson not found' });
+  const lesson = getLesson(input.lesson_id);
+  if (!lesson || lesson.review_status !== 'reviewed') {
+    return res.status(404).json({ error: 'Reviewed lesson not found', code: 'lesson_unavailable' });
   }
 
   // Strict server-side lockout while any mock exam or review paper is in progress
@@ -1642,24 +1657,48 @@ router.post('/tutor', async (req: AuthRequest, res: Response) => {
     return res.status(403).json({ error: 'The AI tutor is turned off for this profile', code: 'ai_disabled' });
   }
 
-  const body = parseLessonBody(lesson);
-  const fallback = buildTutorFallback(lesson.locale, body, question);
+  const context = { lessonId: lesson.id, title: lesson.title, body: parseLessonBody(lesson),
+    grade: topicGradeOf(lesson.topic_id), locale: lesson.locale,
+    practice: parsePractice(lesson).map(safeTutorPractice) };
+  if (input.item_key && !context.practice.some(item => item.key === input.item_key)) {
+    return res.status(400).json({ error: 'Practice item does not belong to this lesson', code: 'practice_item_unavailable' });
+  }
+  const fallback = deterministicTutor(context, input);
+  if (input.mode === 'next_step') {
+    const recommendation = tutorNextStep(viewer.id, lesson.topic_id, lesson.id);
+    const en = (input.locale ?? lesson.locale) === 'en';
+    const reasons = en ? {
+      practice_not_passed: 'Your verified practice needs another try.', review_paper_missed: 'Your submitted review suggests revisiting this topic.', flashcards_missed: 'Some reviewed flashcards need practice.',
+      flashcards_due: 'Your flashcards are due for review.', next_in_sequence: 'This is the next reviewed lesson without a passed practice result.', review_current: 'You have passed the available practice. Review this lesson or ask an adult for the next topic.'
+    } : {
+      practice_not_passed: 'Den sjekkede øvingen din trenger et nytt forsøk.', review_paper_missed: 'Den innleverte repetisjonsprøven viser at du bør repetere dette temaet.', flashcards_missed: 'Noen repetisjonskort trenger mer øving.',
+      flashcards_due: 'Det er tid for å repetere kortene dine.', next_in_sequence: 'Dette er neste godkjente leksjon uten bestått øving.', review_current: 'Du har bestått tilgjengelig øving. Repeter leksjonen eller be en voksen om neste tema.'
+    };
+    return res.json({ ...fallback, references: [], answer: recommendation ? reasons[recommendation.reason] : (en ? 'No reviewed next lesson is available.' : 'Ingen godkjent neste leksjon er tilgjengelig.'), recommendation, reason: 'verified_progress' });
+  }
+  // Hint/practice never send tasks, answer keys or prior attempts to a model.
+  if (['hint', 'guided_practice'].includes(input.mode) || ['missing_source', 'unsafe_request', 'recovery'].includes(fallback.reason)) return res.json(fallback);
 
   if (viewer.type !== 'admin') {
     const usage = canGenerateAi(viewer.id, 'chat');
     if (!usage.allowed) {
-      return res.json({ answer: fallback, source: 'lesson_fallback', reason: usage.reason });
+      return res.json({ ...fallback, reason: 'quota_exhausted' });
     }
   }
 
   try {
-    const prompt = buildTutorPrompt(lesson.locale, lesson.title, body, question, topicGradeOf(lesson.topic_id));
+    const prompt = coachPrompt(context, input);
+    if (unsafeTutorText(prompt.user)) return res.json({ ...fallback, reason: 'unsafe_source' });
     const { text, provider } = await generateTextWithProviderFallback(prompt.system, prompt.user, { maxTokens: 350 });
     logAiUsage(viewer.id, 'chat', provider, { estimatedCost: 0.001, success: true });
-    res.json({ answer: text.slice(0, 1500), source: 'ai', provider });
+    // A test or parent control can change while the provider is running.
+    if (!tutorStillAuthorized(req, res, lesson.id)) return;
+    const validated = validateCoachAnswer(text, context, input);
+    res.json(validated ? { ...fallback, ...validated, source: 'ai', provider, reason: undefined } : { ...fallback, reason: 'unsupported_response' });
   } catch (error: any) {
-    console.error('[Learn] Tutor provider failure:', error.message);
-    res.json({ answer: fallback, source: 'lesson_fallback' });
+    // Provider errors may contain prompts or secrets: never log their raw messages.
+    if (!tutorStillAuthorized(req, res, lesson.id)) return;
+    res.json({ ...fallback, reason: 'provider_unavailable' });
   }
 });
 
