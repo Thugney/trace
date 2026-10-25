@@ -296,7 +296,7 @@ AssertionError: expected +0 to be 1 // Object.is equality
     148|       expect(weekChild.points).toBe(60);
     149|       expect(weekChild.tasksCompleted).toBe(1);
        |                                        ^
-    150| 
+    150|
     151|       const monthResponse = await request(app)
 
 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
@@ -305,4 +305,3 @@ AssertionError: expected +0 to be 1 // Object.is equality
       Tests  1 failed | 174 passed | 1 skipped (176)
    Start at  18:33:08
    Duration  8.89s (transform 2.61s, setup 1.16s, collect 12.45s, tests 13.14s, environment 6ms, prepare 5.24s)
-

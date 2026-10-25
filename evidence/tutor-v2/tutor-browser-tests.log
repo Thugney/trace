@@ -39,4 +39,3 @@ stdout | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience 
       Tests  25 passed (25)
    Start at  18:34:37
    Duration  11.40s (transform 440ms, setup 91ms, collect 560ms, tests 10.32s, environment 0ms, prepare 143ms)
-
