@@ -1,0 +1,41 @@
+
+> family-learning-hub-backend@1.1.3 test
+> vitest run --run src/test/tutor-v2.test.ts
+
+The CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.
+
+ RUN  v2.1.9 J:/workspace-full/projects/trace/work/tutor-v2/backend
+
+stdout | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures)
+🔄 Migrating learn_lessons: adding content_id...
+🔄 Migrating learn_lessons: adding content_meta...
+🔄 Migrating learn_lessons: adding open_prompts...
+🔄 Migrating learn_goals: adding goal_level...
+🔄 Migrating learn_assignments: adding target_kind...
+🔄 Migrating learn_assignments: adding topic_id...
+🔄 Migrating learn_assignments: adding review_paper_id...
+
+stderr | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures)
+[Push] Missing VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY. Push notifications disabled.
+
+stdout | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures) > teaches, hints, checks reasoning, recovers, guides existing practice and recommends without awarding progress
+[Push] No subscriptions for profile 1, but in-app notification saved
+
+stderr | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures) > demonstrates the actual learner page on desktop/light and mobile/dark against the disposable API
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+stdout | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures) > demonstrates the actual learner page on desktop/light and mobile/dark against the disposable API
+[Push] No subscriptions for profile 61, but in-app notification saved
+
+stdout | src/test/tutor-v2.test.ts > Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures) > demonstrates the actual learner page on desktop/light and mobile/dark against the disposable API
+[Push] No subscriptions for profile 61, but in-app notification saved
+
+ ✓ src/test/tutor-v2.test.ts (25 tests) 10315ms
+   ✓ Tutor 2.0 authenticated learner experience (in-memory synthetic reviewed fixtures) > demonstrates the actual learner page on desktop/light and mobile/dark against the disposable API 9407ms
+
+ Test Files  1 passed (1)
+      Tests  25 passed (25)
+   Start at  18:34:37
+   Duration  11.40s (transform 440ms, setup 91ms, collect 560ms, tests 10.32s, environment 0ms, prepare 143ms)
