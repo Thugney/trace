@@ -1,0 +1,763 @@
+{
+  "manifest_schema_version": "1.0.0",
+  "package": "familyhub-learn-lk20-2026-grades-1-10",
+  "prepared_on": "2026-10-24",
+  "branch": "docs/lk20-grade8-source-research-20261024",
+  "source_baseline": "feature/familyhub-learn",
+  "curriculum_source_registry": "docs/learn/lk20-source-registry-2026.json",
+  "topic_research_map": "docs/learn/grade8-topic-map-2026.json",
+  "subject_files": [
+    {
+      "subject": "matematikk",
+      "path": "docs/learn/content/matematikk-grades1-10.json",
+      "count": 50
+    },
+    {
+      "subject": "norsk",
+      "path": "docs/learn/content/norsk-grades1-10.json",
+      "count": 50
+    },
+    {
+      "subject": "engelsk",
+      "path": "docs/learn/content/engelsk-grades1-10.json",
+      "count": 50
+    },
+    {
+      "subject": "naturfag",
+      "path": "docs/learn/content/naturfag-grades1-10.json",
+      "count": 50
+    },
+    {
+      "subject": "samfunnsfag",
+      "path": "docs/learn/content/samfunnsfag-grades1-10.json",
+      "count": 50
+    }
+  ],
+  "assessment_source": "docs/learn/content/grade1-10-assessment-papers.json",
+  "statistics": {
+    "subjects": 5,
+    "grades": 10,
+    "grade_subject_units": 50,
+    "micro_lessons": 250,
+    "answer_keyed_practice_items": 250,
+    "open_responses": 250,
+    "flashcards": 750,
+    "subject_review_papers": 50,
+    "review_paper_questions": 500,
+    "official_goal_stage_pages": 25,
+    "individually_verified_competence_goal_crosswalks": 0,
+    "published_lessons": 0
+  },
+  "important_limits": {
+    "current_content_is_micro_lessons": true,
+    "long_form_full_courses_authored": false,
+    "complete_official_goal_coverage_verified": false,
+    "human_curriculum_review_required": true,
+    "content_is_eligible_for_software_integration_but_not_publication": true,
+    "numeric_official_grades_supported": false,
+    "no_internet_research_needed_for_programming_core": true
+  },
+  "grade_subject_inventory": [
+    {
+      "subject": "matematikk",
+      "grade": 1,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g1-telle-og-antall",
+        "matematikk-g1-sammenligne-mengder",
+        "matematikk-g1-addisjon-til-10",
+        "matematikk-g1-subtraksjon-til-10",
+        "matematikk-g1-figurmonstre"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 2,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g2-tiere-og-enere",
+        "matematikk-g2-tallinje-og-hopp",
+        "matematikk-g2-partall-og-oddetall",
+        "matematikk-g2-likhetstegn",
+        "matematikk-g2-tid-og-klokke"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 3,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g3-ganging-som-grupper",
+        "matematikk-g3-dobbelt-og-halvparten",
+        "matematikk-g3-dele-likt",
+        "matematikk-g3-hundrerplass",
+        "matematikk-g3-lengde-og-maleenhet"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 4,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g4-ganging-med-oppdeling",
+        "matematikk-g4-to-mater-a-dele-pa",
+        "matematikk-g4-brok-som-like-deler",
+        "matematikk-g4-areal-og-omkrets",
+        "matematikk-g4-diagrammer-med-stolper"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 5,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g5-brok-og-prosent",
+        "matematikk-g5-brok-pa-tallinjen",
+        "matematikk-g5-legge-sammen-broker",
+        "matematikk-g5-geometriske-egenskaper",
+        "matematikk-g5-enheter-og-omgjoring"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 6,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g6-sammenligne-desimaltall",
+        "matematikk-g6-addere-desimaltall",
+        "matematikk-g6-finne-en-prosentdel",
+        "matematikk-g6-volum-av-bokser",
+        "matematikk-g6-typetall-og-datasett"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 7,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g7-brok-til-prosent",
+        "matematikk-g7-negative-tall",
+        "matematikk-g7-regnerekkefolge",
+        "matematikk-g7-enkle-likninger",
+        "matematikk-g7-enkel-sannsynlighet"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 8,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g8-primtallsfaktorisering-og-brok",
+        "matematikk-g8-potenser-og-kvadratrotter",
+        "matematikk-g8-algebraiske-uttrykk-og-monstre",
+        "matematikk-g8-likninger-og-ulikheter",
+        "matematikk-g8-funksjoner-tabeller-og-grafer"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 9,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g9-fart-og-sammensatte-enheter",
+        "matematikk-g9-formlikhet-og-kongruens",
+        "matematikk-g9-pytagoras",
+        "matematikk-g9-malestokk",
+        "matematikk-g9-gjennomsnitt-og-diagramkritikk"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "matematikk",
+      "grade": 10,
+      "topic_count": 5,
+      "lesson_ids": [
+        "matematikk-g10-algebraiske-regneregler",
+        "matematikk-g10-kvadratsetninger",
+        "matematikk-g10-ligningssett",
+        "matematikk-g10-lineaere-funksjoner",
+        "matematikk-g10-prosentvis-endring"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 1,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g1-bokstaver-og-lyder",
+        "norsk-g1-rim-og-stavelser",
+        "norsk-g1-lytte-til-fortellinger",
+        "norsk-g1-setning-og-punktum",
+        "norsk-g1-fortelle-om-en-tekst"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 2,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g2-trekke-lyder-sammen",
+        "norsk-g2-sporsmal-til-tekst",
+        "norsk-g2-skrive-korte-tekster",
+        "norsk-g2-samtale-og-tur",
+        "norsk-g2-bilde-og-tekst-sammen"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 3,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g3-gjenfortelle-med-rekkefolge",
+        "norsk-g3-fakta-i-en-fagtekst",
+        "norsk-g3-avsnitt-med-ett-tema",
+        "norsk-g3-substantiv-og-verb",
+        "norsk-g3-muntlig-presentasjon"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 4,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g4-lesestrategier",
+        "norsk-g4-fakta-og-mening",
+        "norsk-g4-begynnelse-midtdel-slutt",
+        "norsk-g4-tegnsetting-og-komma",
+        "norsk-g4-norsk-og-andre-sprak"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 5,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g5-fortelling-og-synsvinkel",
+        "norsk-g5-skildrende-sprak",
+        "norsk-g5-tekststruktur-i-fagartikkel",
+        "norsk-g5-kilde-og-avsender",
+        "norsk-g5-sammensatte-tekster"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 6,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g6-tema-og-budskap",
+        "norsk-g6-fortellerperspektiv",
+        "norsk-g6-begrunne-en-mening",
+        "norsk-g6-hovedsetning-og-leddsetning",
+        "norsk-g6-samisk-og-nordiske-sprak"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 7,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g7-lese-mellom-linjene",
+        "norsk-g7-kilder-pa-bibliotek-og-nett",
+        "norsk-g7-muntlig-diskusjon",
+        "norsk-g7-bearbeide-en-tekst",
+        "norsk-g7-prove-sidemal"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 8,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g8-argumenterende-tekst",
+        "norsk-g8-leseforstaelse-og-teksttolkning",
+        "norsk-g8-kildekritikk-og-kildebruk",
+        "norsk-g8-skriving-rettskriving-og-tekstbinding",
+        "norsk-g8-sprakvariasjon-og-bokmal-nynorsk"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 9,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g9-tolke-skjonnlitteratur",
+        "norsk-g9-retoriske-appellformer",
+        "norsk-g9-fagtekst-og-kildehenvisning",
+        "norsk-g9-sidemal-og-grammatikk",
+        "norsk-g9-medier-og-pavirkning"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "norsk",
+      "grade": 10,
+      "topic_count": 5,
+      "lesson_ids": [
+        "norsk-g10-sammenligne-tekster",
+        "norsk-g10-droftende-tekst",
+        "norsk-g10-etterrettelig-kildebruk",
+        "norsk-g10-sprakhistorie-og-utvikling",
+        "norsk-g10-muntlig-fagpresentasjon"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 1,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g1-colours-around-us",
+        "engelsk-g1-hello-and-goodbye",
+        "engelsk-g1-numbers-one-to-ten",
+        "engelsk-g1-classroom-objects",
+        "engelsk-g1-animals-and-sounds"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 2,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g2-introduce-yourself",
+        "engelsk-g2-family-words",
+        "engelsk-g2-action-verbs",
+        "engelsk-g2-questions-and-answers",
+        "engelsk-g2-a-short-story"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 3,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g3-daily-routines",
+        "engelsk-g3-simple-present",
+        "engelsk-g3-describing-people",
+        "engelsk-g3-listening-for-details",
+        "engelsk-g3-reading-signs-and-messages"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 4,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g4-past-events",
+        "engelsk-g4-wh-questions",
+        "engelsk-g4-making-an-invitation",
+        "engelsk-g4-places-and-directions",
+        "engelsk-g4-characters-and-setting"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 5,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g5-write-a-paragraph",
+        "engelsk-g5-can-and-must",
+        "engelsk-g5-comparing-things",
+        "engelsk-g5-finding-meaning-in-a-story",
+        "engelsk-g5-english-speaking-places"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 6,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g6-asking-follow-up-questions",
+        "engelsk-g6-talking-about-the-future",
+        "engelsk-g6-linking-a-story",
+        "engelsk-g6-reading-informative-texts",
+        "engelsk-g6-checking-sources"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 7,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g7-clear-explanations",
+        "engelsk-g7-pronunciation-and-rhythm",
+        "engelsk-g7-writing-emails",
+        "engelsk-g7-reading-genres",
+        "engelsk-g7-culture-in-language"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 8,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g8-formal-and-informal-language",
+        "engelsk-g8-reading-stories-and-inference",
+        "engelsk-g8-sentence-structure-and-grammar",
+        "engelsk-g8-speaking-vocabulary-and-dialogue",
+        "engelsk-g8-nonfiction-sources-and-reliability"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 9,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g9-persuasive-writing",
+        "engelsk-g9-present-perfect",
+        "engelsk-g9-literary-themes-and-symbols",
+        "engelsk-g9-giving-a-presentation",
+        "engelsk-g9-media-and-bias"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "engelsk",
+      "grade": 10,
+      "topic_count": 5,
+      "lesson_ids": [
+        "engelsk-g10-building-an-argument",
+        "engelsk-g10-critical-source-evaluation",
+        "engelsk-g10-extended-essay-writing",
+        "engelsk-g10-english-language-varieties",
+        "engelsk-g10-formal-discussion"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 1,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g1-sansene-vare",
+        "naturfag-g1-dyr-i-naermiljoet",
+        "naturfag-g1-vaeret-i-dag",
+        "naturfag-g1-arstider",
+        "naturfag-g1-sortere-ting-fra-naturen"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 2,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g2-levende-og-ikke-levende",
+        "naturfag-g2-fra-fro-til-plante",
+        "naturfag-g2-dyrenes-behov",
+        "naturfag-g2-sol-og-skygge",
+        "naturfag-g2-stille-sporsmal-og-teste"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 3,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g3-stoffer-rundt-oss",
+        "naturfag-g3-vann-som-is-vaeske-og-damp",
+        "naturfag-g3-kroppens-sanser-og-helse",
+        "naturfag-g3-magneter",
+        "naturfag-g3-beskrive-en-observasjon"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 4,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g4-hypotese-og-undersokelse",
+        "naturfag-g4-tabeller-med-malinger",
+        "naturfag-g4-blande-stoffer",
+        "naturfag-g4-temperatur-og-energi",
+        "naturfag-g4-deler-i-tekniske-systemer"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 5,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g5-naeringskjeder",
+        "naturfag-g5-planeter-og-solsystemet",
+        "naturfag-g5-krefter-og-bevegelse",
+        "naturfag-g5-materialer-og-kretslop",
+        "naturfag-g5-naturvennlig-feltarbeid"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 6,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g6-okosystem-og-samspill",
+        "naturfag-g6-menneskekroppens-organsystemer",
+        "naturfag-g6-vannets-kretslop",
+        "naturfag-g6-elektriske-kretser",
+        "naturfag-g6-undersoke-baerekraft"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 7,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g7-variabler-og-hypoteser",
+        "naturfag-g7-celler-og-mikroskop",
+        "naturfag-g7-mikroorganismer",
+        "naturfag-g7-energioverganger",
+        "naturfag-g7-programmering-og-modeller"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 8,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g8-celler",
+        "naturfag-g8-vitenskapelige-undersokelser",
+        "naturfag-g8-atomer-og-kjemiske-reaksjoner",
+        "naturfag-g8-energi-og-energioverganger",
+        "naturfag-g8-okosystemer-og-kretslop"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 9,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g9-genetikk-og-arv",
+        "naturfag-g9-kjemiske-reaksjoner-og-tegn",
+        "naturfag-g9-krefter-og-newtons-lover",
+        "naturfag-g9-klima-og-vaer",
+        "naturfag-g9-vurdere-vitenskapelige-pastander"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "naturfag",
+      "grade": 10,
+      "topic_count": 5,
+      "lesson_ids": [
+        "naturfag-g10-evolusjon-og-biologisk-mangfold",
+        "naturfag-g10-stoffer-og-periodesystemet",
+        "naturfag-g10-elektrisitet-og-energi",
+        "naturfag-g10-natur-miljo-og-baerekraft",
+        "naturfag-g10-teknologi-og-datamodeller"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 1,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g1-familie-og-fellesskap",
+        "samfunnsfag-g1-steder-i-naermiljoet",
+        "samfunnsfag-g1-trafikk-og-trygghet",
+        "samfunnsfag-g1-regler-i-en-gruppe",
+        "samfunnsfag-g1-hva-er-rettferdig"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 2,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g2-hvem-er-jeg",
+        "samfunnsfag-g2-rettigheter-for-barn",
+        "samfunnsfag-g2-kart-og-symboler",
+        "samfunnsfag-g2-for-og-na",
+        "samfunnsfag-g2-fortelle-sant-om-noe"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 3,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g3-historie-i-familien-og-naermiljoet",
+        "samfunnsfag-g3-ulike-sprak-og-tradisjoner",
+        "samfunnsfag-g3-himmelretninger-og-kart",
+        "samfunnsfag-g3-kommunen-rundt-oss",
+        "samfunnsfag-g3-etisk-bruk-av-bilder"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 4,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g4-norge-pa-kartet",
+        "samfunnsfag-g4-kilder-til-fortiden",
+        "samfunnsfag-g4-demokrati-i-klassen",
+        "samfunnsfag-g4-rettigheter-og-plikter",
+        "samfunnsfag-g4-penger-og-behov"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 5,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g5-samisk-historie-og-kultur",
+        "samfunnsfag-g5-europa-og-verdensdeler",
+        "samfunnsfag-g5-handel-og-vareveier",
+        "samfunnsfag-g5-tidslinjer-i-historie",
+        "samfunnsfag-g5-nettkilder-og-troverdighet"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 6,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g6-migrasjon-og-tilhorighet",
+        "samfunnsfag-g6-klima-ressurser-og-bosetting",
+        "samfunnsfag-g6-kommunestyret-og-lokaldemokrati",
+        "samfunnsfag-g6-planlegge-et-budsjett",
+        "samfunnsfag-g6-menneskerettigheter"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 7,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g7-globalisering-og-avhengighet",
+        "samfunnsfag-g7-baerekraftige-valg",
+        "samfunnsfag-g7-medier-og-pavirkning",
+        "samfunnsfag-g7-historiske-spor-og-arsaker",
+        "samfunnsfag-g7-identitet-og-livssynsmangfold"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 8,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g8-demokrati-og-medvirkning",
+        "samfunnsfag-g8-medier-kilder-og-digitale-spor",
+        "samfunnsfag-g8-geografi-bosetting-og-levekar",
+        "samfunnsfag-g8-historie-endring-og-konflikt",
+        "samfunnsfag-g8-identitet-mangfold-og-rettigheter"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 9,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g9-okonomi-skatt-og-velferd",
+        "samfunnsfag-g9-valg-og-maktfordeling",
+        "samfunnsfag-g9-historiske-konflikter-og-perspektiver",
+        "samfunnsfag-g9-internasjonale-organisasjoner",
+        "samfunnsfag-g9-digitale-medier-og-samfunn"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    },
+    {
+      "subject": "samfunnsfag",
+      "grade": 10,
+      "topic_count": 5,
+      "lesson_ids": [
+        "samfunnsfag-g10-menneskerettigheter-og-rettsstat",
+        "samfunnsfag-g10-politisk-system-og-deltakelse",
+        "samfunnsfag-g10-baerekraft-og-fordeling",
+        "samfunnsfag-g10-urfolk-og-minoritetsrettigheter",
+        "samfunnsfag-g10-undersoke-samfunnsfaglig-pastander"
+      ],
+      "content_kind": "micro_lesson_draft",
+      "review_status": "not_approved"
+    }
+  ],
+  "rollout_policy": "Draft-only ingestion, parent opt-in after editorial review, no automatic publishing, no modifications to Synology"
+}

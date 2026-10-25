@@ -13,6 +13,8 @@ import LessonPage from './pages/learn/LessonPage';
 import MockExamPage from './pages/learn/MockExamPage';
 import LearnParent from './pages/learn/LearnParent';
 import LearnReview from './pages/learn/LearnReview';
+import ReviewPaperPage from './pages/learn/ReviewPaperPage';
+import ReviewAttemptPage from './pages/learn/ReviewAttemptPage';
 import { AUTH_TOKEN_KEY, clearStoredAuth } from './services/api';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
@@ -344,6 +346,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
               <MockExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/papers/:paperId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ReviewPaperPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/review-attempts/:attemptId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ReviewAttemptPage />
             </ProtectedRoute>
           }
         />

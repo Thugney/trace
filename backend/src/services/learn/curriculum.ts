@@ -25,6 +25,7 @@ export type LessonBody = {
   workedExamples: WorkedExample[];
   keyTerms: KeyTerm[];
   checkYourself: string[];
+  keyTakeaway?: string;
 };
 
 // Practice items use the existing Learning Activity Engine formats so they are

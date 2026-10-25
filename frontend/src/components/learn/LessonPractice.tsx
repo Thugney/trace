@@ -69,7 +69,7 @@ export default function LessonPractice({ lessonId, locale, result, onCompleted }
       setStartedAt(Date.now());
       setPhase('playing');
     } catch (err: any) {
-      setError(err?.response?.data?.error || copy.error);
+      setError(err?.response?.data?.code === 'exam_in_progress' ? copy.lockedDuringTest : err?.response?.data?.error || copy.error);
       setPhase('idle');
     }
   };
@@ -90,6 +90,9 @@ export default function LessonPractice({ lessonId, locale, result, onCompleted }
       // Already answered (e.g. after a retry): move on without double counting
       if (err?.response?.status === 400) {
         setPhase('feedback');
+      } else if (err?.response?.data?.code === 'exam_in_progress') {
+        // A test was started elsewhere mid-practice: the engine now locks submissions too
+        setError(copy.lockedDuringTest);
       } else {
         setError(err?.response?.data?.error || copy.error);
       }

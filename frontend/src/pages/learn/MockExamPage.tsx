@@ -33,11 +33,9 @@ export default function MockExamPage() {
 
   useEffect(() => {
     learnAPI.getMockExam(id)
-      .then(async (response) => {
+      .then((response) => {
         setInfo(response.data);
-        const catalog = await learnAPI.getCatalog(8);
-        const subject = catalog.data.subjects.find((item) => item.topics.some((topic) => topic.id === response.data.topic_id));
-        setLocale(subject?.instruction_locale || 'nb');
+        setLocale(response.data.locale || 'nb');
       })
       .catch((err) => setError(err?.response?.data?.error || learnCopy('nb').error));
   }, [id]);

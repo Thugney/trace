@@ -28,6 +28,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Colours around us",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -121,6 +122,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Hello and goodbye",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -214,6 +216,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Numbers one to ten",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -307,6 +310,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Classroom objects",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -400,6 +404,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Animals and sounds",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -493,6 +498,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Introduce yourself",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -586,6 +592,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Family words",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -679,6 +686,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Action verbs",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -772,6 +780,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Questions and answers",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -865,6 +874,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "A short story",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 2,
@@ -958,6 +968,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Daily routines",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1051,6 +1062,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Simple present",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1144,6 +1156,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Describing people",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1237,6 +1250,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Listening for details",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1330,6 +1344,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en-with-nb-scaffolding",
+      "title": "Reading signs and messages",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1423,6 +1438,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Past events",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1516,6 +1532,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Wh questions",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1609,6 +1626,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Making an invitation",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1702,6 +1720,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Places and directions",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1795,6 +1814,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Characters and setting",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 4,
@@ -1888,6 +1908,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Write a paragraph",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -1981,6 +2002,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Can and must",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2074,6 +2096,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Comparing things",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2167,6 +2190,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Finding meaning in a story",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2260,6 +2284,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "English speaking places",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2353,6 +2378,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Asking follow up questions",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2446,6 +2472,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Talking about the future",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2539,6 +2566,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Linking a story",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2632,6 +2660,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Reading informative texts",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2725,6 +2754,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Checking sources",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2818,6 +2848,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Clear explanations",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -2911,6 +2942,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Pronunciation and rhythm",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -3004,6 +3036,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Writing emails",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -3097,6 +3130,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Reading genres",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -3190,6 +3224,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Culture in language",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 7,
@@ -3283,6 +3318,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Formal and informal language",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3376,6 +3412,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Reading stories and inference",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3456,7 +3493,7 @@
           "back": "«Mia hid under an umbrella when the rain began» suggests she wanted to avoid getting wet."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3469,6 +3506,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Sentence structure and grammar",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3549,7 +3587,7 @@
           "back": "«She goes to school» is present; «She went to school» is past."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3562,6 +3600,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Vocabulary and dialogue",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3642,7 +3681,7 @@
           "back": "«I enjoyed the film.» «What did you like about it?» keeps a conversation going."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3655,6 +3694,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Nonfiction and source reliability",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3735,7 +3775,7 @@
           "back": "A news report citing a named study is more checkable than an anonymous claim with no link."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment"
     },
     {
@@ -3748,6 +3788,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Persuasive writing",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3841,6 +3882,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Present perfect",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -3934,6 +3976,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Literary themes and symbols",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4027,6 +4070,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Giving a presentation",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4120,6 +4164,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Media and bias",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4213,6 +4258,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Building an argument",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4306,6 +4352,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Critical source evaluation",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4399,6 +4446,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Extended essay writing",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4492,6 +4540,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "English language varieties",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,
@@ -4585,6 +4634,7 @@
       "review_status": "draft",
       "editorial_status": "original_micro_lesson_not_full_curriculum_coverage",
       "locale": "en",
+      "title": "Formal discussion",
       "curriculum": {
         "code": "ENG01-06",
         "official_checkpoint_after_grade": 10,

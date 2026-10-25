@@ -53,7 +53,7 @@
           }
         ],
         "comprehension_check": "Hvor mange klosser er talt når det siste tallordet er seks?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Når du teller, får hver ting ett tallord. Siste tallord forteller hvor mange ting du har.",
         "worked_example": {
           "explanation": "Tell seks klosser én gang hver: du har 6 klosser.",
@@ -249,7 +249,7 @@
           }
         ],
         "comprehension_check": "Hva er 4 + 3?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Addisjon betyr å samle antall. Bruk fingre eller en tegning for å vise hvordan mengdene blir til én.",
         "worked_example": {
           "explanation": "Fire epler og tre epler er sju epler: 4 + 3 = 7.",
@@ -347,7 +347,7 @@
           }
         ],
         "comprehension_check": "Hva er 9 − 2?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Subtraksjon forteller hvor mye som blir igjen etter at noe tas bort. Tegn gjerne tingene før du regner.",
         "worked_example": {
           "explanation": "Du har ni steiner og gir bort to; ni minus to er sju.",
@@ -445,7 +445,7 @@
           }
         ],
         "comprehension_check": "Hva er neste form etter sirkel, stjerne, sirkel, stjerne?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Et gjentakende mønster består av en enhet som kommer igjen. Finn hele enheten for å forutsi neste form.",
         "worked_example": {
           "explanation": "Sirkel, stjerne, sirkel, stjerne: neste er sirkel.",
@@ -641,7 +641,7 @@
           }
         ],
         "comprehension_check": "Hvor kommer du med tre hopp mot høyre fra 7?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Høyre på tallinjen betyr større tall og venstre betyr mindre. Like store hopp gjør at vi kan regne effektivt.",
         "worked_example": {
           "explanation": "Fra 7 hopper du tre plasser høyre og lander på 10.",
@@ -739,7 +739,7 @@
           }
         ],
         "comprehension_check": "Hvilket tall er partall?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Et partall kan fordeles i par uten en ting til overs. Oddetall gir en enslig ting.",
         "worked_example": {
           "explanation": "Åtte ting danner fire par; ni ting danner fire par og én til overs.",
@@ -837,7 +837,7 @@
           }
         ],
         "comprehension_check": "Hva mangler i 3 + 4 = 5 + __?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Likhetstegnet viser at to uttrykk har samme verdi. Det fungerer også når det er regnestykker på begge sider.",
         "worked_example": {
           "explanation": "3 + 4 = 5 + 2 fordi begge sider er 7.",
@@ -935,7 +935,7 @@
           }
         ],
         "comprehension_check": "Hvor mange minutter varer en halv time?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Tidsmåling gjør at vi kan sammenligne varighet. Én time har 60 minutter; en halv time har 30.",
         "worked_example": {
           "explanation": "To halve timer varer sammen 60 minutter.",
@@ -1033,7 +1033,7 @@
           }
         ],
         "comprehension_check": "Hva er 3 × 4?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Ganging teller like store grupper. Tell hvor mange grupper du har, og hvor mange ting som er i hver.",
         "worked_example": {
           "explanation": "Tre poser med fire kuler blir 4 + 4 + 4 = 12.",
@@ -1131,7 +1131,7 @@
           }
         ],
         "comprehension_check": "Hva er det dobbelte av 8?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Å doble betyr å gange med to. Å halvere betyr å dele i to like store mengder.",
         "worked_example": {
           "explanation": "Dobbelt av 8 er 16; halvparten av 16 er 8.",
@@ -1229,7 +1229,7 @@
           }
         ],
         "comprehension_check": "Hvor mange kjeks får hvert barn av 12 fordelt likt på fire?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Når noe fordeles jevnt mellom like grupper, kan vi bruke divisjon. Delene må inneholde like mange ting.",
         "worked_example": {
           "explanation": "Tolv kjeks fordelt på fire barn gir tre til hver.",
@@ -1425,7 +1425,7 @@
           }
         ],
         "comprehension_check": "Hvor stor er lengdeforskjellen mellom 15 cm og 10 cm?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Du må bruke samme måleenhet når du sammenligner lengder. Skriv alltid enheten sammen med svaret.",
         "worked_example": {
           "explanation": "En blyant på 15 cm er fem cm lengre enn en på 10 cm.",
@@ -1523,7 +1523,7 @@
           }
         ],
         "comprehension_check": "Hva er 6 × 14?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Den distributive loven lar deg dele opp et stort regnestykke i to enklere deler og summere resultatene.",
         "worked_example": {
           "explanation": "6 × 14 = 6 × 10 + 6 × 4 = 84.",
@@ -1621,7 +1621,7 @@
           }
         ],
         "comprehension_check": "Hvor mange 3-meters biter kan vi klippe av 12 meter?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Divisjon kan spørre hvor mange grupper det blir, eller hvor mange det er i hver gruppe. Begge bygger på like store deler.",
         "worked_example": {
           "explanation": "Tolv meter tau deles i biter på tre meter: fire biter.",
@@ -1719,7 +1719,7 @@
           }
         ],
         "comprehension_check": "Hva er nevneren i 3/4?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Nevneren viser hvor mange like deler en helhet er delt i. Telleren viser hvor mange slike deler vi snakker om.",
         "worked_example": {
           "explanation": "3/4 er tre av fire like store deler av en helhet.",
@@ -1915,7 +1915,7 @@
           }
         ],
         "comprehension_check": "Hvilken frukt fikk flest stemmer: fem epler eller tre pærer?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Et stolpediagram viser frekvenser. Høyere stolpe betyr flere svar når stolpene har samme skala.",
         "worked_example": {
           "explanation": "Fem valgte eple og tre valgte pære; eple ble valgt flest ganger.",
@@ -2111,7 +2111,7 @@
           }
         ],
         "comprehension_check": "Hvilken brøk er minst: 1/4 eller 1/2?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "En brøk er et tall som kan ligge mellom hele tall. Brøkdelen har samme betydning på tallinjen som i en figur.",
         "worked_example": {
           "explanation": "En firedel er 0,25 og ligger til venstre for en halv på tallinjen.",
@@ -2209,7 +2209,7 @@
           }
         ],
         "comprehension_check": "Hva er 2/8 + 3/8?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Brøker med lik nevner har like store deler. Du kan legge sammen tellerne og beholde nevneren.",
         "worked_example": {
           "explanation": "2/8 + 3/8 = 5/8.",
@@ -2307,7 +2307,7 @@
           }
         ],
         "comprehension_check": "Hvor mange rette vinkler har et rektangel?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Beskriv figurer med presise ord som side, hjørne, rett vinkel og parallell. Et rektangel har fire rette vinkler.",
         "worked_example": {
           "explanation": "Et kvadrat er et rektangel med alle fire sidene like lange.",
@@ -2503,7 +2503,7 @@
           }
         ],
         "comprehension_check": "Hvilket er størst: 0,7 eller 0,65?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Null på slutten av et desimaltall endrer ikke verdien. Sammenlign sifrenes plassverdi, ikke antall sifre.",
         "worked_example": {
           "explanation": "0,70 = 0,7 og 0,65 er litt mindre enn 0,7.",
@@ -2699,7 +2699,7 @@
           }
         ],
         "comprehension_check": "Hva er 25 % av 80 kroner?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Prosent betyr per hundre. 25 % er det samme som en fjerdedel, og kan regnes med deling på fire.",
         "worked_example": {
           "explanation": "25 % av 80 kroner er 20 kroner.",
@@ -2895,7 +2895,7 @@
           }
         ],
         "comprehension_check": "Hva er typetallet til tallene 2, 3, 3, 4?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Typetall er den verdien som forekommer flest ganger. Det er ikke nødvendigvis den største verdien i datasettet.",
         "worked_example": {
           "explanation": "For 2, 3, 3 og 4 er typetallet 3.",
@@ -2993,7 +2993,7 @@
           }
         ],
         "comprehension_check": "Hva er 3/4 i prosent?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Brøk, desimaltall og prosent kan vise samme andel av en helhet. Kontroller med en figur eller brøk som du kjenner.",
         "worked_example": {
           "explanation": "3/4 = 0,75 = 75 %.",
@@ -3189,7 +3189,7 @@
           }
         ],
         "comprehension_check": "Hva er 3 + 4 × 2?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Parenteser avgjør hva som regnes først. Deretter kommer gange og dele før pluss og minus når ingen parenteser endrer dette.",
         "worked_example": {
           "explanation": "3 + 4 × 2 = 3 + 8 = 11.",
@@ -3287,7 +3287,7 @@
           }
         ],
         "comprehension_check": "Hva er x hvis x + 7 = 19?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "En ukjent verdi kan finnes ved å gjøre likeverdige operasjoner på hver side av likhetstegnet. Kontroller ved innsetting.",
         "worked_example": {
           "explanation": "x + 7 = 19 gir x = 12.",
@@ -3385,7 +3385,7 @@
           }
         ],
         "comprehension_check": "Hva er sannsynligheten for å trekke rød fra én rød og tre blå like kuler?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Når alle utfall er like sannsynlige, er sannsynlighet antall gunstige utfall delt på antall mulige utfall.",
         "worked_example": {
           "explanation": "Én rød og tre blå like kuler gir sjansen 1/4 for rød.",
@@ -3483,7 +3483,7 @@
           }
         ],
         "comprehension_check": "Hva er 18/24 forkortet helt?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Primtall har bare faktorene 1 og seg selv. Finn felles primtallsfaktorer for å forkorte en brøk så langt som mulig.",
         "worked_example": {
           "explanation": "18 = 2·3·3 og 24 = 2·2·2·3, derfor 18/24 = 3/4.",
@@ -3581,7 +3581,7 @@
           }
         ],
         "comprehension_check": "Hva er 3³?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "I en potens er grunntallet faktoren som gjentas. En kvadratrot er et positivt tall som ganget med seg selv gir tallet under rottegnet.",
         "worked_example": {
           "explanation": "3³ = 27 og √81 = 9.",
@@ -3640,7 +3640,7 @@
           "back": "3³ = 27 og √81 = 9."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment",
       "local_domain": "algebra-og-monstre"
     },
@@ -3679,7 +3679,7 @@
           }
         ],
         "comprehension_check": "Hvor mange brikker har figur 4 når regelen er 2n + 1?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Variabler gjør det mulig å beskrive et mønster i én regel. Sett inn et konkret tall i variabelen for å finne et bestemt ledd.",
         "worked_example": {
           "explanation": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker.",
@@ -3738,7 +3738,7 @@
           "back": "Hvis antallet brikker i figur n er 2n + 1, har figur 4 ni brikker."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment",
       "local_domain": "algebra-og-monstre"
     },
@@ -3777,7 +3777,7 @@
           }
         ],
         "comprehension_check": "Hva er x i 3x + 2 = 14?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Likninger beskriver likhet, mens ulikheter beskriver et helt område av mulige tall. Gjør samme operasjon på begge sider av en likning.",
         "worked_example": {
           "explanation": "3x + 2 = 14 gir x = 4.",
@@ -3836,7 +3836,7 @@
           "back": "3x + 2 = 14 gir x = 4."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment",
       "local_domain": "algebra-og-monstre"
     },
@@ -3934,7 +3934,7 @@
           "back": "For y = 2x + 3 gir x = 4 resultatet 11."
         }
       ],
-      "existing_grade8_slug_preserved": true,
+      "existing_grade8_slug_preserved": false,
       "assessment_mode": "formative_plus_non_official_mock_assessment",
       "local_domain": "funksjoner-og-modellering"
     },
@@ -4071,7 +4071,7 @@
           }
         ],
         "comprehension_check": "Hvilket ord beskriver to trekanter med sider 3–4–5 og 6–8–10?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Formlike figurer har like vinkler og samme forhold mellom tilsvarende sider. Kongruente figurer har i tillegg samme størrelse.",
         "worked_example": {
           "explanation": "Trekanter med sider 3–4–5 og 6–8–10 er formlike, men ikke kongruente.",
@@ -4169,7 +4169,7 @@
           }
         ],
         "comprehension_check": "Hva er hypotenusen når katetene er 3 og 4 cm?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "I rettvinklede trekanter er kvadratet av den lengste siden summen av kvadratene på de korte sidene.",
         "worked_example": {
           "explanation": "3² + 4² = 5² fordi 9 + 16 = 25.",
@@ -4267,7 +4267,7 @@
           }
         ],
         "comprehension_check": "Hva svarer 2 cm til i målestokk 1:100?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Målestokk uttrykker forholdet mellom tegning og virkelighet. Sammenlign lengder i samme enhet før omgjøring.",
         "worked_example": {
           "explanation": "Ved målestokk 1:100 betyr 2 cm på tegningen 2 m i virkeligheten.",
@@ -4365,7 +4365,7 @@
           }
         ],
         "comprehension_check": "Hva er gjennomsnittet av 2, 4 og 6?",
-        "model_answer": "A",
+        "model_answer": "D",
         "key_takeaway": "Et gjennomsnitt finnes ved å summere tallene og dele på antall tall. En avkuttet akse i et diagram kan overdrive inntrykket.",
         "worked_example": {
           "explanation": "Gjennomsnittet av 2, 4 og 6 er 4.",
@@ -4561,7 +4561,7 @@
           }
         ],
         "comprehension_check": "Hva er (x + 3)²?",
-        "model_answer": "A",
+        "model_answer": "B",
         "key_takeaway": "Når du kvadrerer en sum, er det tre ledd: kvadratet av første, dobbeltproduktet og kvadratet av siste.",
         "worked_example": {
           "explanation": "(x + 3)² = x² + 6x + 9.",
@@ -4659,7 +4659,7 @@
           }
         ],
         "comprehension_check": "Hvilket tallpar oppfyller x + y = 10 og x − y = 2?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Et ligningssett består av flere likninger med samme ukjente. En riktig løsning må passe i alle likningene.",
         "worked_example": {
           "explanation": "x + y = 10 og x − y = 2 gir x = 6 og y = 4.",
@@ -4757,7 +4757,7 @@
           }
         ],
         "comprehension_check": "Hva er stigningstallet i y = 3x + 2?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "En lineær funksjon endres like mye hver gang x øker med én. Stigningstallet viser endring per x-enhet.",
         "worked_example": {
           "explanation": "y = 3x + 2 øker med 3 for hvert steg x øker.",
@@ -4855,7 +4855,7 @@
           }
         ],
         "comprehension_check": "Hva blir 200 kr etter 20 prosent økning?",
-        "model_answer": "A",
+        "model_answer": "C",
         "key_takeaway": "Vekstfaktoren ved 20 prosent økning er 1,20, mens ved 20 prosent reduksjon er 0,80.",
         "worked_example": {
           "explanation": "200 kr økt med 20 prosent er 240 kr.",
