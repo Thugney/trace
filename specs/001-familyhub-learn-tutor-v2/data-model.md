@@ -2,6 +2,8 @@
 
 No schema migration planned.
 
+TutorContext.grade is `number | null`, obtained from reviewed lesson/topic mapping. Unknown grade remains null: the prompt must not invent a numeric grade, infer an age from it, or claim curriculum alignment that is not present. The legacy unused default-grade helper must not be wired into the Tutor route. This records the existing b5fd046/76f2e9e correction, not a new behavior or schema change.
+
 | Entity | Existing use | Invariant |
 | --- | --- | --- |
 | learn_lessons + topic/course | Reviewed version, slug/locale, sections/practice/cards, subject/grade | Filter visibility before latest version; no client grade/review override |

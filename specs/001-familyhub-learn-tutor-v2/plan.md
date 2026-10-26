@@ -1,6 +1,16 @@
 # Implementation Plan: FamilyHub Learn Tutor 2.0 recovery
 
-## Current amendment — approved Design03, 2026-10-26
+## Current Factory execution amendment — 2026-10-26
+
+Codex now orchestrates the full authorized Factory in `work/factory-final-integration`, branch `codex/factory-final-integration`, using actual current HEAD and root job reports. Original dirty Tutor work and original integrated76f2e9e remain preserved. Local commits/integration, disposable tests and local Docker builds are authorized by the user's instruction to fix all Factory blockers; remote push/PR changes/merge/deploy and production operations remain separate.
+
+Independent work units own files according to the current shared security task ledger, including T035–T041 and necessary feedback contracts. Claude completed assigned work until an actual session limit; the user's standing fallback transfers remaining units to Codex. Current source review and actual verification, not old worker checkboxes, control integration. Routine engineering corrections proceed under the user's autonomy instruction; only genuine product, acceptance, risk or external-action decisions return to the human.
+
+Use tested tool commit `ee954bf` with explicit `themes:["light"]`, unchanged thresholds, and supported per-checkout state/Spec Kit installation. Restore current native documents with provenance and register all combined native scope/mappings; never copy old gate receipts. Reference framing is the disclosed engineering choice in the current spec, independently checked for fidelity to unchanged approved preview bytes. No repeated light-mode or unchanged-UI approval is requested. Original Design02 archive and original Design03 human evidence remain preserved in the original Tutor checkout; current provenance points to them.
+
+Run final exact-head source/security/semantic review and checks, record genuine existing human design approval, and measure the26light cases and separate hint/practice supplements at1280x800/390x844. Pixel discrepancies, human teaching/screen-reader/content acceptance and restored-copy migration evidence remain explicit. No visual threshold or reference substitution is used to force acceptance.
+
+## Historical amendment — approved Design03, 2026-10-26
 
 Resume T012/T032 in `work/issue12-factory`, branch `codex/issue12-factory`, base `b5fd046`. Earlier recovery notes below are historical. The implementation is authorized by the approved Claude design handoff and the user's instruction to perform Codex's work. Archive Design02 before replacing live design inputs; register the same native spec paths with pinned preview.14, independent review, then the recorded human approval.
 

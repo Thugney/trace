@@ -2,6 +2,8 @@
 
 Existing detail: docs/familyhub-learn-tutor-v2.md and backend/src/services/learn/tutorCoach.ts. Design03 extends this same endpoint; no new service or schema.
 
+The server's Tutor context uses `grade: number | null`. It derives known grades from reviewed topic mapping; absent mapping stays null through the route and coach prompt. No client grade override, numeric fallback, inferred age or unsupported grade/curriculum claim is permitted. The legacy unused helper's default grade is not the active route contract.
+
 POST /api/learn/tutor preserves legacy {lesson_id,question}. Optional mode: explain|hint|guided_practice|check_understanding|next_step; locale: nb|en; item_key belongs to reviewed lesson; hint_level integer0–2; recovery boolean. Question max500 characters, optional for explicit modes. Reject unknown fields, identity/grade/result overrides and transcripts.
 
 Preserve answer, source and optional provider/reason; mode output adds validated section references/formative_only and applicable hint/item/recommendation. Keep existing authentication/feature/control/quota/rate errors and strict **423** assessment lock. Provider/quota fallback never overrides denied access.
