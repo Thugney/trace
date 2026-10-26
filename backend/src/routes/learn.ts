@@ -468,6 +468,9 @@ function listAssignmentsForChild(childId: number) {
 }
 
 function syncAssignmentCompletion(childId: number) {
+  // SQLite timestamps and ISO submissions denote UTC instants in different
+  // formats. julianday preserves the application's millisecond precision;
+  // equality counts as completion, and invalid timestamps do not match.
   const open = db.prepare(`
     SELECT * FROM learn_assignments WHERE child_id = ? AND state = 'assigned'
   `).all(childId) as any[];
@@ -477,7 +480,7 @@ function syncAssignmentCompletion(childId: number) {
     if (assignment.target_kind === 'review_paper') {
       done = Boolean(db.prepare(`
         SELECT 1 FROM learn_review_attempts
-        WHERE paper_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND submitted_at >= ?
+        WHERE paper_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND julianday(submitted_at) >= julianday(?)
       `).get(assignment.review_paper_id, childId, assignment.created_at));
     } else if (assignment.target_kind === 'topic') {
       const lessons = db.prepare(`
@@ -487,7 +490,7 @@ function syncAssignmentCompletion(childId: number) {
     } else if (assignment.mock_exam_id) {
       done = Boolean(db.prepare(`
         SELECT 1 FROM learn_mock_attempts
-        WHERE exam_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND submitted_at >= ?
+        WHERE exam_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND julianday(submitted_at) >= julianday(?)
       `).get(assignment.mock_exam_id, childId, assignment.created_at));
     } else if (assignment.lesson_id) {
       done = Boolean(getPracticeResult(assignment.lesson_id, childId)?.passed);

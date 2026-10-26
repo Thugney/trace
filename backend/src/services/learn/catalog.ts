@@ -194,24 +194,17 @@ export function getTopicContext(topicId: number) {
  */
 export function getVisibleLessons(topicId: number, includeUnreviewed: boolean): LessonRow[] {
   const rows = db.prepare(`
-    SELECT * FROM learn_lessons
-    WHERE topic_id = ? ${includeUnreviewed ? '' : "AND review_status = 'reviewed'"}
+    SELECT * FROM learn_lessons AS lesson
+    WHERE topic_id = ? ${includeUnreviewed ? '' : `AND review_status = 'reviewed'
+      AND NOT EXISTS (
+        SELECT 1 FROM learn_lessons AS newer
+        WHERE newer.topic_id = lesson.topic_id AND newer.slug = lesson.slug AND newer.locale = lesson.locale
+          AND newer.review_status = 'reviewed' AND newer.version > lesson.version
+      )`}
     ORDER BY content_id IS NOT NULL, sort_order, slug, version DESC
   `).all(topicId) as LessonRow[];
 
-  if (includeUnreviewed) {
-    return rows;
-  }
-
-  const seen = new Set<string>();
-  return rows.filter((row) => {
-    const key = `${row.slug}:${row.locale}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
+  return rows;
 }
 
 export function getVisibleMockExams(topicId: number, includeUnreviewed: boolean): MockExamRow[] {

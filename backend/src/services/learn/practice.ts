@@ -151,6 +151,8 @@ export function getPracticeResult(lessonId: number, learnerId: number) {
 /**
  * Learn practice sessions award economy points only for the learner's first
  * passed attempt, so repeated practice cannot farm points or spam guardians.
+ * The legacy function name is retained for the activity completion adapter:
+ * true suppresses both rewards and notifications, including failed attempts.
  * Returns false when the session is not a Learn practice session.
  */
 export function isRepeatLearnPracticeCompletion(sessionId: number, profileId: number, attemptId: number): boolean {
@@ -161,6 +163,16 @@ export function isRepeatLearnPracticeCompletion(sessionId: number, profileId: nu
 
     if (!link) {
       return false;
+    }
+
+    // The activity engine stores its verified result before asking whether to
+    // award credit. A partial score is still useful progress, but is not a pass.
+    const currentPass = db.prepare(`
+      SELECT 1 FROM session_attempts
+      WHERE id = ? AND session_id = ? AND profile_id = ? AND passed = 1 AND completed_at IS NOT NULL
+    `).get(attemptId, sessionId, profileId);
+    if (!currentPass) {
+      return true;
     }
 
     const previousPass = db.prepare(`
