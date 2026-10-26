@@ -1,0 +1,7 @@
+# Tasks — authorized Factory security remediation
+
+These are new work units for the existing Factory jobs, not a replacement for the Tutor or Learn ledgers.
+
+- [ ] T035 [CLAUDE] Implement SEC-001/SEC-002 H5P role authorization before upload parsing; bounded multipart inputs and reliable cleanup. Own `backend/src/routes/h5p.ts` and new focused H5P security tests only. First demonstrate the denial-before-file regression fails on base; then preserve parent/admin imports, login/feature controls and cleanup/error/abort behavior. Report to root `factory/jobs/002-learn-grades-1-10-remediation-and/claude/t035-h5p/`.
+- [ ] T036 [CODEX] Implement SEC-003/SEC-004/SEC-005 compatible HTTP/dependency remediation, checking all production audit findings and supporting source reachability. Own backend/frontend package manifests/locks and new dependency-boundary tests (not Claude's H5P tests/source). Verify actual available versions, preserve APIs, rerun build/meaningful route tests and four audit scopes. Report residuals rather than inferring acceptance. Report to root `factory/jobs/002-learn-grades-1-10-remediation-and/codex/t036-dependencies/`.
+- [ ] T037 [ORCHESTRATOR] Independently review both work units; integrate reviewed changes locally into an isolated integration branch, rerun relevant checks on its exact head, and reconcile T031 evidence. No release acceptance from worker test results alone.
