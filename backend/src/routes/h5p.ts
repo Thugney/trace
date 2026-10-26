@@ -9,7 +9,8 @@
  * - Assignment management
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import type { Readable } from 'stream';
 import { authenticateEventSource } from '../middleware/auth';
 import { canAccessOwnOrManagedChild } from '../services/familyAccess';
 import { canManageOwnedResource, paramGuard } from '../services/resourceAccess';
@@ -645,14 +646,54 @@ if (!fs.existsSync(h5pUploadDir)) {
   fs.mkdirSync(h5pUploadDir, { recursive: true });
 }
 
-const h5pUpload = multer({
-  storage: multer.diskStorage({
-    destination: h5pUploadDir,
-    filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, `h5p-${uniqueSuffix}.h5p`);
+// Temp files written for one request: path -> source stream while still writing,
+// null once the file is complete on disk
+type H5PUploadTracker = { released: boolean; files: Map<string, Readable | null> };
+const h5pUploadTrackers = new WeakMap<Request, H5PUploadTracker>();
+
+// Stream each upload to its own temp file, removing it if the write fails or the
+// request has already finished (e.g. the client disconnected mid-upload)
+const h5pUploadStorage: multer.StorageEngine = {
+  _handleFile(req, file, cb) {
+    const tracker = h5pUploadTrackers.get(req);
+    if (!tracker || tracker.released) {
+      file.stream.resume();
+      return cb(new Error('H5P upload is no longer active'));
     }
-  }),
+
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const filename = `h5p-${uniqueSuffix}.h5p`;
+    const filePath = path.join(h5pUploadDir, filename);
+    const out = fs.createWriteStream(filePath);
+    tracker.files.set(filePath, file.stream);
+
+    let failure: Error | null = null;
+    const fail = (err: Error) => {
+      failure = failure || err;
+      out.destroy();
+    };
+    file.stream.on('error', fail);
+    out.on('error', fail);
+    out.on('close', () => {
+      tracker.files.set(filePath, null);
+      const error = failure || (tracker.released ? new Error('H5P upload is no longer active') : null);
+      if (error) {
+        tracker.files.delete(filePath);
+        return fs.rm(filePath, { force: true }, () => cb(error));
+      }
+      cb(null, { destination: h5pUploadDir, filename, path: filePath, size: out.bytesWritten });
+    });
+    file.stream.pipe(out);
+  },
+  _removeFile(req, file, cb) {
+    h5pUploadTrackers.get(req)?.files.delete(file.path);
+    fs.rm(file.path, { force: true }, err => cb(err));
+  }
+};
+
+// The clients send exactly one `h5pFile` part and no other fields
+const h5pUpload = multer({
+  storage: h5pUploadStorage,
   fileFilter: (req, file, cb) => {
     // Accept only .h5p files
     if (file.originalname.endsWith('.h5p') || file.mimetype === 'application/zip') {
@@ -662,23 +703,78 @@ const h5pUpload = multer({
     }
   },
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB max
+    fileSize: 100 * 1024 * 1024, // 100MB max
+    files: 1,
+    fields: 0,
+    // Busboy also counts the closing boundary as a part, so 1 would reject every
+    // completed upload; files/fields above enforce the single-file contract
+    parts: 2,
+    fieldNameSize: 100
   }
 });
 
-// Upload and install an H5P library package (admin/parent only)
-router.post('/libraries/upload', h5pUpload.single('h5pFile'), async (req: Request, res: Response) => {
-  try {
-    await ensureH5PInitialized();
-    const profile = (req as any).profile;
+// Role check for upload routes; runs before the body is parsed or written to disk
+const requireH5PManager = (message: string) => (req: Request, res: Response, next: NextFunction) => {
+  const profile = (req as any).profile;
+  if (profile?.type !== 'parent' && profile?.type !== 'admin') {
+    res.status(403).json({ error: message });
+    return;
+  }
+  next();
+};
 
-    if (profile.type !== 'parent' && profile.type !== 'admin') {
-      return res.status(403).json({ error: 'Only parents/admins can install H5P libraries' });
+// Parse the single .h5p upload, answering parser/limit failures with a JSON 4xx.
+// Every temp file is removed once the response ends or the client disconnects.
+const acceptH5PUpload = (req: Request, res: Response, next: NextFunction) => {
+  const tracker: H5PUploadTracker = { released: false, files: new Map() };
+  h5pUploadTrackers.set(req, tracker);
+
+  const release = () => {
+    if (tracker.released) return;
+    tracker.released = true;
+    for (const [filePath, stream] of tracker.files) {
+      if (stream) {
+        // Still writing: ending the source closes the file, and the storage removes it
+        stream.destroy(new Error('H5P upload aborted'));
+      } else {
+        try {
+          fs.rmSync(filePath, { force: true });
+        } catch (e) {
+          console.warn('[H5P] Could not delete temp file:', e);
+        }
+      }
     }
+  };
+  res.once('finish', release);
+  res.once('close', release);
+
+  h5pUpload.single('h5pFile')(req, res, (err?: any) => {
+    if (tracker.released) return;
+    if (!err) return next();
+
+    if (err instanceof multer.MulterError) {
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: err.message, code: err.code });
+    }
+    // Filesystem failures are ours; anything else is a rejected or malformed upload
+    if (err?.syscall) {
+      console.error('[H5P] Error storing upload:', err);
+      return res.status(500).json({ error: 'Failed to store H5P upload' });
+    }
+    res.status(400).json({ error: err?.message || 'Invalid H5P upload' });
+  });
+};
+
+// Upload and install an H5P library package (admin/parent only)
+router.post('/libraries/upload', requireH5PManager('Only parents/admins can install H5P libraries'), acceptH5PUpload, async (req: Request, res: Response) => {
+  try {
+    const profile = (req as any).profile;
 
     if (!req.file) {
       return res.status(400).json({ error: 'No H5P file uploaded' });
     }
+
+    await ensureH5PInitialized();
 
     const filePath = req.file.path;
     const h5pUser = createH5PUser(profile.id, profile.name);
@@ -721,18 +817,15 @@ router.post('/libraries/upload', h5pUpload.single('h5pFile'), async (req: Reques
 });
 
 // Import H5P content (both libraries AND content) from uploaded .h5p file
-router.post('/content/import', h5pUpload.single('h5pFile'), async (req: Request, res: Response) => {
+router.post('/content/import', requireH5PManager('Only parents/admins can import H5P content'), acceptH5PUpload, async (req: Request, res: Response) => {
   try {
-    await ensureH5PInitialized();
     const profile = (req as any).profile;
-
-    if (profile.type !== 'parent' && profile.type !== 'admin') {
-      return res.status(403).json({ error: 'Only parents/admins can import H5P content' });
-    }
 
     if (!req.file) {
       return res.status(400).json({ error: 'No H5P file uploaded' });
     }
+
+    await ensureH5PInitialized();
 
     const filePath = req.file.path;
     const h5pUser = createH5PUser(profile.id, profile.name);
