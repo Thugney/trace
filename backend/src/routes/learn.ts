@@ -830,6 +830,13 @@ router.get('/topics/:topicId', (req: AuthRequest, res: Response) => {
 
   const lessons = getVisibleLessons(topic.id, isReviewer(req));
   const exams = getVisibleMockExams(topic.id, isReviewer(req));
+  // The same rule the catalogue applies: a learner never sees a topic, not even
+  // its title, summary or goal mappings, until it has reviewed content. The
+  // response stays 'Topic not found' so a direct ID cannot confirm it exists
+  if (!isReviewer(req) && !lessons.length && !exams.length) {
+    return res.status(404).json({ error: 'Topic not found' });
+  }
+
   res.json({
     ...topic,
     lessons: lessons.map((lesson) => ({ id: lesson.id, title: lesson.title, version: lesson.version, review_status: lesson.review_status })),

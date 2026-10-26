@@ -321,7 +321,7 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
   describe('draft gate', () => {
     it('hides draft lessons, topics and review papers from children, including direct API access', async () => {
       const app = await createApp();
-      const { parentA, childA } = setupFamilies();
+      const { admin, parentA, childA } = setupFamilies();
       await optIn(app, parentA.id);
       const headers = authHeaders(childA.id);
 
@@ -345,9 +345,32 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect((await request(app).get(`/learn/admin/lessons/${lessonId}`).set(headers)).status).toBe(403);
       expect((await request(app).post(`/learn/review-papers/${paperId}/review`).set(authHeaders(parentA.id)).send({ status: 'reviewed' })).status).toBe(403);
 
+      // A direct topic ID must not hand back the title, summary or goal mappings either
+      const draftTopicId = topicIdOf(GRADE3_MATH[0]);
+      expect((await request(app).get(`/learn/topics/${draftTopicId}`).set(headers)).status).toBe(404);
+      // The reviewer who has to check that draft still reaches it
+      expect((await request(app).get(`/learn/topics/${draftTopicId}`).set(authHeaders(admin.id))).status).toBe(200);
+
       const overview = await request(app).get('/learn/catalog/overview').set(headers);
       expect(overview.body.grades).toHaveLength(10);
       expect(overview.body.grades.every((grade: any) => grade.topics_available === 0 && grade.topics_planned >= 25)).toBe(true);
+    });
+
+    it('opens a topic by direct ID only once it has reviewed content', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const headers = authHeaders(childA.id);
+      const topicId = topicIdOf(GRADE3_MATH[0]);
+
+      const hidden = await request(app).get(`/learn/topics/${topicId}`).set(headers);
+      expect(hidden.status).toBe(404);
+      expect(JSON.stringify(hidden.body)).not.toContain('Ganging');
+
+      await review(app, admin.id, [GRADE3_MATH[0]]);
+      const opened = await request(app).get(`/learn/topics/${topicId}`).set(headers);
+      expect(opened.status).toBe(200);
+      expect(opened.body.lessons.map((lesson: any) => lesson.review_status)).toEqual(['reviewed']);
     });
 
     it('gives the reviewer answer keys, model answers and content warnings to check', async () => {
