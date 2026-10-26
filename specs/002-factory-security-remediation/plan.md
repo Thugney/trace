@@ -37,3 +37,7 @@ The independent review identified that resuming an unfinished practice attempt r
 ## T042 final integrated scoring integrity
 
 The independent semantic and Factory source reviews of2906c25 found that client-supplied negative hint counts inflate adjusted points. A related route inspection found Learn completion does not require all session activities to have been answered. Codex owns the narrow route/test followup under existing SEC-009 server-verified completed-pass semantics; reject malformed hint counts before writes, preserve legitimate authored-hint penalties and stored-result replay, and require actual persisted Learn completion before scoring final rewards. Ordinary activity behavior stays under its existing contract. Final review/test receipts must supersede the pre-fix CHANGES reports.
+
+## T043 content validation isolation
+
+The exact combined run at1c0aa4e showed that validate-only loads contentImport for pilotGrade8Topics and thereby opens database/init. This violates the existing validation-only boundary and introduces a generated backend/data/family.db into the source snapshot. Codex owns a narrow import/pure-data correction and real subprocess tests under the existing no-dry-run-side-effects and existing-data-preservation contract. Preserve any run-generated DB as evidence outside the integration source after proving provenance; never delete or open an unidentified real database.
