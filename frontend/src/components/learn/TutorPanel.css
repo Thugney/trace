@@ -1,0 +1,109 @@
+/* Scoped adaptation of approved Design 02. No prototype UI or global navigation. */
+
+.tutor-page,.tutor-shell{color-scheme:light;--bg:#f4f7f5;--surface:#fff;--soft:#edf5f1;--ink:#19342f;--muted:#62756f;--line:#dde7e1;--accent:#087a68;--accent-hover:#056453;--accent-soft:#e4f2eb;--lime:#deefae;--shadow:0 10px 38px #243d2f06;--error:#9a5619;--error-bg:#fff5e6}
+.dark .tutor-page,.dark .tutor-shell{color-scheme:dark;--bg:#101b1a;--surface:#182725;--soft:#1d302c;--ink:#edf5ef;--muted:#afc4ba;--line:#30453d;--accent:#91dbc0;--accent-hover:#b5ecd6;--accent-soft:#29463a;--lime:#cde8a7;--shadow:0 10px 38px #0002;--error:#ffd3a4;--error-bg:#3b2e22}
+.tutor-shell .tutor-workspace{display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:24px;align-items:start}
+.tutor-shell .tutor-coach{background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);overflow:hidden}
+.tutor-shell .tutor-coachbody{padding:28px 30px 0}
+.tutor-shell .tutor-smallheading{font-size:14px;font-weight:650;margin:0 0 16px}
+.tutor-shell .tutor-modegrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tutor-shell .tutor-mode{display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center;min-height:90px;padding:12px 6px;border:1px solid var(--line);border-radius:15px;background:transparent;color:var(--muted);font-size:12px;font-weight:600;line-height:1.35;text-align:center;transition:background .15s,border .15s}
+.tutor-shell .tutor-mode:hover{background:var(--soft)}
+.tutor-shell .tutor-mode[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.tutor-shell .tutor-mode svg{width:23px;height:23px}
+.tutor-shell .tutor-conversation{min-height:270px;padding:28px 0 20px}
+.tutor-shell .tutor-welcome{padding:13px 0 8px;max-width:510px;margin:auto;text-align:center}
+.tutor-shell .tutor-guide-icon{display:grid;place-items:center;width:52px;height:52px;background:var(--lime);color:#345234;border-radius:19px;margin:0 auto 15px;transform:rotate(-5deg)}
+.tutor-shell .tutor-guide-icon svg{width:29px;height:29px;transform:rotate(5deg)}
+.tutor-shell .tutor-welcome h2{font-size:24px;line-height:1.3;font-weight:650;letter-spacing:-.5px;margin:0 0 8px}
+.tutor-shell .tutor-welcome p{font-size:15px;color:var(--muted);max-width:360px;margin:0 auto 18px}
+.tutor-shell .tutor-starter{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--accent);padding:10px 14px;border-radius:11px;font-size:13px;font-weight:650}
+.tutor-shell .tutor-starter svg{width:17px}
+.tutor-shell .tutor-starter:hover{background:var(--soft)}
+.tutor-shell .tutor-label{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:10px}
+.tutor-shell .tutor-label .tutor-avatar{display:grid;place-items:center;width:27px;height:27px;border-radius:10px;background:var(--lime);color:#345234}
+.tutor-shell .tutor-avatar svg{width:18px;height:18px}
+.tutor-shell .tutor-answer{border-radius:4px 17px 17px;background:var(--soft);padding:19px 21px;font-size:17px;line-height:1.75}
+.tutor-shell .tutor-answer p{margin:0 0 12px}
+.tutor-shell .tutor-answer p:last-child{margin:0}
+.tutor-shell .tutor-answer blockquote{border-left:3px solid var(--accent);margin:0 0 16px;padding-left:15px;font-size:16px}
+.tutor-shell .tutor-answer .tutor-question{font-weight:650}
+.tutor-shell .tutor-sourcechip{margin-top:15px;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);border:0;background:transparent;padding:3px 0;text-decoration:underline;text-underline-offset:3px}
+.tutor-shell .tutor-sourcechip svg{width:15px;height:15px}
+.tutor-shell .tutor-request{margin:0 0 18px auto;background:var(--accent);color:#fff;max-width:80%;width:fit-content;border-radius:16px 4px 16px 16px;padding:10px 16px;font-size:14px}
+.dark .tutor-shell .tutor-request{color:#17362c}
+.tutor-shell .tutor-replyactions{display:flex;gap:9px;margin-top:16px;flex-wrap:wrap}
+.tutor-shell .tutor-replyactions button{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);padding:10px 13px;font-size:13px;font-weight:600;min-height:44px}
+.tutor-shell .tutor-replyactions svg{width:16px}
+.tutor-shell .tutor-replyactions button:hover{background:var(--soft)}
+.tutor-shell .tutor-composer{padding:20px 30px;background:var(--surface);border-top:1px solid var(--line)}
+.tutor-shell .tutor-inputwrap{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:7px 8px 7px 17px;gap:8px}
+.tutor-shell .tutor-inputwrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.tutor-shell .tutor-inputwrap input{width:100%;min-width:0;background:none;border:0;outline:none;color:var(--ink);padding:9px 0;font-size:15px}
+.tutor-shell .tutor-inputwrap input::placeholder{color:var(--muted)}
+.tutor-shell .tutor-inputwrap input:focus-visible{outline:0}
+.tutor-shell .tutor-send{border:0;border-radius:11px;background:var(--accent);color:white;width:44px;height:44px;display:grid;place-items:center;flex:none}
+.dark .tutor-shell .tutor-send{color:#17362c}
+.tutor-shell .tutor-send:hover{background:var(--accent-hover)}
+.tutor-shell .tutor-composerfoot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;font-size:11px;color:var(--muted)}
+.tutor-shell .tutor-composerfoot span{display:flex;align-items:center;gap:5px}
+.tutor-shell .tutor-composerfoot svg{width:13px;height:13px}
+.tutor-shell .tutor-clear{padding:4px 0;border:0;background:none;color:var(--muted);font-size:11px;text-decoration:underline;text-underline-offset:3px}
+.tutor-shell .tutor-mobileRecovery{display:none}
+.tutor-shell .tutor-sourcecard{background:var(--accent-soft);border-radius:20px;padding:23px}
+.tutor-shell .tutor-sectionlabel{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;font-weight:750;display:flex;gap:7px;align-items:center;color:var(--accent)}
+.tutor-shell .tutor-sectionlabel svg{width:17px}
+.tutor-shell .tutor-sourcecard h2{font-size:21px;letter-spacing:-.4px;margin:16px 0 10px;line-height:1.3}
+.tutor-shell .tutor-sourcecard p{font-size:14px;line-height:1.7;color:var(--muted);margin:0 0 20px}
+.tutor-shell .tutor-read{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;background:var(--surface);border-radius:11px;padding:12px;color:var(--ink);font-size:13px;font-weight:650}
+.tutor-shell .tutor-read svg{width:17px}
+.tutor-shell .tutor-reviewed{margin-top:16px;display:flex;gap:6px;align-items:center;font-size:11px;color:var(--muted)}
+.tutor-shell .tutor-reviewed svg{width:14px}
+.tutor-shell .tutor-asidehelp{padding:23px 6px}
+.tutor-shell .tutor-asidehelp h3{font-size:14px;margin:0 0 7px}
+.tutor-shell .tutor-asidehelp p{font-size:13px;color:var(--muted);margin:0;line-height:1.7}
+.tutor-shell .tutor-asidehelp .tutor-textbutton{margin-top:14px;display:flex;gap:7px;align-items:center;border:0;background:none;color:var(--accent);font-size:13px;font-weight:650;padding:0;min-height:30px}
+.tutor-shell .tutor-textbutton svg{width:16px}
+.tutor-shell .tutor-footnote{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;margin:18px 4px}
+.tutor-shell .tutor-footnote svg{width:14px;height:14px}
+.tutor-shell .tutor-notice{border-radius:15px;background:var(--error-bg);border:1px solid color-mix(in srgb,var(--error) 20%,transparent);padding:22px;color:var(--error)}
+.tutor-shell .tutor-notice strong{display:block;font-size:18px;margin-bottom:8px}
+.tutor-shell .tutor-notice p{font-size:15px;margin:0}
+.tutor-shell .tutor-loading{display:flex;gap:7px;padding:25px}
+.tutor-shell .tutor-loading span{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.3s infinite}
+.tutor-shell .tutor-loading span:nth-child(2){animation-delay:.15s}
+.tutor-shell .tutor-loading span:nth-child(3){animation-delay:.3s}
+.tutor-shell .tutor-practicechoice{display:block;margin:0 0 18px;font-size:12px;color:var(--muted)}
+.tutor-shell .tutor-practicechoice select{display:block;width:100%;margin-top:6px;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px;color:var(--ink)}
+@media (max-width:950px){.tutor-shell .tutor-workspace{grid-template-columns:minmax(0,1fr) 240px;gap:18px}.tutor-shell .tutor-coachbody{padding:24px 20px 0}.tutor-shell .tutor-composer{padding:18px 20px}.tutor-shell .tutor-mode{font-size:11px}.tutor-shell .tutor-sourcecard{padding:19px}}
+@media (max-width:720px){.tutor-shell .tutor-mobileRecovery{display:flex;align-items:center;gap:7px;border:0;background:none;color:var(--accent);padding:11px 0 0;font-size:12px;font-weight:600;min-height:44px}.tutor-shell .tutor-mobileRecovery svg{width:16px;height:16px}.tutor-shell .tutor-workspace{display:flex;flex-direction:column;gap:17px}.tutor-shell .tutor-coach{border-radius:20px;width:100%}.tutor-shell .tutor-coachbody{padding:20px 16px 0}.tutor-shell .tutor-smallheading{font-size:12px;margin-bottom:12px}.tutor-shell .tutor-modegrid{grid-template-columns:repeat(3,1fr);gap:7px}.tutor-shell .tutor-mode{min-height:67px;border-radius:12px;font-size:11px;gap:5px;padding:8px 5px}.tutor-shell .tutor-mode svg{width:19px;height:19px}.tutor-shell .tutor-mode:last-child{grid-column:span 2;flex-direction:row;gap:8px}.tutor-shell .tutor-conversation{min-height:245px;padding:24px 0 18px}.tutor-shell .tutor-welcome{padding:3px 0}.tutor-shell .tutor-welcome h2{font-size:21px}.tutor-shell .tutor-welcome p{font-size:14px}.tutor-shell .tutor-guide-icon{width:44px;height:44px;border-radius:16px;margin-bottom:13px}.tutor-shell .tutor-welcome p{margin-bottom:14px}.tutor-shell .tutor-starter{font-size:12px}.tutor-shell .tutor-composer{padding:15px 16px}.tutor-shell .tutor-composerfoot{font-size:10px;align-items:flex-start}.tutor-shell .tutor-clear{font-size:10px;white-space:nowrap}.tutor-shell .tutor-inputwrap{padding-left:12px}.tutor-shell .tutor-inputwrap input{font-size:13px}.tutor-shell .tutor-answer{font-size:16px;padding:16px}.tutor-shell .tutor-answer blockquote{font-size:15px}.tutor-shell .tutor-replyactions button{font-size:12px;padding:9px 11px}.tutor-shell .tutor-workspace aside{width:100%}.tutor-shell .tutor-sourcecard{padding:18px;border-radius:17px}.tutor-shell .tutor-sourcecard h2{font-size:19px;margin:10px 0 7px}.tutor-shell .tutor-sourcecard p{font-size:13px;margin-bottom:13px}.tutor-shell .tutor-reviewed{margin-top:11px}.tutor-shell .tutor-asidehelp{display:none}.tutor-shell .tutor-footnote{align-items:flex-start;font-size:10px;max-width:320px;margin-top:15px}.tutor-shell .tutor-footnote svg{margin-top:1px}.tutor-shell .tutor-notice{padding:17px}.tutor-shell .tutor-notice strong{font-size:17px}}
+.tutor-shell { color:var(--ink); font:16px/1.55 'Segoe UI Variable','Segoe UI',system-ui,sans-serif; overflow-wrap:anywhere; }
+.tutor-shell svg { width:22px;height:22px;stroke-width:1.7;flex:none; }
+.tutor-shell button:disabled,.tutor-shell select:disabled { cursor:wait;opacity:.65; }
+.tutor-shell button:focus-visible,.tutor-shell a:focus-visible,.tutor-shell select:focus-visible,.tutor-shell input:focus-visible { outline:3px solid var(--accent);outline-offset:3px; }
+.tutor-shell .tutor-conversation:focus-visible { outline:2px solid var(--accent);outline-offset:3px;border-radius:8px; }
+.tutor-shell .tutor-conversation { max-height:650px;overflow-y:auto;scrollbar-gutter:stable;padding-right:4px; }
+.tutor-shell .tutor-conversation ol { list-style:none;padding:0;margin:0; }
+.tutor-shell .tutor-conversation li + li { margin-top:26px; }
+.tutor-shell .tutor-welcome h3 { font-size:24px;line-height:1.3;font-weight:650;letter-spacing:-.5px;margin:0 0 8px; }
+.tutor-shell .tutor-sourcechip { display:flex;text-align:left;min-height:44px; }
+.tutor-shell .tutor-answer .tutor-starter { margin-top:12px; }
+.tutor-shell .tutor-mode,.tutor-shell .tutor-coach,.tutor-shell aside { min-width:0; }
+.tutor-shell .tutor-toolbar { display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 24px;color:var(--muted); }
+.tutor-shell .tutor-toolbar select { background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--ink); }
+.tutor-shell .tutor-practicechoice { margin-top:18px; }
+.tutor-shell .tutor-clear { min-height:44px; }
+.tutor-shell .tutor-loading { align-items:center;color:var(--accent); }
+@media(max-width:720px) {
+ .tutor-shell .tutor-welcome h3 {font-size:21px;}
+ .tutor-shell .tutor-toolbar {font-size:13px;align-items:flex-start;}
+ .tutor-shell .tutor-toolbar p {max-width:220px;}
+}
+
+.tutor-page {background:var(--bg);color:var(--ink);}
+.tutor-page > header h1 {font-size:36px;line-height:1.2;letter-spacing:-1px;font-weight:700;}
+.tutor-page > a {color:var(--accent);}
+.tutor-page > [role=tablist] {background:transparent;box-shadow:none;border-radius:0;border-bottom:1px solid var(--line);padding-bottom:16px;}
+.tutor-page [role=tab] {color:var(--muted);}
+.tutor-page [role=tab][aria-selected=true] {background:var(--accent-soft);color:var(--accent);}
+@media(max-width:720px) {.tutor-page > header h1 {font-size:29px;letter-spacing:-.8px;}}
