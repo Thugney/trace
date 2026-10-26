@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // FamilyHub is light-only. Nothing adds a `dark` class, so `dark:` utilities stay inert;
+  // Tailwind's default ('media') would switch them on whenever the device is in dark mode.
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
