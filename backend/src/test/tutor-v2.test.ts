@@ -30,13 +30,35 @@ const context: TutorContext = { lessonId: 1, grade: 3, title: 'Groups', locale: 
 const input = (overrides = {}) => ({ lesson_id: 1, mode: 'explain' as const, question: '', hint_level: 0, recovery: false, ...overrides });
 
 describe('tutor contracts and bounded grounding', () => {
-  it.each([1, 4, 8, 10])('uses reviewed mapping for Grade %i and bounded, key-free context', grade => {
+  it.each([1, 4, 7, 8, 10])('uses reviewed mapping for Grade %i and bounded, key-free context', grade => {
     const prompt = coachPrompt({ ...context, grade }, input({ question: 'Explain groups', locale: 'en' }));
     expect(prompt.system).toContain(`Grade ${grade}`);
     expect(prompt.system).toContain('English');
-    expect(prompt.system).toContain(grade <= 4 ? '60 words' : '120 words');
+    expect(prompt.system).toContain(grade <= 4 ? '60 words' : grade <= 7 ? '90 words' : '120 words');
     expect(prompt.user).not.toContain('PRIVATE_');
     expect(prompt.user.length).toBeLessThan(5000);
+  });
+  it.each(['nb', 'en'])('teaches without an invented grade when the reviewed mapping is unknown (%s)', locale => {
+    const unknown: TutorContext = { ...context, grade: null };
+    const prompt = coachPrompt(unknown, input({ locale }));
+    expect(prompt.system).toContain('grade is unknown');
+    expect(prompt.system).not.toMatch(/Grade (?:null|\d+)/);
+    expect(prompt.system).toContain('60 words');
+    expect(prompt.system).toContain(locale === 'en' ? 'English' : 'Bokmål');
+    expect(prompt.user).not.toContain('PRIVATE_');
+    const longContext = { ...unknown, body: { ...body, sections: [{ heading: 'Groups', paragraphs: ['group '.repeat(100)] }] } };
+    const fallback = deterministicTutor(longContext, input({ locale }));
+    expect(fallback.answer.split('\n')[1]).toHaveLength(220);
+    expect(fallback.references[0].lesson_id).toBe(context.lessonId);
+    if (locale === 'en') expect(fallback.answer).toContain('You can try in Norwegian first.');
+  });
+  it('keeps unknown-grade provider output within the conservative limit and still checks grounding', () => {
+    const unknown: TutorContext = { ...context, grade: null };
+    const response = (answer: string) => JSON.stringify({ answer, references: [0], supported: true });
+    expect(validateCoachAnswer(response('Count one group at a time.'), unknown, input())).not.toBeNull();
+    expect(validateCoachAnswer(response(Array(76).fill('group').join(' ')), unknown, input())).toBeNull();
+    expect(validateCoachAnswer(response('Saturn has rings.'), unknown, input())).toBeNull();
+    expect(validateCoachAnswer(response(Array(76).fill('group').join(' ')), { ...context, grade: 7 }, input())).not.toBeNull();
   });
   it.each(['nb', 'en'])('provides progressive, safe hints and recovery in %s', locale => {
     const hints = [0, 1, 2].map(hint_level => deterministicTutor(context, input({ mode: 'hint', locale, hint_level })).answer);
