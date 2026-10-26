@@ -176,6 +176,15 @@ export function importContentPackage(
     INSERT INTO learn_subjects (slug, title, udir_code, instruction_locale, sort_order)
     VALUES (?, ?, ?, ?, ?) ON CONFLICT(slug) DO NOTHING
   `);
+  // The source registry owns the subject-level curriculum code. The insert above
+  // stays DO NOTHING so created.subjects keeps counting real inserts, so an
+  // existing subject is reconciled here instead: the grade 8 pilot seeded
+  // pre-2026 codes (MAT01-05 and the like) and DO NOTHING never replaced them.
+  // Only this column is touched, so reviewer verification, goals, topics and
+  // lesson history are left exactly as they are.
+  const alignSubjectCode = db.prepare(`
+    UPDATE learn_subjects SET udir_code = ? WHERE slug = ? AND udir_code IS NOT ?
+  `);
   const insertGoal = db.prepare(`
     INSERT INTO learn_goals (
       subject_id, goal_key, official_goal_ref, source_locator, goal_after_grade, description,
@@ -235,6 +244,7 @@ export function importContentPackage(
       const index = SUBJECT_SLUGS.indexOf(subject.slug as typeof SUBJECT_SLUGS[number]);
       const locale = subject.slug === 'engelsk' ? 'en' : 'nb';
       summary.created.subjects += insertSubject.run(subject.slug, subject.title, subject.code, locale, index + 1).changes;
+      alignSubjectCode.run(subject.code, subject.slug, subject.code);
       const row = db.prepare('SELECT id, title FROM learn_subjects WHERE slug = ?').get(subject.slug) as { id: number; title: string };
       subjectIds.set(subject.slug, row.id);
       subjectTitles.set(subject.slug, row.title);

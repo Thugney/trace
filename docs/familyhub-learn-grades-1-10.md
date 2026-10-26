@@ -23,7 +23,7 @@ Contract: [GRADES1-10-CODEX-CLAUDE-IMPORT-CONTRACT.md](learn/GRADES1-10-CODEX-CL
 - **Review papers, all grades:** the multiple-choice items are scored, and open answers are kept for a parent's feedback. They give topics to revise, and their `numeric_grade` is always `null`. The source policy forbids grades and no calibrated rubric exists.
 - **Grades 8–10:** only the existing PR #9 rubric-backed mock exams can show the non-official indicative 1–6.
 - **During any open mock exam or review paper**, the tutor, practice set-up and model-answer reveal return `423`. Answer keys, explanations and expected content never appear in an attempt payload.
-- **Points:** review papers give 5 points per correct item on the first submitted attempt only. Resubmits and retakes earn 0, and resubmits are idempotent.
+- **Points:** review papers give 5 points per correct item on the first submitted attempt only. Resubmits and retakes earn 0, and resubmits are idempotent. A paper submitted after its deadline still earns its points: these are low-stakes formative papers meant to be attempted, so lateness is recorded as `submitted_late` on the feedback for the guardian to see and carries no penalty. Marking the paper submitted and crediting it happen in one transaction, so a failed award leaves the attempt open rather than complete and uncreditable.
 
 ### Authorization (existing PR #8 model)
 
@@ -49,7 +49,7 @@ The five PR #9 Grade 8 pilot topics are shared, not duplicated: each keeps its r
 ```bash
 cp /backup/family.db /tmp/family-copy.db
 cd backend
-DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts          # dry run, rolled back
+DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts          # rehearsal: content rolled back, audit row kept; needs an initialized copy
 DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts --write  # import drafts
 DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts --write  # must report 0 created
 ```
