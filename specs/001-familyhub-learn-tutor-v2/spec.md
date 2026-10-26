@@ -1,8 +1,8 @@
 # Feature Specification: FamilyHub Learn Tutor 2.0
 
-**Feature Branch**: `feature/familyhub-learn-tutor-v2`  
-**Created**: 2026-10-25  
-**Status**: Design03 approved by the human on 2026-10-26; registration and implementation in progress.  
+**Feature Branch**: `feature/familyhub-learn-tutor-v2`
+**Created**: 2026-10-25
+**Status**: Design03 approved by the human on 2026-10-26; registration and implementation in progress.
 **Input**: [Issue #12](https://github.com/Thugney/trace/issues/12), its pinned execution contract, and [existing PR #14](https://github.com/Thugney/trace/pull/14).
 
 This captures existing requirements and implementation, not a new feature or rebuild. No native feature spec, plan or tasks existed in the inspected project state. `001` is the first directory under the installed sequential Spec Kit convention; it is not a replacement branch or new product identifier. If an earlier authoritative artifact is found, reconcile into it rather than maintaining two specifications.

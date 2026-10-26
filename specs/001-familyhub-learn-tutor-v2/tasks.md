@@ -1,7 +1,7 @@
 # Tasks: FamilyHub Learn Tutor 2.0
 
-**Input**: spec.md, plan.md, research.md, data-model.md, contracts/tutor.md.  
-**Current status (2026-10-26)**: Codex now orchestrates; Claude is an assigned headless worker while quota permits, with explicit Codex takeover on daily/weekly limits. Design03 implementation and functional verification are delivered locally; integration and evidence acceptance remain open. Read `evidence/tutor-v2/design03/HANDOFF.md` and orchestration-root `factory/jobs/001-tutor-2-0/orchestration-20261026.md`. Earlier readiness/ownership notes below are historical where superseded. Light mode only across FamilyHub is settled; no dark capture or renewed theme approval is required.  
+**Input**: spec.md, plan.md, research.md, data-model.md, contracts/tutor.md.
+**Current status (2026-10-26)**: Codex now orchestrates; Claude is an assigned headless worker while quota permits, with explicit Codex takeover on daily/weekly limits. Design03 implementation and functional verification are delivered locally; integration and evidence acceptance remain open. Read `evidence/tutor-v2/design03/HANDOFF.md` and orchestration-root `factory/jobs/001-tutor-2-0/orchestration-20261026.md`. Earlier readiness/ownership notes below are historical where superseded. Light mode only across FamilyHub is settled; no dark capture or renewed theme approval is required.
 **Legend**: Checked items record existing implementation or completed planning only, **not acceptance**. Unchecked items are remaining work. Automated tests are required by Issue #12. No [P] tasks: fixes share a test file and integration is serialized.
 
 ## Setup and Foundational Gates
