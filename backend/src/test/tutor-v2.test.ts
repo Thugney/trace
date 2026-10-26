@@ -11,6 +11,7 @@ import { tutorNextStep } from '../services/learn/tutorProgress';
 import path from 'node:path';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
+import { captureTutorVisualMatrix } from './tutorVisualCapture';
 
 const fake = vi.hoisted(() => ({ generate: vi.fn(), quota: vi.fn() }));
 vi.mock('../routes/ai', () => ({
@@ -386,7 +387,7 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
     const port = (server.address() as { port: number }).port;
     const browser = await playwright.chromium.launch({ channel: 'msedge', headless: true });
     const errors: string[] = [];
-    const evidence = path.resolve(__dirname, '../../../evidence/tutor-v2/design03'); fs.mkdirSync(evidence, { recursive: true });
+    const evidence = process.env.TUTOR_BROWSER_EVIDENCE ? path.resolve(process.env.TUTOR_BROWSER_EVIDENCE) : path.resolve(__dirname, '../../../evidence/tutor-v2/design03'); fs.mkdirSync(evidence, { recursive: true });
     try {
       for (const mobile of [false, true]) {
         child = createTestProfile({ type: 'child', parent_id: parent.id, ai_enabled: 1, age: 8 });
@@ -535,7 +536,9 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
         }
         await page.close();
       }
+      if (process.env.TUTOR_VISUAL_PLAN) await captureTutorVisualMatrix({ browser, app, port, db: testDb, lesson, fake, evidence, planPath: process.env.TUTOR_VISUAL_PLAN,
+        createChild: () => { child = createTestProfile({ type: 'child', parent_id: parent.id, ai_enabled: 1, age: 9, name: 'Syntetisk elev' }); return child; } });
       expect(errors).toEqual([]);
     } finally { await browser.close(); await vite.close(); await new Promise<void>(resolve => server.close(() => resolve())); }
-  }, 90_000);
+  }, process.env.TUTOR_VISUAL_PLAN ? 180_000 : 90_000);
 });
