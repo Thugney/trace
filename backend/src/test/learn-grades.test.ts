@@ -537,6 +537,33 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(JSON.stringify(seen.body)).not.toMatch(/indicative_grade|"numeric_grade":\s*[1-6]/);
     });
 
+    it('still credits a review paper submitted after its deadline, and records it as late', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(start.status).toBe(201);
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items
+        .filter((item) => item.kind === 'single_select')
+        .map((item) => [item.id, item.correct_key]));
+
+      // Well past the deadline and its grace period
+      testDb.prepare('UPDATE learn_review_attempts SET expires_at = ? WHERE id = ?')
+        .run(new Date(Date.now() - 86400000).toISOString(), start.body.attempt_id);
+
+      const late = await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses });
+      expect(late.status).toBe(200);
+      // Low-stakes formative work: lateness is visible to the guardian, not punished
+      expect(late.body.feedback.submitted_late).toBe(true);
+      expect(late.body.points_awarded).toBe(25);
+      expect(late.body.numeric_grade).toBeNull();
+    });
+
     it('leaves a paper unsubmitted when crediting it fails, and credits it on retry', async () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();

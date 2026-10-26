@@ -1527,8 +1527,9 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
   // permanently submitted while the idempotent replay above refused to credit
   // it: the reward was then lost for good. Rolling both back leaves the attempt
   // open, so the learner's next submit scores and earns it.
-  // submitted_late is recorded on the feedback but carries no consequence yet;
-  // these are low-stakes formative papers and the late rule is still undecided.
+  // A late paper still earns its points. These are low-stakes formative papers
+  // meant to be attempted, so a missed deadline is recorded on the feedback as
+  // submitted_late, for the guardian to see, and changes nothing about credit.
   const submitAttempt = db.transaction(() => {
     const update = db.prepare(`
       UPDATE learn_review_attempts
