@@ -107,6 +107,12 @@ describe('Learn-linked practice authorization', () => {
     expect((await request(app).post(url).set(authHeaders(child.id)).send(duplicate)).status).toBe(423);
     expect(snapshot()).toEqual(before);
     testDb.prepare('UPDATE learn_mock_attempts SET submitted_at = ? WHERE profile_id = ?').run(new Date().toISOString(), child.id);
+    const remaining = testDb.prepare('SELECT * FROM learning_activities WHERE session_id = ? AND id != ?').all(id, activity.id) as any[];
+    for (const item of remaining) {
+      const answerKey = JSON.parse(item.correct_data);
+      const answer = answerKey.correctAnswer ? { answer: answerKey.correctAnswer } : { answers: answerKey.blanks.map((blank: any) => blank.answer) };
+      expect((await request(app).post(url).set(authHeaders(child.id)).send({ activityId: item.id, userResponse: answer })).status).toBe(200);
+    }
     expect((await request(app).post(`/activities/attempts/${attemptId}/complete`).set(authHeaders(child.id))).status).toBe(200);
     const completedReplay = await request(app).post(url).set(authHeaders(child.id)).send(duplicate);
     expect(completedReplay.status).toBe(400);
@@ -227,6 +233,95 @@ describe('Learn-linked practice authorization', () => {
     expect((await request(app).post(`/activities/attempts/${start.body.attemptId}/complete`).set(authHeaders(child.id))).body.passed).toBe(true);
     testDb.prepare('DELETE FROM learn_resource_links WHERE existing_resource_id = ?').run(id);
     expect((await request(app).get(`/activities/sessions/${id}`).set(authHeaders(child.id))).status).toBe(403);
+  });
+});
+
+describe('validated practice hint counts and complete attempts (SEC-009)', () => {
+  async function hintFixture() {
+    const { child } = family();
+    const { id } = await prepare(child.id);
+    const activity = testDb.prepare('SELECT * FROM learning_activities WHERE session_id = ? ORDER BY order_index LIMIT 1').get(id) as any;
+    testDb.prepare('UPDATE learning_activities SET hints = ? WHERE id = ?').run(JSON.stringify(['Hint one', 'Hint two', 'Hint three', 'Hint four']), activity.id);
+    const start = await request(app).post(`/activities/sessions/${id}/start`).set(authHeaders(child.id));
+    expect(start.status).toBe(201);
+    const answer = { answer: JSON.parse(activity.correct_data).correctAnswer };
+    const url = `/activities/attempts/${start.body.attemptId}/submit`;
+    const snapshot = () => ({
+      attempt: testDb.prepare('SELECT * FROM session_attempts WHERE id = ?').get(start.body.attemptId),
+      results: testDb.prepare('SELECT * FROM activity_results WHERE attempt_id = ?').all(start.body.attemptId),
+      progress: testDb.prepare('SELECT * FROM progress WHERE profile_id = ?').get(child.id)
+    });
+    return { child, activity, answer, url, snapshot };
+  }
+  const invalidHints = [
+    ['negative exploit', '-100'], ['negative', '-1'], ['string', '"1"'], ['null', 'null'],
+    ['fractional', '0.5'], ['positive nonfinite JSON', '1e400'], ['negative nonfinite JSON', '-1e400'],
+    ['huge integer', '9007199254740991'], ['more hints than exist', '5'], ['boolean', 'true'], ['array', '[]'], ['object', '{}']
+  ];
+  it.each(invalidHints)('rejects %s hints before writes', async (_label, wireValue) => {
+    const { child, activity, answer, url, snapshot } = await hintFixture();
+    const before = snapshot();
+    const result = await request(app).post(url).set(authHeaders(child.id)).set('Content-Type', 'application/json')
+      .send(`{"activityId":${activity.id},"userResponse":${JSON.stringify(answer)},"hintsUsed":${wireValue}}`);
+    if (_label === 'negative exploit' && result.status === 200) expect(result.body.score).toBeLessThanOrEqual(20);
+    expect(result.status).toBe(400);
+    expect(result.body.code).toBe('invalid_hints');
+    expect(snapshot()).toEqual(before);
+  });
+  it.each([[undefined, 20], [0, 20], [1, 18], [3, 14], [4, 14]])('preserves legitimate hints=%s penalty and valid replay', async (hintsUsed, score) => {
+    const { child, activity, answer, url, snapshot } = await hintFixture();
+    const result = await request(app).post(url).set(authHeaders(child.id))
+      .send({ activityId: activity.id, userResponse: answer, ...(hintsUsed === undefined ? {} : { hintsUsed }) });
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ score, maxScore: 20, isCorrect: true });
+    const before = snapshot();
+    const replay = await request(app).post(url).set(authHeaders(child.id)).send({ activityId: activity.id, userResponse: { answer: 'changed' }, hintsUsed: 0 });
+    expect(replay.status).toBe(200);
+    expect(replay.body).toMatchObject({ replayed: true, score, hintsUsed: hintsUsed ?? 0, userResponse: answer });
+    expect(snapshot()).toEqual(before);
+    const invalidReplay = await request(app).post(url).set(authHeaders(child.id)).send({ activityId: activity.id, userResponse: answer, hintsUsed: -100 });
+    expect(invalidReplay.status).toBe(400);
+    expect(invalidReplay.body.code).toBe('invalid_hints');
+    expect(snapshot()).toEqual(before);
+  });
+  it.each([true, false])('requires all persisted results for Learn=%s while preserving ordinary completion', async (learnLinked) => {
+    const { child } = family();
+    const { id } = await prepare(child.id);
+    const first = testDb.prepare('SELECT * FROM learning_activities WHERE session_id = ? ORDER BY order_index LIMIT 1').get(id) as any;
+    testDb.prepare('DELETE FROM learning_activities WHERE session_id = ? AND id != ?').run(id, first.id);
+    const clone = testDb.prepare(`INSERT INTO learning_activities (session_id,activity_type_id,title,content_data,correct_data,hints,explanation,points,order_index)
+      SELECT session_id,activity_type_id,title,content_data,correct_data,hints,explanation,points,? FROM learning_activities WHERE id=?`);
+    for (let index = 1; index < 4; index++) clone.run(index, first.id);
+    if (!learnLinked) testDb.prepare('DELETE FROM learn_resource_links WHERE existing_resource_id = ?').run(id);
+    const activities = testDb.prepare('SELECT id FROM learning_activities WHERE session_id = ? ORDER BY order_index').all(id) as { id: number }[];
+    const start = await request(app).post(`/activities/sessions/${id}/start`).set(authHeaders(child.id));
+    expect(start.status).toBe(201);
+    const attemptId = start.body.attemptId;
+    const submit = (activityId: number) => request(app).post(`/activities/attempts/${attemptId}/submit`).set(authHeaders(child.id))
+      .send({ activityId, userResponse: { answer: JSON.parse(first.correct_data).correctAnswer } });
+    for (const item of activities.slice(0, 3)) expect((await submit(item.id)).status).toBe(200);
+    const before = {
+      attempt: testDb.prepare('SELECT * FROM session_attempts WHERE id=?').get(attemptId),
+      progress: testDb.prepare('SELECT * FROM progress WHERE profile_id=?').get(child.id)
+    };
+    const incomplete = await request(app).post(`/activities/attempts/${attemptId}/complete`).set(authHeaders(child.id));
+    if (!learnLinked) {
+      expect(incomplete.status).toBe(200);
+      expect(incomplete.body).toMatchObject({ passed: true, scorePercentage: 75 });
+      return;
+    }
+    expect(incomplete.status).toBe(409);
+    expect(incomplete.body.code).toBe('practice_incomplete');
+    expect(testDb.prepare('SELECT * FROM session_attempts WHERE id=?').get(attemptId)).toEqual(before.attempt);
+    expect(testDb.prepare('SELECT * FROM progress WHERE profile_id=?').get(child.id)).toEqual(before.progress);
+    // Replaying a completed answer cannot satisfy the missing fourth activity.
+    expect((await submit(activities[0].id)).status).toBe(200);
+    expect((await request(app).post(`/activities/attempts/${attemptId}/complete`).set(authHeaders(child.id))).status).toBe(409);
+    expect((await submit(activities[3].id)).status).toBe(200);
+    const complete = await request(app).post(`/activities/attempts/${attemptId}/complete`).set(authHeaders(child.id));
+    expect(complete.status).toBe(200);
+    expect(complete.body).toMatchObject({ passed: true, scorePercentage: 100, pointsEarned: 80 });
+    expect((await request(app).post(`/activities/attempts/${attemptId}/complete`).set(authHeaders(child.id))).status).toBe(400);
   });
 });
 

@@ -811,6 +811,14 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Activity not found' });
     }
 
+    // The UI reveals each stored hint at most once. Reject coerced, negative,
+    // fractional or excessive counts before either scoring or result replay.
+    const availableHints: unknown = activity.hints ? JSON.parse(activity.hints) : [];
+    const hintCount = Array.isArray(availableHints) ? availableHints.length : 0;
+    if (!Number.isInteger(hintsUsed) || hintsUsed < 0 || hintsUsed > hintCount) {
+      return res.status(400).json({ error: 'hintsUsed must be a nonnegative integer within the activity hint count', code: 'invalid_hints' });
+    }
+
     // Check if already answered
     const existingResult = db.prepare(`
       SELECT * FROM activity_results WHERE attempt_id = ? AND activity_id = ?
@@ -909,6 +917,15 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
     if (isLearnPracticeSession(attempt.session_id)) {
       const open = getOpenAssessment(attempt.profile_id);
       if (open) return assessmentLocked(res, open);
+      const results = db.prepare(`
+        SELECT COUNT(DISTINCT activity.id) AS required, COUNT(DISTINCT result.activity_id) AS answered
+        FROM learning_activities activity
+        LEFT JOIN activity_results result ON result.activity_id = activity.id AND result.attempt_id = ?
+        WHERE activity.session_id = ?
+      `).get(attemptId, attempt.session_id) as { required: number; answered: number };
+      if (results.required === 0 || results.answered < results.required) {
+        return res.status(409).json({ error: 'Answer every practice activity before completing', code: 'practice_incomplete' });
+      }
     }
 
     // Calculate score percentage
