@@ -4,7 +4,7 @@ export const TUTOR_MODES = ['explain', 'hint', 'guided_practice', 'check_underst
 export type TutorMode = typeof TUTOR_MODES[number];
 export type TutorRequest = {
   lesson_id: number; question: string; mode: TutorMode; locale?: 'nb' | 'en';
-  item_key?: string; hint_level: number; recovery: boolean;
+  item_key?: string; hint_level: number; recovery: boolean; practice_answer?: string;
 };
 
 /** No learner identifiers, history, answer keys or profile metadata in this contract. */
@@ -20,7 +20,7 @@ export function parseTutorRequest(input: unknown): TutorRequest | null {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const data = input as Record<string, unknown>;
   // In particular, reject client grades, identity overrides, history and claimed scores.
-  if (Object.keys(data).some(key => !['lesson_id', 'question', 'mode', 'locale', 'item_key', 'hint_level', 'recovery'].includes(key))) return null;
+  if (Object.keys(data).some(key => !['lesson_id', 'question', 'mode', 'locale', 'item_key', 'hint_level', 'recovery', 'practice_answer'].includes(key))) return null;
   if (typeof data.lesson_id !== 'number' || !Number.isSafeInteger(data.lesson_id) || data.lesson_id < 1) return null;
   const mode = data.mode ?? 'explain';
   if (!TUTOR_MODES.includes(mode as TutorMode)) return null;
@@ -31,8 +31,11 @@ export function parseTutorRequest(input: unknown): TutorRequest | null {
   if (data.item_key !== undefined && (typeof data.item_key !== 'string' || data.item_key.length > 100)) return null;
   if (data.hint_level !== undefined && (!Number.isInteger(data.hint_level) || Number(data.hint_level) < 0 || Number(data.hint_level) > 2)) return null;
   if (data.recovery !== undefined && typeof data.recovery !== 'boolean') return null;
+  if (data.practice_answer !== undefined && (mode !== 'guided_practice' || !data.item_key || data.recovery === true ||
+    typeof data.practice_answer !== 'string' || !data.practice_answer.trim() || data.practice_answer.length > 100)) return null;
   return { lesson_id: data.lesson_id, mode: mode as TutorMode, question, locale: data.locale as 'nb' | 'en' | undefined,
-    item_key: data.item_key as string | undefined, hint_level: Number(data.hint_level ?? 0), recovery: data.recovery === true };
+    item_key: data.item_key as string | undefined, hint_level: Number(data.hint_level ?? 0), recovery: data.recovery === true,
+    practice_answer: data.practice_answer as string | undefined };
 }
 
 const unsafe = /ignore.{0,30}(instruction|rule)|system\s*prompt|developer\s*message|jailbreak|api.?key|ignorer.{0,30}(regel|instruks)|fasit|answer\s*key|give.{0,20}(answer|solution)|gi.{0,20}(svaret|svarene)|https?:\/\//i;

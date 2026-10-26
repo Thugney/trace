@@ -1,0 +1,69 @@
+# Tasks: FamilyHub Learn Tutor 2.0
+
+**Input**: spec.md, plan.md, research.md, data-model.md, contracts/tutor.md.  
+**Current status (2026-10-26)**: Codex now orchestrates; Claude is an assigned headless worker while quota permits, with explicit Codex takeover on daily/weekly limits. Design03 implementation and functional verification are delivered locally; integration and evidence acceptance remain open. Read `evidence/tutor-v2/design03/HANDOFF.md` and orchestration-root `factory/jobs/001-tutor-2-0/orchestration-20261026.md`. Earlier readiness/ownership notes below are historical where superseded. Light mode only across FamilyHub is settled; no dark capture or renewed theme approval is required.  
+**Legend**: Checked items record existing implementation or completed planning only, **not acceptance**. Unchecked items are remaining work. Automated tests are required by Issue #12. No [P] tasks: fixes share a test file and integration is serialized.
+
+## Setup and Foundational Gates
+
+- [x] T000 Recover existing scope into `specs/001-familyhub-learn-tutor-v2/` using installed Spec Kit templates/setup; inspect Issue12, PR14/PR11, local Project Init and historical receipts. Owner: Codex planning.
+- [ ] T001 Establish required Project Init checkout SHA `a96b1ad54f4b026594377aeefd6aa3aa4654d225` and executable equivalence; preserve dirty `C:/Tools/project-init`; record client/runtime/auth readiness without secrets in execution evidence. Owner: Claude orchestrator. Pinned clean checkout/direct CLI now available at work/project-init-pinned; auth checks pass. T001 remains open for actual Claude execution readiness: launch returned 429 usage_limit_reached, resets 2026-10-25 22:40 Europe/Oslo. Original dirty tool checkout is preserved.
+- [ ] T002 Prepare isolated orchestration/integration state, preserve both PR heads, carry these uncommitted artifacts/tooling through an explicitly approved checkpoint/transfer, and map FR-001–FR-010 into execution-checkout `.project-init/requirements.json` with real named checks in `.project-init/config.json`. Owner: Claude orchestrator. Existing root has zero checks/mappings; no worker may silently omit native files.
+- [ ] T003 Register native baseline and truthful Tutor `.project-init/ui-design.json`, review.html, immutable reference PNGs and visual-cases.json; obtain independent spec/design review and genuine human approval. Owner: Codex orchestrates, assigned Claude worker supplies evidence, independent reviewer/human decide. Cover light-only desktop/mobile and required modes/fallback/blocked/recovery states; existing Design03 human approval stands, while missing reference evidence is not silently approved. Record unratified constitution status without inventing policy.
+
+## US1 — Reviewed Teaching and Grounding
+
+- [x] T004 [US1] Preserve grade-aware explain, smaller-step recovery, bounded prompts, server references and Bokmål/English in `backend/src/services/learn/tutorCoach.ts`; existing controls/wiring in `backend/src/routes/learn.ts`. Present at 655ce2f; historical tests exist; grounding defect remains T010.
+- [ ] T010 [US1] Add failing adversarial tests to `backend/src/test/tutor-v2.test.ts` for unrelated questions and dishonest `supported=true` with valid citation indexes, then fix `tutorCoach.ts` to fail closed on clearly unsupported content. Include legitimate paraphrase/default-mode regression and document semantic limits; do not merely trust model flags or equate zero lexical overlap with all unsupported natural-language queries. Owner: Codex. Acceptance: fabricated off-topic output rejected, useful reviewed-source fallback, valid supported requests preserved.
+
+## US2 — Practice and Formative Understanding
+
+- [x] T005 [US2] Preserve deterministic progressive hints, safe authored hint filtering, existing practice navigation and formative checks in `tutorCoach.ts`, `TutorPanel.tsx`, `LessonPage.tsx` and `tutor-v2.test.ts`. Present at 655ce2f. No standalone feature rebuild; current proof is T030/T032.
+
+## US3 — Verified Next Step
+
+- [x] T006 [US3] Preserve learner-scoped verified ranking in `backend/src/services/learn/tutorProgress.ts`; no chat points/mastery writes. Present at 655ce2f; version defect remains T011.
+- [ ] T011 [US3] Add failing version regression tests in `backend/src/test/tutor-v2.test.ts`, then reuse `catalog.ts:getVisibleLessons` semantics from `tutorProgress.ts`. Verify reviewed-v1/reviewed-v2 selects v2; newer draft/retired retains reviewed v1; slug/locale handling, profile scope and evidence ordering survive. Owner: Codex; catalog.ts read-only dependency. Do not mutate historical progress/version records.
+
+## US4 — Controls, Privacy and Accessible Experience
+
+- [x] T007 [US4] Preserve strict input, authorization/feature/parent/quota/rate/reviewed checks, assessment lock and post-provider rechecks in `backend/src/routes/learn.ts` and `tutor-v2.test.ts`. Present at 655ce2f; inherited PR11 security gates remain T020.
+- [x] T008 [US4] Preserve ephemeral guided panel, sources/focus, modes/language/recovery in `frontend/src/components/learn/TutorPanel.tsx`, `frontend/src/pages/learn/LessonPage.tsx`, `frontend/src/services/api.ts`, `frontend/src/types/learn.ts` and `frontend/tests/tutor-v2.{html,tsx}`. Present at 655ce2f; missing visual/human evidence remains T003/T032.
+
+- [ ] T012 [US4] Implement approved Design03 (light-only) from `.project-init/design-v3/index.html`: immediate help, owl guide, mobile context, desktop lesson column, newest-only actions, blocked dock, server-checked formative MCQ feedback without rewards. Sole writer: Codex, scoped Tutor files per current plan amendment. Registration, tests and independent review required; human teaching/accessibility and reference-framing acceptance remain T032.
+
+## Separately Owned Dependency and Integration
+
+- [ ] T020 [US4] Obtain Claude's PR11 remediation commits and named regression evidence for expired-attempt disclosure and published metadata overwrite; also establish resolution or supported N/A for curriculum-code consistency, direct-topic drafts, import dry-run effects and atomic/idempotent rewards/late policy. Relevant paths: `backend/src/routes/learn.ts`, `backend/src/services/learn/contentImport.ts`, `catalog.ts`, import script and shared Learn tests. Owner: Claude PR11 only; Codex must not edit that branch or presume older findings fixed.
+- [ ] T021 [US4] Reconcile reviewed PR11 commits with Tutor in an isolated integration worktree, serializing shared files per plan.md. Re-run existing activity-session, retake-feedback and source-version link regressions in shared Learn/activity tests, including expired/new-attempt combinations. Owner: Claude integration coordinator; Codex supplies Tutor commits. Conflicts stop for an explicit plan; focused route ownership must preserve all authorization/lock fixes.
+
+## Integrated Verification, Review and Delivery
+
+- [ ] T030 Run named backend-build, frontend-build, tutor-api, backend-suite and diff-check from quickstart.md; reproduce reported `backend/src/test/gamification.test.ts:149` failure on dependency base and integrated head under identical environment/clock. Record exact hashes/runtime/dependency setup and output under `evidence/tutor-v2/` and actual Project Init receipts. Owner: Codex validation; shared test repair requires named ownership. Acceptance: required checks pass, or remain explicitly blocked pending maintainer disposition; baseline-only is not PASS.
+- [ ] T031 Run backend-audit/frontend-audit, compare dependency/base/head findings and triage reachability/severity with independent security reviewer in `evidence/tutor-v2/`. Owner: Codex evidence, security reviewer assessment, maintainer risk decision. Historical 31 findings include 3 critical/17 high; no blanket upgrades, hiding nonzero exits or inferred acceptance. Unresolved required security findings block readiness.
+- [ ] T032 Run tutor-browser on integrated head with disposable reviewed fixtures; capture all approved light-only state/viewport cases, keyboard/focus, overflow, controls/error/recovery and complete Grade3 journey; obtain human screen-reader and teaching-quality/language review using representative reviewed lessons. Paths: `backend/src/test/tutor-v2.test.ts`, `frontend/tests/tutor-v2.tsx`, `evidence/tutor-v2/`, execution-checkout visual actuals. Owner: Codex capture/tests plus independent UX/UI/human reviewers. Check that device dark preference preserves the light UI; do not introduce dark screenshots as a target. Record live-provider smoke as optional and unverified unless configured and explicitly approved; never claim live conversational acceptance from fakes.
+- [ ] T033 Obtain separate read-only factory-audit and independent code/security/UX/UI findings for integrated result; import genuine requirement/source evidence, run source-review, semantic import, visual compare, guard and status with pinned tool. Paths: `.project-init/evidence/`, Factory review outputs. Owner: Claude coordinates independent reviewers. At most two fix rounds routed to owner, then needs-human. Do not fabricate Codex receipt for Claude work; missing/stale/failed evidence blocks.
+- [ ] T034 Deliver requirement/task/file/check/evidence/reviewer mapping with exact heads, blockers and rollback; flag PR13 target mismatch and request maintainer's explicit non-destructive PR14 update/integration decision. Paths: existing `docs/familyhub-learn-tutor-v2.md`, `evidence/tutor-v2/`, this native ledger. Owner: Claude coordinates; Codex supplies Tutor report. Keep Issue12 open, PR14 base unchanged, no duplicate PR/automatic publish/merge/deploy/live DB/content approval.
+
+## Requirement → Task → File → Check → Evidence → Reviewer
+
+Check names are proposed registrations in quickstart.md, **not configured/passing current checks**. Test titles below refer to existing tutor-v2.test.ts unless marked planned. Evidence is historical until regenerated at the integrated hash.
+
+| Requirement | Tasks | Files | Named checks / behavior tests | Evidence | Reviewer status |
+| --- | --- | --- | --- | --- | --- |
+| FR-001 | T004,T007,T030 | tutorCoach.ts; routes/learn.ts; api.ts; types/learn.ts | tutor-api: “rejects identity, fabricated grades, progress and malformed input”; “supports old clients, English scaffolding, provider outage and exhausted quota”; builds | historical tutor-browser-tests.log; build logs; fresh receipts needed | Independent acceptance pending |
+| FR-002 | T004,T010,T033 | tutorCoach.ts; tutor-v2.test.ts | tutor-api: “rejects fabricated references, unsupported answers and official competency claims”; planned dishonest supported=true/off-topic cases | PR14 review; historical tests; fresh adversarial receipt | Changes required |
+| FR-003 | T004,T032 | tutorCoach.ts; TutorPanel.tsx | tutor-api: “uses reviewed mapping for Grade %i and bounded, key-free context”; tutor-browser/language-recovery | historical tests; human teaching review missing | UX/pedagogy pending |
+| FR-004 | T005,T030,T032 | tutorCoach.ts; LessonPage.tsx; tutor-v2.test.ts | tutor-api: “uses authored hints while stripping any keyed option label”; progressive hint cases; tutor-browser | historical browser log; fresh flow needed | Code/UX pending |
+| FR-005 | T005,T030,T032 | tutorCoach.ts; tutor-v2.test.ts | tutor-api: “teaches, hints, checks reasoning, recovers, guides existing practice and recommends without awarding progress”; tutor-browser | historical browser log; fresh evidence needed | Code/UX pending |
+| FR-006 | T006,T011,T030 | tutorProgress.ts; tutor-v2.test.ts; catalog.ts dependency | tutor-api: “ranks only this learner’s verified results and card reviews, ignoring claimed stored mastery”; planned reviewed-v2/draft-v2/retired cases | PR14 review; new version receipts missing | Changes required |
+| FR-007 | T007,T020,T021,T030,T031 | routes/learn.ts; assessmentLock.ts; routes/activities.ts; shared tests | tutor-api control/mock/review lock and post-provider tests; backend-suite PR11 lock regressions; audits | PR11 findings; historical tests/audit; integrated proof missing | Dependency/security blocked |
+| FR-008 | T007,T008,T030,T033 | routes/learn.ts; tutorCoach.ts; TutorPanel.tsx | tutor-api: “sends only allowed context; rejects fabricated sources, off-topic and injected replies”; independent source/log review | historical tests; new semantic source findings needed | Privacy/security pending |
+| FR-009 | T008,T003,T012,T032,T033 | TutorPanel.tsx; LessonPage.tsx; frontend/tests/tutor-v2.tsx | tutor-browser; approved visual comparison; human screen-reader | two candidate PNGs only; four-way/state approval missing | UX/UI/human pending |
+| FR-010 | T020,T031,T033,T034 | docs/learn read-only; existing AI/practice services; scoped diff | diff-check; audits; independent scope/source review | preserved research/lockfile diff; fresh reviewer record needed | Scope/security pending |
+
+## Dependencies and Execution Order
+
+T000 complete → T001/T002 → T003 → T010 → T011 → T012 (human-requested visual refinement, pending design approval). These two fixes share tutor-v2.test.ts and stay with one Codex worker. T020 is separately owned by Claude and may proceed in its existing isolated PR11 workflow; dispatch requires the explicit Factory gates; the current user authorized resuming setup and orchestration. T021 waits for both Tutor fixes and reviewed PR11 evidence. Then T030/T031/T032 → T033 → T034. Any source/spec/baseline change invalidates applicable evidence and requires rerun/review. No task completion automatically authorizes release.
+
+Remaining IDs: **T001, T002, T003, T010, T011, T012, T020, T021, T030, T031, T032, T033, T034**. T010/T011 are established Tutor defects; T012 is the newly requested visual refinement, gated on revised design approval; dependency findings belong to Claude and remaining gates must not be mislabeled missing product code.

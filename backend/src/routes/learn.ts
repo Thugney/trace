@@ -1762,6 +1762,24 @@ router.post('/tutor', tutorRateLimit, async (req: AuthRequest, res: Response) =>
     return res.status(400).json({ error: 'Practice item does not belong to this lesson', code: 'practice_item_unavailable' });
   }
   const fallback = deterministicTutor(context, input);
+  // Design03: deterministic formative checking only. Never create an activity attempt,
+  // award progress, disclose the key/explanation, or send a practice item to a provider.
+  if (input.mode === 'guided_practice' && !input.recovery && !['missing_source', 'unsafe_request', 'recovery'].includes(fallback.reason)) {
+    const item = parsePractice(lesson).find(item => item.key === (input.item_key ?? context.practice[0]?.key));
+    if (item?.type === 'multiple_choice') {
+      if (input.practice_answer !== undefined && !item.content.options.some(option => option.id === input.practice_answer)) {
+        return res.status(400).json({ error: 'Unknown practice option', code: 'invalid_tutor_request' });
+      }
+      const feedback = input.practice_answer === undefined ? undefined : input.practice_answer === item.correct.correctAnswer ? 'correct' : 'try_again';
+      const en = (input.locale ?? lesson.locale) === 'en';
+      return res.json({ ...fallback,
+        answer: feedback === 'correct' ? (en ? 'That’s right. How did you work it out? This is practice, not a mark.' : 'Det stemmer. Hvordan tenkte du? Dette er øving, ikke en karakter.')
+          : feedback === 'try_again' ? (en ? 'Try again. Read the lesson or ask for a hint.' : 'Prøv igjen. Les leksjonen eller be om et hint.') : fallback.answer,
+        practice: { key: item.key, question: item.content.question, options: item.content.options.map(({ id, text }) => ({ id, text })) },
+        practice_feedback: feedback });
+    }
+    if (input.practice_answer !== undefined) return res.status(400).json({ error: 'Use the practice activity for this item', code: 'practice_item_unavailable' });
+  }
   if (input.mode === 'next_step') {
     const recommendation = tutorNextStep(viewer.id, lesson.topic_id, lesson.id);
     const en = (input.locale ?? lesson.locale) === 'en';

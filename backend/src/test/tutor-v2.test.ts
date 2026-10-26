@@ -137,6 +137,40 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
   });
   const ask = (data: Record<string, unknown> = {}, profile?: number) => request(app).post('/learn/tutor').set(authHeaders(profile ?? child.id)).send({ lesson_id: lesson.id, mode: 'explain', ...data });
 
+  it('checks Design03 practice on the server without keys, providers, attempts or rewards', async () => {
+    const before = testDb.prepare('SELECT * FROM profiles WHERE id = ?').get(child.id);
+    const attempts = testDb.prepare('SELECT COUNT(*) AS n FROM session_attempts').get();
+    const question = await ask({ mode: 'guided_practice', item_key: 'groups' });
+    expect(question.body.practice).toEqual({ key: 'groups', question: 'Which group?', options: [{ id: 'a', text: 'One' }, { id: 'b', text: 'Two' }] });
+    for (const [practice_answer, feedback] of [['a', 'try_again'], ['b', 'correct']]) {
+      const response = await ask({ mode: 'guided_practice', item_key: 'groups', practice_answer });
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ practice_feedback: feedback, formative_only: true });
+      expect(JSON.stringify(response.body)).not.toMatch(/correctAnswer|PRIVATE_EXPLANATION|"score"|"grade"/);
+    }
+    expect(fake.generate).not.toHaveBeenCalled();
+    expect(testDb.prepare('SELECT * FROM profiles WHERE id = ?').get(child.id)).toEqual(before);
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM session_attempts').get()).toEqual(attempts);
+    expect((testDb.prepare('SELECT COUNT(*) AS n FROM learn_progress WHERE profile_id = ?').get(child.id) as any).n).toBe(0);
+  });
+  it('rejects malformed and foreign formative answers and applies Tutor restrictions', async () => {
+    for (const data of [
+      { practice_answer: 'b' }, { mode: 'guided_practice', practice_answer: 'b' },
+      { mode: 'guided_practice', item_key: 'groups', practice_answer: { correct: true } },
+      { mode: 'guided_practice', item_key: 'groups', practice_answer: 'b', recovery: true },
+      { mode: 'guided_practice', item_key: 'groups', practice_answer: 'not-an-option' },
+      { mode: 'guided_practice', item_key: 'foreign-item', practice_answer: 'b' }
+    ]) expect((await ask(data)).status).toBe(400);
+    const data = { mode: 'guided_practice', item_key: 'groups', practice_answer: 'b' };
+    expect((await ask(data, other.id)).status).toBe(403);
+    testDb.prepare('UPDATE profiles SET ai_enabled = 0 WHERE id = ?').run(child.id);
+    expect((await ask(data)).status).toBe(403);
+    testDb.prepare('UPDATE profiles SET ai_enabled = 1 WHERE id = ?').run(child.id);
+    testDb.prepare("UPDATE learn_lessons SET review_status = 'draft' WHERE id = ?").run(lesson.id);
+    expect((await ask(data)).status).toBe(404);
+    expect(fake.generate).not.toHaveBeenCalled();
+  });
+
   it('teaches, hints, checks reasoning, recovers, guides existing practice and recommends without awarding progress', async () => {
     const explanation = await ask(); expect(explanation.status).toBe(200);
     expect(explanation.body.answer).toContain('Equal groups');
@@ -296,6 +330,7 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
     testDb.prepare("UPDATE learn_lessons SET content_id = ? WHERE id = ?").run(`synthetic-${child.id}`, lesson.id);
     testDb.prepare("INSERT INTO learn_review_attempts (paper_id, profile_id, started_at, expires_at, feedback) VALUES (?, ?, datetime('now'), ?, ?)").run(paper.lastInsertRowid, child.id, new Date(Date.now() + 60000).toISOString(), JSON.stringify({ topics_to_revise: [`synthetic-${child.id}`] }));
     for (const mode of ['explain', 'hint', 'guided_practice', 'check_understanding', 'next_step']) expect((await ask({ mode })).status).toBe(423);
+    expect((await ask({ mode: 'guided_practice', item_key: 'groups', practice_answer: 'b' })).status).toBe(423);
     expect(tutorNextStep(child.id, lesson.topic_id, lesson.id)?.reason).toBe('next_in_sequence');
     testDb.prepare("UPDATE learn_review_attempts SET submitted_at = datetime('now') WHERE profile_id = ?").run(child.id);
     expect((await ask({ mode: 'next_step' })).body.recommendation.reason).toBe('review_paper_missed');
@@ -330,7 +365,7 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
     expect((await ask()).body.code).toBe('ai_disabled');
   });
 
-  it.runIf(process.env.TUTOR_BROWSER_TEST === '1')('demonstrates the actual learner page on desktop/light and mobile/dark against the disposable API', async () => {
+  it.runIf(process.env.TUTOR_BROWSER_TEST === '1')('demonstrates the actual learner page on desktop and mobile in light-only Design03 against the disposable API', async () => {
     const frontendRoot = path.resolve(__dirname, '../../../frontend');
     const frontendRequire = createRequire(path.join(frontendRoot, 'package.json'));
     const { createServer } = frontendRequire('vite');
@@ -351,28 +386,25 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
     const port = (server.address() as { port: number }).port;
     const browser = await playwright.chromium.launch({ channel: 'msedge', headless: true });
     const errors: string[] = [];
-    const evidence = path.resolve(__dirname, '../../../evidence/tutor-v2'); fs.mkdirSync(evidence, { recursive: true });
+    const evidence = path.resolve(__dirname, '../../../evidence/tutor-v2/design03'); fs.mkdirSync(evidence, { recursive: true });
     try {
       for (const mobile of [false, true]) {
-        const page = await browser.newPage({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 }, colorScheme: mobile ? 'dark' : 'light' });
+        child = createTestProfile({ type: 'child', parent_id: parent.id, ai_enabled: 1, age: 8 });
+        const page = await browser.newPage({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 900 }, colorScheme: 'light' });
         page.on('pageerror', (error: Error) => { errors.push(error.message); console.error('[synthetic browser]', error.message); });
         page.setDefaultTimeout(10_000);
         const token = authHeaders(child.id).Authorization.slice(7);
-        await page.addInitScript(`localStorage.setItem('auth_token', ${JSON.stringify(token)}); localStorage.setItem('family_auth', 'true'); localStorage.setItem('currentProfileId', ${JSON.stringify(String(child.id))}); ${mobile ? "document.addEventListener('DOMContentLoaded', () => document.documentElement.classList.add('dark'));" : ''}`);
+        await page.addInitScript(`localStorage.setItem('auth_token', ${JSON.stringify(token)}); localStorage.setItem('family_auth', 'true'); localStorage.setItem('currentProfileId', ${JSON.stringify(String(child.id))});`);
         await page.goto(`http://127.0.0.1:${port}/tests/tutor-v2.html?lesson=${lesson.id}`, { timeout: 30_000 });
         await page.getByRole('tab', { name: 'Spør veilederen' }).click();
-        const explainMode = page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Forklar', exact: true });
-        await explainMode.focus(); await page.keyboard.press('Enter');
-        expect(await explainMode.evaluate((element: any) => element === element.ownerDocument.activeElement)).toBe(true);
+        const explainMode = page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Forklar enklere', exact: true });
         let finishReply: (() => void) | undefined;
         fake.generate.mockImplementationOnce(() => new Promise((_resolve, reject) => { finishReply = () => reject(new Error('synthetic provider outage')); }));
-        await page.getByRole('textbox').focus();
-        await page.keyboard.press('Tab'); await page.keyboard.press('Enter');
+        await explainMode.focus(); await page.keyboard.press('Enter');
         await page.getByRole('status').waitFor();
-        expect(await page.getByRole('group', { name: 'Læringsmåte' }).locator('button:disabled').count()).toBe(5);
+        expect(await page.getByRole('group', { name: 'Hva vil du gjøre?' }).locator('button:disabled').count()).toBe(5);
         expect(await page.getByLabel('Veilederspråk').isDisabled()).toBe(true);
         expect(await page.getByRole('textbox').isDisabled()).toBe(true);
-        expect(await page.getByRole('button', { name: 'Jeg forstår ikke', exact: true }).isDisabled()).toBe(true);
         expect(await page.getByRole('button', { name: 'Tøm samtalen', exact: true }).isDisabled()).toBe(true);
         expect(finishReply).toBeDefined(); finishReply!();
         await page.getByRole('log').getByText('Fra den godkjente leksjonen', { exact: false }).waitFor();
@@ -382,37 +414,53 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
         await page.waitForFunction("document.activeElement?.id === 'lesson-section-0'");
         await page.getByRole('tab', { name: 'Spør veilederen' }).click();
         expect(await page.getByRole('log').locator('li').count()).toBe(0);
-        await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Øv med meg', exact: true }).click();
-        await page.getByRole('button', { name: 'Spør', exact: true }).click();
+        await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'La meg øve', exact: true }).click();
         await page.getByRole('log').getByText('Åpne den godkjente øvingen', { exact: false }).waitFor();
-        await page.getByRole('log').getByRole('button', { name: 'Åpne øving' }).click();
+        const progressBeforeChatPractice = testDb.prepare('SELECT * FROM learn_progress WHERE profile_id = ?').all(child.id);
+        await page.getByRole('group', { name: 'Øvingssvar' }).getByRole('button', { name: 'One', exact: true }).click();
+        await page.getByRole('log').getByText('Prøv igjen. Les leksjonen eller be om et hint.', { exact: true }).waitFor();
+        expect(await page.getByRole('group', { name: 'Øvingssvar' }).count()).toBe(1);
+        await page.getByRole('group', { name: 'Øvingssvar' }).getByRole('button', { name: 'Two', exact: true }).click();
+        await page.getByRole('log').getByText('Det stemmer.', { exact: false }).waitFor();
+        expect(await page.getByRole('group', { name: 'Øvingssvar' }).count()).toBe(0);
+        expect(testDb.prepare('SELECT * FROM learn_progress WHERE profile_id = ?').all(child.id)).toEqual(progressBeforeChatPractice);
+        expect(await page.locator('.tutor-replyactions').count()).toBe(1);
+        await page.getByRole('log').getByRole('button', { name: 'Åpne øvingen' }).click();
         await page.getByRole('button', { name: /Start øving|Øv igjen/ }).click();
         await page.getByText('One', { exact: true }).click();
         await page.getByRole('button', { name: 'Sjekk svaret' }).click();
         await page.getByRole('button', { name: /Se resultat|Fullfør/ }).click();
         await page.getByRole('tab', { name: 'Spør veilederen' }).click();
-        await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Gi meg et hint', exact: true }).click();
-        await page.getByRole('button', { name: 'Spør', exact: true }).click();
+        await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Gi meg et hint', exact: true }).click();
         await page.getByRole('log').getByText('Hva skal du finne?', { exact: false }).waitFor();
-        await page.getByRole('button', { name: 'Spør', exact: true }).click();
+        await page.getByRole('button', { name: 'Vis neste hint', exact: true }).click();
         await page.getByRole('log').getByText('Finn én nyttig opplysning', { exact: false }).waitFor();
-        await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Sjekk tankene mine', exact: true }).click();
+        await page.getByRole('button', { name: 'Vis neste hint', exact: true }).click();
+        await page.getByText('Hint 3 av 3', { exact: true }).waitFor();
+        expect(await page.getByRole('button', { name: 'Vis neste hint', exact: true }).count()).toBe(0);
+        await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Sjekk om jeg forstår', exact: true }).click();
         await page.getByRole('textbox').fill('Jeg teller hver gruppe for seg.');
-        await page.getByRole('button', { name: 'Spør', exact: true }).click();
+        await page.getByRole('button', { name: 'Send', exact: true }).click();
         await page.getByRole('log').getByText('ikke en karakter.', { exact: false }).waitFor();
-        await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Hva er neste steg?', exact: true }).click();
-        await page.getByRole('button', { name: 'Spør', exact: true }).click();
+        await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Hva gjør jeg nå?', exact: true }).click();
         await page.getByRole('log').getByText('Den sjekkede øvingen', { exact: false }).waitFor();
         await page.getByLabel('Veilederspråk').selectOption('en');
-        await page.getByRole('group', { name: 'Learning mode' }).getByRole('button', { name: 'Explain', exact: true }).click();
-        await page.getByRole('button', { name: 'Ask', exact: true }).click();
+        await page.getByRole('group', { name: 'What would you like to do?' }).getByRole('button', { name: 'Explain it simply', exact: true }).click();
         await page.getByRole('log').getByText('Norwegian first.', { exact: false }).waitFor();
         expect.soft(await page.getByRole('log').locator('.tutor-answer > p').first().getAttribute('lang')).toBe('nb');
         expect.soft(await page.getByRole('log').locator('.tutor-answer > p').last().getAttribute('lang')).toBe('en');
-        await page.getByRole('button', { name: 'I don’t understand', exact: true }).click();
+        await page.getByRole('button', { name: 'I don’t get it', exact: true }).click();
         await page.getByRole('log').getByText("Let's take one small step.", { exact: false }).waitFor();
         expect(await page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')).toBe(true);
-        await page.screenshot({ path: path.join(evidence, mobile ? 'mobile-dark.png' : 'desktop-light.png'), fullPage: true });
+        const lightBackground = await page.locator('.tutor-shell').evaluate((el: any) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor);
+        expect(lightBackground).toBe('rgb(251, 248, 242)');
+        await page.emulateMedia({ colorScheme: 'dark' });
+        expect(await page.locator('.tutor-shell').evaluate((el: any) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor)).toBe(lightBackground);
+        expect(await page.locator('.tutor-shell').evaluate((el: any) => el.ownerDocument.defaultView.getComputedStyle(el).getPropertyValue('color-scheme'))).toBe('light');
+        await page.emulateMedia({ colorScheme: 'light' });
+        expect(await page.locator('.tutor-lesson').isVisible()).toBe(!mobile);
+        expect(await page.locator('.tutor-context').isVisible()).toBe(mobile);
+        await page.screenshot({ path: path.join(evidence, mobile ? 'mobile-light.png' : 'desktop-light.png'), fullPage: true });
         // Response fixtures isolate recommendation activation; API tests cover verified ranking.
         const activateRecommendation = async (reason: string, targetId = lesson.id, title = lesson.title) => {
           await page.getByRole('tab', { name: 'Spør veilederen' }).click();
@@ -421,9 +469,8 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
             answer: 'Navigation fixture', source: 'lesson_fallback', mode: 'next_step', references: [],
             recommendation: { lesson_id: targetId, title, reason }
           }) }));
-          await page.getByRole('group', { name: 'Læringsmåte' }).getByRole('button', { name: 'Hva er neste steg?', exact: true }).click();
-          await page.getByRole('button', { name: 'Spør', exact: true }).click();
-          await page.getByRole('log').getByText(title, { exact: true }).last().click();
+          await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Hva gjør jeg nå?', exact: true }).click();
+            await page.getByRole('log').getByText(title, { exact: true }).last().click();
           await page.unroute('**/api/learn/tutor');
         };
         await activateRecommendation('practice_not_passed');
@@ -440,6 +487,52 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
         expect(await page.getByRole('tab', { name: 'Les', exact: true }).getAttribute('aria-selected')).toBe('true');
         testDb.prepare('DELETE FROM learn_progress WHERE lesson_id = ?').run(nextLesson.lastInsertRowid);
         testDb.prepare('DELETE FROM learn_lessons WHERE id = ?').run(nextLesson.lastInsertRowid);
+        // Denial cards replace the dock; response stubs are UI fixtures, not policy evidence.
+        for (const [code, status, title] of [
+          ['exam_in_progress', 423, 'Du har en prøve nå'],
+          ['ai_disabled', 403, 'Veilederen er av'],
+          ['tutor_rate_limited', 429, 'Pause fra veilederen'],
+          ['offline', 503, 'Fikk ikke kontakt']
+        ] as const) {
+          await page.goto(`http://127.0.0.1:${port}/tests/tutor-v2.html?lesson=${lesson.id}`);
+          await page.getByRole('tab', { name: 'Spør veilederen' }).click();
+          await page.route('**/api/learn/tutor', (route: any) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ code }) }));
+          await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'Forklar enklere', exact: true }).click();
+          await page.getByRole('alert').getByText(title, { exact: true }).waitFor();
+          expect(await page.locator('.tutor-chips').count()).toBe(0);
+          expect(await page.getByRole('textbox').count()).toBe(0);
+          expect(await page.locator('.tutor-statecard').count()).toBe(1);
+          await page.screenshot({ path: path.join(evidence, `${mobile ? 'mobile' : 'desktop'}-${code}.png`), fullPage: true });
+          await page.unroute('**/api/learn/tutor');
+          if (code === 'offline') {
+            await page.getByRole('button', { name: 'Prøv igjen', exact: true }).click();
+            await page.getByRole('log').getByText('Fra den godkjente leksjonen', { exact: false }).waitFor();
+            expect(await page.getByRole('textbox').count()).toBe(1);
+          }
+        }
+        for (const reset of ['language', 'clear']) {
+          await page.goto(`http://127.0.0.1:${port}/tests/tutor-v2.html?lesson=${lesson.id}`);
+          await page.getByRole('tab', { name: 'Spør veilederen' }).click();
+          const sent: any[] = [];
+          await page.route('**/api/learn/tutor', (route: any) => {
+            const body = route.request().postDataJSON(); sent.push(body);
+            return route.fulfill({ status: body.practice_answer ? 503 : 200, contentType: 'application/json', body: JSON.stringify(body.practice_answer ? { code: 'offline' } : {
+              answer: 'Synthetic retry fixture', source: 'lesson_fallback', mode: body.mode, references: [],
+              ...(body.mode === 'guided_practice' ? { practice: { key: 'groups', question: 'Which group?', options: [{ id: 'a', text: 'One' }] } } : {})
+            }) });
+          });
+          await page.getByRole('group', { name: 'Hva vil du gjøre?' }).getByRole('button', { name: 'La meg øve', exact: true }).click();
+          await page.getByRole('group', { name: 'Øvingssvar' }).getByRole('button', { name: 'One', exact: true }).click();
+          await page.getByRole('alert').getByText('Fikk ikke kontakt', { exact: true }).waitFor();
+          if (reset === 'language') await page.getByLabel('Veilederspråk').selectOption('en');
+          else await page.getByRole('button', { name: 'Tøm samtalen', exact: true }).click();
+          await page.getByRole('button', { name: reset === 'language' ? 'Try again' : 'Prøv igjen', exact: true }).click();
+          await page.getByRole('textbox').waitFor();
+          expect(sent.at(-1)).toMatchObject({ mode: 'explain' });
+          expect(sent.at(-1)).not.toHaveProperty('practice_answer');
+          expect(sent.at(-1)).not.toHaveProperty('item_key');
+          await page.unroute('**/api/learn/tutor');
+        }
         await page.close();
       }
       expect(errors).toEqual([]);

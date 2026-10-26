@@ -482,6 +482,7 @@ export interface ReviewAttemptResult {
 
 export type TutorMode = 'explain' | 'hint' | 'guided_practice' | 'check_understanding' | 'next_step';
 export interface TutorOptions {
+  practice_answer?: string;
   mode?: TutorMode;
   locale?: LearnLocale;
   item_key?: string;
@@ -489,6 +490,8 @@ export interface TutorOptions {
   recovery?: boolean;
 }
 export interface TutorReply {
+  practice?: { key: string; question: string; options: { id: string; text: string }[] };
+  practice_feedback?: 'correct' | 'try_again';
   answer: string;
   source: 'ai' | 'lesson_fallback';
   provider?: string;
