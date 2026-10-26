@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { createTestProfile, createTestProgress, createTestStreak, createTestAchievement, authHeaders } from './helpers.js';
@@ -26,6 +26,11 @@ describe('Gamification Routes', () => {
 
   beforeEach(() => {
     app = createTestApp();
+  });
+
+  // Any test that freezes the clock must not leak it into the next one
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('GET /gamification/family-leaderboard', () => {
@@ -103,6 +108,13 @@ describe('Gamification Routes', () => {
 
       enableGamification(parent.id);
       enableGamification(legacyChild.id);
+
+      // A fixed Wednesday in mid-month, so two days ago is inside this
+      // Sunday-start week and ten days ago is inside this month. Against the
+      // real clock the same fixtures fall outside those periods on a Sunday or
+      // Monday, and in the first ten days of a month
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(2026, 9, 14, 12, 0, 0));
 
       const now = new Date();
       const tenDaysAgo = new Date(now);
