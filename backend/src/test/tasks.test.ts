@@ -1,7 +1,7 @@
 import path from 'node:path';
 import express from 'express';
 import request from 'supertest';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestProfile, createTestTask, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 import { formatDateOnly, getTodayDateOnly, parseDateOnly } from '../utils/date-only.js';
@@ -56,6 +56,40 @@ describe('Task Routes', () => {
 
   beforeEach(() => {
     app = createTestApp();
+  });
+
+  it('files a streak under the local day, so a task finished just after midnight cannot advance it twice', async () => {
+    const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+    const child = createTestProfile({ name: 'Child', type: 'child', parent_id: parent.id });
+    enableTasksFeature(child.id);
+    seedEconomySettings(child.id);
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      // 00:30 in Oslo, when the UTC date is still the day before
+      vi.setSystemTime(new Date(2026, 9, 14, 0, 30, 0));
+      const localDay = getTodayDateOnly();
+      expect(localDay).toBe('2026-10-14');
+      expect(new Date().toISOString()).toBe('2026-10-13T22:30:00.000Z');
+
+      const early = createTestTask(child.id, { title: 'Just after midnight', parent_approved: 1 });
+      expect((await request(app).post(`/tasks/${early.id}/complete`).set(authHeaders(child.id))).status).toBe(200);
+      expect(getTaskStreak(child.id)).toMatchObject({ current_streak: 1, last_activity_date: localDay });
+
+      // Later the same local day: one day, one streak step
+      vi.setSystemTime(new Date(2026, 9, 14, 10, 0, 0));
+      const later = createTestTask(child.id, { title: 'Same morning', parent_approved: 1 });
+      expect((await request(app).post(`/tasks/${later.id}/complete`).set(authHeaders(child.id))).status).toBe(200);
+      expect(getTaskStreak(child.id)).toMatchObject({ current_streak: 1, last_activity_date: localDay });
+
+      // The next local day advances it exactly once
+      vi.setSystemTime(new Date(2026, 9, 15, 9, 0, 0));
+      const next = createTestTask(child.id, { title: 'Next day', parent_approved: 1 });
+      expect((await request(app).post(`/tasks/${next.id}/complete`).set(authHeaders(child.id))).status).toBe(200);
+      expect(getTaskStreak(child.id)).toMatchObject({ current_streak: 2, last_activity_date: '2026-10-15' });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('completes a recurring task, updates streaks, and creates the next dated copy', async () => {
