@@ -244,6 +244,41 @@ describe('Tutor 2.0 authenticated learner experience (in-memory synthetic review
     expect(fake.generate.mock.calls[0][0]).toContain(`Grade ${grade}`);
     expect((await ask({ grade: 10 })).status).toBe(400);
   });
+  it('tutors an orphaned reviewed lesson without inventing a grade', async () => {
+    // The integration check for both halves at once: the catalogue stopped
+    // defaulting material with no topic row to grade 8, and the tutor contract
+    // carries that unknown through to the prompt instead of filling it in.
+    // beforeEach reseeds the catalog but never restores learn_lessons.topic_id,
+    // so the orphan has to be undone here or every later test inherits it
+    const topicId = lesson.topic_id;
+    testDb.pragma('foreign_keys = OFF');
+    try { testDb.prepare('UPDATE learn_lessons SET topic_id = -999999 WHERE id = ?').run(lesson.id); }
+    finally { testDb.pragma('foreign_keys = ON'); }
+    try {
+      fake.generate.mockResolvedValue({ text: JSON.stringify({ answer: 'Count the groups. Why?', references: [0], supported: true }), provider: 'fake' });
+      const generated = await ask({ locale: 'en' });
+      expect(generated.status).toBe(200);
+      expect(generated.body.source).toBe('ai');
+      const system = fake.generate.mock.calls[0][0];
+      expect(system).toContain('grade is unknown');
+      expect(system).not.toMatch(/Grade (?:null|\d+)/);
+
+      // Unknown material keeps the most careful scaffolding, not grade 8's
+      fake.generate.mockRejectedValue(new Error('offline'));
+      const fallback = await ask({ locale: 'en' });
+      expect(fallback.body.source).toBe('lesson_fallback');
+      expect(fallback.body.answer).toContain('You can try in Norwegian first.');
+
+      // And an unknown grade still never opens the reviewed answer key
+      fake.generate.mockClear();
+      const hint = await ask({ mode: 'hint', locale: 'nb' });
+      expect(hint.status).toBe(200);
+      expect(fake.generate).not.toHaveBeenCalled();
+      expect(hint.body.answer).not.toContain('PRIVATE_EXPLANATION');
+    } finally {
+      testDb.prepare('UPDATE learn_lessons SET topic_id = ? WHERE id = ?').run(topicId, lesson.id);
+    }
+  });
   it('enforces global and per-child Learn switches and rejects missing sources/items', async () => {
     expect((await ask({ mode: 'guided_practice', item_key: 'another-lesson' })).body.code).toBe('practice_item_unavailable');
     testDb.prepare('UPDATE learn_lessons SET body = ? WHERE id = ?').run(JSON.stringify({ ...body, sections: [] }), lesson.id);
