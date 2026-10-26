@@ -378,6 +378,10 @@ export function initTestDb() {
       points_reward INTEGER DEFAULT 0,
       requirement_type TEXT NOT NULL,
       requirement_value INTEGER NOT NULL,
+      -- Present in database/init.ts and queried by the gamification routes; the
+      -- test schema is hand-built and had drifted without it, so any path
+      -- reaching a hidden-achievement query failed with 'no such column'
+      is_hidden BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);

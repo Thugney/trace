@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { formatDateOnly, getTodayDateOnly, startOfLocalDay } from '../utils/date-only';
 import {
   getEconomySettings,
   updateEconomySettings,
@@ -42,12 +43,6 @@ function denyGamificationAccess(res: express.Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own or your children\'s gamification data' });
 }
 
-function formatSqlLocalDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function getLeaderboardPeriodStartDate(period: unknown): string | null {
   if (period !== 'week' && period !== 'month') {
@@ -60,11 +55,11 @@ function getLeaderboardPeriodStartDate(period: unknown): string | null {
     const weekStart = new Date(now);
     weekStart.setHours(0, 0, 0, 0);
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    return formatSqlLocalDate(weekStart);
+    return formatDateOnly(weekStart);
   }
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  return formatSqlLocalDate(monthStart);
+  return formatDateOnly(monthStart);
 }
 
 function parseWholePointAmount(value: unknown): number | null {
@@ -541,7 +536,9 @@ router.get('/leaderboard/:parentId', (req: AuthRequest, res) => {
 // ==================== HELPER FUNCTIONS ====================
 
 function updateStreak(profileId: number, streakType: string) {
-  const today = new Date().toISOString().split('T')[0];
+  // The task day is the local calendar day, which is what date-only.ts defines
+  // and what the task routes record in last_completed_date
+  const today = getTodayDateOnly();
 
   // Get current streak info
   let streak: any = db.prepare(`
@@ -558,7 +555,14 @@ function updateStreak(profileId: number, streakType: string) {
   }
 
   const lastDate = streak.last_activity_date;
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  // Both dates used to come from toISOString(), the UTC day. East of UTC that
+  // filed a completion made just after local midnight under the previous day,
+  // and a second completion later the same local day then read as "yesterday"
+  // and advanced the streak a second time for one day. Subtracting 86400000 ms
+  // was also not the previous calendar day across a daylight-saving change.
+  const previousDay = startOfLocalDay(new Date());
+  previousDay.setDate(previousDay.getDate() - 1);
+  const yesterday = formatDateOnly(previousDay);
 
   if (lastDate === today) {
     // Already logged today, no change
