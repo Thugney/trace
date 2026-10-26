@@ -238,6 +238,37 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(snapshot()).toEqual(before);
     });
 
+    it('holds the 2026 curriculum code for all five subjects across a restart, in the catalogue and in topic detail', async () => {
+      const codes = () => testDb.prepare('SELECT slug, udir_code FROM learn_subjects ORDER BY slug').all();
+      const registry = [
+        { slug: 'engelsk', udir_code: 'ENG01-06' },
+        { slug: 'matematikk', udir_code: 'MAT01-06' },
+        { slug: 'naturfag', udir_code: 'NAT01-05' },
+        { slug: 'norsk', udir_code: 'NOR01-08' },
+        { slug: 'samfunnsfag', udir_code: 'SAF01-05' }
+      ];
+      // The import reconciled the pilot's pre-2026 codes
+      expect(codes()).toEqual(registry);
+
+      // A restart seeds the pilot fixtures again before importing, and the
+      // import is skipped while the package hash is unchanged
+      seedLearnCatalog();
+      expect(codes()).toEqual(registry);
+
+      // Topic detail and the catalogue report the same code for the same grade
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, [GRADE3_MATH[0]]);
+      const headers = authHeaders(childA.id);
+      const catalog = await request(app).get('/learn/catalog?grade=3').set(headers);
+      const math = catalog.body.subjects.find((subject: any) => subject.slug === 'matematikk');
+      const detail = await request(app).get(`/learn/topics/${topicIdOf(GRADE3_MATH[0])}`).set(headers);
+      expect(detail.status).toBe(200);
+      expect(detail.body.udir_code).toBe('MAT01-06');
+      expect(detail.body.udir_code).toBe(math.udir_code);
+    });
+
     it('never overwrites reviewed content or learner records; changed content needs a new draft version', async () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();

@@ -16,10 +16,14 @@ export function seedLearnCatalog(fixtures: SubjectFixture[] = GRADE8_PILOT) {
     VALUES (@slug, @title, @udirCode, @instructionLocale, @sortOrder)
     ON CONFLICT(slug) DO UPDATE SET
       title = excluded.title,
-      udir_code = excluded.udir_code,
       instruction_locale = excluded.instruction_locale,
       sort_order = excluded.sort_order
   `);
+  // udir_code is deliberately not refreshed here. These fixtures carry the
+  // pre-2026 grade 8 pilot codes, and startup seeds before importing, so
+  // refreshing it would put an obsolete code back on every restart. The content
+  // package's source registry owns that column; a fresh row still starts with
+  // the fixture's code until the first import reconciles it.
   const upsertGoal = db.prepare(`
     INSERT INTO learn_goals (
       subject_id, goal_key, official_goal_ref, source_locator, goal_after_grade,
@@ -148,10 +152,15 @@ export function getMockExam(examId: number): MockExamRow | undefined {
 }
 
 export function getTopicContext(topicId: number) {
+  // The catalogue reports the course's curriculum code for the grade and falls
+  // back to the subject's; topic detail has to agree, or one topic shows a
+  // current code in one place and an obsolete one in the other
   const topic = db.prepare(`
-    SELECT t.*, s.slug as subject_slug, s.title as subject_title, s.udir_code, s.instruction_locale
+    SELECT t.*, s.slug as subject_slug, s.title as subject_title, s.instruction_locale,
+           COALESCE(c.curriculum_code, s.udir_code) as udir_code
     FROM learn_topics t
     JOIN learn_subjects s ON s.id = t.subject_id
+    LEFT JOIN learn_courses c ON c.subject_id = s.id AND c.grade = t.grade
     WHERE t.id = ?
   `).get(topicId) as any;
 
