@@ -19,3 +19,11 @@ The unused h5p-express adapter is removed after a repository-wide usage search; 
 Two Axios header consumers (`backend/src/routes/books.ts` and `family-quizzes.ts`) explicitly narrow Content-Type to string, retaining their existing JPEG fallback. No route, authorization or provider behavior is widened. Express declarations match the actual Express 4 runtime rather than the previously mismatched major 5 types. These additional owned paths and narrow changes were explicitly authorized by the Codex orchestrator before edits.
 
 Declare frontend `@eslint/js` 9.39.5 and `globals` 14 as direct development dependencies for the separately owned T038 ESLint 9 flat configuration. These match the existing resolved packages; the dependency worker owns only their manifest/lock declarations, and the lint worker owns configuration/source repairs.
+
+## T040 quota takeover and necessary feedback contract
+
+Claude's actual T040 process hit its session usage limit before source edits (reset1am Europe/Oslo). The user's explicit standing fallback transfers this work to Codex in `work/factory-pr13-authorization`; no further Claude retries before reset. Original process evidence and takeover record remain in the root job.
+
+Independent current-source inspection shows activity renderers consume `activity.correct_data` when displaying feedback. SEC-006 therefore requires a coordinated narrow frontend companion: `frontend/src/types/activities.ts` and the actual MultipleChoice/FillBlanks/Matching/Sorting activity renderers (another renderer only if the same traced dependency exists), plus rendered feedback regressions. Learner session payloads omit keys/explanations before submission; submitted, authorized feedback carries the necessary correct-answer data. Preserve authoring/admin access and do not crash the feedback UI when pre-submit keys are absent.
+
+The T040 worker first incorporates reviewed T038 component commit8528de0 and T041 learning commitb99072f, then owns these companion files exclusively. No parallel writer may alter them. Final combined tests must prove pre-submit secrecy, post-submit correct/try-again rendering, assessment locks, first-pass once-only rewards and ordinary unrelated activity behavior. These are necessary correctness changes within the existing security requirement, not new product scope.
