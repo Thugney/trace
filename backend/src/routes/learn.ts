@@ -830,6 +830,13 @@ router.get('/topics/:topicId', (req: AuthRequest, res: Response) => {
 
   const lessons = getVisibleLessons(topic.id, isReviewer(req));
   const exams = getVisibleMockExams(topic.id, isReviewer(req));
+  // The same rule the catalogue applies: a learner never sees a topic, not even
+  // its title, summary or goal mappings, until it has reviewed content. The
+  // response stays 'Topic not found' so a direct ID cannot confirm it exists
+  if (!isReviewer(req) && !lessons.length && !exams.length) {
+    return res.status(404).json({ error: 'Topic not found' });
+  }
+
   res.json({
     ...topic,
     lessons: lessons.map((lesson) => ({ id: lesson.id, title: lesson.title, version: lesson.version, review_status: lesson.review_status })),
@@ -1514,19 +1521,31 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
     submitted_late: Date.now() > Date.parse(attempt.expires_at) + REVIEW_SUBMIT_GRACE_MS
   };
 
-  const update = db.prepare(`
-    UPDATE learn_review_attempts
-    SET submitted_at = ?, responses = ?, objective_correct = ?, objective_total = ?, feedback = ?
-    WHERE id = ? AND submitted_at IS NULL
-  `).run(nowIso(), JSON.stringify(responses), feedback.objective_correct, feedback.objective_total, JSON.stringify(feedback), attemptId);
+  // Marking the paper submitted and crediting it belong in one transaction, as
+  // task completion already does. They used to be separate writes with the
+  // award error swallowed, so a failure between them left the attempt
+  // permanently submitted while the idempotent replay above refused to credit
+  // it: the reward was then lost for good. Rolling both back leaves the attempt
+  // open, so the learner's next submit scores and earns it.
+  // A late paper still earns its points. These are low-stakes formative papers
+  // meant to be attempted, so a missed deadline is recorded on the feedback as
+  // submitted_late, for the guardian to see, and changes nothing about credit.
+  const submitAttempt = db.transaction(() => {
+    const update = db.prepare(`
+      UPDATE learn_review_attempts
+      SET submitted_at = ?, responses = ?, objective_correct = ?, objective_total = ?, feedback = ?
+      WHERE id = ? AND submitted_at IS NULL
+    `).run(nowIso(), JSON.stringify(responses), feedback.objective_correct, feedback.objective_total, JSON.stringify(feedback), attemptId);
 
-  // Reward points once per learner and paper: only the first submitted attempt counts
-  if (update.changes === 1 && req.profile!.type === 'child' && feedback.objective_correct > 0) {
-    const earlier = db.prepare(`
-      SELECT 1 FROM learn_review_attempts WHERE paper_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND id != ?
-    `).get(attempt.paper_id, attempt.profile_id, attemptId);
-    if (!earlier) {
-      try {
+    // Reward points once per learner and paper: only the first submitted attempt counts
+    if (update.changes === 1 && req.profile!.type === 'child' && feedback.objective_correct > 0) {
+      const earlier = db.prepare(`
+        SELECT 1 FROM learn_review_attempts WHERE paper_id = ? AND profile_id = ? AND submitted_at IS NOT NULL AND id != ?
+      `).get(attempt.paper_id, attempt.profile_id, attemptId);
+      // A refused award still records 0 and keeps the submission: throwing away
+      // a learner's answers because a points cap was reached would be worse.
+      // Only a thrown failure rolls the submission back.
+      if (!earlier) {
         const award = awardPoints({
           profileId: attempt.profile_id,
           basePoints: feedback.objective_correct * REVIEW_POINTS_PER_CORRECT,
@@ -1535,15 +1554,15 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
           enforceRateLimit: false
         });
         db.prepare('UPDATE learn_review_attempts SET points_awarded = ? WHERE id = ?').run(award.awarded, attemptId);
-      } catch (error: any) {
-        console.error('[Learn] Review paper points failed:', error.message);
       }
     }
-  }
+    return update.changes;
+  });
+  const submittedNow = submitAttempt() === 1;
 
   const stored = db.prepare('SELECT * FROM learn_review_attempts WHERE id = ?').get(attemptId) as any;
   syncAssignmentCompletion(attempt.profile_id);
-  if (update.changes === 1 && req.profile!.parent_id) {
+  if (submittedNow && req.profile!.parent_id) {
     sendPushNotification(req.profile!.parent_id, {
       type: 'learn_review_paper' as any,
       title: 'Repetisjonsprøve levert',
@@ -1553,7 +1572,7 @@ router.post('/review-attempts/:attemptId/submit', (req: AuthRequest, res: Respon
       url: '/learn/parent'
     });
   }
-  res.json({ ...presentReviewAttempt(stored), already_submitted: update.changes === 0 });
+  res.json({ ...presentReviewAttempt(stored), already_submitted: !submittedNow });
 });
 
 router.get('/review-attempts/:attemptId', (req: AuthRequest, res: Response) => {
