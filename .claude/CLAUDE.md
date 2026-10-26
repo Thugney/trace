@@ -309,4 +309,71 @@ Or configure via database settings table (`ollama_url`, `ollama_model` keys).
 
 ---
 
+## Factory board: keep your work visible
+
+The user watches work through `factory/dashboard.html`, which reads `factory/board.json` and the
+per-job files under `factory/jobs/<job>/`. It discovers nothing on its own: existing pull
+requests, Spec Kit artifacts and ordinary Claude or Codex sessions never become Factory jobs, and
+no agent appears there unless it writes.
+
+**If your work belongs to a registered job, record it there as you go.** Do not save it for the
+end of the task, and do not rely on reporting it in chat: the user reads the board.
+
+### Who writes what
+
+| File | Written by |
+| --- | --- |
+| `factory/board.json` | the orchestrator only, and only through `board.py`; never hand-edit it |
+| `factory/jobs/<job>/spec.md` | the orchestrator: the assignment, including where the worker reports |
+| `factory/jobs/<job>/build.md` | the orchestrator: chronological history, newest state in a dated block at the top |
+| `factory/jobs/<job>/claude/build/report.md` | Claude, as the job's **claude** dashboard tab |
+| `factory/jobs/<job>/codex/build/report.md` | Codex, as the job's **codex** tab |
+
+Run `board.py` from the repository root, not from a worktree, since it resolves paths from the
+checkout it is run in:
+
+```bash
+python .claude/skills/factory/scripts/board.py status
+python .claude/skills/factory/scripts/board.py note <slug> <key> "<value>"
+python .claude/skills/factory/scripts/board.py stage <slug> <stage>
+```
+
+Stages are `spec`, `building`, `integrating`, `review`, `fixing`, `decision`, `merged`,
+`needs-human` and `failed`.
+
+### Your report
+
+Open `claude/build/report.md` with a status line — `WORKER: IN PROGRESS`, `BLOCKED` or
+`DELIVERED` — then what was delivered with its commits, what is in progress, what was verified,
+and what could not be verified and why. Say which checks you actually ran. An unrunnable check is
+information; a check you did not run is never a pass.
+
+Report only what is true. A job record describes registered work. It never asserts that a worker
+process is running, that a review passed, or that anything is approved, and it never stands in
+for a human decision.
+
+### Roles, so the asymmetry is not mistaken for a broken install
+
+`project-init factory --apply` gives Claude the orchestrator kit, `.claude/skills/factory/` with
+`board.py`, `codex_worker.py` and `worktree.py`, plus the `factory-*` worker agents in
+`.claude/agents/`. It gives Codex `.agents/skills/factory-worker` and `factory-audit`, because
+Codex is an external CLI with no subagent system and needs a skill to act as a worker. Claude
+having no `factory-worker` skill is by design, not a failed install.
+
+A Claude session working directly, rather than as a dispatched `factory-builder`, is outside that
+model and will leave no trace unless it follows this section.
+
+### Two local notes
+
+The **claude** tab exists because one line was added to `files()` in `factory/dashboard.html`.
+`project-init factory --apply` replaces that file, so reapply it afterwards; the line and the
+reasoning are in `.project-init/evidence/dashboard-claude-tab.md`.
+
+A card shows the job's owner from its `notes.owner`, so set that note when you create a job:
+`workers{}` in `board.json` is written once at init and never updated, so it cannot carry the
+owner. A job with no owner note falls back to showing both agent names. That reading of
+`notes.owner` is a second local line in `card()`, replaced by the same `--apply`.
+
+---
+
 **Remember:** When in doubt, ASK the user. It's better to ask a clarifying question than to make assumptions that break their app.
