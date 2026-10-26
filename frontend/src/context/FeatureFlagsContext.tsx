@@ -4,6 +4,8 @@ import { settingsAPI } from '../services/api';
 interface FeatureFlags {
   diet_enabled: boolean;
   school_only_mode: boolean;
+  // Feature keys still usable in school-only mode (e.g. 'learn')
+  school_only_allowed_features?: string[];
 }
 
 interface FeatureFlagsContextType {

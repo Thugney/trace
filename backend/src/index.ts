@@ -25,7 +25,13 @@ import shoppingRoutes from './routes/shopping';
 import activitiesRoutes from './routes/activities';
 import h5pRoutes from './routes/h5p';
 import familiesRoutes from './routes/families';
+import learnRoutes from './routes/learn';
 import { initScheduler } from './services/scheduler';
+import { ensureAuthSessionSchema } from './services/authSessions';
+import { ensureLearnSchema } from './services/learn/schema';
+import { seedLearnCatalog } from './services/learn/catalog';
+import { importPackagedLearnContent } from './services/learn/contentImport';
+import { migrateLegacyParentPin, migrateLegacyProfileCredentials } from './services/credentials';
 
 dotenv.config();
 
@@ -65,6 +71,28 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize database
 initDatabase();
 
+// Auth sessions + repeat-safe hashing of legacy plaintext PINs/passwords
+ensureAuthSessionSchema();
+try {
+  const migrated = migrateLegacyProfileCredentials();
+  const parentPinMigrated = migrateLegacyParentPin();
+  if (migrated.pins || migrated.passwords || parentPinMigrated) {
+    console.log(`🔐 Hashed legacy credentials: ${migrated.pins} PIN(s), ${migrated.passwords} password(s)${parentPinMigrated ? ', parent PIN' : ''}`);
+  }
+} catch (error: any) {
+  console.error('Credential migration error:', error.message);
+}
+
+// FamilyHub Learn: additive schema + idempotent reviewed-content library seed
+try {
+  ensureLearnSchema();
+  seedLearnCatalog();
+  // Grades 1-10 research package: validated, draft-only, repeat-safe (LEARN_CONTENT_AUTO_IMPORT=false to skip)
+  importPackagedLearnContent();
+} catch (error: any) {
+  console.error('Learn initialization error:', error.message);
+}
+
 // Routes
 app.use('/api/profiles', profileRoutes);
 app.use('/api/diet', dietRoutes);
@@ -86,6 +114,7 @@ app.use('/api/shopping', shoppingRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/h5p', h5pRoutes);
 app.use('/api/families', familiesRoutes);
+app.use('/api/learn', learnRoutes);
 
 // Initialize scheduler after database
 initScheduler();

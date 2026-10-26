@@ -18,7 +18,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
 export interface NotificationPayload {
   title: string;
   message: string;
-  type: 'task_created' | 'task_approved' | 'task_rejected' | 'task_completed' |
+  type: 'task_created' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' |
         'goal_created' | 'goal_approved' | 'goal_rejected' | 'goal_achieved' |
         'message_received' | 'reminder' | 'achievement' | 'quiz' | 'general' |
         'school_assignment' | 'school_feedback' | 'school_due_soon' | 'school_submission' | 'school_graded' |
@@ -255,6 +255,21 @@ export const NotificationHelpers = {
     });
   },
 
+  // Parent or admin updated a child's task
+  async taskUpdated(childId: number, taskTitle: string, updaterName: string) {
+    await sendPushNotification(childId, {
+      type: 'task_updated',
+      title: 'Task Updated',
+      message: `${updaterName} updated "${taskTitle}". Check the latest details before you start.`,
+      icon: '📝',
+      url: '/tasks',
+      data: {
+        taskTitle,
+        updaterName
+      }
+    });
+  },
+
   // Parent approved a task - notify child
   async taskApproved(childId: number, taskTitle: string) {
     await sendPushNotification(childId, {
@@ -285,6 +300,26 @@ export const NotificationHelpers = {
       message: `${childName} completed "${taskTitle}" and earned ${points} points!`,
       icon: '🎉',
       url: '/journey'
+    });
+  },
+
+  // Parent-triggered reminder for a specific task
+  async taskReminder(childId: number, taskTitle: string, isOverdue: boolean, daysOverdue = 0) {
+    const overdueText = daysOverdue === 1 ? '1 day' : `${daysOverdue} days`;
+
+    await sendPushNotification(childId, {
+      type: 'reminder',
+      title: isOverdue ? 'Past Due Task ⏰' : 'Task Reminder ⏰',
+      message: isOverdue
+        ? `"${taskTitle}" is ${overdueText} past due. Do it now for half points.`
+        : `Don't forget "${taskTitle}" today.`,
+      icon: '⏰',
+      url: '/tasks',
+      data: {
+        taskTitle,
+        isOverdue,
+        daysOverdue
+      }
     });
   },
 

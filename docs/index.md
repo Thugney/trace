@@ -39,6 +39,8 @@ See [Synology Operations Runbook](synology-operations-runbook.md) for the curren
 ### Supporting
 - [Project Overview](project-overview.md) - High-level goals, status, summary.
 - [Synology Operations Runbook](synology-operations-runbook.md) - Current live deployment state, SSH usage, Docker commands, and safe cherry-pick deploy steps.
+- [Stability Notes 2026-03-26](stability-notes-2026-03-26.md) - Operational note for the quiz recovery, scheduled-task behavior, overdue scoring, and task reminder fixes.
+- [FamilyHub Learn Implementation](familyhub-learn-implementation.md) - Learn pilot, security gate changes (session tokens), validation, deploy and rollback notes.
 
 ## Existing Documentation (Discovered)
 - [README.md](../README.md) - General project info.

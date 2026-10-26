@@ -8,7 +8,7 @@ export const FEATURE_TO_PATH: Record<string, string[]> = {
   notes: ['/notes'],
   rewards: ['/shop'],
   calendar: ['/calendar'],
-  quizzes: ['/quizzes', '/quizzes/builder'],
+  quizzes: ['/quizzes', '/quizzes/builder', '/h5p', '/h5p/play'],
   goals: ['/goals'],
   gamification: ['/gamification'],
   leaderboard: ['/leaderboard'],
@@ -19,8 +19,9 @@ export const FEATURE_TO_PATH: Record<string, string[]> = {
   regular_school: ['/regular-school'],
   shopping: ['/shopping', '/shopping/help'],
   books: ['/books', '/books/read'],
-  activities: ['/activities', '/activities/builder', '/h5p', '/h5p/play'],
+  activities: ['/activities', '/activities/builder'],
   diet: ['/diet'],
+  learn: ['/learn'],
 };
 
 const FEATURE_CACHE_PREFIX = 'profile_features_cache:';
@@ -31,6 +32,13 @@ const buildFailSafeFeatures = () => {
     acc[featureKey] = false;
     return acc;
   }, {} as Record<string, boolean>);
+};
+
+const normalizeFeatures = (rawFeatures: Record<string, boolean>) => {
+  return {
+    ...rawFeatures,
+    quizzes: rawFeatures.quizzes === true || rawFeatures.activities === true
+  };
 };
 
 const getFeatureCacheKey = (profileId: number) => `${FEATURE_CACHE_PREFIX}${profileId}`;
@@ -118,15 +126,16 @@ export function ProfileFeaturesProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await profilesAPI.getMyFeatures();
-      setFeatures(response.data.features);
+      const normalizedFeatures = normalizeFeatures(response.data.features);
+      setFeatures(normalizedFeatures);
       setRole(response.data.role);
-      writeCachedFeatures(currentProfile.id, response.data.features, response.data.role);
+      writeCachedFeatures(currentProfile.id, normalizedFeatures, response.data.role);
     } catch (error) {
       console.error('Failed to load profile features:', error);
       const cached = readCachedFeatures(currentProfile.id);
 
       if (cached) {
-        setFeatures(cached.features);
+        setFeatures(normalizeFeatures(cached.features));
         setRole(cached.role ?? currentProfile.type);
       } else {
         setFeatures(buildFailSafeFeatures());

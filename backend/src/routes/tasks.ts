@@ -13,7 +13,8 @@ import {
   formatTaskTimerDuration,
   getRequiredTaskTimerSeconds
 } from '../services/taskTimer';
-import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete } from './gamification';
+import { checkMysteryReward, updateCountdownProgress, incrementSpinProgress, checkHiddenAchievementsOnTaskComplete, updateTaskStreak } from './gamification';
+import { formatDateOnly, getTodayDateOnly, normalizeDateOnlyInput, parseDateOnly, startOfLocalDay } from '../utils/date-only';
 import {
   checkRateLimit,
   updateRateLimit,
@@ -77,6 +78,44 @@ function canAccessTask(viewer: AuthRequest['profile'], task: { profile_id: numbe
 
 function denyTaskAccess(res: Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own tasks or your children\'s tasks' });
+}
+
+const OVERDUE_TASK_POINTS_MULTIPLIER = 0.5;
+const TASK_DIFFICULTY_POINTS: Record<string, number> = {
+  easy: 10,
+  medium: 20,
+  hard: 30
+};
+
+type TaskPointAwardContext = {
+  originalPoints: number;
+  adjustedPoints: number;
+  latePenaltyApplied: boolean;
+  daysOverdue: number;
+};
+
+function getTaskPointAwardContext(task: { points?: number | null; due_date?: string | null }): TaskPointAwardContext {
+  const originalPoints = task.points || 10;
+  const dueDate = parseDateOnly(task.due_date);
+  const today = parseDateOnly(getTodayDateOnly());
+
+  if (!dueDate || !today || dueDate >= today) {
+    return {
+      originalPoints,
+      adjustedPoints: originalPoints,
+      latePenaltyApplied: false,
+      daysOverdue: 0
+    };
+  }
+
+  const daysOverdue = Math.max(1, Math.round((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  return {
+    originalPoints,
+    adjustedPoints: Math.max(1, Math.round(originalPoints * OVERDUE_TASK_POINTS_MULTIPLIER)),
+    latePenaltyApplied: true,
+    daysOverdue
+  };
 }
 
 // Get tasks for a profile
@@ -193,11 +232,17 @@ router.post('/', (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'due_date is required. All tasks must have a due date.' });
     }
 
+    let normalizedDueDate: string | null = null;
+    try {
+      normalizedDueDate = normalizeDateOnlyInput(due_date);
+    } catch {
+      return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+    }
+
     // Calculate points based on difficulty if not provided
     let taskPoints = points;
     if (!taskPoints && difficulty) {
-      const pointsMap: Record<string, number> = { easy: 10, medium: 20, hard: 30 };
-      taskPoints = pointsMap[difficulty] || 10;
+      taskPoints = TASK_DIFFICULTY_POINTS[difficulty] || 10;
     }
 
     // Determine if timer is required based on category (unless explicitly set)
@@ -231,7 +276,7 @@ router.post('/', (req: AuthRequest, res) => {
       difficulty || 'easy',
       is_recurring ? 1 : 0,
       recurrence_pattern || null,
-      due_date || null,
+      normalizedDueDate,
       createdBy,
       parentApproved,
       approvedBy,
@@ -261,13 +306,14 @@ router.post('/', (req: AuthRequest, res) => {
 // Update task
 router.put('/:id', (req: AuthRequest, res) => {
   try {
+    const viewer = req.profile!;
     const { id } = req.params;
-    const existingTask: any = db.prepare('SELECT profile_id FROM tasks WHERE id = ?').get(id);
+    const existingTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     if (!existingTask) {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (!canAccessTask(req.profile, existingTask)) {
+    if (!canAccessTask(viewer, existingTask)) {
       return denyTaskAccess(res);
     }
 
@@ -280,7 +326,13 @@ router.put('/:id', (req: AuthRequest, res) => {
       is_recurring,
       recurrence_pattern,
       due_date,
-      completed
+      completed,
+      priority,
+      estimated_minutes,
+      scheduled_time,
+      proof_required,
+      requires_timer,
+      timer_duration_minutes
     } = req.body;
 
     const updates: string[] = [];
@@ -305,6 +357,11 @@ router.put('/:id', (req: AuthRequest, res) => {
     if (difficulty !== undefined) {
       updates.push('difficulty = ?');
       values.push(difficulty);
+
+      if (points === undefined && difficulty !== existingTask.difficulty) {
+        updates.push('points = ?');
+        values.push(TASK_DIFFICULTY_POINTS[difficulty] || existingTask.points || 10);
+      }
     }
     if (is_recurring !== undefined) {
       updates.push('is_recurring = ?');
@@ -314,17 +371,23 @@ router.put('/:id', (req: AuthRequest, res) => {
       updates.push('recurrence_pattern = ?');
       values.push(recurrence_pattern);
     }
-    if (req.body.priority !== undefined) {
+    if (priority !== undefined) {
       updates.push('priority = ?');
-      values.push(req.body.priority);
+      values.push(priority);
     }
-    if (req.body.estimated_minutes !== undefined) {
+    if (estimated_minutes !== undefined) {
       updates.push('estimated_minutes = ?');
-      values.push(req.body.estimated_minutes);
+      values.push(estimated_minutes);
     }
     if (due_date !== undefined) {
+      let normalizedDueDate: string | null;
+      try {
+        normalizedDueDate = normalizeDateOnlyInput(due_date);
+      } catch {
+        return res.status(400).json({ error: 'Invalid due_date. Expected YYYY-MM-DD.' });
+      }
       updates.push('due_date = ?');
-      values.push(due_date);
+      values.push(normalizedDueDate);
     }
     if (completed !== undefined) {
       updates.push('completed = ?');
@@ -333,9 +396,25 @@ router.put('/:id', (req: AuthRequest, res) => {
         updates.push('completed_at = CURRENT_TIMESTAMP');
       }
     }
-    if (req.body.scheduled_time !== undefined) {
+    if (scheduled_time !== undefined) {
       updates.push('scheduled_time = ?');
-      values.push(req.body.scheduled_time || null);
+      values.push(scheduled_time || null);
+    }
+    if (proof_required !== undefined) {
+      updates.push('proof_required = ?');
+      values.push(proof_required ? 1 : 0);
+    }
+    if (requires_timer !== undefined) {
+      updates.push('requires_timer = ?');
+      values.push(requires_timer ? 1 : 0);
+    }
+    if (timer_duration_minutes !== undefined) {
+      updates.push('timer_duration_minutes = ?');
+      values.push(timer_duration_minutes || null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No updates provided' });
     }
 
     values.push(id);
@@ -346,7 +425,15 @@ router.put('/:id', (req: AuthRequest, res) => {
       WHERE id = ?
     `).run(...values);
 
-    const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    const updatedTask: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+    const taskOwner: any = db.prepare('SELECT name, type FROM profiles WHERE id = ?').get(updatedTask.profile_id);
+    if ((viewer.type === 'parent' || viewer.type === 'admin') && taskOwner?.type === 'child') {
+      const viewerProfile: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(viewer.id);
+      const updaterName = viewerProfile?.name || (viewer.type === 'admin' ? 'An admin' : 'Your parent');
+      NotificationHelpers.taskUpdated(updatedTask.profile_id, updatedTask.title, updaterName).catch(console.error);
+    }
+
     res.json(updatedTask);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -359,12 +446,16 @@ router.put('/:id', (req: AuthRequest, res) => {
 router.post('/:id/complete', (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
 
     // Get task first (outside transaction for early validation)
     const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     if (!task) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
     }
 
     // ===== ANTI-ABUSE CHECK 0: Already completed today =====
@@ -383,20 +474,6 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         requires_timer: true,
         timer_duration_minutes: task.timer_duration_minutes
       });
-    }
-
-    // ===== ANTI-ABUSE CHECK 0.6: Task is overdue (past due date) =====
-    if (task.due_date) {
-      const dueDate = new Date(task.due_date);
-      dueDate.setHours(23, 59, 59, 999); // End of due date
-      const now = new Date();
-      if (now > dueDate) {
-        return res.status(400).json({
-          error: 'This task is overdue and can no longer be completed. The due date has passed.',
-          code: 'TASK_OVERDUE',
-          due_date: task.due_date
-        });
-      }
     }
 
     // ===== ANTI-ABUSE CHECK 1: Already completed =====
@@ -432,9 +509,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
       });
     }
 
-    // Calculate base points with multiplier
-    const rawPoints = task.points || 10;
-    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const pointContext = getTaskPointAwardContext(task);
+    const basePoints = applyPointsMultiplier(task.profile_id, pointContext.adjustedPoints);
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
 
     // ===== ANTI-ABUSE CHECK 5: Daily/weekly caps =====
@@ -466,7 +542,7 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
 
       const taskAward = awardPoints({
         profileId: task.profile_id,
-        basePoints: rawPoints,
+        basePoints: pointContext.adjustedPoints,
         stars,
         source: 'task',
         taskId: parseInt(id, 10),
@@ -530,6 +606,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
     const bonusPoints = txResult.bonusPoints!;
     const mysteryReward = txResult.mysteryReward;
 
+    updateTaskStreak(task.profile_id);
+
     const completedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
     const progress = db.prepare(`
       SELECT * FROM progress WHERE profile_id = ? ORDER BY logged_at DESC LIMIT 1
@@ -550,8 +628,8 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         INSERT INTO tasks (
           profile_id, title, description, category, points, difficulty,
           is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-          priority, estimated_minutes, proof_required
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         task.profile_id,
         task.title,
@@ -567,7 +645,10 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
         task.approved_by,
         task.priority || 'medium',
         task.estimated_minutes,
-        task.proof_required || 0
+        task.proof_required || 0,
+        task.requires_timer || 0,
+        task.timer_duration_minutes,
+        task.scheduled_time || null
       );
 
       nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -607,6 +688,10 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
       } : null,
       countdownChallenge: countdownResult,
       spinWheelReady: spinReady,
+      latePenaltyApplied: pointContext.latePenaltyApplied,
+      overdueDays: pointContext.daysOverdue,
+      originalPoints: pointContext.originalPoints,
+      adjustedPoints: pointContext.adjustedPoints,
       // Economy info
       economyInfo: wasPointsCapped ? {
         warning: 'Points were capped due to daily/weekly limits',
@@ -616,6 +701,54 @@ router.post('/:id/complete', (req: AuthRequest, res) => {
     });
   } catch (error: any) {
     console.error('[Tasks] Complete error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/:id/remind', async (req: AuthRequest, res: Response) => {
+  try {
+    const viewer = req.profile!;
+    const { id } = req.params;
+
+    if (viewer.type !== 'parent' && viewer.type !== 'admin') {
+      return res.status(403).json({ error: 'Access denied: Only parents or admins can send task reminders' });
+    }
+
+    const task: any = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (!canAccessTask(req.profile, task)) {
+      return denyTaskAccess(res);
+    }
+
+    if (viewer.type === 'parent' && !canParentManageChild(viewer.id, task.profile_id)) {
+      return res.status(403).json({ error: 'Access denied: You can only remind your own children' });
+    }
+
+    if (!task.parent_approved) {
+      return res.status(400).json({ error: 'Task must be approved before sending reminders' });
+    }
+
+    if (task.completed) {
+      return res.status(400).json({ error: 'Task already completed' });
+    }
+
+    const pointContext = getTaskPointAwardContext(task);
+    await NotificationHelpers.taskReminder(
+      task.profile_id,
+      task.title,
+      pointContext.latePenaltyApplied,
+      pointContext.daysOverdue
+    );
+
+    res.json({
+      success: true,
+      message: pointContext.latePenaltyApplied ? 'Past-due reminder sent to child' : 'Reminder sent to child'
+    });
+  } catch (error: any) {
+    console.error('[Tasks] Reminder error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -638,8 +771,8 @@ const DAY_MAP: Record<string, number> = {
 // - every_N_days (every N days, e.g., every_3_days)
 // - day_of_month_N (specific day of month, e.g., day_of_month_15)
 function calculateNextDueDate(currentDueDate: string | null, pattern: string): string {
-  const baseDate = currentDueDate ? new Date(currentDueDate) : new Date();
-  const today = new Date();
+  const baseDate = parseDateOnly(currentDueDate) || startOfLocalDay(new Date());
+  const today = startOfLocalDay(new Date());
 
   // If base date is in the past, start from today
   if (baseDate < today) {
@@ -666,7 +799,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       // Fallback to daily if no valid days
       baseDate.setDate(baseDate.getDate() + 1);
     }
-    return baseDate.toISOString().split('T')[0];
+    return formatDateOnly(baseDate);
   }
 
   // Handle every_N_days pattern (e.g., "every_3_days")
@@ -675,7 +808,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
     if (match) {
       const n = parseInt(match[1], 10);
       baseDate.setDate(baseDate.getDate() + (n > 0 ? n : 1));
-      return baseDate.toISOString().split('T')[0];
+      return formatDateOnly(baseDate);
     }
   }
 
@@ -692,7 +825,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
         // Set to target day (or last day of month if target exceeds month's days)
         const lastDayOfMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
         baseDate.setDate(Math.min(targetDay, lastDayOfMonth));
-        return baseDate.toISOString().split('T')[0];
+        return formatDateOnly(baseDate);
       }
     }
   }
@@ -721,7 +854,7 @@ function calculateNextDueDate(currentDueDate: string | null, pattern: string): s
       baseDate.setDate(baseDate.getDate() + 1);
   }
 
-  return baseDate.toISOString().split('T')[0];
+  return formatDateOnly(baseDate);
 }
 
 // Delete task - with authorization (owner, parent of owner, or admin)
@@ -1130,8 +1263,8 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
     }
 
     if (approved) {
-      const today = new Date().toISOString().split('T')[0];
-      const rawPoints = task.points || 10;
+      const today = getTodayDateOnly();
+      const pointContext = getTaskPointAwardContext(task);
       const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
       const approvalTx = db.transaction(() => {
         const updateResult = db.prepare(`
@@ -1146,7 +1279,7 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
 
         const taskAward = awardPoints({
           profileId: task.profile_id,
-          basePoints: rawPoints,
+          basePoints: pointContext.adjustedPoints,
           stars,
           source: 'task',
           taskId: parseInt(id, 10),
@@ -1164,12 +1297,13 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
             INSERT INTO tasks (
               profile_id, title, description, category, points, difficulty,
               is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-              priority, estimated_minutes, proof_required
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             task.profile_id, task.title, task.description, task.category, task.points, task.difficulty,
             1, task.recurrence_pattern, nextDueDate, task.created_by, task.parent_approved, task.approved_by,
-            task.priority || 'medium', task.estimated_minutes, task.proof_required || 0
+            task.priority || 'medium', task.estimated_minutes, task.proof_required || 0,
+            task.requires_timer || 0, task.timer_duration_minutes, task.scheduled_time || null
           );
         }
 
@@ -1180,6 +1314,8 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
       if (approvalResult.error) {
         return res.status(400).json({ error: approvalResult.error, code: approvalResult.code });
       }
+
+      updateTaskStreak(task.profile_id);
 
       const proofFiles = fs.readdirSync(PROOF_DIR).filter((f: string) => f.startsWith(`task-${id}-`));
       for (const file of proofFiles) {
@@ -1198,7 +1334,11 @@ router.post('/:id/verify-proof', (req: AuthRequest, res: Response) => {
         message: 'Photo proof approved, task completed!',
         task: completedTask,
         pointsEarned: approvalResult.pointsEarned,
-        starsEarned: stars
+        starsEarned: stars,
+        latePenaltyApplied: pointContext.latePenaltyApplied,
+        overdueDays: pointContext.daysOverdue,
+        originalPoints: pointContext.originalPoints,
+        adjustedPoints: pointContext.adjustedPoints
       });
     } else {
       // Reject: Clear the photo URL so child can upload again
@@ -1581,7 +1721,7 @@ router.get('/:id/timer', (req: AuthRequest, res) => {
         pause_time: timerState.pause_time
       } : null,
       can_complete: !task.requires_timer || (!!timerState && currentElapsed >= requiredSeconds),
-      completed_today: task.last_completed_date === new Date().toISOString().split('T')[0]
+      completed_today: task.last_completed_date === getTodayDateOnly()
     });
   } catch (error: any) {
     console.error('[Timer] Get timer state error:', error);
@@ -1600,7 +1740,7 @@ router.post('/:id/timer/start', (req: AuthRequest, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today',
@@ -1782,7 +1922,7 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
     }
 
     // Check if task is already completed today
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateOnly();
     if (task.last_completed_date === today) {
       return res.status(400).json({
         error: 'This task was already completed today. You cannot earn more points for it.',
@@ -1827,8 +1967,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
       });
     }
 
-    const rawPoints = task.points || 10;
-    const basePoints = applyPointsMultiplier(task.profile_id, rawPoints);
+    const pointContext = getTaskPointAwardContext(task);
+    const basePoints = applyPointsMultiplier(task.profile_id, pointContext.adjustedPoints);
     const stars = task.difficulty === 'hard' ? 3 : task.difficulty === 'medium' ? 2 : 1;
     const capCheck = canEarnPoints(task.profile_id, basePoints);
 
@@ -1861,7 +2001,7 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
 
       const taskAward = awardPoints({
         profileId: task.profile_id,
-        basePoints: rawPoints,
+        basePoints: pointContext.adjustedPoints,
         stars,
         source: 'task',
         taskId: parseInt(id, 10),
@@ -1907,8 +2047,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
           INSERT INTO tasks (
             profile_id, title, description, category, points, difficulty,
             is_recurring, recurrence_pattern, due_date, created_by, parent_approved, approved_by,
-            priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            priority, estimated_minutes, proof_required, requires_timer, timer_duration_minutes, scheduled_time
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           task.profile_id,
           task.title,
@@ -1926,7 +2066,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
           task.estimated_minutes,
           task.proof_required || 0,
           task.requires_timer || 0,
-          task.timer_duration_minutes
+          task.timer_duration_minutes,
+          task.scheduled_time || null
         );
 
         nextTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(newTaskResult.lastInsertRowid);
@@ -1950,6 +2091,8 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
     if (txResult.error) {
       return res.status(400).json({ error: txResult.error, code: txResult.code });
     }
+
+    updateTaskStreak(task.profile_id);
 
     const { pointsEarned, taskPointsEarned, bonusPoints, mysteryReward, stars: starsEarned, nextTask } = txResult;
 
@@ -1987,7 +2130,11 @@ router.post('/:id/timer/finish', (req: AuthRequest, res) => {
         bonusPoints
       } : null,
       countdownChallenge: countdownResult,
-      spinWheelReady: spinReady
+      spinWheelReady: spinReady,
+      latePenaltyApplied: pointContext.latePenaltyApplied,
+      overdueDays: pointContext.daysOverdue,
+      originalPoints: pointContext.originalPoints,
+      adjustedPoints: pointContext.adjustedPoints
     });
   } catch (error: any) {
     console.error('[Timer] Finish timer error:', error);

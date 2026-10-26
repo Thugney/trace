@@ -7,9 +7,22 @@ import fs from 'fs';
 import { db } from '../database/init';
 import { sendPushNotification } from '../services/notifications';
 import { authenticate } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
+import {
+  canActOnAttempt,
+  canManageOwnedResource,
+  canViewAttempt,
+  ownedResourceParamGuard,
+  paramGuard,
+  parentParamGuard,
+  profileParamGuard,
+  resolveActingProfileId
+} from '../services/resourceAccess';
 import { requireFeature } from '../middleware/feature-access';
 import { canGenerateAi, logAiUsage, estimateCost } from '../services/aiUsageControl';
 import { awardPoints } from '../services/economyControl';
+import { isRepeatLearnPracticeCompletion } from '../services/learn/practice';
+import { assessmentLocked, getOpenAssessment, isLearnPracticeSession } from '../services/learn/assessmentLock';
 
 const router = Router();
 
@@ -124,6 +137,7 @@ const activityMediaUpload = multer({
 type AiJobStatus = 'queued' | 'running' | 'completed' | 'failed';
 interface AiJob {
   id: string;
+  ownerId?: number;
   status: AiJobStatus;
   createdAt: number;
   updatedAt: number;
@@ -209,6 +223,35 @@ router.get('/media/:filename', (req: Request, res: Response) => {
 // ==================== AUTH MIDDLEWARE ====================
 
 router.use(authenticate, requireFeature('activities'));
+
+// ==================== OBJECT-LEVEL ACCESS ====================
+router.param('parentId', parentParamGuard);
+router.param('childId', profileParamGuard);
+router.param('profileId', profileParamGuard);
+// Assigned children may read, start and see the leaderboard of a session; all else requires manage access
+router.param('sessionId', ownedResourceParamGuard({
+  table: 'learning_sessions',
+  playSuffixes: /^\/sessions\/[^/]+\/(start|leaderboard)$/,
+  readForPlayers: true
+}));
+router.param('activityId', paramGuard((req, value) => {
+  const session = db.prepare(`
+    SELECT ls.created_by, ls.assigned_to
+    FROM learning_activities la
+    JOIN learning_sessions ls ON ls.id = la.session_id
+    WHERE la.id = ?
+  `).get(value) as any;
+  return session ? canManageOwnedResource(req.profile!, session) : 'not_found';
+}));
+router.param('attemptId', paramGuard((req, value) => {
+  const attempt = db.prepare('SELECT profile_id FROM session_attempts WHERE id = ?').get(value) as any;
+  if (!attempt) {
+    return 'not_found';
+  }
+  return req.method === 'GET'
+    ? canViewAttempt(req.profile!, attempt.profile_id)
+    : canActOnAttempt(req.profile!, attempt.profile_id);
+}));
 
 // ==================== ACTIVITY TYPES ====================
 
@@ -305,6 +348,13 @@ router.get('/sessions/:sessionId', (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
+    // Learn practice reuses the review-paper questions, so this answer key stays
+    // shut while the viewer has a test running
+    if (isLearnPracticeSession(session.id)) {
+      const open = getOpenAssessment((req as AuthRequest).profile!.id);
+      if (open) return assessmentLocked(res, open);
+    }
+
     const activities = db.prepare(`
       SELECT la.*, at.name as activity_type_name, at.display_name as activity_type_display,
              at.icon as activity_type_icon
@@ -353,6 +403,14 @@ router.post('/sessions', (req: Request, res: Response) => {
 
     if (!title || !topic || !createdBy || !assignedTo) {
       return res.status(400).json({ error: 'Missing required fields: title, topic, createdBy, assignedTo' });
+    }
+
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create sessions as yourself' });
+    }
+    if (resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign sessions to your own children' });
     }
 
     const result = db.prepare(`
@@ -619,7 +677,11 @@ router.put('/sessions/:sessionId/activities/reorder', (req: Request, res: Respon
 router.post('/sessions/:sessionId/start', (req: Request, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const { profileId } = req.body;
+    const profileId = resolveActingProfileId((req as AuthRequest).profile!, req.body.profileId);
+
+    if (profileId === null) {
+      return res.status(403).json({ error: 'You can only start sessions for yourself or your children' });
+    }
 
     const session: any = db.prepare(`
       SELECT ls.*,
@@ -635,6 +697,12 @@ router.post('/sessions/:sessionId/start', (req: Request, res: Response) => {
 
     if (session.activity_count === 0) {
       return res.status(400).json({ error: 'Session has no activities' });
+    }
+
+    // No Learn practice run (new or resumed) while that learner has a test open
+    if (isLearnPracticeSession(session.id)) {
+      const open = getOpenAssessment(profileId);
+      if (open) return assessmentLocked(res, open);
     }
 
     // Check for existing incomplete attempt
@@ -683,12 +751,18 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Attempt already completed' });
     }
 
+    // Answering Learn practice would score the same items as the open paper
+    if (isLearnPracticeSession(attempt.session_id)) {
+      const open = getOpenAssessment(attempt.profile_id);
+      if (open) return assessmentLocked(res, open);
+    }
+
     const activity: any = db.prepare(`
       SELECT la.*, at.name as activity_type
       FROM learning_activities la
       LEFT JOIN activity_types at ON la.activity_type_id = at.id
-      WHERE la.id = ?
-    `).get(activityId);
+      WHERE la.id = ? AND la.session_id = ?
+    `).get(activityId, attempt.session_id);
 
     if (!activity) {
       return res.status(404).json({ error: 'Activity not found' });
@@ -829,6 +903,14 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       passed ? 1 : 0, competitionRank, competitionBonus, attemptId
     );
 
+    // FamilyHub Learn practice: only the first passed attempt earns economy points
+    const isRepeatLearnPractice = isRepeatLearnPracticeCompletion(attempt.session_id, attempt.profile_id, Number(attemptId));
+    if (isRepeatLearnPractice) {
+      pointsEarned = 0;
+      starsEarned = 0;
+      db.prepare('UPDATE session_attempts SET points_earned = 0, stars_earned = 0 WHERE id = ?').run(attemptId);
+    }
+
     // Award progress points using centralized economy-controlled system
     if (pointsEarned > 0 || starsEarned > 0) {
       const awardResult = awardPoints({
@@ -846,9 +928,9 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
       }
     }
 
-    // Notify parent
+    // Notify parent (not for repeated Learn practice)
     const child: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(attempt.profile_id);
-    sendPushNotification(attempt.created_by, {
+    if (!isRepeatLearnPractice) sendPushNotification(attempt.created_by, {
       type: 'learning_completed' as any,
       title: passed ? 'Great Learning!' : 'Session Completed',
       message: `${child?.name || 'Your child'} scored ${scorePercentage}% on ${attempt.title}!`,
@@ -1008,6 +1090,14 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields: topic, createdBy, assignedTo' });
     }
 
+    const viewer = (req as AuthRequest).profile!;
+    if (viewer.type !== 'admin' && Number(createdBy) !== viewer.id) {
+      return res.status(403).json({ error: 'You can only create sessions as yourself' });
+    }
+    if (resolveActingProfileId(viewer, assignedTo) === null) {
+      return res.status(403).json({ error: 'You can only assign sessions to your own children' });
+    }
+
     // Check AI usage limits
     const estimatedCostValue = estimateCost(textProvider, null, 0);
     const usageCheck = canGenerateAi(createdBy, 'activity', estimatedCostValue);
@@ -1024,6 +1114,7 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
     pruneAiJobs();
     const job: AiJob = {
       id: createJobId(),
+      ownerId: Number(createdBy),
       status: 'queued',
       createdAt: Date.now(),
       updatedAt: Date.now()
@@ -1064,8 +1155,9 @@ router.post('/ai-generate', async (req: Request, res: Response) => {
 router.get('/ai-generate/status/:jobId', (req: Request, res: Response) => {
   const { jobId } = req.params;
   const job = aiJobs.get(jobId);
+  const viewer = (req as AuthRequest).profile!;
 
-  if (!job) {
+  if (!job || (viewer.type !== 'admin' && job.ownerId !== undefined && Number(job.ownerId) !== viewer.id)) {
     return res.status(404).json({ error: 'Job not found or expired' });
   }
 

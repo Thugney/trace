@@ -1,11 +1,12 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart, Puzzle, Target, Brain } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart, Puzzle, GraduationCap } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
 import { useProfileFeatures } from '../context/ProfileFeaturesContext';
 import { usePermissions } from '../context/PermissionsContext';
+import { clearStoredAuth, profilesAPI } from '../services/api';
 import Avatar from './Avatar';
 import { NotificationBell } from './NotificationBell';
 import clsx from 'clsx';
@@ -31,9 +32,8 @@ interface KidNavItem {
 const KID_NAV_ITEMS: KidNavItem[] = [
   { path: '/child/dashboard', emoji: '🦸', label: 'Home', labels: { young: 'Play', middle: 'Home', older: 'Dashboard' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
   { path: '/tasks', emoji: '🦹', label: 'Missions', labels: { young: 'My Jobs', middle: 'Missions', older: 'Tasks' }, color: 'from-violet-500 to-purple-600', hoverAnim: 'hover:animate-pulse' },
-  { path: '/h5p/play', emoji: '🧩', label: 'Quizzes', labels: { young: 'Fun Quizzes', middle: 'Fun Games', older: 'Quizzes' }, color: 'from-pink-500 to-rose-500', hoverAnim: 'hover:animate-wiggle-more' },
-  { path: '/quizzes', emoji: '🧠', label: 'Family Quizzes', labels: { young: 'Fun Quiz', middle: 'Family Quiz', older: 'Custom Quizzes' }, color: 'from-indigo-500 to-blue-500', hoverAnim: 'hover:animate-pulse' },
-  { path: '/activities', emoji: '🎯', label: 'Activities', labels: { young: 'Fun Games', middle: 'Activities', older: 'Activities' }, color: 'from-violet-500 to-fuchsia-500', hoverAnim: 'hover:animate-pulse' },
+  { path: '/h5p/play', emoji: '🧩', label: 'Quizzes', labels: { young: 'Fun Quizzes', middle: 'Quizzes', older: 'Quizzes' }, color: 'from-pink-500 to-rose-500', hoverAnim: 'hover:animate-wiggle-more' },
+  { path: '/learn', emoji: '🎓', label: 'Learn', labels: { young: 'Learn', middle: 'Learn', older: 'Learn' }, color: 'from-indigo-500 to-sky-500', hoverAnim: 'hover:animate-float' },
   { path: '/books', emoji: '📚', label: 'Story Books', labels: { young: 'Stories', middle: 'Books', older: 'Library' }, color: 'from-teal-400 to-cyan-500', hoverAnim: 'hover:animate-float' },
   { path: '/calendar', emoji: '🦉', label: 'My Days', labels: { young: 'My Days', middle: 'Calendar', older: 'Calendar' }, color: 'from-cyan-400 to-blue-500', hoverAnim: 'hover:animate-float' },
   { path: '/shop', emoji: '🐯', label: 'Treasure Shop', labels: { young: 'Prize Shop', middle: 'Shop', older: 'Rewards' }, color: 'from-emerald-400 to-green-500', hoverAnim: 'hover:animate-jiggle' },
@@ -62,9 +62,10 @@ const NAV_PATH_FEATURES: Record<string, string> = {
   '/books': 'books',
   '/activities': 'activities',
   '/activities/builder': 'activities',
-  '/h5p': 'activities',
-  '/h5p/play': 'activities',
+  '/h5p': 'quizzes',
+  '/h5p/play': 'quizzes',
   '/diet': 'diet',
+  '/learn': 'learn',
 };
 
 export default function Layout({ children }: LayoutProps) {
@@ -78,7 +79,7 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || (path === '/learn' && location.pathname.startsWith('/learn/'));
   const isChild = currentProfile?.type === 'child';
 
   // Family B users (church school only) should not see core app features
@@ -94,6 +95,12 @@ export default function Layout({ children }: LayoutProps) {
   // Check if a nav path is enabled based on profile features AND module permissions
   const isNavPathEnabled = (path: string): boolean => {
     const featureKey = NAV_PATH_FEATURES[path];
+
+    // Learn is an opt-in pilot: parents/admins always see it so they can switch it on
+    if (path === '/learn') {
+      if (currentProfile?.type === 'parent' || currentProfile?.type === 'admin') return true;
+      return isFeatureEnabled('learn');
+    }
 
     // Core app paths require core_app module access
     const coreAppPaths = ['/tasks', '/notes', '/shop', '/calendar', '/leaderboard', '/journey',
@@ -139,6 +146,8 @@ export default function Layout({ children }: LayoutProps) {
     // School only mode or Family B - show church school navigation only
     // Important: Only apply Family B restriction when we've confirmed family type (not while loading)
     const showChurchSchoolOnly = flags.school_only_mode || (!permissionsLoading && isFamilyB);
+    const learnAllowedInSchoolOnly = Boolean(flags.school_only_allowed_features?.includes('learn'));
+    const learnNavItem = { path: '/learn', icon: GraduationCap, label: 'Learn' };
     if (showChurchSchoolOnly) {
       if (type === 'admin') {
         return [
@@ -152,6 +161,7 @@ export default function Layout({ children }: LayoutProps) {
       if (type === 'parent' || type === 'teacher') {
         return [
           { path: '/school', icon: BookOpen, label: 'Church School' },
+          ...(type === 'parent' && learnAllowedInSchoolOnly ? [learnNavItem] : []),
           { path: '/settings', icon: Settings, label: 'Settings' }
         ].filter(item => isNavPathEnabled(item.path));
       }
@@ -159,6 +169,7 @@ export default function Layout({ children }: LayoutProps) {
       if (type === 'child') {
         return [
           { path: '/school', icon: BookOpen, label: 'Church School' },
+          ...(learnAllowedInSchoolOnly ? [learnNavItem] : []),
           { path: '/settings', icon: Settings, label: 'Settings' }
         ].filter(item => isNavPathEnabled(item.path));
       }
@@ -168,6 +179,7 @@ export default function Layout({ children }: LayoutProps) {
       return [
         { path: '/admin/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/admin', icon: Users, label: 'Users' },
+        learnNavItem,
         { path: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
         { path: '/journey', icon: Map, label: 'Journey' },
         { path: '/settings', icon: Settings, label: 'Settings' }
@@ -179,9 +191,8 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/parent/dashboard', icon: Home, label: 'Dashboard' },
         { path: '/school', icon: BookOpen, label: 'Church School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-        { path: '/h5p', icon: Puzzle, label: 'H5P Quizzes' },
-        { path: '/quizzes/builder', icon: Brain, label: 'Quiz Builder' },
-        { path: '/activities/builder', icon: Target, label: 'Activity Builder' },
+        { path: '/h5p', icon: Puzzle, label: 'Quiz Builder' },
+        learnNavItem,
         { path: '/books', icon: BookOpen, label: 'Books' },
         { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
@@ -207,9 +218,8 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/child/dashboard', icon: Home, label: 'Home' },
         { path: '/school', icon: BookOpen, label: 'Church School' },
         { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-        { path: '/h5p/play', icon: Puzzle, label: 'Fun Games' },
-        { path: '/quizzes', icon: Brain, label: 'Family Quizzes' },
-        { path: '/activities', icon: Target, label: 'Activities' },
+        { path: '/h5p/play', icon: Puzzle, label: 'Quizzes' },
+        learnNavItem,
         { path: '/shopping/help', icon: ShoppingCart, label: 'Shopping' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
@@ -243,6 +253,7 @@ export default function Layout({ children }: LayoutProps) {
     const showChurchSchoolOnly = flags.school_only_mode || (!permissionsLoading && isFamilyB);
     const churchSchoolOnlyItems: KidNavItem[] = [
       { path: '/school', emoji: '📖', label: 'Church School', labels: { young: 'School', middle: 'Church School', older: 'Church School' }, color: 'from-amber-400 to-orange-500', hoverAnim: 'hover:animate-bounce' },
+      ...(flags.school_only_allowed_features?.includes('learn') ? KID_NAV_ITEMS.filter(item => item.path === '/learn') : []),
       { path: '/settings', emoji: '⚙️', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' }
     ];
 
@@ -268,12 +279,13 @@ export default function Layout({ children }: LayoutProps) {
 
   const visibleNavItems = getNavItems();
 
-  const handleLogout = () => {
-    localStorage.removeItem('family_auth');
-    localStorage.removeItem('parent_profile');
-    localStorage.removeItem('currentProfileId');
-    localStorage.removeItem('user_permissions');
-    localStorage.removeItem('user_family');
+  const handleLogout = async () => {
+    try {
+      await profilesAPI.logout();
+    } catch {
+      // Session may already be gone; clearing local state is still correct
+    }
+    clearStoredAuth();
     setCurrentProfile(null);
     navigate('/');
     window.location.reload();

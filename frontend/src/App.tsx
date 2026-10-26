@@ -8,6 +8,14 @@ import { PermissionsProvider, usePermissions } from './context/PermissionsContex
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import LearnHome from './pages/learn/LearnHome';
+import LessonPage from './pages/learn/LessonPage';
+import MockExamPage from './pages/learn/MockExamPage';
+import LearnParent from './pages/learn/LearnParent';
+import LearnReview from './pages/learn/LearnReview';
+import ReviewPaperPage from './pages/learn/ReviewPaperPage';
+import ReviewAttemptPage from './pages/learn/ReviewAttemptPage';
+import { AUTH_TOKEN_KEY, clearStoredAuth } from './services/api';
 import AdminDashboard from './pages/AdminDashboard';
 import ParentDashboard from './pages/ParentDashboard';
 import ChildDashboard from './pages/ChildDashboard';
@@ -22,17 +30,19 @@ import FamilyLeaderboard from './pages/FamilyLeaderboard';
 import RewardShop from './pages/RewardShop';
 import CalendarView from './pages/CalendarView';
 import ControlsPage from './pages/ControlsPage';
-import QuizBuilder from './pages/QuizBuilder';
-import QuizPlayer from './pages/QuizPlayer';
 import School from './pages/School';
 import BookLibrary from './pages/BookLibrary';
 import BookReader from './pages/BookReader';
 import ShoppingList from './pages/ShoppingList';
 import ShoppingHelper from './pages/ShoppingHelper';
-import ActivityPlayer from './pages/ActivityPlayer';
-import ActivityBuilder from './pages/ActivityBuilder';
 import H5PManager from './pages/H5PManager';
 import { useProfile } from './context/ProfileContext';
+
+// Logins from before server-issued session tokens have no token: require a fresh
+// login before any provider makes API calls with the stale state.
+if (localStorage.getItem('family_auth') === 'true' && !localStorage.getItem(AUTH_TOKEN_KEY)) {
+  clearStoredAuth();
+}
 
 // Protected Route Component - Role-based
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles: string[] }) {
@@ -305,6 +315,65 @@ function AppRoutes() {
           />
         )}
 
+        {/* FamilyHub Learn - access is enforced by the backend (learn feature, family opt-in,
+            school-only allowlist); not gated on core_app so school-only learners can use it */}
+        <Route
+          path="/learn"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <LearnHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/parent"
+          element={
+            <ProtectedRoute allowedRoles={['parent']}>
+              <LearnParent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/lessons/:lessonId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <LessonPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/exams/:examId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <MockExamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/papers/:paperId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ReviewPaperPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/review-attempts/:attemptId"
+          element={
+            <ProtectedRoute allowedRoles={['parent', 'admin', 'child']}>
+              <ReviewAttemptPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/learn/review"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <LearnReview />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Settings */}
         <Route
           path="/settings"
@@ -385,25 +454,25 @@ function AppRoutes() {
           />
         )}
 
-        {/* Quiz Builder - Parents and Admin */}
+        {/* Legacy quiz builder redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/quizzes/builder"
             element={
               <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
-                <QuizBuilder />
+                <Navigate to="/h5p" replace />
               </ModuleProtectedRoute>
             }
           />
         )}
 
-        {/* Quiz Player - Children */}
+        {/* Legacy quiz player redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/quizzes"
             element={
               <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
-                <QuizPlayer />
+                <Navigate to="/h5p/play" replace />
               </ModuleProtectedRoute>
             }
           />
@@ -457,25 +526,25 @@ function AppRoutes() {
           />
         )}
 
-        {/* Activity Builder - Parents and Admin */}
+        {/* Legacy activity builder redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/activities/builder"
             element={
               <ModuleProtectedRoute allowedRoles={['parent', 'admin']} requireModule="core_app">
-                <ActivityBuilder />
+                <Navigate to="/h5p" replace />
               </ModuleProtectedRoute>
             }
           />
         )}
 
-        {/* Activity Player - Children */}
+        {/* Legacy activity player redirects to H5P */}
         {!featureFlags.school_only_mode && (
           <Route
             path="/activities"
             element={
               <ModuleProtectedRoute allowedRoles={['child']} requireModule="core_app">
-                <ActivityPlayer />
+                <Navigate to="/h5p/play" replace />
               </ModuleProtectedRoute>
             }
           />

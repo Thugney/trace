@@ -25,6 +25,16 @@ export function initTestDb() {
     )
   `);
 
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN username TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN password TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE profiles ADD COLUMN gender TEXT`);
+  } catch {}
+
   testDb.exec(`
     CREATE TABLE IF NOT EXISTS families (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +95,7 @@ export function initTestDb() {
       due_date DATETIME,
       completed BOOLEAN DEFAULT 0,
       completed_at DATETIME,
+      last_completed_date TEXT,
       needs_approval BOOLEAN DEFAULT 0,
       approved BOOLEAN DEFAULT 0,
       approved_by INTEGER,
@@ -93,12 +104,22 @@ export function initTestDb() {
       estimated_minutes INTEGER,
       proof_required BOOLEAN DEFAULT 0,
       proof_photo_url TEXT,
+      requires_timer BOOLEAN DEFAULT 0,
+      timer_duration_minutes INTEGER,
+      scheduled_time TEXT,
+      last_reminder_sent DATETIME,
       deleted_at DATETIME,
       deleted_by INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_by INTEGER
     )
   `);
+  try {
+    testDb.exec(`ALTER TABLE tasks ADD COLUMN scheduled_time TEXT`);
+  } catch {}
+  try {
+    testDb.exec(`ALTER TABLE tasks ADD COLUMN last_reminder_sent DATETIME`);
+  } catch {}
 
   // Progress table
   testDb.exec(`
@@ -464,6 +485,51 @@ export function initTestDb() {
     )
   `);
 
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS timer_states (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      task_id INTEGER,
+      quiz_attempt_id INTEGER,
+      timer_type TEXT NOT NULL,
+      is_running BOOLEAN DEFAULT 0,
+      is_paused BOOLEAN DEFAULT 0,
+      elapsed_seconds INTEGER DEFAULT 0,
+      start_time DATETIME,
+      pause_time DATETIME,
+      last_updated DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS countdown_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      title TEXT,
+      description TEXT,
+      target_tasks INTEGER DEFAULT 0,
+      completed_tasks INTEGER DEFAULT 0,
+      duration_minutes INTEGER DEFAULT 0,
+      bonus_multiplier REAL DEFAULT 1,
+      accumulated_points INTEGER DEFAULT 0,
+      completed BOOLEAN DEFAULT 0,
+      bonus_points_awarded INTEGER DEFAULT 0,
+      expires_at DATETIME,
+      completed_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  testDb.exec(`
+    CREATE TABLE IF NOT EXISTS spin_wheel_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profile_id INTEGER NOT NULL,
+      reward_type TEXT,
+      reward_value INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // Economy settings table
   testDb.exec(`
     CREATE TABLE IF NOT EXISTS economy_settings (
@@ -575,6 +641,10 @@ export function initTestDb() {
 
 // Clear all data from tables
 export function clearTestDb() {
+  // auth_sessions is created lazily by services/authSessions
+  try {
+    testDb.exec('DELETE FROM auth_sessions');
+  } catch {}
   testDb.exec('DELETE FROM family_features');
   testDb.exec('DELETE FROM profile_features');
   testDb.exec('DELETE FROM guardian_students');
@@ -605,6 +675,9 @@ export function clearTestDb() {
   testDb.exec('DELETE FROM reward_categories');
   testDb.exec('DELETE FROM water_intake');
   testDb.exec('DELETE FROM timer_logs');
+  testDb.exec('DELETE FROM timer_states');
+  testDb.exec('DELETE FROM spin_wheel_history');
+  testDb.exec('DELETE FROM countdown_challenges');
   testDb.exec('DELETE FROM points_adjustments');
   testDb.exec('DELETE FROM power_ups');
   testDb.exec('DELETE FROM earning_tracker');

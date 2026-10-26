@@ -5,6 +5,7 @@ import playSounds from '../utils/sounds';
 import confetti from 'canvas-confetti';
 import PhotoProof from './PhotoProof';
 import TaskTimerCard from './TaskTimerCard';
+import { getLocalDateKey } from '../utils/date-only';
 
 interface SimpleTaskCardProps {
   task: {
@@ -88,7 +89,7 @@ export default function SimpleTaskCard({ task, onComplete, disabled, index = 0 }
   const requiresTimer = task.requires_timer === true || task.requires_timer === 1;
 
   // Check if task was already completed today
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateKey();
   const completedToday = task.last_completed_date === today;
 
   // If task requires timer, render the timer card instead

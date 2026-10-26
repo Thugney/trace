@@ -28,6 +28,34 @@ import type {
   Notification
 } from '../types';
 
+import type {
+  AssignmentTargetKind,
+  CatalogOverviewGrade,
+  ContentImportStatus,
+  LearnAssignment,
+  LearnCatalog,
+  LearnerProgress,
+  LearnerSettings,
+  LearnFlashcard,
+  LearnLesson,
+  LearnStatus,
+  LearnTopic,
+  MockAttemptResult,
+  MockAttemptStart,
+  MockExamInfo,
+  OpenResponse,
+  PracticeResult,
+  ReviewAttemptResult,
+  ReviewAttemptStart,
+  ReviewLessonDetail,
+  ReviewPaperDetail,
+  ReviewPaperInfo,
+  ReviewQueue,
+  ReviewStatus,
+  TutorReply,
+  TutorOptions
+} from '../types/learn';
+
 export type { Reward, RewardClaim };
 
 // Use relative path for production (nginx proxy) or explicit URL for development
@@ -40,13 +68,20 @@ const api = axios.create({
   }
 });
 
-// Request interceptor to add profile ID to all authenticated requests
-api.interceptors.request.use((config) => {
-  // Get current profile ID from localStorage
-  const currentProfileId = localStorage.getItem('currentProfileId');
+export const AUTH_TOKEN_KEY = 'auth_token';
 
-  if (currentProfileId) {
-    config.headers['x-profile-id'] = currentProfileId;
+const AUTH_STORAGE_KEYS = [AUTH_TOKEN_KEY, 'family_auth', 'parent_profile', 'currentProfileId', 'user_permissions', 'user_family'];
+
+export const clearStoredAuth = () => {
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
+// Request interceptor: identity comes from the server-issued session token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
@@ -54,10 +89,26 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// An expired or revoked session sends the user back to the login screen
+api.interceptors.response.use((response) => response, (error) => {
+  const code = error?.response?.data?.code;
+  if (
+    error?.response?.status === 401 &&
+    (code === 'session_invalid' || code === 'auth_required') &&
+    localStorage.getItem(AUTH_TOKEN_KEY)
+  ) {
+    clearStoredAuth();
+    window.location.reload();
+  }
+  return Promise.reject(error);
+});
+
 // Profiles
 export const profilesAPI = {
   getAll: () => api.get<Profile[]>('/profiles'),
   getForSelector: () => api.get<Profile[]>('/profiles/selector'),  // Public - no auth needed
+  logout: () => api.post<{ success: boolean }>('/profiles/logout'),
+  getStreamToken: () => api.post<{ token: string; expiresAt: string }>('/profiles/session/stream-token'),
   getOne: (id: number) => api.get<Profile>(`/profiles/${id}`),
   create: (data: Partial<Profile>) => api.post<Profile>('/profiles', data),
   update: (id: number, data: Partial<Profile>) => api.put<Profile>(`/profiles/${id}`, data),
@@ -218,10 +269,21 @@ export const tasksAPI = {
   create: (data: Partial<Task>) => api.post<Task>('/tasks', data),
   update: (id: number, data: Partial<Task>) => api.put<Task>(`/tasks/${id}`, data),
   complete: (id: number) =>
-    api.post<{ task: Task; progress: Progress; pointsEarned: number; starsEarned: number }>(
+    api.post<{
+      task: Task;
+      progress: Progress;
+      pointsEarned: number;
+      starsEarned: number;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
+    }>(
       `/tasks/${id}/complete`
     ),
   delete: (id: number) => api.delete(`/tasks/${id}`),
+  remind: (id: number) =>
+    api.post<{ success: boolean; message: string }>(`/tasks/${id}/remind`),
   approve: (id: number, approved_by: number) =>
     api.post<Task>(`/tasks/${id}/approve`, { approved_by }),
   reject: (id: number, rejected_by: number) =>
@@ -231,7 +293,17 @@ export const tasksAPI = {
   getPendingProofs: (parentId: number) =>
     api.get<Task[]>(`/tasks/pending-proofs/${parentId}`),
   verifyProof: (taskId: number, approved: boolean, verified_by: number) =>
-    api.post<{ success: boolean; message: string; task: Task; pointsEarned?: number; starsEarned?: number }>(
+    api.post<{
+      success: boolean;
+      message: string;
+      task: Task;
+      pointsEarned?: number;
+      starsEarned?: number;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
+    }>(
       `/tasks/${taskId}/verify-proof`,
       { approved, verified_by }
     ),
@@ -274,6 +346,10 @@ export const tasksAPI = {
       starsEarned: number;
       timeSpent: number;
       nextRecurringTask?: Task;
+      latePenaltyApplied?: boolean;
+      overdueDays?: number;
+      originalPoints?: number;
+      adjustedPoints?: number;
     }>(`/tasks/${taskId}/timer/finish`)
 };
 
@@ -425,7 +501,7 @@ export const settingsAPI = {
   verifyPIN: (pin: string) => api.post<{ verified: boolean }>('/settings/verify-pin', { pin }),
   setPIN: (pin: string, current_pin?: string) =>
     api.post<{ message: string }>('/settings/set-pin', { pin, current_pin }),
-  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean }>('/settings/features/flags'),
+  getFeatureFlags: () => api.get<{ diet_enabled: boolean; school_only_mode: boolean; school_only_allowed_features?: string[] }>('/settings/features/flags'),
 
   // Ollama management
   getOllamaStatus: () => api.get<OllamaStatus>('/settings/ollama/status'),
@@ -546,40 +622,7 @@ export const schoolAPI = {
         all_time_points: number;
       }[];
       current_user_id: number | null;
-    }>('/school/leaderboard', { params: { class_id, period } }),
-
-  // Student Stats
-  getStudentStats: (studentId: number) =>
-    api.get<{
-      student_id: number;
-      overall: {
-        total_points: number;
-        current_level: number;
-        total_submissions: number;
-        graded_submissions: number;
-        achievements_earned: number;
-      };
-      recent_grades: (SchoolSubmission & {
-        assignment_title: string;
-        max_points: number;
-        class_name: string;
-      })[];
-      achievements: {
-        id: number;
-        name: string;
-        description: string;
-        icon: string;
-        category: string;
-        badge_points: number;
-        earned_at: string;
-      }[];
-      enrolled_classes: {
-        class_id: number;
-        class_name: string;
-        class_rank: number;
-        total_students: number;
-      }[];
-    }>(`/school/students/${studentId}/stats`)
+    }>('/school/leaderboard', { params: { class_id, period } })
 };
 
 // Regular School (Home tracking)
@@ -2782,3 +2825,77 @@ export const h5pAPI = {
 };
 
 export default api;
+
+// FamilyHub Learn (LK20 lessons, practice, mock exams)
+export const learnAPI = {
+  getStatus: () => api.get<LearnStatus>('/learn/status'),
+  setFamilyEnabled: (enabled: boolean) =>
+    api.put<{ enabled: boolean; family_heads: number }>('/learn/family/settings', { enabled }),
+
+  // Without a grade the backend uses the learner's saved school grade
+  getCatalog: (grade?: number) => api.get<LearnCatalog>('/learn/catalog', { params: grade ? { grade } : {} }),
+  getCatalogOverview: () => api.get<{ grades: CatalogOverviewGrade[] }>('/learn/catalog/overview'),
+  setMyGrade: (grade: number) => api.put<Omit<LearnerSettings, 'learn_enabled' | 'tutor_available'>>('/learn/me/settings', { grade }),
+  updateChildSettings: (childId: number, data: { grade?: number | null; learn_enabled?: boolean; tutor_enabled?: boolean }) =>
+    api.put<LearnerSettings & { child_id: number }>(`/learn/children/${childId}/settings`, data),
+  getTopic: (topicId: number) => api.get<LearnTopic>(`/learn/topics/${topicId}`),
+  getLesson: (lessonId: number) => api.get<LearnLesson>(`/learn/lessons/${lessonId}`),
+  submitOpenResponse: (lessonId: number, itemKey: string, response: string) =>
+    api.post<OpenResponse>(`/learn/lessons/${lessonId}/open-responses/${encodeURIComponent(itemKey)}`, { response }),
+  giveOpenResponseFeedback: (responseId: number, feedback: string) =>
+    api.post(`/learn/open-responses/${responseId}/feedback`, { feedback }),
+  markRead: (lessonId: number) => api.post<{ ok: boolean }>(`/learn/lessons/${lessonId}/read`),
+  preparePractice: (lessonId: number) =>
+    api.post<{ session_id: number; result: PracticeResult | null }>(`/learn/lessons/${lessonId}/practice`),
+
+  getFlashcards: (lessonId: number) => api.get<{ lesson_id: number; cards: LearnFlashcard[] }>(`/learn/lessons/${lessonId}/flashcards`),
+  reviewFlashcard: (lessonId: number, cardKey: string, rating: 'known' | 'missed') =>
+    api.post<{ card_key: string; box: number; next_due_at: string }>(
+      `/learn/lessons/${lessonId}/flashcards/${encodeURIComponent(cardKey)}/review`, { rating }
+    ),
+  createCard: (lessonId: number, data: { front: string; back: string; forked_from_card_key?: string }) =>
+    api.post(`/learn/lessons/${lessonId}/cards`, data),
+  updateCard: (cardId: number, data: { front?: string; back?: string }) => api.put(`/learn/cards/${cardId}`, data),
+  deleteCard: (cardId: number) => api.delete(`/learn/cards/${cardId}`),
+
+  getMyProgress: () => api.get<LearnerProgress>('/learn/me/progress'),
+  getChildProgress: (childId: number) => api.get<LearnerProgress>(`/learn/children/${childId}/progress`),
+
+  getAssignments: () => api.get<LearnAssignment[]>('/learn/assignments'),
+  createAssignment: (data: {
+    child_id: number; lesson_id?: number; topic_id?: number; mock_exam_id?: number; review_paper_id?: number;
+    due_at?: string; note?: string; idempotency_key: string;
+  }) => api.post<LearnAssignment & { target_kind: AssignmentTargetKind }>('/learn/assignments', data),
+  cancelAssignment: (assignmentId: number) => api.patch<LearnAssignment>(`/learn/assignments/${assignmentId}`, { state: 'cancelled' }),
+
+  getMockExam: (examId: number) => api.get<MockExamInfo>(`/learn/mock-exams/${examId}`),
+  startMockExam: (examId: number) => api.post<MockAttemptStart>(`/learn/mock-exams/${examId}/start`),
+  submitMockAttempt: (attemptId: number, responses: Record<string, string>) =>
+    api.post<MockAttemptResult>(`/learn/mock-attempts/${attemptId}/submit`, { responses }),
+  getMockAttempt: (attemptId: number) => api.get<MockAttemptResult>(`/learn/mock-attempts/${attemptId}`),
+
+  getReviewPaper: (paperId: number) => api.get<ReviewPaperInfo>(`/learn/review-papers/${paperId}`),
+  startReviewPaper: (paperId: number) => api.post<ReviewAttemptStart>(`/learn/review-papers/${paperId}/start`),
+  submitReviewAttempt: (attemptId: number, responses: Record<string, string>) =>
+    api.post<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}/submit`, { responses }),
+  getReviewAttempt: (attemptId: number) => api.get<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}`),
+  giveReviewFeedback: (attemptId: number, data: { summary?: string; items?: Record<string, string> }) =>
+    api.post<ReviewAttemptResult>(`/learn/review-attempts/${attemptId}/feedback`, data),
+
+  askTutor: (lessonId: number, question: string, options: TutorOptions = {}) => api.post<TutorReply>('/learn/tutor', { lesson_id: lessonId, question, ...options }),
+
+  getReviewQueue: (filters: { grade?: number; subject?: string; status?: ReviewStatus } = {}) =>
+    api.get<ReviewQueue>('/learn/admin/review-queue', { params: filters }),
+  getReviewLessonDetail: (lessonId: number) => api.get<ReviewLessonDetail>(`/learn/admin/lessons/${lessonId}`),
+  getReviewPaperDetail: (paperId: number) => api.get<ReviewPaperDetail>(`/learn/admin/review-papers/${paperId}`),
+  reviewPaper: (paperId: number, status: ReviewStatus, notes?: string) =>
+    api.post(`/learn/review-papers/${paperId}/review`, { status, notes }),
+  getContentImport: () => api.get<ContentImportStatus>('/learn/admin/content-import'),
+  runContentImport: (dryRun: boolean) => api.post('/learn/admin/content-import', { dry_run: dryRun }),
+  reviewLesson: (lessonId: number, status: 'draft' | 'reviewed' | 'retired', notes?: string) =>
+    api.post(`/learn/lessons/${lessonId}/review`, { status, notes }),
+  reviewMockExam: (examId: number, status: 'draft' | 'reviewed' | 'retired') =>
+    api.post(`/learn/mock-exams/${examId}/review`, { status }),
+  verifyGoal: (goalId: number, data: { official_goal_ref?: string; source_url?: string }) =>
+    api.post(`/learn/goals/${goalId}/verify`, data)
+};

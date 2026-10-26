@@ -10,7 +10,9 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticateEventSource } from '../middleware/auth';
+import { canAccessOwnOrManagedChild } from '../services/familyAccess';
+import { canManageOwnedResource, paramGuard } from '../services/resourceAccess';
 import { requireFeature } from '../middleware/feature-access';
 import { db } from '../database/init';
 import {
@@ -19,10 +21,13 @@ import {
   getH5PPlayer,
   createH5PUser,
   createH5PContent,
+  updateH5PContent,
   getH5PContentForPlay,
   deleteH5PContent,
   getInstalledContentTypes,
   convertQuizSpecToH5P,
+  extractQuizSpecFromAiPrompt,
+  questionSetNeedsRepair,
   validateQuizSpec,
   installLibraryFromFile,
   installLibraryFromHub,
@@ -551,7 +556,49 @@ router.use('/card-images', express.static(H5P_PATHS.cardImages, {
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-router.use(authenticate, requireFeature('activities'));
+router.use(authenticateEventSource, requireFeature('activities'));
+
+// Parents/admins may only reach content they (or a co-parent) created.
+// Children are checked against their assignments inside each handler.
+router.param('id', paramGuard((req, value) => {
+  if (req.profile!.type !== 'parent' && req.profile!.type !== 'admin') {
+    return true;
+  }
+  const content = db.prepare('SELECT created_by FROM h5p_content WHERE id = ?').get(value) as any;
+  if (!content) {
+    return 'not_found';
+  }
+  return canManageOwnedResource(req.profile!, { created_by: content.created_by });
+}));
+
+// H5P probes these endpoints even when we don't persist per-user state.
+// Returning a successful no-op response prevents noisy browser errors
+// while our app continues to track completion through xAPI/attempts.
+router.get('/contentUserData/:contentId/:dataType/:subContentId?', async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    data: false
+  });
+});
+
+router.post('/contentUserData/:contentId/:dataType/:subContentId?', async (req: Request, res: Response) => {
+  if (req.query.ignorePost === 'yes') {
+    return res.status(200).json({
+      success: true,
+      message: 'The user state was not saved, as the query parameter ignorePost was set.'
+    });
+  }
+
+  res.status(200).json({
+    success: true
+  });
+});
+
+router.post('/setFinished', async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true
+  });
+});
 
 // Get available AI providers for quiz generation
 router.get('/ai-providers', async (req: Request, res: Response) => {
@@ -1780,9 +1827,40 @@ router.get('/play/:id', async (req: Request, res: Response) => {
     // Create H5P user
     const h5pUser = createH5PUser(profile.id, profile.name);
 
+    // Repair older AI-generated blank questions that were saved with the wrong H5P.Blanks schema.
+    if (content.is_ai_generated && content.content_type === 'QuestionSet' && content.ai_prompt) {
+      try {
+        const quizSpec = extractQuizSpecFromAiPrompt(content.ai_prompt);
+        if (quizSpec?.questions?.some((question) => question.type === 'fill_blank')) {
+          const contentJsonPath = path.join(H5P_PATHS.content, String(content.h5p_content_id), 'content.json');
+          let storedParams: any = null;
+
+          if (fs.existsSync(contentJsonPath)) {
+            storedParams = JSON.parse(fs.readFileSync(contentJsonPath, 'utf8'));
+          }
+
+          if (!storedParams || questionSetNeedsRepair(storedParams, quizSpec)) {
+            const repairedContent = convertQuizSpecToH5P(quizSpec);
+            await updateH5PContent(
+              content.h5p_content_id,
+              repairedContent.library,
+              repairedContent.params,
+              repairedContent.metadata,
+              h5pUser
+            );
+            console.log(`[H5P] Repaired AI question set ${content.id} before play`);
+          }
+        }
+      } catch (repairError: any) {
+        console.warn(`[H5P] Failed to repair AI question set ${content.id}:`, repairError.message);
+      }
+    }
+
     // Get player model
     const player = getH5PPlayer();
-    const playerModel = await player.render(content.h5p_content_id, h5pUser);
+    const playerModel = await player.render(content.h5p_content_id, h5pUser, undefined, {
+      readOnlyState: true
+    });
 
     // Create attempt record for both parents (preview) and children (assigned)
     let attemptId: number | null = null;
@@ -1892,6 +1970,13 @@ router.post('/xapi', async (req: Request, res: Response) => {
       const scorePercentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
       const passed = scorePercentage >= (attempt.pass_percentage || 70);
 
+      // Read before updating so retried/duplicate xAPI events for the same attempt
+      // (including repeated 'answered' events) cannot award the points again
+      const alreadyAwarded: any = db.prepare(`
+        SELECT id FROM h5p_attempts
+        WHERE assignment_id = ? AND profile_id = ? AND passed = 1
+      `).get(attempt.assignment_id, profile.id);
+
       // Update attempt
       db.prepare(`
         UPDATE h5p_attempts
@@ -1909,12 +1994,6 @@ router.post('/xapi', async (req: Request, res: Response) => {
 
       // Award points if passed
       if (passed && attempt.points > 0) {
-        // Check if already awarded for this assignment
-        const alreadyAwarded: any = db.prepare(`
-          SELECT id FROM h5p_attempts
-          WHERE assignment_id = ? AND profile_id = ? AND passed = 1 AND id != ?
-        `).get(attempt.assignment_id, profile.id, attemptId);
-
         if (!alreadyAwarded) {
           // Award points to child
           db.prepare(`
@@ -2045,6 +2124,16 @@ router.post('/content/:id/assign', async (req: Request, res: Response) => {
 
     if (!Array.isArray(childIds) || childIds.length === 0) {
       return res.status(400).json({ error: 'childIds array is required' });
+    }
+
+    // Only the requester's own (managed) child profiles may be assigned
+    const unauthorized = childIds.filter((childId: unknown) => {
+      const numericId = Number(childId);
+      const target = db.prepare('SELECT type FROM profiles WHERE id = ?').get(numericId) as any;
+      return !target || target.type !== 'child' || !canAccessOwnOrManagedChild(profile, numericId);
+    });
+    if (unauthorized.length > 0) {
+      return res.status(403).json({ error: 'You can only assign content to your own children' });
     }
 
     const insertAssignment = db.prepare(`

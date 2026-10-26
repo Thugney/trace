@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import goalsRoutes from '../routes/goals.js';
-import { createTestProfile } from './helpers.js';
+import { createTestProfile, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 
 function createGoalsApp() {
@@ -54,7 +54,7 @@ describe('pending goal approvals', () => {
 
     const response = await request(app)
       .get(`/api/goals/pending/${coParent.id}`)
-      .set('x-profile-id', String(coParent.id));
+      .set(authHeaders(coParent.id));
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);

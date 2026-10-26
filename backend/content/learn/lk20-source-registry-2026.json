@@ -1,0 +1,794 @@
+{
+  "schema_version": "1.0.0",
+  "scope": "Norway LK20 grades 1-10",
+  "researched_date": "2026-10-24",
+  "status": "authoritative curriculum versions and checkpoint URLs verified from Udir; thematic mapping is local, not official individual-goal IDs",
+  "effective_from": "2026-08-01",
+  "subjects": [
+    {
+      "slug": "matematikk",
+      "title": "Matematikk",
+      "code": "MAT01-06",
+      "lang": "nob",
+      "stages": {
+        "2": "kv1021",
+        "3": "kv1022",
+        "4": "kv1023",
+        "5": "kv1024",
+        "6": "kv1025",
+        "7": "kv1026",
+        "8": "kv1027",
+        "9": "kv1028",
+        "10": "kv1029"
+      },
+      "domains": [
+        "tall-og-regnearter",
+        "algebra-og-monstre",
+        "geometri-og-maling",
+        "statistikk-og-sannsynlighet",
+        "funksjoner-og-modellering"
+      ],
+      "curriculum_home_url": "https://www.udir.no/lk20/mat01-06/?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/mat01-06/gyldighet-og-innfoering?lang=nob",
+      "official_stage_sources": [
+        {
+          "after_grade": 2,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob"
+        },
+        {
+          "after_grade": 3,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob"
+        },
+        {
+          "after_grade": 4,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob"
+        },
+        {
+          "after_grade": 5,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob"
+        },
+        {
+          "after_grade": 6,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob"
+        },
+        {
+          "after_grade": 7,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob"
+        },
+        {
+          "after_grade": 8,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob"
+        },
+        {
+          "after_grade": 9,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob"
+        },
+        {
+          "after_grade": 10,
+          "url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob"
+        }
+      ]
+    },
+    {
+      "slug": "norsk",
+      "title": "Norsk",
+      "code": "NOR01-08",
+      "lang": "nob",
+      "stages": {
+        "2": "kv1107",
+        "4": "kv1108",
+        "7": "kv1109",
+        "10": "kv1110"
+      },
+      "domains": [
+        "lesing-og-tekstforstaelse",
+        "skriving-og-tekstskaping",
+        "muntlige-ferdigheter",
+        "sprakkunnskap",
+        "kildebruk-og-digitale-tekster"
+      ],
+      "curriculum_home_url": "https://www.udir.no/lk20/nor01-08/?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/nor01-08/gyldighet-og-innfoering?lang=nob",
+      "official_stage_sources": [
+        {
+          "after_grade": 2,
+          "url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob"
+        },
+        {
+          "after_grade": 4,
+          "url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob"
+        },
+        {
+          "after_grade": 7,
+          "url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob"
+        },
+        {
+          "after_grade": 10,
+          "url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob"
+        }
+      ]
+    },
+    {
+      "slug": "engelsk",
+      "title": "Engelsk",
+      "code": "ENG01-06",
+      "lang": "eng",
+      "stages": {
+        "2": "kv1030",
+        "4": "kv1031",
+        "7": "kv1032",
+        "10": "kv1033"
+      },
+      "domains": [
+        "ordforrad",
+        "muntlig-kommunikasjon",
+        "lesing",
+        "skriving-og-grammatikk",
+        "sprak-kultur-og-kilder"
+      ],
+      "curriculum_home_url": "https://www.udir.no/lk20/eng01-06/?lang=eng",
+      "validity_url": "https://www.udir.no/lk20/eng01-06/gyldighet-og-innfoering?lang=eng",
+      "official_stage_sources": [
+        {
+          "after_grade": 2,
+          "url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng"
+        },
+        {
+          "after_grade": 4,
+          "url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng"
+        },
+        {
+          "after_grade": 7,
+          "url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng"
+        },
+        {
+          "after_grade": 10,
+          "url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng"
+        }
+      ]
+    },
+    {
+      "slug": "naturfag",
+      "title": "Naturfag",
+      "code": "NAT01-05",
+      "lang": "nob",
+      "stages": {
+        "2": "kv1075",
+        "4": "kv1076",
+        "7": "kv1077",
+        "10": "kv1078"
+      },
+      "domains": [
+        "naturvitenskapelige-praksiser",
+        "liv-og-celler",
+        "natur-og-miljo",
+        "energi-og-fysikk",
+        "stoffer-og-teknologi"
+      ],
+      "curriculum_home_url": "https://www.udir.no/lk20/nat01-05/?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/nat01-05/gyldighet-og-innfoering?lang=nob",
+      "official_stage_sources": [
+        {
+          "after_grade": 2,
+          "url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob"
+        },
+        {
+          "after_grade": 4,
+          "url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob"
+        },
+        {
+          "after_grade": 7,
+          "url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob"
+        },
+        {
+          "after_grade": 10,
+          "url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob"
+        }
+      ]
+    },
+    {
+      "slug": "samfunnsfag",
+      "title": "Samfunnsfag",
+      "code": "SAF01-05",
+      "lang": "nob",
+      "stages": {
+        "2": "kv1152",
+        "4": "kv1149",
+        "7": "kv1150",
+        "10": "kv1151"
+      },
+      "domains": [
+        "fellesskap-og-identitet",
+        "geografi-og-steder",
+        "historie-og-endring",
+        "demokrati-og-rettigheter",
+        "okonomi-medier-og-kilder"
+      ],
+      "curriculum_home_url": "https://www.udir.no/lk20/saf01-05/?lang=nob",
+      "validity_url": "https://www.udir.no/lk20/saf01-05/gyldighet-og-innfoering?lang=nob",
+      "official_stage_sources": [
+        {
+          "after_grade": 2,
+          "url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob"
+        },
+        {
+          "after_grade": 4,
+          "url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob"
+        },
+        {
+          "after_grade": 7,
+          "url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob"
+        },
+        {
+          "after_grade": 10,
+          "url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob"
+        }
+      ]
+    }
+  ],
+  "grade_subject_tracks": [
+    {
+      "grade": 1,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 2,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1021?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 3,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 3,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1022?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 4,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1023?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 5,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 5,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1024?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 6,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 6,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1025?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 7,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1026?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 8,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 8,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1027?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 9,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 9,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1028?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 10,
+      "subject": "matematikk",
+      "official_curriculum_code": "MAT01-06",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/mat01-06/kompetansemaal-og-vurdering/kv1029?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 1,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 2,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1107?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 3,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 4,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1108?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 5,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 6,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 7,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1109?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 8,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 9,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 10,
+      "subject": "norsk",
+      "official_curriculum_code": "NOR01-08",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nor01-08/kompetansemaal-og-vurdering/kv1110?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 1,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 2,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1030?lang=eng",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 3,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 4,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1031?lang=eng",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 5,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 6,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 7,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1032?lang=eng",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 8,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 9,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 10,
+      "subject": "engelsk",
+      "official_curriculum_code": "ENG01-06",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/eng01-06/kompetansemaal-og-vurdering/kv1033?lang=eng",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "en_with_nb_scaffolding_early"
+    },
+    {
+      "grade": 1,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 2,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1075?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 3,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 4,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1076?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 5,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 6,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 7,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1077?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 8,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 9,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 10,
+      "subject": "naturfag",
+      "official_curriculum_code": "NAT01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/nat01-05/kompetansemaal-og-vurdering/kv1078?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 1,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 2,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 2,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1152?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 3,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 4,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 4,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1149?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 5,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 6,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 7,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 7,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1150?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_without_number_grades",
+      "locale": "nb"
+    },
+    {
+      "grade": 8,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 9,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": false,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+      "year_plan_type": "local_teaching_sequence_toward_checkpoint",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    },
+    {
+      "grade": 10,
+      "subject": "samfunnsfag",
+      "official_curriculum_code": "SAF01-05",
+      "official_goal_checkpoint_after_grade": 10,
+      "checkpoint_is_this_grade": true,
+      "official_goal_page_url": "https://www.udir.no/lk20/saf01-05/kompetansemaal-og-vurdering/kv1151?lang=nob",
+      "year_plan_type": "official_checkpoint_with_local_topics",
+      "grading_mode": "formative_plus_optional_non_official_mock_exam_grade",
+      "locale": "nb"
+    }
+  ],
+  "assessments": {
+    "grades_1_to_7": "No numbered school grades; provide formative feedback only.",
+    "grades_8_to_10": "Practice feedback; only non-official indicative 1–6 on rubric-backed mock exams with sufficient evidence.",
+    "official_source": "https://www.udir.no/regelverkstolkninger/opplaring/forskrift-om-grunnskoleopplaringa-og-den-vidaregaande-opplaringa-opplaringsforskrifta/tredje-delen--fellesreglar-for-grunnskoleopplaringa-og-den-vidaregaande-opplaringa-for-barn-og-unge/kapittel-9-individuell-vurdering/i.-generelle-reglar/-9-3-karakterar-i-fag/",
+    "fixed_percentage_bands_official": false
+  },
+  "source_review_rules": [
+    "Official stage URLs are real Udir pages, not invented competence-goal IDs.",
+    "Any local topic-to-goal theme requires human verification against linked official competence goals.",
+    "No official subject has a 1st-grade checkpoint. Math has goals after every grade from 2 onward; others after 2/4/7/10.",
+    "The school subject curricular domain coverage is not guaranteed by a limited starter-topic library.",
+    "Keep drafts unpublished and do not copy Udir or textbooks verbatim."
+  ]
+}

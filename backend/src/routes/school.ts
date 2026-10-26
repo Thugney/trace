@@ -1295,6 +1295,137 @@ router.get('/feedback', authenticate, (req: AuthRequest, res: Response) => {
   }
 });
 
+// ==================== GRADING ====================
+// School points are recorded on the submission only; grading does not touch
+// the FamilyHub points economy (Church School semantics stay independent).
+
+const teacherClassFilter = `
+  sa.class_id IN (
+    SELECT class_id FROM teacher_class_assignments WHERE teacher_id = ?
+    UNION
+    SELECT assigned_class_id FROM profiles WHERE id = ? AND assigned_class_id IS NOT NULL
+  )
+`;
+
+router.get('/submissions/ungraded', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can view ungraded submissions' });
+    }
+
+    const classId = req.query.class_id ? Number(req.query.class_id) : null;
+    if (classId && profile.type === 'teacher' && !teacherHasClass(profile.id, classId)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    const params: any[] = [];
+    const filters = ['ss.graded_at IS NULL'];
+    if (profile.type === 'teacher') {
+      filters.push(teacherClassFilter);
+      params.push(profile.id, profile.id);
+    }
+    if (classId) {
+      filters.push('sa.class_id = ?');
+      params.push(classId);
+    }
+
+    const submissions = db.prepare(`
+      SELECT ss.*, sa.title as assignment_title, COALESCE(sa.max_points, 10) as max_points, sa.class_id,
+             p.name as student_name, p.avatar as student_avatar, sc.name as class_name
+      FROM school_submissions ss
+      JOIN school_assignments sa ON sa.id = ss.assignment_id
+      JOIN school_classes sc ON sc.id = sa.class_id
+      JOIN profiles p ON p.id = ss.student_id
+      WHERE ${filters.join(' AND ')}
+      ORDER BY ss.submitted_at ASC
+    `).all(...params);
+
+    res.json(submissions);
+  } catch (error: any) {
+    console.error('[School] Fetch ungraded submissions error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/submissions/:submissionId/grade', authenticate, (req: AuthRequest, res: Response) => {
+  try {
+    const profile = req.profile!;
+    if (!['admin', 'teacher'].includes(profile.type)) {
+      return res.status(403).json({ error: 'Only admins or teachers can grade submissions' });
+    }
+
+    const submissionId = Number(req.params.submissionId);
+    const pointsEarned = Number(req.body.points_earned);
+    const feedbackText = typeof req.body.feedback === 'string' ? req.body.feedback.trim() : '';
+    const status = ['approved', 'needs_revision'].includes(req.body.status) ? req.body.status : 'approved';
+
+    const submission: any = db.prepare(`
+      SELECT ss.*, sa.class_id, sa.title as assignment_title, COALESCE(sa.max_points, 10) as max_points
+      FROM school_submissions ss
+      JOIN school_assignments sa ON sa.id = ss.assignment_id
+      WHERE ss.id = ?
+    `).get(submissionId);
+
+    if (!submission) {
+      return res.status(404).json({ error: 'Submission not found' });
+    }
+
+    if (profile.type === 'teacher' && !teacherHasClass(profile.id, submission.class_id)) {
+      return res.status(403).json({ error: 'Access denied: class not assigned' });
+    }
+
+    if (!Number.isInteger(pointsEarned) || pointsEarned < 0 || pointsEarned > submission.max_points) {
+      return res.status(400).json({ error: `points_earned must be a whole number between 0 and ${submission.max_points}` });
+    }
+
+    // Regrading overwrites the previous grade; no economy points are awarded, so retries are safe
+    db.transaction(() => {
+      db.prepare(`
+        UPDATE school_submissions
+        SET points_earned = ?, points_possible = ?, status = ?, graded_at = CURRENT_TIMESTAMP, graded_by = ?
+        WHERE id = ?
+      `).run(pointsEarned, submission.max_points, status, profile.id, submissionId);
+
+      if (feedbackText) {
+        db.prepare(`
+          INSERT INTO school_feedback (submission_id, teacher_id, comment, rating)
+          VALUES (?, ?, ?, NULL)
+        `).run(submissionId, profile.id, feedbackText);
+      }
+    })();
+
+    const updated = db.prepare('SELECT * FROM school_submissions WHERE id = ?').get(submissionId);
+    const totals: any = db.prepare(`
+      SELECT COALESCE(SUM(points_earned), 0) as total
+      FROM school_submissions
+      WHERE student_id = ? AND graded_at IS NOT NULL
+    `).get(submission.student_id);
+    const progress: any = db.prepare(`
+      SELECT level FROM progress WHERE profile_id = ? ORDER BY logged_at DESC, id DESC LIMIT 1
+    `).get(submission.student_id);
+
+    const recipients = [...new Set([submission.student_id, ...getGuardiansForStudent(submission.student_id)])];
+    sendPushToProfiles(recipients, {
+      type: 'school_graded',
+      title: status === 'approved' ? 'Work Graded!' : 'Revision Needed',
+      message: `"${submission.assignment_title}" was graded: ${pointsEarned}/${submission.max_points}`,
+      url: '/school',
+      data: { submissionId, assignmentId: submission.assignment_id, status }
+    }).catch(err => console.error('[School] Grade notification error:', err));
+
+    res.json({
+      submission: updated,
+      totalPointsAwarded: pointsEarned,
+      studentTotalPoints: totals.total,
+      studentLevel: progress?.level || 1
+    });
+  } catch (error: any) {
+    console.error('[School] Grade submission error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/feedback', authenticate, (req: AuthRequest, res: Response) => {
   try {
     const profile = req.profile!;

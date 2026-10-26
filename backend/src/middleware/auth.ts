@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import db from '../database/init';
 import { authorizationService, ModuleType, ModulePermissions } from '../services/authorization';
+import { extractBearerToken, isStreamToken, resolveSessionToken, ResolvedSession } from '../services/authSessions';
 
 /**
  * Extended Request interface to include authenticated profile
@@ -12,38 +13,44 @@ export interface AuthRequest extends Request {
     parent_id?: number;
     family_id?: number;
   };
+  authSession?: {
+    id: number;
+    principalId: number;
+    principalType: 'admin' | 'parent' | 'child' | 'teacher';
+  };
   permissions?: ModulePermissions;
 }
 
+const attachSession = (req: AuthRequest, session: ResolvedSession) => {
+  req.profile = session.profile;
+  req.authSession = {
+    id: session.sessionId,
+    principalId: session.principalId,
+    principalType: session.principalType
+  };
+};
+
 /**
  * Authentication Middleware
- * Verifies that the request includes a valid profile_id
- * and attaches the profile to the request object
+ * Identity is derived server-side from an opaque session token sent as
+ * `Authorization: Bearer <token>`. Client-supplied profile IDs (the legacy
+ * x-profile-id header) are ignored.
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get profile_id from header (sent by frontend)
-    const profileId = req.headers['x-profile-id'] as string;
+    const token = extractBearerToken(req.headers.authorization);
 
-    if (!profileId) {
-      return res.status(401).json({ error: 'Authentication required: No profile ID provided' });
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required', code: 'auth_required' });
     }
 
-    // Verify profile exists in database
-    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
+    const session = resolveSessionToken(token);
 
-    if (!profile) {
-      return res.status(401).json({ error: 'Authentication failed: Invalid profile ID' });
+    if (!session) {
+      return res.status(401).json({ error: 'Session expired or invalid', code: 'session_invalid' });
     }
 
-    // Attach profile to request for use in route handlers
-    req.profile = {
-      id: profile.id,
-      type: profile.type,
-      parent_id: profile.parent_id,
-      family_id: profile.family_id
-    };
-
+    attachSession(req, session);
     next();
   } catch (error: any) {
     console.error('[AUTH] Authentication error:', error);
@@ -174,18 +181,10 @@ export const verifyOwnership = (ownerField: string = 'profile_id') => {
  * Useful for endpoints that work both authenticated and unauthenticated
  */
 export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const profileId = req.headers['x-profile-id'] as string;
+  const session = resolveSessionToken(extractBearerToken(req.headers.authorization));
 
-  if (profileId) {
-    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
-    if (profile) {
-      req.profile = {
-        id: profile.id,
-        type: profile.type,
-        parent_id: profile.parent_id,
-        family_id: profile.family_id
-      };
-    }
+  if (session) {
+    attachSession(req, session);
   }
 
   next();
@@ -193,38 +192,26 @@ export const optionalAuth = (req: AuthRequest, res: Response, next: NextFunction
 
 /**
  * EventSource-Compatible Authentication Middleware
- * Supports both header-based auth (for regular requests) and query parameter auth (for EventSource)
- * EventSource cannot send custom headers, so we need to accept profile_id from query string
+ * EventSource and H5P iframe requests cannot send an Authorization header, so
+ * they may pass a short-lived signed stream token as `?access_token=`.
+ * Stream tokens are issued by POST /api/profiles/session/stream-token and are
+ * bound to the session and active profile; the session token itself is never
+ * accepted in a URL.
  */
 export const authenticateEventSource = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Try header first (for regular axios requests)
-    let profileId = req.headers['x-profile-id'] as string;
+    let session = resolveSessionToken(extractBearerToken(req.headers.authorization), { allowStreamToken: true });
 
-    // Fall back to query parameter (for EventSource)
-    if (!profileId && req.query.profile_id) {
-      profileId = req.query.profile_id as string;
+    // Only signed stream tokens may travel in a URL, never the session token itself
+    if (!session && typeof req.query.access_token === 'string' && isStreamToken(req.query.access_token)) {
+      session = resolveSessionToken(req.query.access_token, { allowStreamToken: true });
     }
 
-    if (!profileId) {
-      return res.status(401).json({ error: 'Authentication required: No profile ID provided' });
+    if (!session) {
+      return res.status(401).json({ error: 'Authentication required', code: 'auth_required' });
     }
 
-    // Verify profile exists in database
-    const profile: any = db.prepare('SELECT id, type, parent_id, family_id FROM profiles WHERE id = ?').get(profileId);
-
-    if (!profile) {
-      return res.status(401).json({ error: 'Authentication failed: Invalid profile ID' });
-    }
-
-    // Attach profile to request for use in route handlers
-    req.profile = {
-      id: profile.id,
-      type: profile.type,
-      parent_id: profile.parent_id,
-      family_id: profile.family_id
-    };
-
+    attachSession(req, session);
     next();
   } catch (error: any) {
     console.error('[AUTH] Authentication error:', error);

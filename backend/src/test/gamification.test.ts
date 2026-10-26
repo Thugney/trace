@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { createTestProfile, createTestProgress, createTestStreak, createTestAchievement } from './helpers.js';
+import { createTestProfile, createTestProgress, createTestStreak, createTestAchievement, authHeaders } from './helpers.js';
 import { testDb } from './setup.js';
 import gamificationRouter from '../routes/gamification.js';
 import { updateEconomySettings } from '../services/economyControl.js';
@@ -50,7 +50,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .get('/gamification/family-leaderboard')
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(3);
@@ -84,7 +84,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .get('/gamification/family-leaderboard')
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(response.status).toBe(200);
       expect(response.body[0].currentStreak).toBe(5);
@@ -140,7 +140,7 @@ describe('Gamification Routes', () => {
       const weekResponse = await request(app)
         .get('/gamification/family-leaderboard')
         .query({ period: 'week' })
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(weekResponse.status).toBe(200);
       const weekChild = weekResponse.body.find((entry: any) => entry.id === legacyChild.id);
@@ -151,7 +151,7 @@ describe('Gamification Routes', () => {
       const monthResponse = await request(app)
         .get('/gamification/family-leaderboard')
         .query({ period: 'month' })
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(monthResponse.status).toBe(200);
       const monthChild = monthResponse.body.find((entry: any) => entry.id === legacyChild.id);
@@ -161,7 +161,7 @@ describe('Gamification Routes', () => {
       const allTimeResponse = await request(app)
         .get('/gamification/family-leaderboard')
         .query({ period: 'all' })
-        .set('x-profile-id', String(parent.id));
+        .set(authHeaders(parent.id));
 
       expect(allTimeResponse.status).toBe(200);
       const allTimeChild = allTimeResponse.body.find((entry: any) => entry.id === legacyChild.id);
@@ -183,7 +183,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .get(`/gamification/stats/${profile.id}`)
-        .set('x-profile-id', String(profile.id));
+        .set(authHeaders(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body.points).toBe(250);
@@ -202,7 +202,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .get(`/gamification/streaks/${profile.id}`)
-        .set('x-profile-id', String(profile.id));
+        .set(authHeaders(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
@@ -217,7 +217,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .get(`/gamification/streaks/${profile.id}`)
-        .set('x-profile-id', String(profile.id));
+        .set(authHeaders(profile.id));
 
       expect(response.status).toBe(200);
       expect(response.body.length).toBeGreaterThanOrEqual(1);
@@ -235,7 +235,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .put(`/gamification/economy/${child.id}`)
-        .set('x-profile-id', String(parent.id))
+        .set(authHeaders(parent.id))
         .send({
           dailyPointsCap: 180,
           weeklyPointsCap: 900,
@@ -288,7 +288,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .post(`/gamification/points/adjust/${child.id}`)
-        .set('x-profile-id', String(parent.id))
+        .set(authHeaders(parent.id))
         .send({
           amount: 10,
           reason: 'Bonus for helping without being asked',
@@ -324,7 +324,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .post(`/gamification/points/adjust/${child.id}`)
-        .set('x-profile-id', String(unrelatedParent.id))
+        .set(authHeaders(unrelatedParent.id))
         .send({
           amount: -5,
           reason: 'Not your child'
@@ -344,7 +344,7 @@ describe('Gamification Routes', () => {
 
       const response = await request(app)
         .post(`/gamification/points/adjust/${child.id}`)
-        .set('x-profile-id', String(parent.id))
+        .set(authHeaders(parent.id))
         .send({
           amount: 2.5,
           reason: 'Fractional points should fail'
