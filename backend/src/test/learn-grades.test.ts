@@ -36,6 +36,14 @@ const topicIdOf = (contentId: string) =>
   (testDb.prepare('SELECT topic_id FROM learn_lessons WHERE content_id = ?').get(contentId) as { topic_id: number }).topic_id;
 const paperRowId = (contentId: string) =>
   (testDb.prepare('SELECT id FROM learn_review_papers WHERE content_id = ?').get(contentId) as { id: number }).id;
+// Schema and every Learn row, so a rehearsal can be checked for leaving both
+// alone. learn_content_imports is excluded: the audit record of the rehearsal
+// itself is written on purpose, outside the rolled-back transaction.
+const learnFingerprint = () => JSON.stringify({
+  schema: testDb.prepare("SELECT name, sql FROM sqlite_master WHERE name LIKE 'learn_%' ORDER BY name").all(),
+  rows: LEARN_TABLES.filter((table) => table !== 'learn_content_imports')
+    .map((table) => [table, testDb.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all()])
+});
 
 async function createApp() {
   const [{ default: learnRoutes }, { default: activityRoutes }] = await Promise.all([
@@ -303,6 +311,24 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(result.ok).toBe(false);
       expect(count('SELECT COUNT(*) as n FROM learn_lessons')).toBe(before);
       expect(testDb.prepare('SELECT status FROM learn_content_imports ORDER BY id DESC LIMIT 1').get()).toEqual({ status: 'failed' });
+    });
+
+    it('leaves the schema and every row alone on a rehearsal, keeping only its audit record', () => {
+      // A restored copy: schema and pilot seed present, no imported content yet
+      for (const table of LEARN_TABLES) testDb.exec(`DELETE FROM ${table}`);
+      seedLearnCatalog();
+      const before = learnFingerprint();
+
+      const result = importContentPackage(pkg, { dryRun: true });
+      expect(result.ok).toBe(true);
+      // It really would have written: a full package, rolled back, not a no-op
+      expect(result.summary!.created.lessons).toBe(250);
+      expect(result.summary!.created.review_papers).toBe(50);
+
+      expect(learnFingerprint()).toBe(before);
+      // The single surviving write is the rehearsal's own audit row
+      expect(count('SELECT COUNT(*) as n FROM learn_content_imports')).toBe(1);
+      expect(count('SELECT COUNT(*) as n FROM learn_content_imports WHERE dry_run = 1')).toBe(1);
     });
 
     it('is run and inspected by admins only, as an audited dry run by default', async () => {

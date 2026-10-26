@@ -49,7 +49,7 @@ The five PR #9 Grade 8 pilot topics are shared, not duplicated: each keeps its r
 ```bash
 cp /backup/family.db /tmp/family-copy.db
 cd backend
-DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts          # dry run, rolled back
+DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts          # rehearsal: content rolled back, audit row kept; needs an initialized copy
 DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts --write  # import drafts
 DATABASE_PATH=/tmp/family-copy.db npx tsx src/scripts/import-learn-content.ts --write  # must report 0 created
 ```
