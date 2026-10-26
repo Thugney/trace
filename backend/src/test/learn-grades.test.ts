@@ -851,4 +851,221 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(count("SELECT COUNT(*) as n FROM audit_logs WHERE action = 'learn.child_settings_updated'")).toBe(2);
     });
   });
+
+  describe('answer keys stay shut while another test is running', () => {
+    const expire = (table: 'learn_review_attempts' | 'learn_mock_attempts', id: number) =>
+      testDb.prepare(`UPDATE ${table} SET expires_at = ? WHERE id = ?`)
+        .run(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), id);
+
+    const SECRETS = ['correct_key', 'correct_answer', 'explanation', 'expected_content', 'correctAnswer'];
+    const leaksNothing = (body: unknown) => {
+      const payload = JSON.stringify(body);
+      for (const secret of SECRETS) expect(payload).not.toContain(secret);
+    };
+
+    async function reviewedPilotMockExam(app: express.Application, adminId: number) {
+      const exam = testDb.prepare(`
+        SELECT e.id FROM learn_mock_exams e JOIN learn_topics t ON t.id = e.topic_id
+        WHERE t.grade >= 8 ORDER BY e.id LIMIT 1
+      `).get() as { id: number };
+      expect((await request(app).post(`/learn/mock-exams/${exam.id}/review`).set(authHeaders(adminId))
+        .send({ status: 'reviewed' })).status).toBe(200);
+      return exam.id;
+    }
+
+    it('refuses to score a review attempt that expired while a retake is open', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      // The learner walks away from the first attempt until it times out
+      const first = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(first.status).toBe(201);
+      expire('learn_review_attempts', first.body.attempt_id);
+
+      // An expired attempt no longer holds the lock, so a second one starts
+      const retake = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(retake.status).toBe(201);
+      expect(retake.body.attempt_id).not.toBe(first.body.attempt_id);
+
+      // Submitting the stale attempt would score the very paper now running
+      const stale = await request(app).post(`/learn/review-attempts/${first.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} });
+      expect(stale.status).toBe(423);
+      expect(stale.body.code).toBe('exam_in_progress');
+      leaksNothing(stale.body);
+      expect(testDb.prepare('SELECT submitted_at FROM learn_review_attempts WHERE id = ?')
+        .get(first.body.attempt_id)).toMatchObject({ submitted_at: null });
+
+      // The attempt the learner is actually sitting still submits normally
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items.filter((item: any) => item.kind === 'single_select')
+        .map((item: any) => [item.id, item.correct_key]));
+      const submitted = await request(app).post(`/learn/review-attempts/${retake.body.attempt_id}/submit`)
+        .set(child).send({ responses });
+      expect(submitted.status).toBe(200);
+      expect(submitted.body.objective_correct).toBe(5);
+
+      // With no test running, the late attempt may still be handed in
+      const late = await request(app).post(`/learn/review-attempts/${first.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} });
+      expect(late.status).toBe(200);
+      expect(late.body.feedback.submitted_late).toBe(true);
+    });
+
+    it('keeps a mock exam attempt shut to the learner while a retake of it runs', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      // A mock exam belongs to school years 8-10, so the guardian puts this pupil in year 9
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id))
+        .send({ grade: 9 })).status).toBe(200);
+      const examId = await reviewedPilotMockExam(app, admin.id);
+      const child = authHeaders(childA.id);
+      const parent = authHeaders(parentA.id);
+
+      const first = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(first.status).toBe(201);
+      leaksNothing(first.body);
+      expect((await request(app).post(`/learn/mock-attempts/${first.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} })).status).toBe(200);
+
+      // Between attempts the learner may review their own evidence
+      const between = await request(app).get(`/learn/mock-attempts/${first.body.attempt_id}`).set(child);
+      expect(between.status).toBe(200);
+      expect(JSON.stringify(between.body)).toContain('correctAnswer');
+
+      const retake = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(retake.status).toBe(201);
+      expect(retake.body.attempt_id).not.toBe(first.body.attempt_id);
+
+      // Reading the earlier attempt, and replaying its submit, both hand back the same key
+      const read = await request(app).get(`/learn/mock-attempts/${first.body.attempt_id}`).set(child);
+      expect(read.status).toBe(423);
+      leaksNothing(read.body);
+      const replay = await request(app).post(`/learn/mock-attempts/${first.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} });
+      expect(replay.status).toBe(423);
+      leaksNothing(replay.body);
+
+      // A guardian still needs the evidence to respond to it
+      const guardian = await request(app).get(`/learn/mock-attempts/${first.body.attempt_id}`).set(parent);
+      expect(guardian.status).toBe(200);
+      expect(JSON.stringify(guardian.body)).toContain('correctAnswer');
+
+      // Once the retake is handed in, the learner's own review reopens
+      expect((await request(app).post(`/learn/mock-attempts/${retake.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} })).status).toBe(200);
+      expect((await request(app).get(`/learn/mock-attempts/${first.body.attempt_id}`).set(child)).status).toBe(200);
+    });
+
+    it('refuses to score a mock exam attempt that expired while a retake is open', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      // A mock exam belongs to school years 8-10, so the guardian puts this pupil in year 9
+      expect((await request(app).put(`/learn/children/${childA.id}/settings`).set(authHeaders(parentA.id))
+        .send({ grade: 9 })).status).toBe(200);
+      const examId = await reviewedPilotMockExam(app, admin.id);
+      const child = authHeaders(childA.id);
+
+      const first = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(first.status).toBe(201);
+      expire('learn_mock_attempts', first.body.attempt_id);
+
+      const retake = await request(app).post(`/learn/mock-exams/${examId}/start`).set(child);
+      expect(retake.status).toBe(201);
+      expect(retake.body.attempt_id).not.toBe(first.body.attempt_id);
+
+      const stale = await request(app).post(`/learn/mock-attempts/${first.body.attempt_id}/submit`)
+        .set(child).send({ responses: {} });
+      expect(stale.status).toBe(423);
+      expect(stale.body.code).toBe('exam_in_progress');
+      leaksNothing(stale.body);
+      expect(testDb.prepare('SELECT submitted_at FROM learn_mock_attempts WHERE id = ?')
+        .get(first.body.attempt_id)).toMatchObject({ submitted_at: null });
+    });
+  });
+
+  describe('draft wording never reaches a learner', () => {
+    it('refuses a direct topic ID until the topic holds something reviewed', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const child = authHeaders(childA.id);
+      const topicId = topicIdOf(GRADE3_MATH[0]);
+
+      // Nothing in this topic is reviewed yet: title, summary and goal mapping stay in
+      const denied = await request(app).get(`/learn/topics/${topicId}`).set(child);
+      expect(denied.status).toBe(404);
+      expect(JSON.stringify(denied.body)).not.toContain('Ganging');
+      expect(JSON.stringify(denied.body)).not.toContain('udir.no');
+
+      // The reviewer still needs to open it to do the review
+      const reviewerView = await request(app).get(`/learn/topics/${topicId}`).set(authHeaders(admin.id));
+      expect(reviewerView.status).toBe(200);
+      expect(reviewerView.body.lessons[0]).toMatchObject({ review_status: 'draft' });
+
+      // ...and once a version is approved the learner may open it
+      await review(app, admin.id, [GRADE3_MATH[0]]);
+      const allowed = await request(app).get(`/learn/topics/${topicId}`).set(child);
+      expect(allowed.status).toBe(200);
+      expect(allowed.body.lessons).toEqual([
+        { id: lessonRowId(GRADE3_MATH[0]), title: expect.any(String), version: 1, review_status: 'reviewed' }
+      ]);
+    });
+
+    it('keeps published topic wording when an unapproved draft is corrected', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      const child = authHeaders(childA.id);
+      const contentId = GRADE3_MATH[0];
+      await review(app, admin.id, [contentId]);
+      const topicId = topicIdOf(contentId);
+      const reviewedRowId = lessonRowId(contentId);
+      const published = testDb.prepare('SELECT title, summary FROM learn_topics WHERE id = ?').get(topicId) as any;
+
+      // A v2 draft arrives through the ordinary publishing workflow
+      const drafted = clonePackage();
+      drafted.subjects[0].lessons.find((lesson) => lesson.id === contentId)!.version = 2;
+      drafted.courseMap.courses.find((course) => course.course_id === 'learn-matematikk-grade-3')!
+        .ordered_lessons.find((item) => item.lesson_id === contentId)!.content_version = 2;
+      expect(importContentPackage(drafted).ok).toBe(true);
+
+      // The reviewer asks for a correction, so that same unapproved draft is re-imported
+      const corrected = JSON.parse(JSON.stringify(drafted)) as ContentPackage;
+      const draftLesson = corrected.subjects[0].lessons.find((lesson) => lesson.id === contentId)! as any;
+      draftLesson.title = 'DRAFT ONLY - not reviewed';
+      draftLesson.article.intro = 'DRAFT SUMMARY that no reviewer has approved';
+      const result = importContentPackage(corrected);
+      expect(result.ok).toBe(true);
+      expect(result.summary!.refreshed.lessons).toBe(1);
+
+      // The draft row takes the new wording...
+      expect(testDb.prepare('SELECT title FROM learn_lessons WHERE content_id = ? AND version = 2').get(contentId))
+        .toMatchObject({ title: 'DRAFT ONLY - not reviewed' });
+      // ...while the topic row, which every version shares, keeps what was approved
+      expect(testDb.prepare('SELECT title, summary FROM learn_topics WHERE id = ?').get(topicId)).toEqual(published);
+
+      // Nothing unreviewed reaches the child, through the catalog, the lesson or the topic
+      const catalog = await request(app).get('/learn/catalog?grade=3').set(child);
+      expect(catalog.status).toBe(200);
+      expect(catalog.body.subjects.find((subject: any) => subject.slug === 'matematikk').topics
+        .find((topic: any) => topic.id === topicId)).toMatchObject({ title: published.title, summary: published.summary });
+      const lesson = await request(app).get(`/learn/lessons/${reviewedRowId}`).set(child);
+      expect(lesson.status).toBe(200);
+      expect(lesson.body.topic).toMatchObject({ title: published.title, summary: published.summary });
+      const topic = await request(app).get(`/learn/topics/${topicId}`).set(child);
+      expect(topic.status).toBe(200);
+      expect(topic.body).toMatchObject({ title: published.title });
+      for (const body of [catalog.body, lesson.body, topic.body]) {
+        expect(JSON.stringify(body)).not.toContain('DRAFT ONLY');
+        expect(JSON.stringify(body)).not.toContain('DRAFT SUMMARY');
+      }
+    });
+  });
 });
