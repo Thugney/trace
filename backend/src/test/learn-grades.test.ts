@@ -537,6 +537,38 @@ describe('FamilyHub Learn Grades 1-10 import and learning flow', () => {
       expect(JSON.stringify(seen.body)).not.toMatch(/indicative_grade|"numeric_grade":\s*[1-6]/);
     });
 
+    it('leaves a paper unsubmitted when crediting it fails, and credits it on retry', async () => {
+      const app = await createApp();
+      const { admin, parentA, childA } = setupFamilies();
+      await optIn(app, parentA.id);
+      await review(app, admin.id, GRADE3_MATH, [GRADE3_MATH_PAPER]);
+      const child = authHeaders(childA.id);
+      const paperId = paperRowId(GRADE3_MATH_PAPER);
+
+      const start = await request(app).post(`/learn/review-papers/${paperId}/start`).set(child);
+      expect(start.status).toBe(201);
+      const items = JSON.parse((testDb.prepare('SELECT items FROM learn_review_papers WHERE id = ?').get(paperId) as any).items) as any[];
+      const responses = Object.fromEntries(items
+        .filter((item) => item.kind === 'single_select')
+        .map((item) => [item.id, item.correct_key]));
+      const row = () => testDb.prepare('SELECT submitted_at, points_awarded FROM learn_review_attempts WHERE id = ?')
+        .get(start.body.attempt_id) as { submitted_at: string | null; points_awarded: number };
+
+      // Fail the award itself, between marking the paper submitted and crediting it
+      testDb.exec("CREATE TRIGGER learn_award_fails BEFORE INSERT ON progress BEGIN SELECT RAISE(ABORT, 'injected award failure'); END");
+      expect((await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses })).status).toBe(500);
+      // Nothing is half-done: the attempt is still open, so the work is not lost
+      expect(row()).toEqual({ submitted_at: null, points_awarded: 0 });
+
+      testDb.exec('DROP TRIGGER learn_award_fails');
+      const retried = await request(app).post(`/learn/review-attempts/${start.body.attempt_id}/submit`).set(child).send({ responses });
+      expect(retried.status).toBe(200);
+      expect(retried.body).toMatchObject({ objective_correct: 5, points_awarded: 25, already_submitted: false });
+      const stored = row();
+      expect(stored.submitted_at).toBeTruthy();
+      expect(stored.points_awarded).toBe(25);
+    });
+
     it('locks practice delivery and submission in the activity engine, not just its setup', async () => {
       const app = await createApp();
       const { admin, parentA, childA } = setupFamilies();
