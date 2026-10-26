@@ -12,6 +12,8 @@ No UI changes are in this feature. FamilyHub's app-wide light-only decision rema
 - **SEC-004** Preserve authorization, proxy-aware rate limits, Learn/Tutor behavior and existing upload workflows. Verify meaningful regressions and both backend/frontend builds where affected.
 - **SEC-005** Record fresh full/production audit results, exact source/dependency identity, independent review and any residual conditional exposure. No remaining risk is implicitly accepted.
 
+- **QUAL-001** The already-configured frontend lint command must execute under ESLint9 with real compiler-aligned correctness and React Hooks checks. Fix reported lifecycle/dependency defects while preserving intended fetch, reset, poll, timer and submission behavior. No empty config, source exclusion, broad suppression, relaxed warning threshold or new unrelated style policy.
+
 ## Boundaries
 
 Use isolated Git worktrees from the reviewed committed base. No production data, secrets, live-provider calls, changes to PRs, push, merge to user branches or deployment. Code/lockfile integration occurs only after independent review. Do not copy Project Init approval/state files; use its supported commands and genuine source/human evidence. Keep all root and Tutor dirty files untouched.
