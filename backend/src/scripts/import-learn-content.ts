@@ -32,8 +32,10 @@ async function main() {
   const pkg = loadContentPackage(source);
 
   if (flag('--validate-only')) {
-    const { pilotGrade8Topics } = await import('../services/learn/contentImport');
-    const report = validateContentPackage(pkg, { existingGrade8PilotTopics: pilotGrade8Topics() });
+    // Validation is data-only: importing contentImport also opens the database.
+    const { GRADE8_PILOT } = await import('../services/learn/curriculum');
+    const existingGrade8PilotTopics = GRADE8_PILOT.map(subject => ({ subject: subject.slug, slug: subject.topic.slug }));
+    const report = validateContentPackage(pkg, { existingGrade8PilotTopics });
     print({ source, source_hash: pkg.sourceHash, ...report });
     process.exit(report.ok ? 0 : 1);
   }
