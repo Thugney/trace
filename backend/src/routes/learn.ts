@@ -167,8 +167,36 @@ function isTutorAvailable(profile: { id: number; type: any; parent_id?: number |
     && getLearnerSettings(profile.id).tutor_enabled;
 }
 
-function topicGradeOf(topicId: number): number {
-  return (db.prepare('SELECT grade FROM learn_topics WHERE id = ?').get(topicId) as { grade: number } | undefined)?.grade ?? 8;
+/** Null when the topic row is gone: unknown material is never assumed to be grade 8. */
+function topicGradeOf(topicId: number): number | null {
+  return (db.prepare('SELECT grade FROM learn_topics WHERE id = ?').get(topicId) as { grade: number } | undefined)?.grade ?? null;
+}
+
+/**
+ * The school year the learner is actually in, as far as the server knows: the
+ * grade a guardian pinned, else the year the profile age implies. Null when
+ * neither is known, which leaves the decision to the material's own grade.
+ */
+function learnerSchoolGrade(profileId: number): number | null {
+  const learner = getLearnerSettings(profileId);
+  if (learner.grade !== null) return learner.grade;
+  // A reviewer is not a pupil: their own profile age must not narrow the
+  // material they are reviewing
+  const profile = db.prepare('SELECT type FROM profiles WHERE id = ?').get(profileId) as { type: string } | undefined;
+  return profile?.type === 'admin' ? null : learner.suggested_grade;
+}
+
+/**
+ * The one answer to "can this learner get a numeric grade out of this material":
+ * assessmentPolicyForGrade (contract §5.7, §6) applied to the stricter of the
+ * learner's school year and the material's grade, so working ahead never widens
+ * what the learner may be graded on. Material of unknown grade counts as grade
+ * 1, i.e. formative only, rather than being waved through as grade 8.
+ */
+function effectiveAssessmentPolicy(profileId: number, contentGrade: number | null) {
+  const learnerGrade = learnerSchoolGrade(profileId);
+  if (contentGrade === null) return assessmentPolicyForGrade(1);
+  return assessmentPolicyForGrade(learnerGrade === null ? contentGrade : Math.min(learnerGrade, contentGrade));
 }
 
 function presentLesson(lesson: LessonRow) {
@@ -271,14 +299,21 @@ function buildLearnerProgress(learnerId: number) {
     };
   });
 
-  const mockAttempts = db.prepare(`
-    SELECT a.id, a.exam_id, e.title as exam_title, a.submitted_at, a.score, a.max_score, a.outcome, a.indicative_grade
+  const mockAttempts = (db.prepare(`
+    SELECT a.id, a.exam_id, e.title as exam_title, a.submitted_at, a.score, a.max_score, a.outcome, a.indicative_grade,
+           t.grade as topic_grade
     FROM learn_mock_attempts a
     JOIN learn_mock_exams e ON e.id = a.exam_id
+    LEFT JOIN learn_topics t ON t.id = e.topic_id
     WHERE a.profile_id = ? AND a.submitted_at IS NOT NULL
     ORDER BY a.submitted_at DESC
     LIMIT 20
-  `).all(learnerId);
+  `).all(learnerId) as any[]).map(({ topic_grade: topicGrade, ...attempt }) => ({
+    ...attempt,
+    // Masked rather than dropped: a learner now in grades 1-7 keeps the
+    // feedback on an older attempt, never the number
+    indicative_grade: effectiveAssessmentPolicy(learnerId, topicGrade ?? null).formative_only ? null : attempt.indicative_grade
+  }));
 
   syncAssignmentCompletion(learnerId);
   const assignments = listAssignmentsForChild(learnerId);
@@ -809,16 +844,33 @@ router.get('/catalog', (req: AuthRequest, res: Response) => {
   if (grade < 1 || grade > 10) {
     return res.status(400).json({ error: 'grade must be between 1 and 10' });
   }
-  res.json({ grade, assessment_policy: assessmentPolicyForGrade(grade), subjects: getCatalog(grade, isReviewer(req)) });
+  // Reading another year's lessons is fine (working ahead, revising), so the
+  // browsed grade is not restricted. The policy reported is always this
+  // learner's own, so browsing never promises a numeric grade they cannot get.
+  res.json({
+    grade,
+    learner_grade: learnerSchoolGrade(req.profile!.id),
+    assessment_policy: effectiveAssessmentPolicy(req.profile!.id, grade),
+    subjects: getCatalog(grade, isReviewer(req))
+  });
 });
 
+// The school grade decides whether numeric grades exist at all (contract §5.7),
+// so it is a guardian control: see PUT /children/:childId/settings. A learner
+// must not be able to move itself into a year that allows them.
 router.put('/me/settings', (req: AuthRequest, res: Response) => {
+  const viewer = req.profile!;
+  if (!['parent', 'admin'].includes(viewer.type)) {
+    return res.status(403).json({ error: 'Only a guardian can set the school grade', code: 'guardian_only' });
+  }
+
   const grade = req.body?.grade;
   if (!isGrade(grade)) {
     return res.status(400).json({ error: 'grade must be between 1 and 10' });
   }
-  patchProfileSettings(req.profile!.id, { learn_grade: grade });
-  res.json(getLearnerSettings(req.profile!.id));
+  patchProfileSettings(viewer.id, { learn_grade: grade });
+  audit(req, 'learn.own_grade_updated', 'profiles', viewer.id, { grade });
+  res.json(getLearnerSettings(viewer.id));
 });
 
 router.get('/topics/:topicId', (req: AuthRequest, res: Response) => {
@@ -869,7 +921,7 @@ router.get('/lessons/:lessonId', (req: AuthRequest, res: Response) => {
   res.json({
     ...presentLesson(lesson),
     topic,
-    assessment_policy: assessmentPolicyForGrade(topic?.grade ?? 8),
+    assessment_policy: effectiveAssessmentPolicy(req.profile!.id, topic?.grade ?? null),
     course_nav: getCourseNavigation(lesson.topic_id, isReviewer(req)),
     review_papers: reviewPapers,
     personal_cards: personalCards,
@@ -1305,15 +1357,16 @@ router.post('/mock-exams/:examId/start', (req: AuthRequest, res: Response) => {
   if (!exam) return;
 
   const viewer = req.profile!;
+
+  // Grades 1-7 are formative only: no graded mock exams, whatever the content says
+  if (effectiveAssessmentPolicy(viewer.id, topicGradeOf(exam.topic_id)).formative_only) {
+    return res.status(409).json({ error: 'Mock exams are not used for grades 1-7', code: 'formative_only' });
+  }
+
   const items = parseMockItems(exam).map((item) => ({
     // Answer keys never leave the server
     key: item.key, criterion: item.criterion, type: item.type, prompt: item.prompt, options: item.options, points: item.points
   }));
-
-  // Grades 1-7 are formative only: no graded mock exams, whatever the content says
-  if (topicGradeOf(exam.topic_id) <= 7) {
-    return res.status(409).json({ error: 'Mock exams are not used for grades 1-7', code: 'formative_only' });
-  }
 
   const openReview = getOpenReviewAttempt(viewer.id);
   if (openReview) {
@@ -1351,6 +1404,10 @@ router.post('/mock-exams/:examId/start', (req: AuthRequest, res: Response) => {
 function presentAttempt(attempt: any) {
   const evidence = attempt.evidence ? JSON.parse(attempt.evidence) : null;
   const feedback = attempt.feedback ? JSON.parse(attempt.feedback) : null;
+  // A stored attempt is re-checked on the way out: a learner now in grades 1-7
+  // (or their guardian) sees the feedback without the number.
+  const exam = getMockExam(attempt.exam_id);
+  const formativeOnly = effectiveAssessmentPolicy(attempt.profile_id, exam ? topicGradeOf(exam.topic_id) : null).formative_only;
   return {
     attempt_id: attempt.id,
     exam_id: attempt.exam_id,
@@ -1360,7 +1417,7 @@ function presentAttempt(attempt: any) {
     score: attempt.score,
     max_score: attempt.max_score,
     outcome: attempt.outcome,
-    indicative_grade: attempt.indicative_grade,
+    indicative_grade: formativeOnly ? null : attempt.indicative_grade,
     is_official_grade: false,
     ...(evidence || {}),
     ...(feedback || {})
@@ -1388,6 +1445,13 @@ router.post('/mock-attempts/:attemptId/submit', (req: AuthRequest, res: Response
   }
 
   const exam = getMockExam(attempt.exam_id)!;
+
+  // Checked again here, not only in /start: the attempt may predate a grade
+  // change, and a row can exist without having gone through /start. Same rule.
+  if (effectiveAssessmentPolicy(attempt.profile_id, topicGradeOf(exam.topic_id)).formative_only) {
+    return res.status(409).json({ error: 'Mock exams are not used for grades 1-7', code: 'formative_only' });
+  }
+
   const rawResponses = req.body?.responses;
   const responses: Record<string, string> = {};
   if (rawResponses && typeof rawResponses === 'object') {
@@ -1687,7 +1751,7 @@ router.post('/tutor', async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const prompt = buildTutorPrompt(lesson.locale, lesson.title, body, question, topicGradeOf(lesson.topic_id));
+    const prompt = buildTutorPrompt(lesson.locale, lesson.title, body, question, topicGradeOf(lesson.topic_id) ?? undefined);
     const { text, provider } = await generateTextWithProviderFallback(prompt.system, prompt.user, { maxTokens: 350 });
     logAiUsage(viewer.id, 'chat', provider, { estimatedCost: 0.001, success: true });
     res.json({ answer: text.slice(0, 1500), source: 'ai', provider });
