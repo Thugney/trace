@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Trophy, Flame, Star, Medal, Crown, TrendingUp, Award, Users } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import Avatar from '../components/Avatar';
@@ -28,11 +28,7 @@ export default function FamilyLeaderboard() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<Period>('all');
 
-  useEffect(() => {
-    loadLeaderboard();
-  }, [period]);
-
-  const loadLeaderboard = async () => {
+  const loadLeaderboard = useCallback(async () => {
     try {
       setLoading(true);
       const response = await gamificationAPI.getFamilyLeaderboard(period);
@@ -42,7 +38,11 @@ export default function FamilyLeaderboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [period, loadLeaderboard]);
 
   const getRankDisplay = (rank: number) => {
     switch (rank) {

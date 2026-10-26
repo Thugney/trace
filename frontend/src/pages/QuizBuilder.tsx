@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { familyQuizzesAPI, profilesAPI, type QuizCategory, type FamilyQuiz, type QuizQuestion, type QuizOption } from '../services/api';
 import { useToast } from '../components/Toast';
@@ -39,6 +39,7 @@ const getCategoryStyle = (categoryName: string) => {
 
 export default function QuizBuilder() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -97,12 +98,6 @@ export default function QuizBuilder() {
   };
 
   useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-  }, [currentProfile]);
-
-  useEffect(() => {
     const category = categories.find(cat => cat.id === aiCategoryId);
     if (category) {
       const config = (category.input_config || {}) as InputConfig;
@@ -112,14 +107,14 @@ export default function QuizBuilder() {
     }
   }, [aiCategoryId, categories, aiIncludeImages]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [categoriesRes, quizzesRes, childrenRes, statsRes] = await Promise.all([
         familyQuizzesAPI.getCategories(),
-        familyQuizzesAPI.getParentQuizzes(currentProfile!.id),
+        familyQuizzesAPI.getParentQuizzes(profileId!),
         profilesAPI.getAll(),
-        familyQuizzesAPI.getParentStats(currentProfile!.id)
+        familyQuizzesAPI.getParentStats(profileId!)
       ]);
       setCategories(categoriesRes.data);
       setQuizzes(quizzesRes.data);
@@ -131,7 +126,13 @@ export default function QuizBuilder() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast, profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile, loadData]);
 
   const handleCategorySelect = (category: QuizCategory) => {
     setSelectedCategory(category);

@@ -34,6 +34,7 @@ const celebrate = () => {
 
 export default function QuizPlayer() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ export default function QuizPlayer() {
   const [results, setResults] = useState<any>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [timerElapsed, setTimerElapsed] = useState(0);
-  const [timerIntervalId, setTimerIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
+  const timerIntervalId = useRef<ReturnType<typeof setInterval> | null>(null);
   const [timerStatus, setTimerStatus] = useState<'idle' | 'running' | 'paused'>('idle');
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -82,50 +83,19 @@ export default function QuizPlayer() {
   }, []);
 
   useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-  }, [currentProfile]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      stopTimer();
-      stopAmbient();
-    };
-  }, []);
-
-  useEffect(() => {
     if (currentQuiz?.quiz.timeLimitSeconds) {
       const remaining = Math.max(0, currentQuiz.quiz.timeLimitSeconds - timerElapsed);
       setTimeRemaining(remaining);
     }
   }, [currentQuiz?.quiz.timeLimitSeconds, timerElapsed]);
 
-  // Handle timer expiration
-  useEffect(() => {
-    if (timeRemaining === 0 && timerStatus === 'running' && gameState !== 'results') {
-      stopTimer();
-      setTimerStatus('paused');
-      showToast('Time\'s up!', 'info');
-      completeQuiz();
-    }
-  }, [timeRemaining, timerStatus, gameState]);
-
-  useEffect(() => {
-    if (attemptId && currentQuiz?.quiz.timeLimitSeconds) {
-      loadQuizTimerState(attemptId, currentQuiz.quiz.timeLimitSeconds);
-    }
-  }, [attemptId, currentQuiz?.quiz.timeLimitSeconds]);
-
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [quizzesRes, statsRes, attemptsRes] = await Promise.all([
-        familyQuizzesAPI.getChildQuizzes(currentProfile!.id),
-        familyQuizzesAPI.getChildStats(currentProfile!.id),
-        familyQuizzesAPI.getAttemptHistory(currentProfile!.id, 5)
+        familyQuizzesAPI.getChildQuizzes(profileId!),
+        familyQuizzesAPI.getChildStats(profileId!),
+        familyQuizzesAPI.getAttemptHistory(profileId!, 5)
       ]);
       setQuizzes(quizzesRes.data);
       setStats(statsRes.data);
@@ -135,37 +105,24 @@ export default function QuizPlayer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  const initializeTimer = (seconds: number) => {
-    stopTimer(); // Clear any existing timer
-    setTimerElapsed(0);
-    setTimeRemaining(seconds);
-    setTimerStatus('idle');
-  };
-
-  const stopTimer = () => {
-    if (timerIntervalId) {
-      clearInterval(timerIntervalId);
-      setTimerIntervalId(null);
+  const stopTimer = useCallback(() => {
+    if (timerIntervalId.current) {
+      clearInterval(timerIntervalId.current);
+      timerIntervalId.current = null;
     }
-  };
+  }, []);
 
-  const startLocalTimerTick = () => {
+  const startLocalTimerTick = useCallback(() => {
     stopTimer();
     const interval = setInterval(() => {
       setTimerElapsed(prev => prev + 1);
     }, 1000);
-    setTimerIntervalId(interval);
-  };
+    timerIntervalId.current = interval;
+  }, [stopTimer]);
 
-  const loadQuizTimerState = async (attemptId: number, limitSeconds: number) => {
+  const loadQuizTimerState = useCallback(async (attemptId: number, limitSeconds: number) => {
     try {
       const response = await familyQuizzesAPI.getTimer(attemptId);
       const timerState = response.data.timer_state;
@@ -191,6 +148,97 @@ export default function QuizPlayer() {
     } catch (error) {
       console.error('Failed to load quiz timer state:', error);
     }
+  }, [startLocalTimerTick]);
+
+  const stopAmbient = useCallback(() => {
+    const ambient = ambientRef.current;
+    if (!ambient) return;
+    try {
+      if (ambient.intervalId) {
+        clearInterval(ambient.intervalId);
+      }
+      ambient.filter.disconnect();
+      ambient.gain.disconnect();
+      ambient.ctx.close();
+    } catch (error) {
+      console.error('Failed to stop quiz ambient sound:', error);
+    } finally {
+      ambientRef.current = null;
+    }
+  }, []);
+
+  const completeQuiz = useCallback(async () => {
+    if (!attemptId) return;
+
+    stopTimer();
+    setTimerStatus('paused');
+    const totalTime = timeRemaining !== null ? timerElapsed : Math.round((Date.now() - startTime) / 1000);
+
+    try {
+      const response = await familyQuizzesAPI.completeQuiz(attemptId, totalTime);
+      setResults(response.data);
+
+      if (response.data.passed) {
+        playQuizSound.complete();
+        setTimeout(celebrate, 500);
+        setTimeout(celebrate, 1000);
+      }
+
+      // Fetch leaderboard for competition quizzes
+      if (currentQuiz?.quiz.isCompetition) {
+        fetchLeaderboard(currentQuiz.quiz.id);
+      }
+
+      setGameState('results');
+      stopAmbient();
+      loadData(); // Refresh stats
+    } catch (error) {
+      console.error('Failed to complete quiz:', error);
+      showToast('Failed to complete quiz', 'error');
+    }
+  }, [attemptId, timeRemaining, timerElapsed, startTime, currentQuiz, fetchLeaderboard, stopTimer, stopAmbient, loadData, showToast]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile, loadData]);
+
+  // Cleanup the live timer and audio handles on unmount.
+  useEffect(() => {
+    return () => {
+      stopTimer();
+      stopAmbient();
+    };
+  }, [stopTimer, stopAmbient]);
+
+  // Handle timer expiration with the current attempt and elapsed time.
+  useEffect(() => {
+    if (timeRemaining === 0 && timerStatus === 'running' && gameState !== 'results') {
+      stopTimer();
+      setTimerStatus('paused');
+      showToast('Time\'s up!', 'info');
+      completeQuiz();
+    }
+  }, [timeRemaining, timerStatus, gameState, stopTimer, completeQuiz, showToast]);
+
+  useEffect(() => {
+    if (attemptId && currentQuiz?.quiz.timeLimitSeconds) {
+      loadQuizTimerState(attemptId, currentQuiz.quiz.timeLimitSeconds);
+    }
+  }, [attemptId, currentQuiz?.quiz.timeLimitSeconds, loadQuizTimerState]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const initializeTimer = (seconds: number) => {
+    stopTimer(); // Clear any existing timer
+    setTimerElapsed(0);
+    setTimeRemaining(seconds);
+    setTimerStatus('idle');
   };
 
   const startCountdown = async () => {
@@ -250,23 +298,6 @@ export default function QuizPlayer() {
       ambientRef.current = { ctx, gain, filter, intervalId };
     } catch (error) {
       console.error('Failed to start quiz ambient sound:', error);
-    }
-  };
-
-  const stopAmbient = () => {
-    const ambient = ambientRef.current;
-    if (!ambient) return;
-    try {
-      if (ambient.intervalId) {
-        clearInterval(ambient.intervalId);
-      }
-      ambient.filter.disconnect();
-      ambient.gain.disconnect();
-      ambient.ctx.close();
-    } catch (error) {
-      console.error('Failed to stop quiz ambient sound:', error);
-    } finally {
-      ambientRef.current = null;
     }
   };
 
@@ -380,37 +411,6 @@ export default function QuizPlayer() {
       setShowHint(false);
       setQuestionStartTime(Date.now());
       setGameState('playing');
-    }
-  };
-
-  const completeQuiz = async () => {
-    if (!attemptId) return;
-
-    stopTimer();
-    setTimerStatus('paused');
-    const totalTime = timeRemaining !== null ? timerElapsed : Math.round((Date.now() - startTime) / 1000);
-
-    try {
-      const response = await familyQuizzesAPI.completeQuiz(attemptId, totalTime);
-      setResults(response.data);
-
-      if (response.data.passed) {
-        playQuizSound.complete();
-        setTimeout(celebrate, 500);
-        setTimeout(celebrate, 1000);
-      }
-
-      // Fetch leaderboard for competition quizzes
-      if (currentQuiz?.quiz.isCompetition) {
-        fetchLeaderboard(currentQuiz.quiz.id);
-      }
-
-      setGameState('results');
-      stopAmbient();
-      loadData(); // Refresh stats
-    } catch (error) {
-      console.error('Failed to complete quiz:', error);
-      showToast('Failed to complete quiz', 'error');
     }
   };
 

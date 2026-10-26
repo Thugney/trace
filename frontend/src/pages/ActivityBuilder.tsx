@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { activitiesAPI, rewardsAPI } from '../services/api';
 import {
@@ -59,29 +59,20 @@ const ActivityBuilder: React.FC = () => {
     pointsPerActivity: 20
   });
   const [aiJob, setAiJob] = useState<AiGenerationJob | null>(null);
-  const [pollInterval, setPollInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const profileId = currentProfile?.id;
+  const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load data
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [currentProfile?.id]);
-
-  const loadData = async () => {
-    if (!currentProfile?.id) return;
+  const loadData = useCallback(async () => {
+    if (!profileId) return;
 
     try {
       setLoading(true);
       setError(null);
 
       const [sessionsRes, typesRes, childrenRes] = await Promise.all([
-        activitiesAPI.getCreatedSessions(currentProfile.id),
+        activitiesAPI.getCreatedSessions(profileId),
         activitiesAPI.getActivityTypes(),
-        rewardsAPI.getParentChildren(currentProfile.id)
+        rewardsAPI.getParentChildren(profileId)
       ]);
 
       setSessions(sessionsRes.data);
@@ -101,7 +92,18 @@ const ActivityBuilder: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile?.id, loadData]);
+
+  useEffect(() => () => {
+    if (pollInterval.current) clearInterval(pollInterval.current);
+    pollInterval.current = null;
+  }, [profileId]);
 
   const handleCreateSession = async () => {
     if (!currentProfile?.id) return;
@@ -162,7 +164,7 @@ const ActivityBuilder: React.FC = () => {
 
       // Start polling
       const interval = setInterval(() => pollAiJob(response.data.jobId), 2000);
-      setPollInterval(interval);
+      pollInterval.current = interval;
     } catch (err: any) {
       console.error('Failed to start AI generation:', err);
       setError(err.response?.data?.error || 'Failed to start AI generation.');
@@ -176,8 +178,8 @@ const ActivityBuilder: React.FC = () => {
       setAiJob(response.data);
 
       if (response.data.status === 'completed') {
-        if (pollInterval) clearInterval(pollInterval);
-        setPollInterval(null);
+        if (pollInterval.current) clearInterval(pollInterval.current);
+        pollInterval.current = null;
         setLoading(false);
         setSuccess('Learning activities generated successfully!');
 
@@ -197,8 +199,8 @@ const ActivityBuilder: React.FC = () => {
         loadData();
         setViewMode('list');
       } else if (response.data.status === 'failed') {
-        if (pollInterval) clearInterval(pollInterval);
-        setPollInterval(null);
+        if (pollInterval.current) clearInterval(pollInterval.current);
+        pollInterval.current = null;
         setLoading(false);
         setError(response.data.error || 'AI generation failed. Please try again.');
         setAiJob(null);
@@ -396,7 +398,7 @@ const ActivityBuilder: React.FC = () => {
             onClick={() => {
               setViewMode('list');
               resetAiForm();
-              if (pollInterval) clearInterval(pollInterval);
+              if (pollInterval.current) clearInterval(pollInterval.current);
             }}
             className="p-2 bg-white rounded-xl shadow hover:shadow-md transition-all"
           >

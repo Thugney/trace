@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { notesAPI } from '../services/api';
 import { Note } from '../types';
@@ -40,7 +40,6 @@ const NOTE_TEMPLATES = [
 
 ## Due Date
 
-
 ## Notes
 
 `,
@@ -52,12 +51,9 @@ const NOTE_TEMPLATES = [
     title: 'Journal Entry',
     content: `## Today's Date
 
-
 ## How I'm Feeling
 
-
 ## What Happened Today
-
 
 ## What I'm Grateful For
 -
@@ -93,13 +89,11 @@ const NOTE_TEMPLATES = [
     title: 'Study Notes - [Topic]',
     content: `## Key Concepts
 
-
 ## Important Terms
 - **Term 1**: Definition
 - **Term 2**: Definition
 
 ## Summary
-
 
 ## Questions to Review
 
@@ -192,6 +186,7 @@ const FormatToolbar = ({ textareaRef }: { textareaRef: React.RefObject<HTMLTextA
 
 export default function Notes() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddNote, setShowAddNote] = useState(false);
@@ -207,20 +202,13 @@ export default function Notes() {
   const addTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (currentProfile) {
-      loadNotes();
-      loadTags();
-    }
-  }, [currentProfile, selectedCategory, selectedTag]);
-
-  const loadNotes = async () => {
-    if (!currentProfile) return;
+  const loadNotes = useCallback(async () => {
+    if (!profileId) return;
 
     try {
       setLoading(true);
       const response = await notesAPI.getByProfile(
-        currentProfile.id,
+        profileId,
         selectedCategory !== 'all' ? selectedCategory : undefined,
         selectedTag !== 'all' ? selectedTag : undefined
       );
@@ -230,17 +218,24 @@ export default function Notes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, selectedTag, profileId]);
 
-  const loadTags = async () => {
-    if (!currentProfile) return;
+  const loadTags = useCallback(async () => {
+    if (!profileId) return;
     try {
-      const response = await notesAPI.getTags(currentProfile.id);
+      const response = await notesAPI.getTags(profileId);
       setAvailableTags(response.data);
     } catch (error) {
       console.error('Failed to load tags:', error);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile) {
+      loadNotes();
+      loadTags();
+    }
+  }, [currentProfile, selectedCategory, selectedTag, loadNotes, loadTags]);
 
   const addTag = (tag: string, isEdit: boolean = false) => {
     const trimmedTag = tag.trim().toLowerCase();

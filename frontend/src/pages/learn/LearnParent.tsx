@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { AlertCircle, ClipboardList, GraduationCap, MessageSquareText, Send, XCircle } from 'lucide-react';
@@ -86,7 +86,7 @@ export default function LearnParent() {
   // The profiles API is already family-scoped by the backend
   const children = useMemo(() => profiles.filter((profile) => profile.type === 'child'), [profiles]);
 
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     const entries = await Promise.all(children.map(async (child) => {
       try {
         const response = await learnAPI.getChildProgress(child.id);
@@ -96,9 +96,9 @@ export default function LearnParent() {
       }
     }));
     setProgressByChild(Object.fromEntries(entries.filter(Boolean) as Array<readonly [number, LearnerProgress]>));
-  };
+  }, [children]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const statusResponse = await learnAPI.getStatus();
       setStatus(statusResponse.data);
@@ -108,9 +108,9 @@ export default function LearnParent() {
     } catch (err: any) {
       setMessage({ tone: 'error', text: err?.response?.data?.error || copy.error });
     }
-  };
+  }, [loadProgress]);
 
-  useEffect(() => { load(); }, [children.length]);
+  useEffect(() => { load(); }, [load]);
 
   // Assignment catalog follows the chosen grade (parents only see reviewed content)
   useEffect(() => {

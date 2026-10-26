@@ -12,6 +12,7 @@ export default function BookReader() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -33,21 +34,15 @@ export default function BookReader() {
   const bookContainerRef = useRef<HTMLDivElement>(null);
   const minSwipeDistance = 50;
 
-  useEffect(() => {
-    if (bookId && currentProfile?.id) {
-      loadBook();
-    }
-  }, [bookId, currentProfile?.id]);
-
-  const loadBook = async () => {
+  const loadBook = useCallback(async () => {
     try {
       const { data } = await booksAPI.getBook(Number(bookId));
       setBook(data);
 
       // Resume from last read page and load existing feedback
-      if (data.pages && currentProfile?.id) {
+      if (data.pages && profileId) {
         try {
-          const progressRes = await booksAPI.getProfileProgress(currentProfile.id);
+          const progressRes = await booksAPI.getProfileProgress(profileId);
           const bookProgress = progressRes.data.find(p => p.book_id === Number(bookId));
           if (bookProgress?.current_page) {
             setCurrentPage(bookProgress.current_page);
@@ -58,7 +53,7 @@ export default function BookReader() {
 
         // Load existing feedback
         try {
-          const feedbackRes = await booksAPI.getMyFeedback(Number(bookId), currentProfile.id);
+          const feedbackRes = await booksAPI.getMyFeedback(Number(bookId), profileId);
           if (feedbackRes.data) {
             setMyRating(feedbackRes.data.rating);
             setLiked(feedbackRes.data.liked === 1);
@@ -75,7 +70,13 @@ export default function BookReader() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookId, showToast, navigate, profileId]);
+
+  useEffect(() => {
+    if (bookId && currentProfile?.id) {
+      loadBook();
+    }
+  }, [bookId, currentProfile?.id, loadBook]);
 
   const submitFeedback = async () => {
     if (!currentProfile?.id || !bookId || myRating === 0) return;

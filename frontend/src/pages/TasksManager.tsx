@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { tasksAPI, goalsAPI } from '../services/api';
@@ -104,6 +104,7 @@ const getPageTitle = (ageGroup: string, isParent: boolean): { title: string; emo
 
 export default function TasksManager() {
   const { currentProfile, isParent, profiles } = useProfile();
+  const profileId = currentProfile?.id;
   const { settings } = useAge();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [progress, setProgress] = useState<any>(null);
@@ -150,23 +151,6 @@ export default function TasksManager() {
   const completedTasks = tasks.filter(t => t.completed);
 
   useEffect(() => {
-    if (displayProfileId) {
-      loadTasks();
-      loadProgress();
-      loadMonthlyGoal();
-      loadAllGoals();
-    }
-  }, [displayProfileId]);
-
-  useEffect(() => {
-    if (isParent && currentProfile) {
-      loadPendingGoals();
-      loadPendingTaskApprovals();
-      loadPendingPhotoProofs();
-    }
-  }, [isParent, currentProfile]);
-
-  useEffect(() => {
     if (isParent && !selectedChild && fallbackChildId) {
       setSelectedChild(fallbackChildId);
     }
@@ -176,7 +160,7 @@ export default function TasksManager() {
     setEditingTaskCategory(editingTask?.category || '');
   }, [editingTask]);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     if (!displayProfileId) return;
 
     try {
@@ -189,9 +173,9 @@ export default function TasksManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [displayProfileId]);
 
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     if (!displayProfileId) return;
 
     try {
@@ -200,9 +184,9 @@ export default function TasksManager() {
     } catch (error) {
       console.error('Failed to load progress:', error);
     }
-  };
+  }, [displayProfileId]);
 
-  const loadMonthlyGoal = async () => {
+  const loadMonthlyGoal = useCallback(async () => {
     if (!displayProfileId) return;
 
     try {
@@ -212,9 +196,9 @@ export default function TasksManager() {
     } catch (error) {
       console.error('Failed to load monthly goal:', error);
     }
-  };
+  }, [displayProfileId]);
 
-  const loadAllGoals = async () => {
+  const loadAllGoals = useCallback(async () => {
     if (!displayProfileId) return;
     try {
       const response = await goalsAPI.getByProfile(displayProfileId);
@@ -223,40 +207,57 @@ export default function TasksManager() {
     } catch (error) {
       console.error('Failed to load all goals:', error);
     }
-  };
+  }, [displayProfileId]);
 
-  const loadPendingGoals = async () => {
-    if (!currentProfile?.id) return;
+  const loadPendingGoals = useCallback(async () => {
+    if (!profileId) return;
 
     try {
-      const response = await goalsAPI.getPending(currentProfile.id);
+      const response = await goalsAPI.getPending(profileId);
       setPendingGoals(response.data);
     } catch (error) {
       console.error('Failed to load pending goals:', error);
     }
-  };
+  }, [profileId]);
 
-  const loadPendingTaskApprovals = async () => {
-    if (!currentProfile?.id) return;
+  const loadPendingTaskApprovals = useCallback(async () => {
+    if (!profileId) return;
 
     try {
-      const response = await tasksAPI.getPending(currentProfile.id);
+      const response = await tasksAPI.getPending(profileId);
       setPendingTaskApprovals(response.data);
     } catch (error) {
       console.error('Failed to load pending task approvals:', error);
     }
-  };
+  }, [profileId]);
 
-  const loadPendingPhotoProofs = async () => {
-    if (!currentProfile?.id) return;
+  const loadPendingPhotoProofs = useCallback(async () => {
+    if (!profileId) return;
 
     try {
-      const response = await tasksAPI.getPendingProofs(currentProfile.id);
+      const response = await tasksAPI.getPendingProofs(profileId);
       setPendingPhotoProofs(response.data);
     } catch (error) {
       console.error('Failed to load pending photo proofs:', error);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (displayProfileId) {
+      loadTasks();
+      loadProgress();
+      loadMonthlyGoal();
+      loadAllGoals();
+    }
+  }, [displayProfileId, loadTasks, loadProgress, loadMonthlyGoal, loadAllGoals]);
+
+  useEffect(() => {
+    if (isParent && currentProfile) {
+      loadPendingGoals();
+      loadPendingTaskApprovals();
+      loadPendingPhotoProofs();
+    }
+  }, [isParent, currentProfile, loadPendingGoals, loadPendingTaskApprovals, loadPendingPhotoProofs]);
 
   const handleVerifyProof = async (taskId: number, approved: boolean) => {
     if (!currentProfile?.id) return;

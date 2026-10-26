@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { AlertTriangle, ArrowLeft, BadgeCheck, CheckCircle2, ExternalLink, FileSearch, KeyRound } from 'lucide-react';
@@ -118,14 +118,16 @@ export default function LearnReview() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const filters = { grade: grade || undefined, subject: subject || undefined, status: status || undefined };
       setQueue((await learnAPI.getReviewQueue(filters)).data);
     } catch (err: any) {
       setError(err?.response?.data?.error || copy.error);
     }
-  };
+  }, [grade, subject, status]);
+
+  useEffect(() => { load(); }, [grade, subject, status, load]);
 
   const loadImports = async () => {
     try {
@@ -135,7 +137,6 @@ export default function LearnReview() {
     }
   };
 
-  useEffect(() => { load(); }, [grade, subject, status]);
   useEffect(() => { loadImports(); }, []);
 
   const act = async (action: () => Promise<unknown>) => {

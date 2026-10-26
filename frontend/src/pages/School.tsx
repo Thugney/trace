@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
 import { profilesAPI, schoolAPI, regularSchoolAPI } from '../services/api';
@@ -261,7 +261,7 @@ export default function School() {
     loadStudentData();
     const interval = setInterval(() => loadStudentData(false), 15000);
     return () => clearInterval(interval);
-  }, [selectedStudentId, isParent, isChild, showToast]);
+  }, [selectedStudentId, isParent, isChild, showToast, selectedClassId, leaderboardPeriod]);
 
   // Load regular school data when in regular mode
   useEffect(() => {
@@ -559,7 +559,6 @@ export default function School() {
     }
   };
 
-
   // Grade submission with points
   const handleGradeSubmission = async (submissionId: number, maxPoints: number) => {
     if (gradePoints < 0 || gradePoints > maxPoints) {
@@ -621,7 +620,7 @@ export default function School() {
   };
 
   // Load leaderboard
-  const loadLeaderboard = async (classId: number) => {
+  const loadLeaderboard = useCallback(async (classId: number) => {
     try {
       setLoadingLeaderboard(true);
       const response = await schoolAPI.getLeaderboard(classId, leaderboardPeriod);
@@ -632,14 +631,15 @@ export default function School() {
     } finally {
       setLoadingLeaderboard(false);
     }
-  };
+  }, [leaderboardPeriod, showToast]);
 
-  // Load leaderboard when tab changes or period changes
   useEffect(() => {
     if (SCHOOL_LEADERBOARD_ENABLED && teacherTab === 'leaderboard' && selectedClassId) {
       loadLeaderboard(selectedClassId);
     }
-  }, [teacherTab, selectedClassId, leaderboardPeriod]);
+  }, [teacherTab, selectedClassId, leaderboardPeriod, loadLeaderboard]);
+
+  // Load leaderboard when tab changes or period changes
 
   const availableClasses = useMemo(() => {
     if (!selectedStudentId) return allClasses;

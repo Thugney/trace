@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Gift, Star, ShoppingBag, Check, Clock, Sparkles, AlertCircle } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 
 export default function RewardShop() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { settings, isYoungChild } = useAge();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [claimedRewards, setClaimedRewards] = useState<RewardClaim[]>([]);
@@ -16,18 +17,11 @@ export default function RewardShop() {
   const [purchasing, setPurchasing] = useState<number | null>(null);
   const [showClaimed, setShowClaimed] = useState(false);
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadShop();
-      loadClaimedRewards();
-    }
-  }, [currentProfile?.id]);
-
-  const loadShop = async () => {
-    if (!currentProfile?.id) return;
+  const loadShop = useCallback(async () => {
+    if (!profileId) return;
     try {
       setLoading(true);
-      const response = await rewardsAPI.getShop(currentProfile.id);
+      const response = await rewardsAPI.getShop(profileId);
       setRewards(response.data.rewards);
       setAvailablePoints(response.data.availablePoints);
     } catch (error) {
@@ -35,17 +29,24 @@ export default function RewardShop() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
 
-  const loadClaimedRewards = async () => {
-    if (!currentProfile?.id) return;
+  const loadClaimedRewards = useCallback(async () => {
+    if (!profileId) return;
     try {
-      const response = await rewardsAPI.getClaimed(currentProfile.id);
+      const response = await rewardsAPI.getClaimed(profileId);
       setClaimedRewards(response.data);
     } catch (error) {
       console.error('Failed to load claimed rewards:', error);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadShop();
+      loadClaimedRewards();
+    }
+  }, [currentProfile?.id, loadShop, loadClaimedRewards]);
 
   const handlePurchase = async (reward: Reward) => {
     if (!currentProfile?.id || purchasing) return;

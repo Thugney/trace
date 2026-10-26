@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Trash2, X, Play, Flag, Star, Users, Package, ChevronDown, ChevronRight, Edit2, Trophy, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import { shoppingAPI, ShoppingList as ShoppingListType, ShoppingTrip, ShoppingCategory, ShoppingLeaderboardEntry, profilesAPI } from '../services/api';
 import { useProfile } from '../context/ProfileContext';
@@ -21,7 +21,9 @@ interface ChildInfo {
 
 export default function ShoppingList() {
   const { currentProfile, isParent, isAdmin } = useProfile();
+  const profileId = currentProfile?.id;
   const toast = useToast();
+  const { error: showError } = toast;
 
   // Data state
   const [lists, setLists] = useState<ShoppingListType[]>([]);
@@ -73,23 +75,17 @@ export default function ShoppingList() {
     notes: ''
   });
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-  }, [currentProfile?.id]);
-
-  const loadData = async () => {
-    if (!currentProfile) return;
+  const loadData = useCallback(async () => {
+    if (!profileId) return;
     try {
       setLoading(true);
       const [listsRes, categoriesRes, childrenRes, tripsRes, leaderboardRes, permissionsRes] = await Promise.all([
-        shoppingAPI.getLists(currentProfile.id, true),
+        shoppingAPI.getLists(profileId, true),
         shoppingAPI.getCategories(),
         profilesAPI.getAll().then(res => res.data.filter((p: any) => p.type === 'child').map((p: any) => ({ id: p.id, name: p.name, avatar: p.avatar }))),
-        shoppingAPI.getActiveTrips(currentProfile.id),
-        shoppingAPI.getLeaderboard(currentProfile.id),
-        shoppingAPI.getChildPermissions(currentProfile.id)
+        shoppingAPI.getActiveTrips(profileId),
+        shoppingAPI.getLeaderboard(profileId),
+        shoppingAPI.getChildPermissions(profileId)
       ]);
       setLists(listsRes.data);
       setCategories(categoriesRes.data);
@@ -99,11 +95,17 @@ export default function ShoppingList() {
       setChildPermissions(permissionsRes.data);
     } catch (error: any) {
       console.error('Failed to load shopping data:', error);
-      toast.error('Failed to load shopping data');
+      showError('Failed to load shopping data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [showError, profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile?.id, loadData]);
 
   const handleTogglePermission = async (childId: number, currentValue: boolean) => {
     setTogglingPermission(childId);

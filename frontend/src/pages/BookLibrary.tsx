@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
@@ -80,6 +80,8 @@ const buildBookPromptPreview = (idea: string, brief: GuidedBookBrief) => {
 export default function BookLibrary() {
   const navigate = useNavigate();
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
+  const profileType = currentProfile?.type;
   const { showToast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -176,16 +178,10 @@ export default function BookLibrary() {
     setRequestInstructions('');
   };
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-  }, [currentProfile?.id]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [booksRes, categoriesRes, profilesRes] = await Promise.all([
-        booksAPI.getProfileBooks(currentProfile!.id),
+        booksAPI.getProfileBooks(profileId!),
         booksAPI.getCategories(),
         profilesAPI.getAll()
       ]);
@@ -199,7 +195,7 @@ export default function BookLibrary() {
       setChildren(childProfiles);
 
       // Load feedback stats and saved instructions for each book (for parent/teacher view)
-      if (currentProfile?.type === 'parent' || currentProfile?.type === 'teacher' || currentProfile?.type === 'admin') {
+      if (profileType === 'parent' || profileType === 'teacher' || profileType === 'admin') {
         // Load feedback stats
         const feedbackPromises = booksRes.data.map(async (book: Book) => {
           try {
@@ -216,7 +212,7 @@ export default function BookLibrary() {
 
         // Load saved book generation instructions
         try {
-          const instructionsRes = await booksAPI.getGenerationInstructions(currentProfile!.id);
+          const instructionsRes = await booksAPI.getGenerationInstructions(profileId!);
           const instructions = instructionsRes.data.instructions || '';
           setSavedInstructions(instructions);
           setInstructionsInput(instructions);
@@ -229,7 +225,44 @@ export default function BookLibrary() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showToast, profileId, profileType]);
+
+  const loadReadingData = useCallback(async () => {
+    if (!profileId) return;
+    try {
+      const [completedRes, progressRes] = await Promise.all([
+        booksAPI.getCompletedBooks(profileId),
+        booksAPI.getProfileProgress(profileId)
+      ]);
+      setCompletedBooks(completedRes.data);
+      // Filter to only books actively being read
+      setCurrentlyReading(progressRes.data.filter((p: BookReadingProgress) => p.completed !== 1));
+
+      // Load children's history and notes if parent
+      if (isParentOrTeacher) {
+        const [historyRes, notesRes] = await Promise.all([
+          booksAPI.getChildrenReadingHistory(profileId),
+          booksAPI.getChildrenBookNotes(profileId)
+        ]);
+        setChildrenHistory(historyRes.data);
+        setChildrenNotes(notesRes.data);
+      }
+    } catch (error) {
+      console.error('Failed to load reading data:', error);
+    }
+  }, [isParentOrTeacher, profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile?.id, loadData]);
+
+  useEffect(() => {
+    if (activeTab === 'books-read' || activeTab === 'currently-reading' || activeTab === 'children-history' || activeTab === 'children-notes') {
+      loadReadingData();
+    }
+  }, [activeTab, currentProfile?.id, loadReadingData]);
 
   const openFeedbackModal = async (bookId: number, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -343,37 +376,8 @@ export default function BookLibrary() {
   };
 
   // Load completed books and currently reading
-  const loadReadingData = async () => {
-    if (!currentProfile?.id) return;
-    try {
-      const [completedRes, progressRes] = await Promise.all([
-        booksAPI.getCompletedBooks(currentProfile.id),
-        booksAPI.getProfileProgress(currentProfile.id)
-      ]);
-      setCompletedBooks(completedRes.data);
-      // Filter to only books actively being read
-      setCurrentlyReading(progressRes.data.filter((p: BookReadingProgress) => p.completed !== 1));
-
-      // Load children's history and notes if parent
-      if (isParentOrTeacher) {
-        const [historyRes, notesRes] = await Promise.all([
-          booksAPI.getChildrenReadingHistory(currentProfile.id),
-          booksAPI.getChildrenBookNotes(currentProfile.id)
-        ]);
-        setChildrenHistory(historyRes.data);
-        setChildrenNotes(notesRes.data);
-      }
-    } catch (error) {
-      console.error('Failed to load reading data:', error);
-    }
-  };
 
   // Load reading data when tab changes
-  useEffect(() => {
-    if (activeTab === 'books-read' || activeTab === 'currently-reading' || activeTab === 'children-history' || activeTab === 'children-notes') {
-      loadReadingData();
-    }
-  }, [activeTab, currentProfile?.id]);
 
   // Lookup book by title using Open Library API
   const handleLookupBook = async () => {

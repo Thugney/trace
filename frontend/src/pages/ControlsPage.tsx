@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { Profile } from '../types';
@@ -8,15 +8,12 @@ import { Shield } from 'lucide-react';
 
 export default function ControlsPage() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const [children, setChildren] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadChildren();
-  }, [currentProfile]);
-
-  const loadChildren = async () => {
-    if (!currentProfile) return;
+  const loadChildren = useCallback(async () => {
+    if (!profileId) return;
 
     try {
       setLoading(true);
@@ -30,7 +27,11 @@ export default function ControlsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    loadChildren();
+  }, [currentProfile, loadChildren]);
 
   if (loading) {
     return (

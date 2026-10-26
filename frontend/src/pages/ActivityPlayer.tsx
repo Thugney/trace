@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { activitiesAPI } from '../services/api';
 import { playSounds } from '../utils/sounds';
@@ -50,6 +50,7 @@ const defaultTheme: ActivityTheme = {
 
 const ActivityPlayer: React.FC = () => {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const [gameState, setGameState] = useState<GameState>('menu');
   const [sessions, setSessions] = useState<LearningSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<LearningSession | null>(null);
@@ -74,23 +75,18 @@ const ActivityPlayer: React.FC = () => {
   const theme = defaultTheme;
 
   // Load data
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
-    }
-  }, [currentProfile?.id]);
 
-  const loadData = async () => {
-    if (!currentProfile?.id) return;
+  const loadData = useCallback(async () => {
+    if (!profileId) return;
 
     try {
       setLoading(true);
       setError(null);
 
       const [sessionsRes, statsRes, attemptsRes] = await Promise.all([
-        activitiesAPI.getChildSessions(currentProfile.id),
-        activitiesAPI.getChildStats(currentProfile.id),
-        activitiesAPI.getAttemptHistory(currentProfile.id, 5)
+        activitiesAPI.getChildSessions(profileId),
+        activitiesAPI.getChildStats(profileId),
+        activitiesAPI.getAttemptHistory(profileId, 5)
       ]);
 
       setSessions(sessionsRes.data);
@@ -102,7 +98,13 @@ const ActivityPlayer: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile?.id, loadData]);
 
   const startSession = async (session: LearningSession) => {
     if (!currentProfile?.id) return;

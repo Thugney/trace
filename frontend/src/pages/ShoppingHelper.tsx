@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { ShoppingCart, Check, Star, Trophy, Package, Sparkles, Plus, X } from 'lucide-react';
 import { shoppingAPI, ShoppingTrip, ShoppingStats, ShoppingCategory } from '../services/api';
 import { useProfile } from '../context/ProfileContext';
@@ -8,8 +8,10 @@ import playSounds from '../utils/sounds';
 
 export default function ShoppingHelper() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { settings } = useAge();
   const toast = useToast();
+  const { error: showError } = toast;
 
   // Data state
   const [trips, setTrips] = useState<ShoppingTrip[]>([]);
@@ -31,19 +33,22 @@ export default function ShoppingHelper() {
     store_name: ''
   });
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadData();
+  const loadTripDetails = useCallback(async (tripId: number) => {
+    try {
+      const tripRes = await shoppingAPI.getTrip(tripId);
+      setActiveTrip(tripRes.data);
+    } catch (error: any) {
+      showError('Failed to load trip details');
     }
-  }, [currentProfile?.id]);
+  }, [showError]);
 
-  const loadData = async () => {
-    if (!currentProfile) return;
+  const loadData = useCallback(async () => {
+    if (!profileId) return;
     try {
       setLoading(true);
       const [tripsRes, statsRes, categoriesRes, canCreateRes] = await Promise.all([
-        shoppingAPI.getMyTrips(currentProfile.id),
-        shoppingAPI.getStats(currentProfile.id),
+        shoppingAPI.getMyTrips(profileId),
+        shoppingAPI.getStats(profileId),
         shoppingAPI.getCategories(),
         shoppingAPI.canCreateLists()
       ]);
@@ -59,11 +64,17 @@ export default function ShoppingHelper() {
       }
     } catch (error: any) {
       console.error('Failed to load shopping data:', error);
-      toast.error('Failed to load shopping data');
+      showError('Failed to load shopping data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadTripDetails, showError, profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadData();
+    }
+  }, [currentProfile?.id, loadData]);
 
   const handleCreateList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +96,6 @@ export default function ShoppingHelper() {
       toast.error(error.response?.data?.error || 'Failed to create list');
     } finally {
       setSavingList(false);
-    }
-  };
-
-  const loadTripDetails = async (tripId: number) => {
-    try {
-      const tripRes = await shoppingAPI.getTrip(tripId);
-      setActiveTrip(tripRes.data);
-    } catch (error: any) {
-      toast.error('Failed to load trip details');
     }
   };
 

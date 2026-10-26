@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { h5pAPI, rewardsAPI } from '../services/api';
 import { useProfile } from '../context/ProfileContext';
 import { Loader2, AlertCircle, CheckCircle, Play, Trash2, Users, Plus, Package, Upload, Download, FolderOpen, Globe, UserPlus, Eye, X, FileText, HelpCircle, Gamepad2 } from 'lucide-react';
@@ -42,6 +42,7 @@ interface H5PStatus {
 
 const H5PManager: React.FC = () => {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const [status, setStatus] = useState<H5PStatus | null>(null);
   const [content, setContent] = useState<H5PContent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,11 +114,7 @@ const H5PManager: React.FC = () => {
 
   const isParent = currentProfile?.type === 'parent' || currentProfile?.type === 'admin';
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -131,10 +128,10 @@ const H5PManager: React.FC = () => {
       setContent(contentRes.data);
 
       // Load children for assignment and AI providers (parents only)
-      if (isParent && currentProfile?.id) {
+      if (isParent && profileId) {
         try {
           const [childrenRes, providersRes] = await Promise.all([
-            rewardsAPI.getParentChildren(currentProfile.id),
+            rewardsAPI.getParentChildren(profileId),
             h5pAPI.getAIProviders()
           ]);
           setChildren(childrenRes.data || []);
@@ -148,7 +145,11 @@ const H5PManager: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isParent, profileId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this content?')) return;
@@ -487,8 +488,8 @@ const H5PManager: React.FC = () => {
   const availableProviderCount = aiProviders.filter((provider) => provider.available).length;
   const passedCount = content.filter((item) => Boolean(item.passed)).length;
   const startedCount = content.filter((item) => (item.my_attempts || 0) > 0).length;
-  const childReadyContent = content.filter((item) => !Boolean(item.passed) && (item.my_attempts || 0) === 0);
-  const childInProgressContent = content.filter((item) => !Boolean(item.passed) && (item.my_attempts || 0) > 0);
+  const childReadyContent = content.filter((item) => !item.passed && (item.my_attempts || 0) === 0);
+  const childInProgressContent = content.filter((item) => !item.passed && (item.my_attempts || 0) > 0);
   const childPassedContent = content.filter((item) => Boolean(item.passed));
   const featuredKidContent = childInProgressContent[0] || childReadyContent[0] || childPassedContent[0] || null;
   const selectedChildrenCount = createForm.assignedTo.length;

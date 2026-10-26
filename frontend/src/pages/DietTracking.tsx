@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { dietAPI } from '../services/api';
 import { FoodItem, MealLog, NutritionSummary } from '../types';
@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 
 export default function DietTracking() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
@@ -17,32 +18,32 @@ export default function DietTracking() {
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [editingMeal, setEditingMeal] = useState<MealLog | null>(null);
 
+  const loadMealLogs = useCallback(async () => {
+    if (!profileId) return;
+    try {
+      const response = await dietAPI.getLogs(profileId, selectedDate);
+      setMealLogs(response.data);
+    } catch (error) {
+      console.error('Failed to load meal logs:', error);
+    }
+  }, [selectedDate, profileId]);
+
+  const loadNutrition = useCallback(async () => {
+    if (!profileId) return;
+    try {
+      const response = await dietAPI.getNutritionSummary(profileId, selectedDate);
+      setNutrition(response.data);
+    } catch (error) {
+      console.error('Failed to load nutrition:', error);
+    }
+  }, [selectedDate, profileId]);
+
   useEffect(() => {
     if (currentProfile) {
       loadMealLogs();
       loadNutrition();
     }
-  }, [currentProfile, selectedDate]);
-
-  const loadMealLogs = async () => {
-    if (!currentProfile) return;
-    try {
-      const response = await dietAPI.getLogs(currentProfile.id, selectedDate);
-      setMealLogs(response.data);
-    } catch (error) {
-      console.error('Failed to load meal logs:', error);
-    }
-  };
-
-  const loadNutrition = async () => {
-    if (!currentProfile) return;
-    try {
-      const response = await dietAPI.getNutritionSummary(currentProfile.id, selectedDate);
-      setNutrition(response.data);
-    } catch (error) {
-      console.error('Failed to load nutrition:', error);
-    }
-  };
+  }, [currentProfile, selectedDate, loadMealLogs, loadNutrition]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;

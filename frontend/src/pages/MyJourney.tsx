@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI } from '../services/api';
 import { JourneyData, JourneyEvent, Profile } from '../types';
@@ -10,6 +10,8 @@ type PeriodType = 'week' | 'month' | 'year' | 'all';
 
 export default function MyJourney() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
+  const profileType = currentProfile?.type;
   const [journeyData, setJourneyData] = useState<JourneyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('month');
@@ -20,24 +22,10 @@ export default function MyJourney() {
   const isParentOrAdmin = currentProfile?.type === 'parent' || currentProfile?.type === 'admin';
 
   // Load family profiles for parent/admin
-  useEffect(() => {
-    if (!currentProfile) return;
-
-    if (isParentOrAdmin) {
-      loadFamilyProfiles();
-    } else {
-      setSelectedProfileId(currentProfile.id);
-    }
-  }, [currentProfile]);
 
   // Load history when profile or period changes
-  useEffect(() => {
-    if (selectedProfileId) {
-      loadHistory();
-    }
-  }, [selectedProfileId, selectedPeriod]);
 
-  const loadFamilyProfiles = async () => {
+  const loadFamilyProfiles = useCallback(async () => {
     try {
       const response = await profilesAPI.getAll();
       const profiles = response.data;
@@ -45,12 +33,12 @@ export default function MyJourney() {
       // For parents: show themselves + their children
       // For admins: show all profiles
       let viewableProfiles: Profile[] = [];
-      if (currentProfile?.type === 'admin') {
+      if (profileType === 'admin') {
         viewableProfiles = profiles;
-      } else if (currentProfile?.type === 'parent') {
+      } else if (profileType === 'parent') {
         // Parent sees themselves and the children returned by the authorized backend view.
         viewableProfiles = profiles.filter((p: Profile) =>
-          p.id === currentProfile.id ||
+          p.id === profileId ||
           p.type === 'child'
         );
       }
@@ -61,18 +49,18 @@ export default function MyJourney() {
       const children = viewableProfiles.filter((p: Profile) => p.type === 'child');
       if (children.length > 0) {
         setSelectedProfileId(children[0].id);
-      } else if (currentProfile) {
-        setSelectedProfileId(currentProfile.id);
+      } else if (profileId) {
+        setSelectedProfileId(profileId);
       }
     } catch (error) {
       console.error('Failed to load family profiles:', error);
-      if (currentProfile) {
-        setSelectedProfileId(currentProfile.id);
+      if (profileId) {
+        setSelectedProfileId(profileId);
       }
     }
-  };
+  }, [profileId, profileType]);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     if (!selectedProfileId) return;
 
     try {
@@ -84,7 +72,23 @@ export default function MyJourney() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedProfileId, selectedPeriod]);
+
+  useEffect(() => {
+    if (!currentProfile) return;
+
+    if (isParentOrAdmin) {
+      loadFamilyProfiles();
+    } else {
+      setSelectedProfileId(currentProfile.id);
+    }
+  }, [currentProfile, loadFamilyProfiles, isParentOrAdmin]);
+
+  useEffect(() => {
+    if (selectedProfileId) {
+      loadHistory();
+    }
+  }, [selectedProfileId, selectedPeriod, loadHistory]);
 
   const selectedProfile = familyProfiles.find(p => p.id === selectedProfileId) || currentProfile;
 

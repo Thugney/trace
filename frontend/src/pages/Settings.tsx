@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { settingsAPI, remindersAPI, ReminderPreferences } from '../services/api';
 import { CheckCircle } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
 
 export default function Settings() {
   const { currentProfile, isParent, isAdmin, profiles, refreshProfiles } = useProfile();
+  const profileId = currentProfile?.id;
   const [settings, setSettings] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string>('');
@@ -29,12 +30,6 @@ export default function Settings() {
   useEffect(() => {
     loadSettings();
   }, []);
-
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadReminderPreferences();
-    }
-  }, [currentProfile?.id]);
 
   useEffect(() => {
     if (successMessage) {
@@ -55,15 +50,21 @@ export default function Settings() {
     }
   };
 
-  const loadReminderPreferences = async () => {
-    if (!currentProfile?.id) return;
+  const loadReminderPreferences = useCallback(async () => {
+    if (!profileId) return;
     try {
-      const response = await remindersAPI.getPreferences(currentProfile.id);
+      const response = await remindersAPI.getPreferences(profileId);
       setReminderPrefs(response.data);
     } catch (error) {
       console.error('Failed to load reminder preferences:', error);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadReminderPreferences();
+    }
+  }, [currentProfile?.id, loadReminderPreferences]);
 
   const handleReminderToggle = async () => {
     if (!currentProfile?.id || !reminderPrefs) return;

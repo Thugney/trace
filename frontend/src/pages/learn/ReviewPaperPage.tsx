@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowLeft, Clock } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function ReviewPaperPage() {
     setAnswers(answersRef.current);
   };
 
-  const submit = async () => {
+  const submit = useCallback(async () => {
     if (!attempt || submittedRef.current) return;
     submittedRef.current = true;
     setSubmitting(true);
@@ -55,7 +55,7 @@ export default function ReviewPaperPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [attempt, copy.error]);
 
   // Countdown drives the UI only; the server records lateness
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function ReviewPaperPage() {
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [attempt, result]);
+  }, [attempt, result, submit]);
 
   const start = async () => {
     setError(null);

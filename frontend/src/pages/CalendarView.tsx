@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Check, Clock } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
@@ -17,23 +17,18 @@ interface Task {
 
 export default function CalendarView() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { settings, isYoungChild } = useAge();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadTasks();
-    }
-  }, [currentProfile?.id]);
-
-  const loadTasks = async () => {
-    if (!currentProfile?.id) return;
+  const loadTasks = useCallback(async () => {
+    if (!profileId) return;
     try {
       setLoading(true);
-      const response = await tasksAPI.getByProfile(currentProfile.id);
+      const response = await tasksAPI.getByProfile(profileId);
       // Cast to local Task type (API returns undefined for null dates)
       setTasks(response.data.map(t => ({
         ...t,
@@ -45,7 +40,13 @@ export default function CalendarView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadTasks();
+    }
+  }, [currentProfile?.id, loadTasks]);
 
   // Get days in month
   const getDaysInMonth = (date: Date) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { ArrowLeft, Send } from 'lucide-react';
@@ -19,7 +19,7 @@ export default function ReviewAttemptPage() {
   const [message, setMessage] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const response = await learnAPI.getReviewAttempt(id);
       setResult(response.data);
@@ -28,9 +28,9 @@ export default function ReviewAttemptPage() {
     } catch (err: any) {
       setError(err?.response?.data?.error || learnCopy('nb').error);
     }
-  };
+  }, [id]);
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [id, load]);
 
   const locale = result?.paper?.locale || 'nb';
   const copy = learnCopy(locale);

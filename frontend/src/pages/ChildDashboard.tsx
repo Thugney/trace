@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
@@ -138,6 +138,7 @@ type DashboardTab = 'home' | 'tasks' | 'challenges' | 'rewards';
 
 export default function ChildDashboard() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const { isYoungChild, settings } = useAge();
   useFeatureFlags(); // Hook called for context subscription
   const { isFeatureEnabled } = useProfileFeatures();
@@ -290,11 +291,11 @@ export default function ChildDashboard() {
     loadStats();
   }, [currentProfile]);
 
-  const loadTasks = async () => {
-    if (!currentProfile?.id) return;
+  const loadTasks = useCallback(async () => {
+    if (!profileId) return;
 
     try {
-      const res = await tasksAPI.getByProfile(currentProfile.id);
+      const res = await tasksAPI.getByProfile(profileId);
       const allTasksData = res.data as Task[];
       const actionableTasks = allTasksData.filter((t: Task) => !t.completed && getDateOnlyRelation(t.due_date) !== 'future');
       const isRecurringTask = (task: Task) => task.is_recurring === 1 || task.is_recurring === true;
@@ -352,12 +353,13 @@ export default function ChildDashboard() {
     } catch (e) {
       console.error('Failed to load tasks:', e);
     }
-  };
+  }, [profileId]);
 
-  // Load tasks with due date categorization
   useEffect(() => {
     loadTasks();
-  }, [currentProfile?.id]);
+  }, [currentProfile?.id, loadTasks]);
+
+  // Load tasks with due date categorization
 
   // Load reminder preferences
   useEffect(() => {

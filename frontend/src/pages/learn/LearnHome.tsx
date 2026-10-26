@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen, CalendarClock, CheckCircle2, ClipboardCheck, ClipboardList, GraduationCap, Info, PlayCircle,
@@ -57,14 +57,14 @@ export default function LearnHome() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadCatalog = async (forGrade?: number) => {
+  const loadCatalog = useCallback(async (forGrade?: number) => {
     const catalog = await learnAPI.getCatalog(forGrade);
     setSubjects(catalog.data.subjects);
     setGrade(catalog.data.grade);
     setPolicy(catalog.data.assessment_policy || null);
-  };
+  }, []);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -84,13 +84,13 @@ export default function LearnHome() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentProfile?.id, loadCatalog]);
 
   useEffect(() => {
     if (currentProfile?.type !== 'parent') {
       load();
     }
-  }, [currentProfile?.id]);
+  }, [currentProfile?.id, load, currentProfile?.type]);
 
   const chooseGrade = async (next: number) => {
     setSavingGrade(true);

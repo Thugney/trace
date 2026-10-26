@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { AlertTriangle, ArrowLeft, ArrowRight, ClipboardList, ListChecks, Sparkles, Timer } from 'lucide-react';
@@ -50,7 +50,7 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null);
   const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ read: null, practice: null, cards: null, tutor: null, exam: null });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const response = await learnAPI.getLesson(id);
       setLesson(response.data);
@@ -59,7 +59,7 @@ export default function LessonPage() {
     } catch (err: any) {
       setError(err?.response?.data?.error || learnCopy('nb').error);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     if (Number.isInteger(id)) {
@@ -69,7 +69,7 @@ export default function LessonPage() {
       // Opening the article counts as starting to read; never a score
       learnAPI.markRead(id).catch(() => undefined);
     }
-  }, [id]);
+  }, [id, load]);
 
   if (error) {
     return <div className={learnSurface.page}><p role="alert" className="text-red-700 dark:text-red-300">{error}</p></div>;

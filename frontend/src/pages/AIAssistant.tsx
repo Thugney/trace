@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { aiAPI, profilesAPI } from '../services/api';
 import { AIConversation } from '../types';
@@ -16,6 +16,7 @@ interface MessageCount {
 
 export default function AIAssistant() {
   const { currentProfile, isParent } = useProfile();
+  const profileId = currentProfile?.id;
   const [message, setMessage] = useState('');
   const [conversations, setConversations] = useState<AIConversation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,18 +29,6 @@ export default function AIAssistant() {
   useEffect(() => {
     checkAPIStatus();
   }, []);
-
-  useEffect(() => {
-    if (currentProfile) {
-      loadMessageCount();
-    }
-  }, [currentProfile]);
-
-  useEffect(() => {
-    if (currentProfile) {
-      loadConversations();
-    }
-  }, [currentProfile, context]);
 
   useEffect(() => {
     scrollToBottom();
@@ -58,26 +47,38 @@ export default function AIAssistant() {
     }
   };
 
-  const loadMessageCount = async () => {
-    if (!currentProfile) return;
+  const loadMessageCount = useCallback(async () => {
+    if (!profileId) return;
     try {
-      const response = await aiAPI.getMessageCount(currentProfile.id);
+      const response = await aiAPI.getMessageCount(profileId);
       setMessageCount(response.data);
     } catch (error) {
       console.error('Failed to load message count:', error);
     }
-  };
+  }, [profileId]);
 
-  const loadConversations = async () => {
-    if (!currentProfile) return;
+  const loadConversations = useCallback(async () => {
+    if (!profileId) return;
 
     try {
-      const response = await aiAPI.getConversations(currentProfile.id, context, 20);
+      const response = await aiAPI.getConversations(profileId, context, 20);
       setConversations(response.data);
     } catch (error) {
       console.error('Failed to load conversations:', error);
     }
-  };
+  }, [context, profileId]);
+
+  useEffect(() => {
+    if (currentProfile) {
+      loadMessageCount();
+    }
+  }, [currentProfile, loadMessageCount]);
+
+  useEffect(() => {
+    if (currentProfile) {
+      loadConversations();
+    }
+  }, [currentProfile, context, loadConversations]);
 
   const handleSendMessage = async () => {
     if (!message.trim() || !currentProfile || loading) return;

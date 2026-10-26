@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useProfile } from '../context/ProfileContext';
 import { profilesAPI, aiAPI, settingsAPI, familiesAPI } from '../services/api';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
@@ -90,32 +90,17 @@ export default function AdminPanel() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
 
   // Load data on mount
-  useEffect(() => {
-    loadAllData();
-  }, []);
 
-  const loadAllData = async () => {
-    setLoading(true);
-    await Promise.all([
-      loadProfiles(),
-      loadFamilies(),
-      loadLegacyFamilies(),
-      loadSettings(),
-      loadOllamaStatus()
-    ]);
-    setLoading(false);
-  };
-
-  const loadProfiles = async () => {
+  const loadProfiles = useCallback(async () => {
     try {
       const response = await profilesAPI.getAll();
       setAllProfiles(response.data);
     } catch (error) {
       console.error('Failed to load profiles:', error);
     }
-  };
+  }, []);
 
-  const loadFamilies = async () => {
+  const loadFamilies = useCallback(async () => {
     try {
       setFamiliesLoading(true);
       const [familiesRes, unassignedRes] = await Promise.all([
@@ -129,9 +114,9 @@ export default function AdminPanel() {
     } finally {
       setFamiliesLoading(false);
     }
-  };
+  }, []);
 
-  const loadLegacyFamilies = async () => {
+  const loadLegacyFamilies = useCallback(async () => {
     try {
       setLegacyFamiliesLoading(true);
       const response = await profilesAPI.getAdminFamilies();
@@ -141,9 +126,9 @@ export default function AdminPanel() {
     } finally {
       setLegacyFamiliesLoading(false);
     }
-  };
+  }, []);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const response = await settingsAPI.getAll();
       // Backend returns a key-value object directly, not an array
@@ -153,9 +138,9 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
-  };
+  }, []);
 
-  const loadOllamaStatus = async () => {
+  const loadOllamaStatus = useCallback(async () => {
     try {
       setOllamaLoading(true);
       const response = await settingsAPI.getOllamaStatus();
@@ -166,7 +151,23 @@ export default function AdminPanel() {
     } finally {
       setOllamaLoading(false);
     }
-  };
+  }, []);
+
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    await Promise.all([
+      loadProfiles(),
+      loadFamilies(),
+      loadLegacyFamilies(),
+      loadSettings(),
+      loadOllamaStatus()
+    ]);
+    setLoading(false);
+  }, [loadProfiles, loadFamilies, loadLegacyFamilies, loadSettings, loadOllamaStatus]);
+
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   const loadFamilyMembers = async (familyId: number) => {
     try {

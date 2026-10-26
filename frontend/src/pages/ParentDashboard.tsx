@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
 import { useToast } from '../components/Toast';
@@ -42,6 +42,7 @@ type DashboardTab = 'overview' | 'tasks' | 'challenges' | 'rewards';
 
 export default function ParentDashboard() {
   const { currentProfile } = useProfile();
+  const profileId = currentProfile?.id;
   const toast = useToast();
   const [children, setChildren] = useState<Profile[]>([]);
   const [childrenProgress, setChildrenProgress] = useState<ChildProgress[]>([]);
@@ -59,18 +60,56 @@ export default function ParentDashboard() {
   const [generatingForChild, setGeneratingForChild] = useState<number | null>(null);
   const [timerSettings, setTimerSettings] = useState<Record<number, { enabled: boolean; minutes: number }>>({});
 
-  useEffect(() => {
-    loadFamilyData();
-  }, [currentProfile]);
+  const loadTaskTimeline = useCallback(async (kids: Profile[]) => {
+    if (kids.length === 0) return;
 
-  useEffect(() => {
-    if (currentProfile?.id) {
-      loadAISuggestions();
+    setLoadingTasks(true);
+    try {
+      const now = new Date();
+      const allOverdue: TaskWithChild[] = [];
+      const allUpcoming: TaskWithChild[] = [];
+
+      for (const child of kids) {
+        const tasksRes = await tasksAPI.getByProfile(child.id, false); // Get incomplete tasks
+        const tasks = tasksRes.data || [];
+
+        for (const task of tasks) {
+          const taskWithChild: TaskWithChild = {
+            ...task,
+            childName: child.name,
+            childAvatar: child.avatar || ''
+          };
+
+          if (task.due_date) {
+            const dueDate = new Date(task.due_date);
+            if (dueDate < now) {
+              allOverdue.push(taskWithChild);
+            } else {
+              // Upcoming = within next 7 days
+              const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+              if (dueDate <= weekFromNow) {
+                allUpcoming.push(taskWithChild);
+              }
+            }
+          }
+        }
+      }
+
+      // Sort by due date
+      allOverdue.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+      allUpcoming.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
+
+      setOverdueTasks(allOverdue);
+      setUpcomingTasks(allUpcoming.slice(0, 10)); // Limit to 10 upcoming
+    } catch (error) {
+      console.error('Failed to load task timeline:', error);
+    } finally {
+      setLoadingTasks(false);
     }
-  }, [currentProfile?.id]);
+  }, []);
 
-  const loadFamilyData = async () => {
-    if (!currentProfile) return;
+  const loadFamilyData = useCallback(async () => {
+    if (!profileId) return;
 
     try {
       setLoading(true);
@@ -153,68 +192,30 @@ export default function ParentDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadTaskTimeline, profileId]);
 
-  const loadTaskTimeline = async (kids: Profile[]) => {
-    if (kids.length === 0) return;
-
-    setLoadingTasks(true);
-    try {
-      const now = new Date();
-      const allOverdue: TaskWithChild[] = [];
-      const allUpcoming: TaskWithChild[] = [];
-
-      for (const child of kids) {
-        const tasksRes = await tasksAPI.getByProfile(child.id, false); // Get incomplete tasks
-        const tasks = tasksRes.data || [];
-
-        for (const task of tasks) {
-          const taskWithChild: TaskWithChild = {
-            ...task,
-            childName: child.name,
-            childAvatar: child.avatar || ''
-          };
-
-          if (task.due_date) {
-            const dueDate = new Date(task.due_date);
-            if (dueDate < now) {
-              allOverdue.push(taskWithChild);
-            } else {
-              // Upcoming = within next 7 days
-              const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-              if (dueDate <= weekFromNow) {
-                allUpcoming.push(taskWithChild);
-              }
-            }
-          }
-        }
-      }
-
-      // Sort by due date
-      allOverdue.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
-      allUpcoming.sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime());
-
-      setOverdueTasks(allOverdue);
-      setUpcomingTasks(allUpcoming.slice(0, 10)); // Limit to 10 upcoming
-    } catch (error) {
-      console.error('Failed to load task timeline:', error);
-    } finally {
-      setLoadingTasks(false);
-    }
-  };
-
-  const loadAISuggestions = async () => {
-    if (!currentProfile) return;
+  const loadAISuggestions = useCallback(async () => {
+    if (!profileId) return;
     try {
       setLoadingAI(true);
-      const response = await aiGamificationAPI.getPendingSuggestions(currentProfile.id);
+      const response = await aiGamificationAPI.getPendingSuggestions(profileId);
       setAiSuggestions(response.data);
     } catch (error) {
       console.error('Failed to load AI suggestions:', error);
     } finally {
       setLoadingAI(false);
     }
-  };
+  }, [profileId]);
+
+  useEffect(() => {
+    loadFamilyData();
+  }, [currentProfile, loadFamilyData]);
+
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadAISuggestions();
+    }
+  }, [currentProfile?.id, loadAISuggestions]);
 
   const generateChallenges = async (childId: number) => {
     if (!currentProfile) return;
