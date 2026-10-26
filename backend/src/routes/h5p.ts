@@ -11,10 +11,11 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import type { Readable } from 'stream';
-import { authenticateEventSource } from '../middleware/auth';
+import { authenticateEventSource, type AuthRequest } from '../middleware/auth';
 import { canAccessOwnOrManagedChild } from '../services/familyAccess';
 import { canManageOwnedResource, paramGuard } from '../services/resourceAccess';
-import { requireFeature } from '../middleware/feature-access';
+import { getSchoolOnlyAllowedFeatures, isSchoolOnlyModeEnabled } from '../middleware/feature-access';
+import { isFeatureEnabledForProfile } from '../services/profileFeatures';
 import { db } from '../database/init';
 import {
   initializeH5P,
@@ -557,7 +558,24 @@ router.use('/card-images', express.static(H5P_PATHS.cardImages, {
 
 // ==================== AUTHENTICATED ROUTES ====================
 
-router.use(authenticateEventSource, requireFeature('activities'));
+router.use(authenticateEventSource, (req, res, next) => {
+  const profile = (req as AuthRequest).profile;
+  if (!profile) return res.status(401).json({ error: 'Authentication required' });
+  if (profile.type === 'admin') return next();
+  try {
+    const schoolOnly = isSchoolOnlyModeEnabled();
+    const allowed = schoolOnly ? getSchoolOnlyAllowedFeatures() : null;
+    if ((['activities', 'quizzes'] as const).some(feature =>
+      (!allowed || allowed.includes(feature))
+      && isFeatureEnabledForProfile(profile, feature))) return next();
+    return res.status(403).json({ error: schoolOnly && !allowed?.some(feature => feature === 'activities' || feature === 'quizzes')
+      ? 'Access denied: school-only mode is enabled'
+      : 'Access denied: quizzes and activities are unavailable for this profile' });
+  } catch (error) {
+    console.error('[H5P] Feature access check failed:', error);
+    return res.status(500).json({ error: 'Feature access check failed' });
+  }
+});
 
 // Parents/admins may only reach content they (or a co-parent) created.
 // Children are checked against their assignments inside each handler.

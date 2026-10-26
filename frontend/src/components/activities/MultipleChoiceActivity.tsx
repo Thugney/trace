@@ -17,11 +17,11 @@ const MultipleChoiceActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as MultipleChoiceContent;
-  const correctData = activity.correct_data as { correctAnswer: string };
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as { correctAnswer?: string };
 
   const handleSelect = (optionId: string) => {
     if (disabled) return;

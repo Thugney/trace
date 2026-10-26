@@ -17,11 +17,11 @@ const MatchingActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as MatchingContent;
-  const correctData = activity.correct_data as MatchingCorrect;
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as MatchingCorrect;
   // Keyed by content, so a parent passing an equal copy of the activity keeps the board.
   const pairsSignature = JSON.stringify(content.pairs || []);
   const pairs = useMemo(

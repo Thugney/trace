@@ -222,7 +222,46 @@ router.get('/media/:filename', (req: Request, res: Response) => {
 
 // ==================== AUTH MIDDLEWARE ====================
 
-router.use(authenticate, requireFeature('activities'));
+router.use(authenticate, (req: AuthRequest, res, next) => {
+  // Learn uses this engine without enabling the unrelated activities module.
+  // Only the assigned learner's reviewed, linked practice play endpoints qualify;
+  // normal object guards still run after this feature gate.
+  const sessionMatch = req.path.match(/^\/sessions\/(\d+)(\/start)?\/?$/);
+  const attemptMatch = req.path.match(/^\/attempts\/(\d+)\/(submit|complete)\/?$/);
+  const sessionRead = sessionMatch && !sessionMatch[2] && ['GET', 'HEAD'].includes(req.method);
+  const sessionStart = sessionMatch?.[2] && req.method === 'POST';
+  const attemptAction = attemptMatch && req.method === 'POST';
+  if (sessionRead || sessionStart || attemptAction) {
+    try {
+      const sessionId = sessionMatch ? Number(sessionMatch[1]) : (db.prepare(
+        'SELECT session_id FROM session_attempts WHERE id = ? AND profile_id = ?'
+      ).get(Number(attemptMatch![1]), req.profile!.id) as { session_id: number } | undefined)?.session_id;
+      if (sessionId && isLearnPracticeSession(sessionId)) {
+        const linked = db.prepare(`
+          SELECT lesson.review_status FROM learn_resource_links link
+          LEFT JOIN learn_lessons lesson ON lesson.id = link.lesson_id
+          JOIN learning_sessions session ON session.id = link.existing_resource_id
+          WHERE link.kind = 'activity' AND link.existing_resource_id = ?
+            AND link.learner_profile_id = ? AND session.assigned_to = ?
+        `).get(sessionId, req.profile!.id, req.profile!.id) as { review_status: string | null } | undefined;
+        if (linked) {
+          const enabled = db.prepare("SELECT value FROM settings WHERE key = 'learn_enabled'").get() as { value: string } | undefined;
+          if (enabled?.value === 'false') {
+            return res.status(403).json({ error: 'FamilyHub Learn is switched off', code: 'learn_disabled' });
+          }
+          // A real Learn link never falls through to generic activity access:
+          // withdrawn/draft content stays closed even when activities is enabled.
+          if (linked.review_status !== 'reviewed') return res.status(404).json({ error: 'Lesson not found' });
+          return requireFeature('learn')(req, res, next);
+        }
+      }
+    } catch (error) {
+      console.error('[Activities] Learn access check failed:', error);
+      return res.status(500).json({ error: 'Feature access check failed' });
+    }
+  }
+  return requireFeature('activities')(req, res, next);
+});
 
 // ==================== OBJECT-LEVEL ACCESS ====================
 router.param('parentId', parentParamGuard);
@@ -364,13 +403,17 @@ router.get('/sessions/:sessionId', (req: Request, res: Response) => {
       ORDER BY la.order_index ASC
     `).all(sessionId);
 
-    // Parse JSON fields
-    session.activities = activities.map((a: any) => ({
-      ...a,
-      content_data: a.content_data ? JSON.parse(a.content_data) : null,
-      correct_data: a.correct_data ? JSON.parse(a.correct_data) : null,
-      hints: a.hints ? JSON.parse(a.hints) : []
-    }));
+    const learnerPractice = isLearnPracticeSession(session.id)
+      && !canManageOwnedResource((req as AuthRequest).profile!, session);
+    session.activities = activities.map((a: any) => {
+      const { correct_data, explanation, ...question } = a;
+      return {
+        ...question,
+        content_data: a.content_data ? JSON.parse(a.content_data) : null,
+        hints: a.hints ? JSON.parse(a.hints) : [],
+        ...(!learnerPractice ? { correct_data: correct_data ? JSON.parse(correct_data) : null, explanation } : {})
+      };
+    });
 
     res.json(session);
   } catch (error: any) {
@@ -770,10 +813,30 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
 
     // Check if already answered
     const existingResult = db.prepare(`
-      SELECT id FROM activity_results WHERE attempt_id = ? AND activity_id = ?
-    `).get(attemptId, activityId);
+      SELECT * FROM activity_results WHERE attempt_id = ? AND activity_id = ?
+    `).get(attemptId, activityId) as {
+      user_response: string; score: number; max_score: number; is_correct: number;
+      partial_score: number; hints_used: number;
+    } | undefined;
 
     if (existingResult) {
+      if (isLearnPracticeSession(attempt.session_id)) {
+        // Resuming practice may revisit an answered question. Replay only its
+        // stored response/result; never score the replacement request or mutate
+        // progress. All ownership, source and assessment guards ran above.
+        return res.json({
+          replayed: true,
+          userResponse: JSON.parse(existingResult.user_response),
+          hintsUsed: existingResult.hints_used,
+          score: existingResult.score,
+          maxScore: existingResult.max_score,
+          isCorrect: existingResult.is_correct === 1,
+          partialScore: existingResult.partial_score,
+          feedback: existingResult.is_correct ? 'Correct!' : 'Try again.',
+          correctData: JSON.parse(activity.correct_data),
+          explanation: activity.explanation
+        });
+      }
       return res.status(400).json({ error: 'Activity already answered' });
     }
 
@@ -811,6 +874,7 @@ router.post('/attempts/:attemptId/submit', (req: Request, res: Response) => {
       isCorrect: scoringResult.isCorrect,
       partialScore: scoringResult.partialScore,
       feedback: scoringResult.feedback,
+      correctData,
       explanation: activity.explanation
     });
   } catch (error: any) {
@@ -840,6 +904,11 @@ router.post('/attempts/:attemptId/complete', (req: Request, res: Response) => {
 
     if (attempt.completed_at) {
       return res.status(400).json({ error: 'Attempt already completed' });
+    }
+
+    if (isLearnPracticeSession(attempt.session_id)) {
+      const open = getOpenAssessment(attempt.profile_id);
+      if (open) return assessmentLocked(res, open);
     }
 
     // Calculate score percentage

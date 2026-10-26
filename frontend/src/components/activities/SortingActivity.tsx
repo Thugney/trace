@@ -18,11 +18,11 @@ const SortingActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as SortingContent;
-  const correctData = activity.correct_data as SortingCorrect;
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as SortingCorrect;
   const originalItems = useMemo(() => content.items || [], [content.items]);
   const responseOrder: string[] | undefined = currentResponse?.order;
 

@@ -80,6 +80,10 @@ function denyTaskAccess(res: Response) {
   return res.status(403).json({ error: 'Access denied: You can only access your own tasks or your children\'s tasks' });
 }
 
+function canConfigureTask(viewer: AuthRequest['profile'], task: { profile_id: number }): boolean {
+  return Boolean(viewer && ['parent', 'admin'].includes(viewer.type) && canAccessTask(viewer, task));
+}
+
 const OVERDUE_TASK_POINTS_MULTIPLIER = 0.5;
 const TASK_DIFFICULTY_POINTS: Record<string, number> = {
   easy: 10,
@@ -313,7 +317,9 @@ router.put('/:id', (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (!canAccessTask(viewer, existingTask)) {
+    // Completion, timer and proof have dedicated validated endpoints. General
+    // edits must never let children weaken those policies or set completed.
+    if (!canConfigureTask(viewer, existingTask)) {
       return denyTaskAccess(res);
     }
 
@@ -1403,7 +1409,7 @@ router.post('/:taskId/subtasks', (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (!canAccessTask(req.profile, task)) {
+    if (!canConfigureTask(req.profile, task)) {
       return denyTaskAccess(res);
     }
 
@@ -1442,6 +1448,10 @@ router.put('/subtasks/:id', (req: AuthRequest, res) => {
     }
 
     if (!canAccessTask(req.profile, parentTask)) {
+      return denyTaskAccess(res);
+    }
+
+    if ((title !== undefined || sort_order !== undefined) && !canConfigureTask(req.profile, parentTask)) {
       return denyTaskAccess(res);
     }
 
@@ -1489,7 +1499,7 @@ router.delete('/subtasks/:id', (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Subtask not found' });
     }
 
-    if (!canAccessTask(req.profile, parentTask)) {
+    if (!canConfigureTask(req.profile, parentTask)) {
       return denyTaskAccess(res);
     }
 
@@ -1518,7 +1528,7 @@ router.post('/:taskId/subtasks/bulk', (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    if (!canAccessTask(req.profile, task)) {
+    if (!canConfigureTask(req.profile, task)) {
       return denyTaskAccess(res);
     }
 

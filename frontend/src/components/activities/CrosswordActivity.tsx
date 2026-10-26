@@ -17,11 +17,11 @@ const CrosswordActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as CrosswordContent;
-  const correctData = activity.correct_data as CrosswordCorrect;
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as CrosswordCorrect;
 
   const grid = content.grid || [];
   const clues = content.clues || { across: [], down: [] };

@@ -19,11 +19,11 @@ const DragDropActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as DragDropContent;
-  const correctData = activity.correct_data as DragDropCorrect;
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as DragDropCorrect;
   const zones = content.dropZones || [];
   const items = useMemo(() => content.draggableItems || [], [content.draggableItems]);
   const responsePlacements: Record<string, string[]> | undefined = currentResponse?.placements;

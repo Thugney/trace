@@ -17,11 +17,11 @@ const FillBlanksActivity: React.FC<Props> = ({
   currentResponse,
   disabled,
   showFeedback,
-  feedbackResult: _feedbackResult,
+  feedbackResult,
   theme: _theme
 }) => {
   const content = activity.content_data as FillBlanksContent;
-  const correctData = activity.correct_data as FillBlanksCorrect;
+  const correctData = (feedbackResult?.correctData ?? activity.correct_data ?? {}) as FillBlanksCorrect;
   const [answers, setAnswers] = useState<string[]>([]);
 
   // Count blanks in sentences
@@ -59,7 +59,6 @@ const FillBlanksActivity: React.FC<Props> = ({
   // Render sentence with input fields
   const renderSentence = (sentence: string, startIndex: number) => {
     const parts = sentence.split('___');
-    let blankIndex = startIndex;
 
     return parts.map((part, i) => (
       <React.Fragment key={i}>
@@ -67,12 +66,12 @@ const FillBlanksActivity: React.FC<Props> = ({
         {i < parts.length - 1 && (
           <input
             type="text"
-            value={answers[blankIndex] || ''}
-            onChange={(e) => handleChange(blankIndex++, e.target.value)}
+            value={answers[startIndex + i] || ''}
+            onChange={(e) => handleChange(startIndex + i, e.target.value)}
             disabled={disabled}
             className={`mx-1 px-3 py-1 w-32 border-b-2 text-center font-medium transition-all outline-none ${
               showFeedback
-                ? isBlankCorrect(blankIndex - 1)
+                ? isBlankCorrect(startIndex + i)
                   ? 'border-green-500 bg-green-50 text-green-700'
                   : 'border-red-500 bg-red-50 text-red-700'
                 : 'border-purple-400 focus:border-purple-600 bg-purple-50'

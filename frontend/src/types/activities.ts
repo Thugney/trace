@@ -59,7 +59,7 @@ export interface LearningActivity {
   title: string;
   instructions?: string;
   content_data: ActivityContentData;
-  correct_data: ActivityCorrectData;
+  correct_data?: ActivityCorrectData;
   hints: string[];
   explanation?: string;
   points: number;
@@ -398,6 +398,12 @@ export interface ActivitySubmissionResult {
   partialScore: number;
   feedback: string;
   explanation?: string;
+  /** Authorized answer feedback returned only after server-side submission. */
+  correctData?: ActivityCorrectData;
+  /** A resumed answer replays its original response and adjusted result. */
+  replayed?: boolean;
+  userResponse?: ActivityUserResponse;
+  hintsUsed?: number;
 }
 
 export interface SessionCompletionResult {

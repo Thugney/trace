@@ -83,14 +83,15 @@ export default function LessonPractice({ lessonId, locale, result, onCompleted }
         timeTakenSeconds: Math.round((Date.now() - startedAt) / 1000),
         hintsUsed
       });
+      if (submitted.data.replayed && Object.prototype.hasOwnProperty.call(submitted.data, 'userResponse')) {
+        setResponse(submitted.data.userResponse);
+        setHintsUsed(submitted.data.hintsUsed ?? 0);
+      }
       setFeedback(submitted.data);
       if (submitted.data.isCorrect) playSounds.quizCorrect(); else playSounds.quizWrong();
       setPhase('feedback');
     } catch (err: any) {
-      // Already answered (e.g. after a retry): move on without double counting
-      if (err?.response?.status === 400) {
-        setPhase('feedback');
-      } else if (err?.response?.data?.code === 'exam_in_progress') {
+      if (err?.response?.data?.code === 'exam_in_progress') {
         // A test was started elsewhere mid-practice: the engine now locks submissions too
         setError(copy.lockedDuringTest);
       } else {
