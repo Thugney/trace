@@ -107,7 +107,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
 
     loadProfiles();
-  }, []);
+  }, [refreshProfiles]);
 
   useEffect(() => {
     const refreshSessionState = () => {
@@ -137,19 +137,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     };
   }, [currentProfile, refreshCurrentProfile, refreshProfiles]);
 
-  // Restore saved profile when profiles are loaded OR update current profile when profiles change
+  // Restore saved profile when profiles are loaded OR update current profile when profiles change.
+  // Runs only when profiles change: a profile selected elsewhere must not be reverted to the
+  // list entry. The selected id is unchanged here, so localStorage is already correct.
   useEffect(() => {
     if (profiles.length > 0) {
-      if (!currentProfile) {
-        // Restore from localStorage if no profile selected
-        const savedProfileId = localStorage.getItem('currentProfileId');
-        if (savedProfileId) {
-          const profile = profiles.find(p => p.id === parseInt(savedProfileId));
-          if (profile) {
-            setCurrentProfile(profile);
+      setCurrentProfileState(currentProfile => {
+        if (!currentProfile) {
+          // Restore from localStorage if no profile selected
+          const savedProfileId = localStorage.getItem('currentProfileId');
+          if (savedProfileId) {
+            const profile = profiles.find(p => p.id === parseInt(savedProfileId));
+            if (profile) {
+              return profile;
+            }
           }
+          return currentProfile;
         }
-      } else {
+
         // CRITICAL: Always update current profile with fresh data from profiles array
         // This ensures attributes like ai_enabled are always up-to-date
         const updatedProfile = profiles.find(p => p.id === currentProfile.id);
@@ -164,10 +169,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
           if (hasChanges) {
             // Profile data refreshed - settings may have changed
-            setCurrentProfile(updatedProfile);
+            return updatedProfile;
           }
         }
-      }
+        return currentProfile;
+      });
     }
   }, [profiles]);
 

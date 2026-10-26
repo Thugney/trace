@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GripVertical, X } from 'lucide-react';
 import type { LearningActivity, DragDropContent, DragDropCorrect, ActivitySubmissionResult } from '../../types/activities';
 
@@ -25,25 +25,34 @@ const DragDropActivity: React.FC<Props> = ({
   const content = activity.content_data as DragDropContent;
   const correctData = activity.correct_data as DragDropCorrect;
   const zones = content.dropZones || [];
-  const items = content.draggableItems || [];
+  const items = useMemo(() => content.draggableItems || [], [content.draggableItems]);
+  const responsePlacements: Record<string, string[]> | undefined = currentResponse?.placements;
 
   const [placements, setPlacements] = useState<Record<string, string[]>>({});
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [availableItems, setAvailableItems] = useState<string[]>([]);
 
-  // Initialize
+  // Initialize. This also re-runs when this component reports its own
+  // placements; keep the tray order then, since the available set is unchanged.
   useEffect(() => {
-    if (currentResponse?.placements) {
-      setPlacements(currentResponse.placements);
+    if (responsePlacements) {
+      setPlacements(responsePlacements);
       // Calculate available items
-      const placedItems = Object.values(currentResponse.placements).flat();
-      setAvailableItems(items.map(i => i.id).filter(id => !placedItems.includes(id)));
+      const placedItems = Object.values(responsePlacements).flat();
+      const nextAvailable = items.map(i => i.id).filter(id => !placedItems.includes(id));
+      setAvailableItems(prev =>
+        prev.length === nextAvailable.length && nextAvailable.every(id => prev.includes(id))
+          ? prev
+          : nextAvailable
+      );
     } else {
-      // Initialize with all items available
+      // Initialize with all items available. A selection from a previous
+      // activity would otherwise be placed as an unknown item id.
+      setSelectedItem(null);
       setPlacements({});
       setAvailableItems(items.map(i => i.id));
     }
-  }, [items.length]);
+  }, [items, responsePlacements]);
 
   const handleItemClick = (itemId: string) => {
     if (disabled) return;
@@ -53,20 +62,18 @@ const DragDropActivity: React.FC<Props> = ({
   const handleZoneClick = (zoneId: string) => {
     if (disabled || !selectedItem) return;
 
-    const newPlacements = { ...placements };
-    if (!newPlacements[zoneId]) {
-      newPlacements[zoneId] = [];
-    }
+    const zoneItems = placements[zoneId] || [];
 
     // Check if zone has capacity (default to unlimited)
     const zone = zones.find(z => z.id === zoneId);
     const maxItems = zone?.maxItems || 999;
 
-    if (newPlacements[zoneId].length >= maxItems) {
+    if (zoneItems.length >= maxItems) {
       return; // Zone is full
     }
 
-    newPlacements[zoneId].push(selectedItem);
+    // Copy the zone list: the current one is shared with the reported response
+    const newPlacements = { ...placements, [zoneId]: [...zoneItems, selectedItem] };
     setPlacements(newPlacements);
     setAvailableItems(availableItems.filter(id => id !== selectedItem));
     setSelectedItem(null);

@@ -92,16 +92,17 @@ export default function SimpleTaskCard({ task, onComplete, disabled, index = 0 }
   const today = getLocalDateKey();
   const completedToday = task.last_completed_date === today;
 
-  // If task requires timer, render the timer card instead
-  if (requiresTimer && !task.completed) {
-    return <TaskTimerCard task={task} onComplete={onComplete} index={index} />;
-  }
-
-  // Entrance animation
+  // Entrance animation. Must run before the timer-task early return so the
+  // hook order stays stable when a timer task transitions to completed.
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), index * 100);
     return () => clearTimeout(timer);
   }, [index]);
+
+  // If task requires timer, render the timer card instead
+  if (requiresTimer && !task.completed) {
+    return <TaskTimerCard task={task} onComplete={onComplete} index={index} />;
+  }
 
   const triggerConfetti = () => {
     // Main burst

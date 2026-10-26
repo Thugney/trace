@@ -57,23 +57,23 @@ export default function ChildInsights({ parentId }: ChildInsightsProps) {
   const [selectedChild, setSelectedChild] = useState<number | null>(null);
 
   useEffect(() => {
+    const loadInsights = async () => {
+      try {
+        setLoading(true);
+        const response = await aiAPI.getChildInsights(parentId, 7);
+        setInsights(response.data);
+        if (response.data.children.length > 0) {
+          // Keep an existing selection; only default to the first child.
+          setSelectedChild(prev => prev || response.data.children[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to load child insights:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadInsights();
   }, [parentId]);
-
-  const loadInsights = async () => {
-    try {
-      setLoading(true);
-      const response = await aiAPI.getChildInsights(parentId, 7);
-      setInsights(response.data);
-      if (response.data.children.length > 0 && !selectedChild) {
-        setSelectedChild(response.data.children[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load child insights:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

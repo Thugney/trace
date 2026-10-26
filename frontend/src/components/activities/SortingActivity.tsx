@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { GripVertical, ArrowUp, ArrowDown } from 'lucide-react';
 import type { LearningActivity, SortingContent, SortingCorrect, ActivitySubmissionResult } from '../../types/activities';
 
@@ -23,20 +23,24 @@ const SortingActivity: React.FC<Props> = ({
 }) => {
   const content = activity.content_data as SortingContent;
   const correctData = activity.correct_data as SortingCorrect;
-  const originalItems = content.items || [];
+  const originalItems = useMemo(() => content.items || [], [content.items]);
+  const responseOrder: string[] | undefined = currentResponse?.order;
 
   const [items, setItems] = useState<typeof originalItems>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Initialize with shuffled items
+  // Initialize with shuffled items. Re-running for this component's own
+  // reported order restores the same order, so it never reshuffles mid-play.
   useEffect(() => {
-    if (currentResponse?.order) {
+    if (responseOrder) {
       // Restore from response
-      const ordered = currentResponse.order.map((id: string) =>
+      const ordered = responseOrder.map((id: string) =>
         originalItems.find(item => item.id === id)
-      ).filter(Boolean);
+      ).filter((item): item is (typeof originalItems)[number] => Boolean(item));
       setItems(ordered);
     } else {
+      // Fresh start (mount or next activity): drop any selection from before
+      setSelectedIndex(null);
       // Shuffle items
       const shuffled = [...originalItems];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -45,7 +49,7 @@ const SortingActivity: React.FC<Props> = ({
       }
       setItems(shuffled);
     }
-  }, [originalItems.length]);
+  }, [originalItems, responseOrder]);
 
   const updateOrder = (newItems: typeof items) => {
     setItems(newItems);

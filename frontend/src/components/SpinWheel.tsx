@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Gift, Star, Trophy, X } from 'lucide-react';
 import { gamificationAPI, SpinWheelPrize } from '../services/api';
 import playSounds from '../utils/sounds';
@@ -33,7 +33,7 @@ export default function SpinWheel({ profileId, onSpinComplete }: SpinWheelProps)
   const [showModal, setShowModal] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
 
-  const loadSpinWheel = async () => {
+  const loadSpinWheel = useCallback(async () => {
     try {
       const res = await gamificationAPI.getSpinWheel(profileId);
       setCanSpin(res.data.canSpin);
@@ -45,11 +45,11 @@ export default function SpinWheel({ profileId, onSpinComplete }: SpinWheelProps)
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
 
   useEffect(() => {
     loadSpinWheel();
-  }, [profileId]);
+  }, [loadSpinWheel]);
 
   const spin = async () => {
     if (spinning || !canSpin) return;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Gift, Plus, Edit2, Trash2, Check, X, Clock, Star, Save, Users, User, Tag } from 'lucide-react';
 import { rewardsAPI, Reward, RewardClaim, RewardCategory } from '../services/api';
 import playSounds from '../utils/sounds';
@@ -63,11 +63,10 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
   });
   const visibleCategories = dedupeRewardCategories(categories);
 
-  useEffect(() => {
-    loadData();
-  }, [parentId]);
+  // The toast context object is rebuilt each render, but its methods are stable.
+  const toastError = toast.error;
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [rewardsRes, claimsRes, childrenRes, categoriesRes] = await Promise.all([
@@ -82,11 +81,15 @@ export default function RewardManagement({ parentId }: RewardManagementProps) {
       setCategories(categoriesRes.data);
     } catch (error: any) {
       console.error('Failed to load rewards data:', error);
-      toast.error('Failed to load rewards');
+      toastError('Failed to load rewards');
     } finally {
       setLoading(false);
     }
-  };
+  }, [parentId, toastError]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

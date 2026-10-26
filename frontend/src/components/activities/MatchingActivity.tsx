@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { LearningActivity, MatchingContent, MatchingCorrect, ActivitySubmissionResult } from '../../types/activities';
 
 interface Props {
@@ -22,13 +22,22 @@ const MatchingActivity: React.FC<Props> = ({
 }) => {
   const content = activity.content_data as MatchingContent;
   const correctData = activity.correct_data as MatchingCorrect;
-  const pairs = content.pairs || [];
+  // Keyed by content, so a parent passing an equal copy of the activity keeps the board.
+  const pairsSignature = JSON.stringify(content.pairs || []);
+  const pairs = useMemo(
+    () => JSON.parse(pairsSignature) as MatchingContent['pairs'],
+    [pairsSignature]
+  );
+  const activityId = activity.id;
 
   const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
   const [matches, setMatches] = useState<Record<number, number>>({});
   const [shuffledRight, setShuffledRight] = useState<number[]>([]);
 
-  // Shuffle right side items on mount
+  // Shuffle right side items and start unmatched. A different activity starts
+  // fresh: the parent reuses this instance, so matches and the selection must
+  // not carry over. A saved response is restored by the effect below, which
+  // runs after this one.
   useEffect(() => {
     const indices = pairs.map((_, i) => i);
     for (let i = indices.length - 1; i > 0; i--) {
@@ -36,7 +45,9 @@ const MatchingActivity: React.FC<Props> = ({
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
     setShuffledRight(indices);
-  }, [pairs.length]);
+    setMatches({});
+    setSelectedLeft(null);
+  }, [activityId, pairs]);
 
   // Restore matches from response
   useEffect(() => {
@@ -147,6 +158,9 @@ const MatchingActivity: React.FC<Props> = ({
         <div className="space-y-3">
           {shuffledRight.map((originalIndex) => {
             const pair = pairs[originalIndex];
+            // The order can still be the previous, longer activity's until the
+            // reshuffle above runs
+            if (!pair) return null;
             // Find if this right item is matched
             const matchedLeftIndex = Object.entries(matches).find(
               ([_, r]) => r === originalIndex

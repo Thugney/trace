@@ -56,11 +56,14 @@ export default function TutorPanel({ lessonId, locale, lessonTitle, sections, pr
   const unavailable = busy || notice !== null;
 
   useEffect(() => {
-    generation.current++;
+    // The ref object itself (a request counter, not a DOM node): cleanup must
+    // bump the live counter so in-flight replies are dropped on reset/unmount.
+    const requests = generation;
+    requests.current++;
     setHistory([]); setQuestion(''); setBusy(false); setLanguage(locale);
     setNotice(null); setMode('explain'); setItemKey(firstItemKey); pending.current = false;
     lastRequest.current = { mode: 'explain' };
-    return () => { generation.current++; };
+    return () => { requests.current++; };
   }, [lessonId, locale, firstItemKey]);
 
   const revealResult = () => requestAnimationFrame(() => {

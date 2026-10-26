@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { learnAPI } from '../../services/api';
@@ -22,18 +22,19 @@ export default function LessonFlashcards({ lessonId, locale }: LessonFlashcardsP
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const loadError = copy.error;
+  const load = useCallback(async () => {
     try {
       const response = await learnAPI.getFlashcards(lessonId);
       setCards(response.data.cards);
       setIndex(0);
       setFlipped(false);
     } catch (err: any) {
-      setError(err?.response?.data?.error || copy.error);
+      setError(err?.response?.data?.error || loadError);
     }
-  };
+  }, [lessonId, loadError]);
 
-  useEffect(() => { load(); }, [lessonId]);
+  useEffect(() => { load(); }, [load]);
 
   const due = cards.filter((card) => card.due);
   const current = due[index];

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { h5pAPI, profilesAPI } from '../services/api';
 import { Loader2, AlertCircle, Award, RotateCcw, Star, Trophy, X } from 'lucide-react';
 
@@ -321,9 +321,41 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
   const [result, setResult] = useState<CompletionResult | null>(null);
   const [frameHeight, setFrameHeight] = useState(DEFAULT_FRAME_HEIGHT);
 
+  // Callers pass inline onError handlers; read the latest one without making
+  // the content load reactive to it (a reload would start a new attempt).
+  const onErrorRef = useRef(onError);
+  useEffect(() => {
+    onErrorRef.current = onError;
+  });
+
+  const loadContent = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setPlayerData(null);
+      setCompleted(false);
+      setShowPopup(false);
+      setResult(null);
+      setFrameHeight(DEFAULT_FRAME_HEIGHT);
+
+      const [response, streamToken] = await Promise.all([
+        h5pAPI.getPlayerData(contentId),
+        profilesAPI.getStreamToken()
+      ]);
+      setAccessToken(streamToken.data.token);
+      setPlayerData(response.data);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.error || 'Failed to load content';
+      setError(errorMessage);
+      onErrorRef.current?.(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [contentId]);
+
   useEffect(() => {
     loadContent();
-  }, [contentId]);
+  }, [loadContent]);
 
   useEffect(() => {
     completedAttemptRef.current = null;
@@ -418,31 +450,6 @@ export const H5PPlayer: React.FC<H5PPlayerProps> = ({
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onComplete, onError, playerData]);
-
-  const loadContent = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setPlayerData(null);
-      setCompleted(false);
-      setShowPopup(false);
-      setResult(null);
-      setFrameHeight(DEFAULT_FRAME_HEIGHT);
-
-      const [response, streamToken] = await Promise.all([
-        h5pAPI.getPlayerData(contentId),
-        profilesAPI.getStreamToken()
-      ]);
-      setAccessToken(streamToken.data.token);
-      setPlayerData(response.data);
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to load content';
-      setError(errorMessage);
-      onError?.(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const iframeSrcDoc = useMemo(() => {
     if (!playerData) {

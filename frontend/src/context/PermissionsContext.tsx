@@ -170,7 +170,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('user_permissions_profile_id');
       localStorage.removeItem('user_family');
     }
-  }, [currentProfile?.id, refreshPermissions]);
+  }, [currentProfile, refreshPermissions]);
 
   // Computed access flags
   const hasCoreAppAccess = permissions?.coreApp ?? false;

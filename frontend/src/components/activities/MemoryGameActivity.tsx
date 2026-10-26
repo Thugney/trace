@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { RotateCw, Trophy } from 'lucide-react';
 import type { LearningActivity, MemoryGameContent, ActivitySubmissionResult } from '../../types/activities';
 
@@ -30,15 +30,24 @@ const MemoryGameActivity: React.FC<Props> = ({
   theme: _theme
 }) => {
   const content = activity.content_data as MemoryGameContent;
-  const pairs = content.pairs || [];
+  // Keyed by content, so a parent passing an equal copy of the activity keeps the board.
+  const pairsSignature = JSON.stringify(content.pairs || []);
+  const pairs = useMemo(
+    () => JSON.parse(pairsSignature) as MemoryGameContent['pairs'],
+    [pairsSignature]
+  );
+  const activityId = activity.id;
 
   const [cards, setCards] = useState<Card[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [isChecking, setIsChecking] = useState(false);
+  // The last response this component reported, so its echo is not "restored".
+  const reportedRef = useRef<unknown>(null);
 
-  // Initialize and shuffle cards
+  // Initialize and shuffle cards. A different activity starts a fresh game:
+  // the parent reuses this instance, so progress must not carry over.
   useEffect(() => {
     const newCards: Card[] = [];
     pairs.forEach((pair, index) => {
@@ -65,11 +74,15 @@ const MemoryGameActivity: React.FC<Props> = ({
     }
 
     setCards(newCards);
-  }, [pairs.length]);
+    setFlippedCards([]);
+    setMatchedPairs([]);
+    setMoves(0);
+    setIsChecking(false);
+  }, [activityId, pairs]);
 
-  // Restore state from response
+  // Restore state from a response this component did not report itself
   useEffect(() => {
-    if (currentResponse?.matchedPairs) {
+    if (currentResponse?.matchedPairs && currentResponse !== reportedRef.current) {
       setMatchedPairs(currentResponse.matchedPairs);
       setMoves(currentResponse.moves || 0);
     }
@@ -77,12 +90,34 @@ const MemoryGameActivity: React.FC<Props> = ({
 
   // Report progress
   useEffect(() => {
-    onResponse({
+    const response = {
       matchedPairs,
       moves,
       completed: matchedPairs.length === pairs.length
-    });
-  }, [matchedPairs, moves, pairs.length]);
+    };
+    reportedRef.current = response;
+    onResponse(response);
+  }, [matchedPairs, moves, pairs.length, onResponse]);
+
+  // Resolve a flipped pair. Cleanup cancels the pending check when the board
+  // resets, so a previous activity's pair cannot land on the next one.
+  useEffect(() => {
+    if (flippedCards.length !== 2) return;
+
+    const [firstCard, secondCard] = flippedCards.map(id => cards.find(c => c.id === id));
+    const matchedPairId =
+      firstCard && secondCard && firstCard.pairId === secondCard.pairId ? firstCard.pairId : null;
+
+    // Match found: keep both cards; no match: flip back
+    const timer = setTimeout(() => {
+      if (matchedPairId !== null) {
+        setMatchedPairs(prev => [...prev, matchedPairId]);
+      }
+      setFlippedCards([]);
+      setIsChecking(false);
+    }, matchedPairId !== null ? 500 : 1000);
+    return () => clearTimeout(timer);
+  }, [flippedCards, cards]);
 
   const handleCardClick = useCallback((cardId: number) => {
     if (disabled || isChecking) return;
@@ -102,25 +137,6 @@ const MemoryGameActivity: React.FC<Props> = ({
     if (newFlipped.length === 2) {
       setIsChecking(true);
       setMoves(prev => prev + 1);
-
-      const [firstId, secondId] = newFlipped;
-      const firstCard = cards.find(c => c.id === firstId);
-      const secondCard = cards.find(c => c.id === secondId);
-
-      if (firstCard && secondCard && firstCard.pairId === secondCard.pairId) {
-        // Match found
-        setTimeout(() => {
-          setMatchedPairs(prev => [...prev, firstCard.pairId]);
-          setFlippedCards([]);
-          setIsChecking(false);
-        }, 500);
-      } else {
-        // No match - flip back
-        setTimeout(() => {
-          setFlippedCards([]);
-          setIsChecking(false);
-        }, 1000);
-      }
     }
   }, [cards, flippedCards, matchedPairs, disabled, isChecking]);
 

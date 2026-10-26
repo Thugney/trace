@@ -30,9 +30,7 @@ const FillBlanksActivity: React.FC<Props> = ({
   }, 0);
 
   useEffect(() => {
-    if (answers.length !== blankCount) {
-      setAnswers(new Array(blankCount).fill(''));
-    }
+    setAnswers(prev => (prev.length !== blankCount ? new Array(blankCount).fill('') : prev));
   }, [blankCount]);
 
   useEffect(() => {

@@ -33,7 +33,7 @@ const FlashcardsActivity: React.FC<Props> = ({
   useEffect(() => {
     // Report progress as response
     onResponse({ reviewedCount: reviewedCards.size });
-  }, [reviewedCards.size]);
+  }, [reviewedCards.size, onResponse]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);

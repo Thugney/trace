@@ -17,20 +17,19 @@ export default function HiddenAchievements({ profileId, showAll = false }: Hidde
   const [newlyUnlocked, setNewlyUnlocked] = useState<Achievement | null>(null);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
 
-  const loadAchievements = async () => {
-    try {
-      const res = await gamificationAPI.getAchievementsWithHidden(profileId);
-      setVisible(res.data.visible);
-      setEarnedHidden(res.data.earnedHidden);
-      setHiddenStats(res.data.hiddenStats);
-    } catch (error) {
-      console.error('Failed to load achievements:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const loadAchievements = async () => {
+      try {
+        const res = await gamificationAPI.getAchievementsWithHidden(profileId);
+        setVisible(res.data.visible);
+        setEarnedHidden(res.data.earnedHidden);
+        setHiddenStats(res.data.hiddenStats);
+      } catch (error) {
+        console.error('Failed to load achievements:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadAchievements();
   }, [profileId]);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { gamificationAPI, PointsAdjustmentEntry, tasksAPI } from '../services/api';
 import { Profile, Task } from '../types';
 import { Coins, Plus, Minus, History, ChevronDown, ChevronUp, Clock, AlertTriangle, Send } from 'lucide-react';
@@ -89,11 +89,7 @@ export default function PointsManagement({ children, parentId }: Props) {
     { label: 'Bonus reward', value: 'Bonus points for being helpful' },
   ];
 
-  useEffect(() => {
-    loadData();
-  }, [children]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (children.length === 0) return;
 
     setLoading(true);
@@ -148,7 +144,11 @@ export default function PointsManagement({ children, parentId }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [children]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleAdjust = async (childId: number) => {
     if (amount <= 0) {

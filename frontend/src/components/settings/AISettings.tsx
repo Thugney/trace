@@ -17,25 +17,24 @@ export default function AISettings({ profiles, onSuccess }: AISettingsProps) {
   const childProfiles = profiles.filter(p => p.type === 'child');
 
   useEffect(() => {
+    const loadAllAISettings = async () => {
+      setLoading(true);
+      const settingsMap: Record<number, any> = {};
+
+      for (const profile of profiles.filter(p => p.type === 'child')) {
+        try {
+          const response = await aiAPI.getSettings(profile.id);
+          settingsMap[profile.id] = response.data;
+        } catch (error) {
+          console.error(`Failed to load AI settings for ${profile.name}:`, error);
+        }
+      }
+
+      setAiSettings(settingsMap);
+      setLoading(false);
+    };
     loadAllAISettings();
   }, [profiles]);
-
-  const loadAllAISettings = async () => {
-    setLoading(true);
-    const settingsMap: Record<number, any> = {};
-
-    for (const profile of childProfiles) {
-      try {
-        const response = await aiAPI.getSettings(profile.id);
-        settingsMap[profile.id] = response.data;
-      } catch (error) {
-        console.error(`Failed to load AI settings for ${profile.name}:`, error);
-      }
-    }
-
-    setAiSettings(settingsMap);
-    setLoading(false);
-  };
 
   const handleUpdateSettings = async (profileId: number, updates: any) => {
     try {

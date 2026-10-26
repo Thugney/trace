@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Square, Clock, Timer, Camera, AlertTriangle, Calendar, Sparkles, Trophy, Star } from 'lucide-react';
 import { tasksAPI } from '../services/api';
 import { useTaskIcon } from '../context/AgeContext';
@@ -161,51 +161,7 @@ export function ActiveMissionCard({ task, onComplete }: ActiveMissionCardProps) 
   const hasProof = !!task.proof_photo_url;
   const targetSeconds = task.timer_duration_minutes ? task.timer_duration_minutes * 60 : 600; // Default 10 min
 
-  // Load timer state on mount
-  useEffect(() => {
-    const loadTimerState = async () => {
-      try {
-        const res = await tasksAPI.getTimer(task.id);
-
-        if (res.data.timer_state) {
-          setLocalElapsed(res.data.timer_state.elapsed_seconds);
-          setIsRunning(res.data.timer_state.is_running);
-          setIsPaused(res.data.timer_state.is_paused);
-        } else {
-          // Auto-start timer if not started
-          await handleStart();
-        }
-      } catch (e) {
-        console.error('Failed to load timer state:', e);
-        // Try to start timer on error
-        await handleStart();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTimerState();
-  }, [task.id]);
-
-  // Local timer tick when running
-  useEffect(() => {
-    if (isRunning && !isPaused) {
-      intervalRef.current = window.setInterval(() => {
-        setLocalElapsed(prev => prev + 1);
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isRunning, isPaused]);
-
-  const handleStart = async () => {
+  const handleStart = useCallback(async () => {
     setActionLoading(true);
     setError(null);
     try {
@@ -230,7 +186,51 @@ export function ActiveMissionCard({ task, onComplete }: ActiveMissionCardProps) 
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [task.id]);
+
+  // Load timer state on mount
+  useEffect(() => {
+    const loadTimerState = async () => {
+      try {
+        const res = await tasksAPI.getTimer(task.id);
+
+        if (res.data.timer_state) {
+          setLocalElapsed(res.data.timer_state.elapsed_seconds);
+          setIsRunning(res.data.timer_state.is_running);
+          setIsPaused(res.data.timer_state.is_paused);
+        } else {
+          // Auto-start timer if not started
+          await handleStart();
+        }
+      } catch (e) {
+        console.error('Failed to load timer state:', e);
+        // Try to start timer on error
+        await handleStart();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTimerState();
+  }, [task.id, handleStart]);
+
+  // Local timer tick when running
+  useEffect(() => {
+    if (isRunning && !isPaused) {
+      intervalRef.current = window.setInterval(() => {
+        setLocalElapsed(prev => prev + 1);
+      }, 1000);
+    } else if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, isPaused]);
 
   const handlePause = async () => {
     setActionLoading(true);

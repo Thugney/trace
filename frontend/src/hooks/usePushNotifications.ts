@@ -136,7 +136,7 @@ export function usePushNotifications() {
       }));
       return false;
     }
-  }, [state.isSupported]);
+  }, [state.isSupported, refreshSubscriptionState]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Check } from 'lucide-react';
 import type { LearningActivity, WordSearchContent, ActivitySubmissionResult } from '../../types/activities';
 
@@ -27,8 +27,8 @@ const WordSearchActivity: React.FC<Props> = ({
   theme: _theme
 }) => {
   const content = activity.content_data as WordSearchContent;
-  const grid = content.grid || [];
-  const words = content.words || [];
+  const grid = useMemo(() => content.grid || [], [content.grid]);
+  const words = useMemo(() => content.words || [], [content.words]);
 
   const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
   const [foundWords, setFoundWords] = useState<string[]>([]);
@@ -133,7 +133,7 @@ const WordSearchActivity: React.FC<Props> = ({
 
     setSelectedCells([]);
     setIsSelecting(false);
-  }, [getSelectedWord, selectedCells, foundWords, foundCells, words]);
+  }, [getSelectedWord, selectedCells, foundWords, foundCells, words, onResponse]);
 
   // Double tap or click outside to confirm selection
   const handleConfirm = () => {

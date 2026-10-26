@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Timer, Zap, Trophy, Play, CheckCircle } from 'lucide-react';
 import { gamificationAPI, CountdownChallenge } from '../services/api';
 import playSounds from '../utils/sounds';
@@ -15,14 +15,25 @@ export default function CountdownChallengeCard({ profileId, onChallengeComplete 
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
 
-  const loadChallenge = async () => {
+  // Latest committed challenge and completion callback, read by loadChallenge
+  // without making it reactive: the load must only re-run for a new profile
+  // (or an expiry reload), not whenever the challenge or parent callback changes.
+  const challengeRef = useRef(challenge);
+  const onChallengeCompleteRef = useRef(onChallengeComplete);
+  useEffect(() => {
+    challengeRef.current = challenge;
+    onChallengeCompleteRef.current = onChallengeComplete;
+  });
+
+  const loadChallenge = useCallback(async () => {
     try {
       const res = await gamificationAPI.getCountdownChallenge(profileId);
       const newChallenge = res.data.active;
+      const previous = challengeRef.current;
 
       // Check if challenge just completed
-      if (challenge && !challenge.completed && newChallenge?.completed) {
-        onChallengeComplete?.();
+      if (previous && !previous.completed && newChallenge?.completed) {
+        onChallengeCompleteRef.current?.();
       }
 
       setChallenge(newChallenge);
@@ -32,11 +43,11 @@ export default function CountdownChallengeCard({ profileId, onChallengeComplete 
     } finally {
       setLoading(false);
     }
-  };
+  }, [profileId]);
 
   useEffect(() => {
     loadChallenge();
-  }, [profileId]);
+  }, [loadChallenge]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -65,7 +76,7 @@ export default function CountdownChallengeCard({ profileId, onChallengeComplete 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [challenge]);
+  }, [challenge, loadChallenge]);
 
   const startChallenge = async () => {
     if (starting) return;

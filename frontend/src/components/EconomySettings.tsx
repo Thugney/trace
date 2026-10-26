@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { gamificationAPI, EconomySettings as EconomySettingsType } from '../services/api';
 import { Profile } from '../types';
 import { Shield, Clock, Zap, Gift, ChevronDown, ChevronUp, Save, AlertCircle, DollarSign, Info } from 'lucide-react';
@@ -32,11 +32,10 @@ export default function EconomySettings({ children }: Props) {
   const [editedSettings, setEditedSettings] = useState<Record<number, Partial<EconomySettingsType>>>({});
   const [showPricingGuide, setShowPricingGuide] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadEconomyData();
-  }, [children]);
+  // The toast context object is rebuilt each render, but its methods are stable.
+  const toastError = toast.error;
 
-  const loadEconomyData = async () => {
+  const loadEconomyData = useCallback(async () => {
     if (children.length === 0) return;
 
     setLoading(true);
@@ -70,11 +69,15 @@ export default function EconomySettings({ children }: Props) {
       setEconomies(results.filter(Boolean) as ChildEconomy[]);
     } catch (error) {
       console.error('Failed to load economy data:', error);
-      toast.error('Failed to load economy settings');
+      toastError('Failed to load economy settings');
     } finally {
       setLoading(false);
     }
-  };
+  }, [children, toastError]);
+
+  useEffect(() => {
+    loadEconomyData();
+  }, [loadEconomyData]);
 
   const handleSettingChange = (profileId: number, key: keyof EconomySettingsType, value: any) => {
     setEditedSettings(prev => ({

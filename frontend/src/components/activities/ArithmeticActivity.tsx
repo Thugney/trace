@@ -26,9 +26,7 @@ const ArithmeticActivity: React.FC<Props> = ({
   const [answers, setAnswers] = useState<string[]>([]);
 
   useEffect(() => {
-    if (answers.length !== problems.length) {
-      setAnswers(new Array(problems.length).fill(''));
-    }
+    setAnswers(prev => (prev.length !== problems.length ? new Array(problems.length).fill('') : prev));
   }, [problems.length]);
 
   useEffect(() => {
