@@ -477,11 +477,25 @@ export interface ReviewAttemptResult {
   source_lessons?: Record<string, { id: number; title: string }>;
 }
 
+export type TutorMode = 'explain' | 'hint' | 'guided_practice' | 'check_understanding' | 'next_step';
+export interface TutorOptions {
+  mode?: TutorMode;
+  locale?: LearnLocale;
+  item_key?: string;
+  hint_level?: number;
+  recovery?: boolean;
+}
 export interface TutorReply {
   answer: string;
   source: 'ai' | 'lesson_fallback';
   provider?: string;
   reason?: string;
+  mode?: TutorMode;
+  references?: { lesson_id: number; section_index: number; heading: string }[];
+  recommendation?: { lesson_id: number; title: string; reason: string } | null;
+  hint_level?: number;
+  practice_item_key?: string;
+  formative_only?: boolean;
 }
 
 export interface ReviewQueue {
