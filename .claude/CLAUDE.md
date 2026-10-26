@@ -369,8 +369,10 @@ The **claude** tab exists because one line was added to `files()` in `factory/da
 `project-init factory --apply` replaces that file, so reapply it afterwards; the line and the
 reasoning are in `.project-init/evidence/dashboard-claude-tab.md`.
 
-The dashboard's cards print both "Codex" and "Claude" on every job regardless of owner, which is
-hardcoded in `card()`. Ownership lives in the job's notes and at the top of its `spec.md`.
+A card shows the job's owner from its `notes.owner`, so set that note when you create a job:
+`workers{}` in `board.json` is written once at init and never updated, so it cannot carry the
+owner. A job with no owner note falls back to showing both agent names. That reading of
+`notes.owner` is a second local line in `card()`, replaced by the same `--apply`.
 
 ---
 
