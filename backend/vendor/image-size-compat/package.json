@@ -1,0 +1,11 @@
+{
+  "name": "@familyhub/image-size-compat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Synchronous H5P image-size v1 call compatibility backed by patched image-size v2",
+  "main": "index.cjs",
+  "license": "MIT",
+  "dependencies": {
+    "patched-image-size": "npm:image-size@2.0.4"
+  }
+}

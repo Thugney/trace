@@ -173,7 +173,8 @@ const imageExtensionFromMime = (mimeType?: string) => {
 
 const downloadImageToQuizMedia = async (imageUrl: string, prefix: string) => {
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-  const ext = imageExtensionFromMime(response.headers['content-type']);
+  const contentType = response.headers['content-type'];
+  const ext = imageExtensionFromMime(typeof contentType === 'string' ? contentType : undefined);
   const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const filepath = path.join(QUIZ_MEDIA_DIR, filename);
   fs.writeFileSync(filepath, response.data);

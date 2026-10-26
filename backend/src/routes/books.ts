@@ -271,7 +271,8 @@ const saveBase64ImageToBookMedia = (data: string, prefix: string) => {
 
 const downloadImageToBookMedia = async (imageUrl: string, prefix: string) => {
   const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-  const ext = response.headers['content-type']?.includes('png') ? '.png' : '.jpg';
+  const contentType = response.headers['content-type'];
+  const ext = typeof contentType === 'string' && contentType.includes('png') ? '.png' : '.jpg';
   const filename = `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   const filepath = path.join(BOOK_MEDIA_DIR, filename);
   fs.writeFileSync(filepath, response.data);
