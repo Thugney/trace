@@ -120,4 +120,52 @@ describe('Notes Routes', () => {
       expect(deletedNote).toBeUndefined();
     });
   });
+
+  describe('ownership (specs/003-learn-lesson-notes US4)', () => {
+    function siblings() {
+      const parent = createTestProfile({ name: 'Parent', type: 'parent' });
+      const childA = createTestProfile({ name: 'Child A', type: 'child', parent_id: parent.id });
+      const childB = createTestProfile({ name: 'Child B', type: 'child', parent_id: parent.id });
+      const note = createTestNote(childB.id, { title: 'Diary', content: 'Secret', category: 'Journal' });
+      testDb.prepare("UPDATE notes SET tags = ?, reminder_at = '2999-01-01' WHERE id = ?").run(JSON.stringify(['private']), note.id);
+      return { parent, childA, childB, note };
+    }
+
+    it('refuses a child every read of a sibling\'s notes', async () => {
+      const { childA, childB, note } = siblings();
+      const headers = authHeaders(childA.id);
+
+      for (const path of [`/notes/${childB.id}`, `/notes/${childB.id}/categories`, `/notes/${childB.id}/tags`, `/notes/${childB.id}/reminders`]) {
+        const response = await request(app).get(path).set(headers);
+        expect(response.status, path).toBe(403);
+      }
+      expect((await request(app).get(`/notes/note/${note.id}`).set(headers)).status).toBe(404);
+    });
+
+    it('refuses a child creating, changing or deleting a sibling\'s notes', async () => {
+      const { childA, childB, note } = siblings();
+      const headers = authHeaders(childA.id);
+
+      expect((await request(app).post('/notes').set(headers).send({ profile_id: childB.id, title: 'Planted' })).status).toBe(403);
+      expect((await request(app).put(`/notes/${note.id}`).set(headers).send({ content: 'Changed' })).status).toBe(403);
+      expect((await request(app).delete(`/notes/${note.id}`).set(headers)).status).toBe(403);
+
+      const after: any = testDb.prepare('SELECT content FROM notes WHERE id = ?').get(note.id);
+      expect(after.content).toBe('Secret');
+      expect((testDb.prepare('SELECT COUNT(*) as n FROM notes WHERE profile_id = ?').get(childB.id) as any).n).toBe(1);
+    });
+
+    it('refuses a parent who does not manage the child and keeps the managing parent\'s access', async () => {
+      const { parent, childB, note } = siblings();
+      const stranger = createTestProfile({ name: 'Stranger', type: 'parent' });
+
+      expect((await request(app).get(`/notes/${childB.id}/tags`).set(authHeaders(stranger.id))).status).toBe(403);
+      expect((await request(app).get(`/notes/note/${note.id}`).set(authHeaders(stranger.id))).status).toBe(404);
+      expect((await request(app).put(`/notes/${note.id}`).set(authHeaders(stranger.id)).send({ content: 'x' })).status).toBe(403);
+
+      expect((await request(app).get(`/notes/${childB.id}/tags`).set(authHeaders(parent.id))).body).toEqual(['private']);
+      expect((await request(app).get(`/notes/${childB.id}/categories`).set(authHeaders(parent.id))).body).toEqual(['Journal']);
+      expect((await request(app).get(`/notes/note/${note.id}`).set(authHeaders(parent.id))).body.title).toBe('Diary');
+    });
+  });
 });

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
-import { AlertCircle, ClipboardList, GraduationCap, MessageSquareText, Send, XCircle } from 'lucide-react';
+import { AlertCircle, ClipboardList, GraduationCap, MessageSquareText, Send, StickyNote, XCircle } from 'lucide-react';
 import { learnAPI } from '../../services/api';
 import { useProfile } from '../../context/ProfileContext';
 import Avatar from '../../components/Avatar';
-import type { AssignmentTargetKind, LearnerProgress, LearnStatus, LearnSubject } from '../../types/learn';
+import type { AssignmentTargetKind, ChildLessonNotes, LearnerProgress, LearnStatus, LearnSubject } from '../../types/learn';
+import { noteDate } from '../../components/learn/LessonNotesPanel';
 import { learnCopy, learnSurface, newIdempotencyKey, stateBadgeClass, subjectStyle } from '../../components/learn/learnCopy';
 import { assignmentTitle } from '../../components/learn/assignments';
 
@@ -13,6 +14,58 @@ const copy = learnCopy('nb');
 const GRADE_OPTIONS = Array.from({ length: 10 }, (_, index) => index + 1);
 
 type WorkOption = { value: string; label: string };
+
+// A child's lesson notes, read-only and loaded on demand (specs/003-learn-lesson-notes US3)
+function ChildLessonNotesView({ childId }: { childId: number }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<ChildLessonNotes | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      setFailed(false);
+      learnAPI.getChildNotes(childId).then((response) => setData(response.data)).catch(() => setFailed(true));
+    }
+  };
+  const subjects = data?.subjects || [];
+
+  return (
+    <div className="mt-4">
+      <button type="button" onClick={toggle} aria-expanded={open} aria-controls={`child-notes-${childId}`} className={learnSurface.secondaryButton}>
+        <StickyNote className="h-4 w-4" aria-hidden="true" /> {copy.lessonNotes} {open ? '▾' : '▸'}
+      </button>
+      {open && (
+        <div id={`child-notes-${childId}`} className="mt-3 space-y-4">
+          {failed && <p className="text-sm text-rose-700" role="alert">{copy.error}</p>}
+          {!failed && !data && <p className={clsx('text-sm', learnSurface.muted)}>{copy.loading}</p>}
+          {data && subjects.length === 0 && <p className={clsx('text-sm', learnSurface.muted)}>{copy.noChildNotes}</p>}
+          {subjects.map((subject) => (
+            <section key={subject.subject_slug || 'other'}>
+              <h4 className="text-sm font-semibold">
+                {subject.subject_slug ? `${subjectStyle(subject.subject_slug).emoji} ` : ''}{subject.subject_title}
+              </h4>
+              {subject.lessons.map((lesson) => (
+                <div key={lesson.lesson_id} className="mt-2">
+                  <p className="text-xs font-medium text-slate-600">{lesson.lesson_title}</p>
+                  <ul className="mt-1 grid gap-2 sm:grid-cols-2">
+                    {lesson.notes.map((note) => (
+                      <li key={note.id} className="rounded-xl p-3 text-sm text-slate-900 shadow-sm ring-1 ring-black/5" style={{ background: note.color }}>
+                        <p className="whitespace-pre-wrap break-words">{note.content}</p>
+                        <p className="mt-1 text-xs text-slate-600">{noteDate(note.updated_at, { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Toggle({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (next: boolean) => void; disabled?: boolean }) {
   return (
@@ -403,6 +456,8 @@ export default function LearnParent() {
                             ))}
                           </ul>
                         )}
+
+                        <ChildLessonNotesView childId={child.id} />
                       </>
                     )}
                   </li>

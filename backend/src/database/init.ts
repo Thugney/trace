@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import { runProductionReadyMigrations } from './migrations/production-ready';
+import { migrateNotesLearnLink } from './noteLearnLink';
 import { FEATURE_KEYS } from '../services/feature-keys';
 
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, '../../data/family.db');
@@ -1576,6 +1577,9 @@ export function initDatabase() {
   } catch (error: any) {
     console.error('Migration error (notes is_pinned/reminder_at):', error.message);
   }
+
+  // Migration: Link notes to the Learn lesson they were written in
+  migrateNotesLearnLink(db);
 
   // Migration: Add goal_category, reward_image, current_points to monthly_goals table
   try {

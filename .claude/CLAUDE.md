@@ -258,6 +258,15 @@ Located in `BookLibrary.tsx` with tabs:
 - Use `Avatar` component for proper image/emoji rendering
 - In `<option>` elements, use `getDisplayAvatar()` helper (emoji only, no URLs)
 
+### Learn Lesson Notes (specs/003-learn-lesson-notes)
+Sticky notes written beside a Learn lesson are ordinary `notes` rows with `learn_lesson_id`/`learn_topic_id` set, so they also show on `/notes`.
+
+- **Backend:** `services/learn/lessonNotes.ts`; Learn routes `POST /learn/lessons/:id/notes`, `PUT|DELETE /learn/lesson-notes/:id` (owner only), `GET /learn/me/assignment-notes`, `GET /learn/children/:id/notes` (parent/admin, admin audited). The lesson payload carries `notes`.
+- **Test lock:** while the owner has a mock exam or review paper open (`getOpenAssessment`), lesson notes and parent assignment notes are withheld everywhere, including `/api/notes`, and changes return 423.
+- **Parent notes** come from `learn_assignments.note` (never copied); cancelled assignments drop out.
+- `/api/notes` authorizes every route with `canAccessOwnOrManagedChild`.
+- **Frontend:** `components/learn/LessonNotesPanel.tsx` (Read tab), lesson chip + "Fra forelder" strip on `Notes.tsx`, "Leksjonsnotater" in `LearnParent.tsx`.
+
 ### Book Media Serving
 Book cover images and page images stored in `/app/data/book-media/`
 - Route: `GET /api/books/media/:filename` (public, no auth required)

@@ -10,6 +10,7 @@ import LessonPractice from '../../components/learn/LessonPractice';
 import LessonFlashcards from '../../components/learn/LessonFlashcards';
 import OpenResponsePanel from '../../components/learn/OpenResponsePanel';
 import TutorPanel from '../../components/learn/TutorPanel';
+import LessonNotesPanel from '../../components/learn/LessonNotesPanel';
 
 type Tab = 'read' | 'practice' | 'cards' | 'tutor' | 'exam';
 const ALL_TABS: Tab[] = ['read', 'practice', 'cards', 'tutor', 'exam'];
@@ -189,6 +190,7 @@ export default function LessonPage() {
             </article>
 
             <aside className="space-y-4">
+              {lesson.notes && <LessonNotesPanel lessonId={lesson.id} locale={lesson.locale} notes={lesson.notes} onChanged={load} />}
               <GoalPanel goals={lesson.topic.goals} udirCode={lesson.meta?.curriculum?.code || lesson.topic.udir_code} locale={lesson.locale} grade={grade} />
               {lesson.body.keyTerms.length > 0 && (
                 <section className={learnSurface.card} aria-labelledby="key-terms">

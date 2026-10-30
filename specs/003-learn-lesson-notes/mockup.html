@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn lesson notes</title>
+<script src="https://cdn.tailwindcss.com/3.4.1"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: { primary: {
+    50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',300:'#a5b4fc',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81',950:'#1e1b4b' } } } } };
+</script>
+<style>
+  body { font-family: 'Space Grotesk', 'IBM Plex Sans', 'Noto Sans', sans-serif; background: #e2e8f0; }
+  .frame-label { font: 600 12px/1 ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: #475569; }
+  .note { box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 4px 10px -4px rgba(15,23,42,.18); }
+</style>
+</head>
+<body class="p-4 text-slate-800 sm:p-8">
+<header class="mx-auto mb-8 max-w-6xl">
+  <h1 class="text-2xl font-bold">Learn lesson notes — mockup for approval</h1>
+  <p class="mt-1 text-sm text-slate-600">Spec <code>specs/003-learn-lesson-notes</code> · light theme only · Bokmål. The screens use the existing Learn surfaces and the Notes colour palette.</p>
+</header>
+
+<!-- ============ A: lesson Read tab, desktop ============ -->
+<section class="mx-auto mb-12 max-w-6xl">
+  <p class="frame-label mb-2">A · Leksjon › Les (desktop) — child view</p>
+  <div class="min-h-full rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-300">
+    <a class="mb-4 inline-flex items-center gap-1 text-sm font-medium text-primary-700">← Tilbake til Learn</a>
+    <p class="text-sm font-medium text-slate-500">🔬 Naturfag · 8. trinn · Steg 3 · ca. 15 min</p>
+    <h2 class="mt-1 text-3xl font-bold">Fotosyntese</h2>
+    <div class="my-4 flex gap-1 overflow-x-auto rounded-2xl bg-white p-1 ring-1 ring-slate-200">
+      <span class="min-h-[44px] flex-none rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white">Les</span>
+      <span class="flex-none px-4 py-3 text-sm font-semibold text-slate-600">Øv</span>
+      <span class="flex-none px-4 py-3 text-sm font-semibold text-slate-600">Kort</span>
+      <span class="flex-none px-4 py-3 text-sm font-semibold text-slate-600">Veileder</span>
+      <span class="flex-none px-4 py-3 text-sm font-semibold text-slate-600">Prøv deg</span>
+    </div>
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <article class="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 text-[1.05rem] leading-relaxed shadow-sm">
+        <p class="text-lg">Planter lager sin egen mat ved hjelp av lys. Det kaller vi fotosyntese.</p>
+        <section>
+          <h3 class="text-xl font-semibold">Hva trenger planten?</h3>
+          <p class="mt-2">Planten tar opp karbondioksid fra lufta og vann fra jorda. Med energi fra sollyset blir dette til sukker (glukose) og oksygen.</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5"><li>Lys</li><li>Vann</li><li>Karbondioksid</li></ul>
+        </section>
+        <section>
+          <h3 class="text-xl font-semibold">Hvor skjer det?</h3>
+          <p class="mt-2">I bladgrønnkornene (kloroplastene) i bladene. Klorofyll gjør bladene grønne og fanger lyset.</p>
+        </section>
+        <aside class="flex gap-3 rounded-xl border border-primary-200 bg-primary-50 p-4 text-primary-950">✨ <div><b>Det viktigste</b><p>Lys + vann + CO₂ → sukker + oksygen.</p></div></aside>
+      </article>
+
+      <aside class="space-y-4">
+        <!-- NEW: Mine notater -->
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="my-notes">
+          <div class="flex items-center justify-between">
+            <h3 id="my-notes" class="flex items-center gap-2 font-semibold">🗒️ Mine notater</h3>
+            <span class="text-xs text-slate-500">2 av 30</span>
+          </div>
+
+          <!-- parent note, read-only, first -->
+          <div class="note mt-3 rounded-xl border-l-4 border-primary-400 bg-primary-50 p-3 text-sm">
+            <p class="flex items-center gap-1 text-xs font-semibold text-primary-800">👪 Fra forelder · Mamma</p>
+            <p class="mt-1">Les dette før fredag, og skriv ned ett spørsmål du lurer på!</p>
+            <p class="mt-1 text-xs text-slate-500">Oppgave · frist fre. 6. nov.</p>
+          </div>
+
+          <!-- child's own notes -->
+          <ul class="mt-3 space-y-3">
+            <li class="note rounded-xl p-3 text-sm" style="background:#fef08a">
+              <p>Fotosyntese = planten lager sukker av lys 🌞 + vann + CO₂. Oksygen er «avfallet».</p>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-600">
+                <span>i dag 14:02</span>
+                <span class="flex gap-1"><button class="min-h-[32px] rounded-lg px-2 hover:bg-black/5">Endre</button><button class="min-h-[32px] rounded-lg px-2 hover:bg-black/5">Slett</button></span>
+              </div>
+            </li>
+            <li class="note rounded-xl p-3 text-sm" style="background:#bbf7d0">
+              <p>Spørsmål: gjør planter fotosyntese om natta?</p>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-600"><span>i dag 14:05</span><span class="flex gap-1"><button class="px-2">Endre</button><button class="px-2">Slett</button></span></div>
+            </li>
+          </ul>
+
+          <!-- quick add -->
+          <form class="mt-4 space-y-2">
+            <label class="sr-only" for="new-note">Nytt notat</label>
+            <textarea id="new-note" rows="3" maxlength="2000" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30" placeholder="Skriv et notat til denne leksjonen …"></textarea>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex gap-1.5" role="radiogroup" aria-label="Farge">
+                <span class="h-7 w-7 rounded-full ring-2 ring-primary-600 ring-offset-2" style="background:#fef08a"></span>
+                <span class="h-7 w-7 rounded-full ring-1 ring-slate-300" style="background:#fbcfe8"></span>
+                <span class="h-7 w-7 rounded-full ring-1 ring-slate-300" style="background:#bfdbfe"></span>
+                <span class="h-7 w-7 rounded-full ring-1 ring-slate-300" style="background:#bbf7d0"></span>
+                <span class="h-7 w-7 rounded-full ring-1 ring-slate-300" style="background:#e9d5ff"></span>
+                <span class="h-7 w-7 rounded-full ring-1 ring-slate-300" style="background:#fed7aa"></span>
+              </div>
+              <button type="button" class="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white">＋ Lagre</button>
+            </div>
+            <p class="text-xs text-slate-500">Notatene finner du også under <b>Notater</b>.</p>
+          </form>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 class="font-semibold">🎯 Kompetansemål</h3><p class="mt-1 text-sm text-slate-600">… (unchanged)</p></section>
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 class="font-semibold">✅ Sjekk deg selv</h3><p class="mt-1 text-sm text-slate-600">… (unchanged)</p></section>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B: phone + locked ============ -->
+<section class="mx-auto mb-12 grid max-w-6xl gap-8 md:grid-cols-2">
+  <div>
+    <p class="frame-label mb-2">B1 · Phone 375 px — panel below the lesson text</p>
+    <div class="mx-auto w-[375px] max-w-full rounded-[2rem] bg-slate-50 p-4 ring-1 ring-slate-300">
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">… leksjonsteksten …</div>
+      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h3 class="font-semibold">🗒️ Mine notater</h3>
+        <div class="note mt-3 rounded-xl p-3 text-sm" style="background:#fef08a">Fotosyntese = sukker av lys + vann + CO₂.</div>
+        <textarea rows="2" class="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Skriv et notat …"></textarea>
+        <button class="mt-2 w-full min-h-[44px] rounded-xl bg-primary-600 text-sm font-semibold text-white">＋ Lagre</button>
+      </section>
+    </div>
+  </div>
+  <div>
+    <p class="frame-label mb-2">B2 · During a mock exam / review paper — notes paused</p>
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 class="font-semibold">🗒️ Mine notater</h3>
+      <div class="mt-3 flex gap-3 rounded-xl bg-slate-100 p-4 text-sm">
+        <span aria-hidden="true">🔒</span>
+        <p>Notatene er satt på pause mens en prøve pågår. Lever prøven først, så kommer de tilbake.</p>
+      </div>
+    </section>
+    <p class="mt-2 text-xs text-slate-600">The server sends no note text while a test is running, either here or on <code>/notes</code>. Saving, changing or deleting is refused (423).</p>
+  </div>
+</section>
+
+<!-- ============ C: /notes ============ -->
+<section class="mx-auto mb-12 max-w-6xl">
+  <p class="frame-label mb-2">C · /notes — lesson notes in the existing grid, plus a parent strip</p>
+  <div class="rounded-3xl bg-white p-6 ring-1 ring-slate-300">
+    <h2 class="flex items-center gap-2 text-2xl font-bold">🗒️ Mine notater</h2>
+    <p class="text-sm text-slate-500">(existing header, filters and templates unchanged)</p>
+
+    <div class="mt-4 rounded-2xl border border-primary-200 bg-primary-50 p-4">
+      <p class="text-sm font-semibold text-primary-900">👪 Fra forelder</p>
+      <div class="mt-2 flex gap-3 overflow-x-auto pb-1">
+        <a class="note w-64 flex-none rounded-xl bg-white p-3 text-sm">
+          <p class="text-xs font-semibold text-primary-800">Mamma · Fotosyntese</p>
+          <p class="mt-1">Les dette før fredag, og skriv ned ett spørsmål du lurer på!</p>
+          <p class="mt-1 text-xs text-primary-700 underline">Åpne leksjonen →</p>
+        </a>
+        <div class="note w-64 flex-none rounded-xl bg-white p-3 text-sm">
+          <p class="text-xs font-semibold text-primary-800">Pappa · Øvingsprøve brøk</p>
+          <p class="mt-1">Ta den i helga, ingen stress 🙂</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="note rounded-xl p-4" style="background:#fef08a">
+        <a class="mb-2 inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-primary-800 underline-offset-2 hover:underline">📘 Naturfag · Fotosyntese</a>
+        <h3 class="font-bold">Fotosyntese</h3>
+        <p class="mt-1 text-sm">Fotosyntese = planten lager sukker av lys 🌞 + vann + CO₂. Oksygen er «avfallet».</p>
+        <p class="mt-3 text-xs text-slate-600">📚 School · i dag</p>
+      </div>
+      <div class="note rounded-xl p-4" style="background:#bbf7d0">
+        <a class="mb-2 inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-primary-800">📘 Naturfag · Fotosyntese</a>
+        <h3 class="font-bold">Fotosyntese</h3>
+        <p class="mt-1 text-sm">Spørsmål: gjør planter fotosyntese om natta?</p>
+      </div>
+      <div class="note rounded-xl p-4" style="background:#fbcfe8">
+        <h3 class="font-bold">Bursdagsønsker</h3>
+        <p class="mt-1 text-sm">Ordinary note, unchanged.</p>
+      </div>
+    </div>
+    <p class="mt-3 text-xs text-slate-600">The chip links to <code>/learn/lessons/:id</code> only while the lesson is reviewed; otherwise it is plain text. Editing and deleting work as for any note.</p>
+  </div>
+</section>
+
+<!-- ============ D: LearnParent ============ -->
+<section class="mx-auto mb-12 max-w-6xl">
+  <p class="frame-label mb-2">D · Learn for foreldre — per-child "Leksjonsnotater" (read-only)</p>
+  <div class="rounded-3xl bg-slate-50 p-6 ring-1 ring-slate-300">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-full bg-amber-100 text-xl">🦊</span><h3 class="text-lg font-semibold">Emma</h3><span class="text-sm text-slate-600">Mestret: 4 · Oppgaver: 1</span></div>
+      <p class="text-sm text-slate-500">(existing settings, progress, feedback unchanged)</p>
+      <button class="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700" aria-expanded="true">🗒️ Leksjonsnotater (3) ▾</button>
+      <div class="mt-3 space-y-4">
+        <div>
+          <h4 class="text-sm font-semibold">🔬 Naturfag</h4>
+          <p class="mt-2 text-xs font-medium text-slate-600">Fotosyntese</p>
+          <div class="mt-1 grid gap-2 sm:grid-cols-2">
+            <div class="note rounded-xl p-3 text-sm" style="background:#bbf7d0">Spørsmål: gjør planter fotosyntese om natta?<p class="mt-1 text-xs text-slate-600">30.10.2026</p></div>
+            <div class="note rounded-xl p-3 text-sm" style="background:#fef08a">Fotosyntese = planten lager sukker av lys + vann + CO₂.<p class="mt-1 text-xs text-slate-600">30.10.2026</p></div>
+          </div>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold">➗ Matematikk</h4>
+          <p class="mt-2 text-xs font-medium text-slate-600">Brøk og desimaltall</p>
+          <div class="mt-1 grid gap-2 sm:grid-cols-2">
+            <div class="note rounded-xl p-3 text-sm" style="background:#bfdbfe">½ = 0,5 = 50 %. Del teller på nevner!<p class="mt-1 text-xs text-slate-600">28.10.2026</p></div>
+          </div>
+        </div>
+      </div>
+      <p class="mt-3 text-xs text-slate-600">No edit or delete buttons. Admin views are written to the audit log.</p>
+    </div>
+  </div>
+</section>
+</body>
+</html>
