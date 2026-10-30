@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ProfileProvider } from './context/ProfileContext';
 import { AgeProvider } from './context/AgeContext';
 import { FeatureFlagsProvider, useFeatureFlags } from './context/FeatureFlagsContext';
-import { ProfileFeaturesProvider } from './context/ProfileFeaturesContext';
+import { ProfileFeaturesProvider, useProfileFeatures } from './context/ProfileFeaturesContext';
 import { PermissionsProvider, usePermissions } from './context/PermissionsContext';
 import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
@@ -142,6 +142,25 @@ function ModuleProtectedRoute({
   return <>{children}</>;
 }
 
+// Redirect away from a page whose feature the backend has disabled for this profile
+function FeatureRoute({ feature, children }: { feature: string; children: React.ReactNode }) {
+  const { isFeatureEnabled, loading } = useProfileFeatures();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner mx-auto"></div>
+      </div>
+    );
+  }
+
+  if (!isFeatureEnabled(feature)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppRoutes() {
   const { currentProfile, setCurrentProfile, isLoading } = useProfile();
   const { flags: featureFlags } = useFeatureFlags();
@@ -258,18 +277,17 @@ function AppRoutes() {
           }
         />
 
-        {/* Diet - Only shown when diet feature flag is enabled */}
-        {featureFlags.diet_enabled && !featureFlags.school_only_mode && (
+        {/* Diet - access is enforced by the backend (requireFeature('diet'): family/profile
+            feature toggles); the nav item follows the same `diet` feature key */}
+        {!featureFlags.school_only_mode && (
           <Route
             path="/diet"
             element={
-              currentProfile?.type === 'child' && currentProfile?.diet_enabled !== 1 ? (
-                <Navigate to="/" replace />
-              ) : (
-                <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
+              <ModuleProtectedRoute allowedRoles={['parent', 'admin', 'child']} requireModule="core_app">
+                <FeatureRoute feature="diet">
                   <DietTracking />
-                </ModuleProtectedRoute>
-              )
+                </FeatureRoute>
+              </ModuleProtectedRoute>
             }
           />
         )}

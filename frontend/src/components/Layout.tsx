@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart, Puzzle, GraduationCap } from 'lucide-react';
+import { Home, CheckSquare, Bot, StickyNote, Settings, LogOut, Users, Map, Menu, X, ChevronRight, Trophy, Gift, Calendar, Shield, BookOpen, ShoppingCart, Puzzle, GraduationCap, Utensils } from 'lucide-react';
 import { useProfile } from '../context/ProfileContext';
 import { useAge } from '../context/AgeContext';
 import { useFeatureFlags } from '../context/FeatureFlagsContext';
@@ -41,6 +41,7 @@ const KID_NAV_ITEMS: KidNavItem[] = [
   { path: '/leaderboard', emoji: '🏆', label: 'Champions', labels: { young: 'Champions', middle: 'Leaderboard', older: 'Leaderboard' }, color: 'from-yellow-500 to-orange-500', hoverAnim: 'hover:animate-tada-sm' },
   { path: '/journey', emoji: '🐲', label: 'Adventure Map', labels: { young: 'Adventure', middle: 'Journey', older: 'Journey' }, color: 'from-indigo-500 to-purple-500', hoverAnim: 'hover:animate-float' },
   { path: '/shopping/help', emoji: '🛒', label: 'Shopping Helper', labels: { young: 'Shopping!', middle: 'Shopping', older: 'Shopping' }, color: 'from-emerald-500 to-teal-500', hoverAnim: 'hover:animate-bounce' },
+  { path: '/diet', emoji: '🥗', label: 'My Food', labels: { young: 'My Food', middle: 'Food Log', older: 'Diet' }, color: 'from-lime-400 to-green-500', hoverAnim: 'hover:animate-jiggle' },
   { path: '/ai', emoji: '🤖', label: 'AI Buddy', labels: { young: 'AI Buddy', middle: 'AI Buddy', older: 'AI Helper' }, color: 'from-blue-500 to-indigo-600', hoverAnim: 'hover:animate-robot' },
   { path: '/settings', emoji: '🧠', label: 'Settings', labels: { young: 'Settings', middle: 'Settings', older: 'Settings' }, color: 'from-slate-400 to-slate-600', hoverAnim: 'hover:animate-spin-slow' },
 ];
@@ -195,6 +196,7 @@ export default function Layout({ children }: LayoutProps) {
         learnNavItem,
         { path: '/books', icon: BookOpen, label: 'Books' },
         { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
+        { path: '/diet', icon: Utensils, label: 'Diet' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
@@ -221,6 +223,7 @@ export default function Layout({ children }: LayoutProps) {
         { path: '/h5p/play', icon: Puzzle, label: 'Quizzes' },
         learnNavItem,
         { path: '/shopping/help', icon: ShoppingCart, label: 'Shopping' },
+        { path: '/diet', icon: Utensils, label: 'Diet' },
         { path: '/calendar', icon: Calendar, label: 'Calendar' },
         { path: '/shop', icon: Gift, label: 'Shop' },
         { path: '/notes', icon: StickyNote, label: 'Notes' },
