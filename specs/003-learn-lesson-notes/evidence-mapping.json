@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "_note": "Evidence mapping for specs/003-learn-lesson-notes. backend:test covers backend/src/test/learnNotes.test.ts and notes.test.ts (lesson-note CRUD, limits, lock, assignment notes, parent view, audit, cross-child refusal, migration). build covers type-checked UI wiring only. FR-015 (Bokm\u00e5l copy, light theme) has lint only; the no-dark: check was a diff grep, not a configured check. FR-016 (Tutor untouched) and SC-001 (under 10 s) have no automated evidence and need recorded human/manual evidence, as does the visual layout of FR-003/FR-005/FR-009.",
+  "requirements": [
+    {
+      "id": "FR-001",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test",
+        "build"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-002",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-003",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test",
+        "build"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-004",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-005",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test",
+        "build"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-006",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-007",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-008",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-009",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test",
+        "build"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-010",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-011",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-012",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-013",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-014",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-015",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "frontend:lint"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "FR-016",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [],
+      "visualCases": []
+    },
+    {
+      "id": "SC-001",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [],
+      "visualCases": []
+    },
+    {
+      "id": "SC-002",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "SC-003",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "SC-004",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test"
+      ],
+      "visualCases": []
+    },
+    {
+      "id": "SC-005",
+      "specPath": "specs/003-learn-lesson-notes/spec.md",
+      "checks": [
+        "backend:test",
+        "build",
+        "frontend:lint"
+      ],
+      "visualCases": []
+    }
+  ]
+}
