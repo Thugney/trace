@@ -5,6 +5,7 @@ import ReminderWidget from '../kids/ReminderWidget';
 import { Profile } from '../../types';
 import { profilesAPI, ReminderPreferences } from '../../services/api';
 import { APP_NAME, APP_OWNER, APP_VERSION, APP_WEBSITE } from '../../version';
+import { inputClass, primaryButtonClass } from './SettingsPrimitives';
 
 interface ChildSettingsProps {
   profile: Profile;
@@ -105,9 +106,9 @@ export default function ChildSettings({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-violet-50 pb-8">
+    <div className="min-h-screen bg-slate-50 pb-8">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-10">
+      <div className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <span className="text-3xl"></span>
@@ -121,11 +122,11 @@ export default function ChildSettings({
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-6">
         {/* Reminder Card */}
-        <div className="bg-white rounded-2xl shadow-lg border-2 border-cyan-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-cyan-100 to-blue-100 p-4 text-center">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="border-b border-slate-100 bg-slate-50 p-4 text-center">
             <span className="text-4xl animate-bounce inline-block"></span>
-            <h2 className="text-lg font-bold text-cyan-800 mt-2">My Notifications</h2>
-            <p className="text-xs text-cyan-600">Set up real push notifications for your tasks.</p>
+            <h2 className="mt-2 text-base font-semibold text-slate-900">My Notifications</h2>
+            <p className="text-xs text-slate-500">Set up real push notifications for your tasks.</p>
           </div>
           <div className="p-4">
             {reminderPrefs ? (
@@ -138,14 +139,14 @@ export default function ChildSettings({
               />
             ) : (
               <div className="flex justify-center py-4">
-                <Loader2 className="animate-spin text-cyan-500" size={24} />
+                <Loader2 className="animate-spin text-primary-500" size={24} />
               </div>
             )}
           </div>
         </div>
 
         {/* Avatar & Profile Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           {/* Avatar Upload */}
           <div className="flex flex-col items-center mb-6">
             <div className="relative group">
@@ -181,7 +182,7 @@ export default function ChildSettings({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className={inputClass}
                 required
               />
             </div>
@@ -195,7 +196,7 @@ export default function ChildSettings({
                 type="text"
                 value={avatarEmoji}
                 onChange={(e) => setAvatarEmoji(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className={inputClass}
                 placeholder="Leave empty if using photo"
               />
             </div>
@@ -203,7 +204,7 @@ export default function ChildSettings({
             <button
               type="submit"
               disabled={saving}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-xl hover:bg-primary-700 transition-all disabled:opacity-50"
+              className={`w-full ${primaryButtonClass}`}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Save Changes
@@ -212,10 +213,10 @@ export default function ChildSettings({
         </div>
 
         {/* PIN Change Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-orange-100 rounded-xl">
-              <Lock className="text-orange-600" size={22} />
+            <div className="rounded-xl bg-amber-50 p-2">
+              <Lock className="text-amber-600" size={22} />
             </div>
             <div>
               <h3 className="font-semibold text-slate-900">Change My PIN</h3>
@@ -234,7 +235,7 @@ export default function ChildSettings({
                   type={showPin ? 'text' : 'password'}
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value)}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className={`${inputClass} pr-11`}
                   placeholder="Enter new PIN (4+ digits)"
                   pattern="[0-9]*"
                   inputMode="numeric"
@@ -261,7 +262,7 @@ export default function ChildSettings({
                 type={showPin ? 'text' : 'password'}
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className={inputClass}
                 placeholder="Re-enter new PIN"
                 pattern="[0-9]*"
                 inputMode="numeric"
@@ -274,7 +275,7 @@ export default function ChildSettings({
             <button
               onClick={handlePinChange}
               disabled={saving || !newPin || !confirmPin}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 transition-all disabled:opacity-50"
+              className={`w-full ${primaryButtonClass}`}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Lock size={18} />}
               Change PIN

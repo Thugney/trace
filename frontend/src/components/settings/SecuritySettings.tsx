@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { Shield, Lock, Eye, EyeOff, Save, Loader2, Key, CheckCircle, AlertCircle, Users, UserPlus, ClipboardList, GraduationCap } from 'lucide-react';
 import { Profile } from '../../types';
 import { profilesAPI, settingsAPI } from '../../services/api';
+import {
+  SettingsCard,
+  SettingsCardHeader,
+  SettingsField,
+  StatusBadge,
+  inputClass,
+  primaryButtonClass,
+  secondaryButtonClass
+} from './SettingsPrimitives';
 
 interface SecuritySettingsProps {
   profile: Profile;
@@ -177,318 +186,296 @@ export default function SecuritySettings({
     <div className="space-y-6">
       {/* Password Management - Available for parents, admins, and teachers */}
       {(isParent || isAdmin || isTeacher) && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 p-[2px]">
-          <div className="bg-white rounded-[14px] p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl shadow-lg shadow-orange-500/25">
-                <Lock className="text-white" size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Account Password</h3>
-                <p className="text-sm text-slate-500">Secure login for your account</p>
-              </div>
-            </div>
+        <SettingsCard>
+          <SettingsCardHeader
+            icon={Lock}
+            tone="amber"
+            title="Account Password"
+            description="Secure login for your account"
+          />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="new-password" className="block text-sm font-semibold text-slate-700 mb-2">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="new-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-slate-50"
-                    placeholder="Min 6 characters"
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="confirm-password" className="block text-sm font-semibold text-slate-700 mb-2">
-                  Confirm Password
-                </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SettingsField label="New password" htmlFor="new-password">
+              <div className="relative">
                 <input
-                  id="confirm-password"
+                  id="new-password"
                   type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-orange-500/20 focus:border-orange-500 transition-all bg-slate-50"
-                  placeholder="Re-enter password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className={`${inputClass} pr-11`}
+                  placeholder="Min 6 characters"
                   autoComplete="new-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-            </div>
+            </SettingsField>
 
+            <SettingsField label="Confirm password" htmlFor="confirm-password">
+              <input
+                id="confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={inputClass}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+              />
+            </SettingsField>
+          </div>
+
+          <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
             <button
               onClick={handleSetPassword}
               disabled={saving || !newPassword || !confirmPassword}
-              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-600 focus:ring-4 focus:ring-orange-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-orange-500/25"
+              className={primaryButtonClass}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Update Password
             </button>
           </div>
-        </div>
+        </SettingsCard>
       )}
 
       {/* Teacher Role Info - Only for teachers */}
       {isTeacher && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-[2px]">
-          <div className="bg-white rounded-[14px] p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/25">
-                <GraduationCap className="text-white" size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900">Your Role</h3>
-                <p className="text-sm text-slate-500">Church School Teacher</p>
-              </div>
-              <span className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full flex items-center gap-1">
+        <SettingsCard>
+          <SettingsCardHeader
+            icon={GraduationCap}
+            tone="emerald"
+            title="Your Role"
+            description="Church School Teacher"
+            action={
+              <StatusBadge tone="success">
                 <CheckCircle size={14} />
                 Active
-              </span>
-            </div>
-            <div className="mt-4 p-4 bg-emerald-50 rounded-xl">
-              <p className="text-sm text-emerald-800">
-                As a teacher, you have access to Church School features including class management,
-                assignments, grading, and attendance. You can update your profile photo and password from the settings above.
-              </p>
-            </div>
+              </StatusBadge>
+            }
+          />
+          <div className="rounded-xl bg-emerald-50 p-4">
+            <p className="text-sm leading-6 text-emerald-800">
+              As a teacher, you have access to Church School features including class management,
+              assignments, grading, and attendance. You can update your profile photo and password from the settings above.
+            </p>
           </div>
-        </div>
+        </SettingsCard>
       )}
 
       {/* Parent PIN Protection */}
       {(isParent || isAdmin) && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 p-[2px]">
-          <div className="bg-white rounded-[14px] p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl shadow-lg shadow-violet-500/25">
-                <Shield className="text-white" size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900">Parent PIN Protection</h3>
-                <p className="text-sm text-slate-500">Protect settings and parent-only features</p>
-              </div>
-              {settings.parent_pin && (
-                <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full flex items-center gap-1">
+        <SettingsCard>
+          <SettingsCardHeader
+            icon={Shield}
+            tone="indigo"
+            title="Parent PIN Protection"
+            description="Protect settings and parent-only features"
+            action={
+              settings.parent_pin && (
+                <StatusBadge tone="success">
                   <CheckCircle size={14} />
                   Active
-                </span>
-              )}
-            </div>
+                </StatusBadge>
+              )
+            }
+          />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {settings.parent_pin && (
-                <div>
-                  <label htmlFor="current-pin" className="block text-sm font-semibold text-slate-700 mb-2">
-                    Current PIN
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="current-pin"
-                      type={showPin ? 'text' : 'password'}
-                      value={currentPin}
-                      onChange={(e) => setCurrentPin(e.target.value)}
-                      className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all bg-slate-50"
-                      placeholder="Enter current PIN"
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPin(!showPin)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {settings.parent_pin && (
+              <SettingsField label="Current PIN" htmlFor="current-pin">
+                <div className="relative">
+                  <input
+                    id="current-pin"
+                    type={showPin ? 'text' : 'password'}
+                    value={currentPin}
+                    onChange={(e) => setCurrentPin(e.target.value)}
+                    className={`${inputClass} pr-11`}
+                    placeholder="Enter current PIN"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(!showPin)}
+                    aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+                  >
+                    {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
-              )}
+              </SettingsField>
+            )}
 
-              <div className={settings.parent_pin ? '' : 'sm:col-span-2 sm:max-w-md'}>
-                <label htmlFor="new-pin" className="block text-sm font-semibold text-slate-700 mb-2">
-                  {settings.parent_pin ? 'New PIN' : 'Set PIN'}
-                </label>
+            <div className={settings.parent_pin ? '' : 'sm:col-span-2 sm:max-w-md'}>
+              <SettingsField label={settings.parent_pin ? 'New PIN' : 'Set PIN'} htmlFor="new-pin">
                 <input
                   id="new-pin"
                   type={showPin ? 'text' : 'password'}
                   value={newPin}
                   onChange={(e) => setNewPin(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 transition-all bg-slate-50"
+                  className={inputClass}
                   placeholder="Min 4 characters"
                   minLength={4}
                   autoComplete="new-password"
                 />
-              </div>
+              </SettingsField>
             </div>
+          </div>
 
+          <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
             <button
               onClick={handleSetPin}
               disabled={saving || !newPin}
-              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-xl hover:from-violet-600 hover:to-purple-700 focus:ring-4 focus:ring-violet-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-500/25"
+              className={primaryButtonClass}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               {settings.parent_pin ? 'Update PIN' : 'Set PIN'}
             </button>
           </div>
-        </div>
+        </SettingsCard>
       )}
 
       {/* Grok AI API Key - Admin Only */}
       {isAdmin && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-[2px]">
-          <div className="bg-white rounded-[14px] p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/25">
-                <Key className="text-white" size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900">Grok AI Configuration</h3>
-                <p className="text-sm text-slate-500">API key for AI-powered features</p>
-              </div>
-              <span className={`px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1 ${
-                settings.grok_api_enabled === 'true'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-amber-100 text-amber-700'
-              }`}>
-                {settings.grok_api_enabled === 'true' ? (
-                  <>
-                    <CheckCircle size={14} />
-                    Enabled
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle size={14} />
-                    Not Configured
-                  </>
-                )}
-              </span>
-            </div>
+        <SettingsCard>
+          <SettingsCardHeader
+            icon={Key}
+            tone="sky"
+            title="Grok AI Configuration"
+            description="API key for AI-powered features"
+            action={
+              settings.grok_api_enabled === 'true' ? (
+                <StatusBadge tone="success">
+                  <CheckCircle size={14} />
+                  Enabled
+                </StatusBadge>
+              ) : (
+                <StatusBadge tone="warning">
+                  <AlertCircle size={14} />
+                  Not Configured
+                </StatusBadge>
+              )
+            }
+          />
 
-            <div>
-              <label htmlFor="grok-api-key" className="block text-sm font-semibold text-slate-700 mb-2">
-                Grok API Key
-              </label>
-              <div className="relative">
-                <input
-                  id="grok-api-key"
-                  type={showGrokKey ? 'text' : 'password'}
-                  value={grokApiKey}
-                  onChange={(e) => setGrokApiKey(e.target.value)}
-                  className="w-full px-4 py-3.5 pr-12 rounded-xl border-2 border-slate-200 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-slate-50"
-                  placeholder="Enter your Grok API key"
-                  autoComplete="off"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowGrokKey(!showGrokKey)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showGrokKey ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-              <p className="text-sm text-slate-500 mt-2">
+          <SettingsField
+            label="Grok API key"
+            htmlFor="grok-api-key"
+            hint={
+              <>
                 Get your API key from{' '}
                 <a
                   href="https://x.ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                  className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
                 >
                   x.ai
                 </a>
-              </p>
+              </>
+            }
+          >
+            <div className="relative">
+              <input
+                id="grok-api-key"
+                type={showGrokKey ? 'text' : 'password'}
+                value={grokApiKey}
+                onChange={(e) => setGrokApiKey(e.target.value)}
+                className={`${inputClass} pr-11`}
+                placeholder="Enter your Grok API key"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={() => setShowGrokKey(!showGrokKey)}
+                aria-label={showGrokKey ? 'Hide API key' : 'Show API key'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
+              >
+                {showGrokKey ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
+          </SettingsField>
 
+          <div className="mt-6 flex justify-end border-t border-slate-100 pt-5">
             <button
               onClick={handleSaveGrokKey}
               disabled={saving || !grokApiKey.trim()}
-              className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-700 focus:ring-4 focus:ring-blue-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25"
+              className={primaryButtonClass}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Save API Key
             </button>
           </div>
-        </div>
+        </SettingsCard>
       )}
 
       {/* Parent Profile Creation Controls - Admin Only */}
       {isAdmin && (
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-[2px]">
-          <div className="bg-white rounded-[14px] p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg shadow-emerald-500/25">
-                <UserPlus className="text-white" size={24} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900">Parent Profile Controls</h3>
-                <p className="text-sm text-slate-500">Control who can create parent accounts</p>
-              </div>
-              <span className={`px-3 py-1.5 text-xs font-semibold rounded-full flex items-center gap-1 ${
-                allowParentCreation
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {allowParentCreation ? (
-                  <>
-                    <CheckCircle size={14} />
-                    Enabled
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle size={14} />
-                    Disabled
-                  </>
-                )}
-              </span>
-            </div>
+        <SettingsCard>
+          <SettingsCardHeader
+            icon={UserPlus}
+            tone="emerald"
+            title="Parent Profile Controls"
+            description="Control who can create parent accounts"
+            action={
+              allowParentCreation ? (
+                <StatusBadge tone="success">
+                  <CheckCircle size={14} />
+                  Enabled
+                </StatusBadge>
+              ) : (
+                <StatusBadge tone="danger">
+                  <AlertCircle size={14} />
+                  Disabled
+                </StatusBadge>
+              )
+            }
+          />
 
+          <div className="space-y-3">
             {/* Allow Parent Creation Toggle */}
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl mb-4">
-              <div>
-                <p className="font-semibold text-slate-900">Allow Parent Creation</p>
-                <p className="text-sm text-slate-500">
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900">Allow parent creation</p>
+                <p className="mt-0.5 text-sm text-slate-500">
                   When enabled, parents can add co-parents to their family
                 </p>
               </div>
               <button
+                type="button"
+                role="switch"
+                aria-checked={allowParentCreation}
+                aria-label="Allow parent creation"
                 onClick={handleParentCreationToggle}
                 disabled={loadingParentSettings}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-4 focus:ring-emerald-500/30 ${
-                  allowParentCreation ? 'bg-emerald-500' : 'bg-slate-300'
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/40 disabled:opacity-50 ${
+                  allowParentCreation ? 'bg-primary-600' : 'bg-slate-300'
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform ${
-                    allowParentCreation ? 'translate-x-8' : 'translate-x-1'
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    allowParentCreation ? 'translate-x-5' : 'translate-x-0.5'
                   }`}
                 />
               </button>
             </div>
 
             {/* Max Parents Per Family */}
-            <div className="p-4 bg-slate-50 rounded-xl mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="font-semibold text-slate-900">Max Parents Per Family</p>
-                  <p className="text-sm text-slate-500">
+            <div className="rounded-xl border border-slate-200 p-4">
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-900">Max parents per family</p>
+                  <p className="mt-0.5 text-sm text-slate-500">
                     Limit the number of parent accounts per family
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Users size={18} className="text-slate-400" />
-                  <span className="font-bold text-lg text-emerald-600">{maxParentsPerFamily}</span>
+                <div className="flex flex-shrink-0 items-center gap-2">
+                  <Users size={16} className="text-slate-400" />
+                  <span className="text-lg font-bold text-primary-600">{maxParentsPerFamily}</span>
                 </div>
               </div>
               <input
@@ -498,79 +485,79 @@ export default function SecuritySettings({
                 value={maxParentsPerFamily}
                 onChange={(e) => handleMaxParentsChange(parseInt(e.target.value))}
                 disabled={loadingParentSettings}
-                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-primary-600 disabled:opacity-50"
               />
-              <div className="flex justify-between text-xs text-slate-400 mt-1">
+              <div className="mt-1 flex justify-between text-xs text-slate-400">
                 <span>1</span>
                 <span>10</span>
               </div>
             </div>
-
-            {/* Audit Logs Button */}
-            <button
-              onClick={loadAuditLogs}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 font-semibold rounded-xl hover:from-slate-200 hover:to-slate-300 focus:ring-4 focus:ring-slate-500/20 transition-all"
-            >
-              <ClipboardList size={18} />
-              View Parent Creation Audit Logs
-            </button>
-
-            {/* Audit Logs Panel */}
-            {showAuditLogs && (
-              <div className="mt-4 bg-slate-50 rounded-xl p-4 max-h-64 overflow-y-auto">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-slate-900">Audit Logs</h4>
-                  <button
-                    onClick={() => setShowAuditLogs(false)}
-                    className="text-slate-400 hover:text-slate-600 text-sm"
-                  >
-                    Close
-                  </button>
-                </div>
-                {auditLogs.length === 0 ? (
-                  <p className="text-sm text-slate-500 text-center py-4">No audit logs found</p>
-                ) : (
-                  <div className="space-y-2">
-                    {auditLogs.map((log, index) => {
-                      const details = log.details ? JSON.parse(log.details) : {};
-                      return (
-                        <div key={index} className="p-3 bg-white rounded-lg border border-slate-200">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                              log.action === 'PARENT_CREATED' || log.action === 'COPARENT_CREATED'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
-                              {log.action.replace(/_/g, ' ')}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {new Date(log.created_at).toLocaleString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-700">
-                            {log.action === 'PARENT_CREATED' || log.action === 'COPARENT_CREATED' ? (
-                              <>
-                                <strong>{details.created_parent_name}</strong> created by{' '}
-                                <span className="text-slate-500">{details.created_by_name || log.actor_name}</span>
-                                {details.linked_children_count > 0 && (
-                                  <span className="text-slate-400">
-                                    {' '}({details.linked_children_count} children linked)
-                                  </span>
-                                )}
-                              </>
-                            ) : (
-                              <>Settings changed by <strong>{log.actor_name}</strong></>
-                            )}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-        </div>
+
+          {/* Audit Logs Button */}
+          <button
+            onClick={loadAuditLogs}
+            className={`mt-4 w-full ${secondaryButtonClass}`}
+          >
+            <ClipboardList size={18} />
+            View Parent Creation Audit Logs
+          </button>
+
+          {/* Audit Logs Panel */}
+          {showAuditLogs && (
+            <div className="mt-4 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="font-semibold text-slate-900">Audit Logs</h4>
+                <button
+                  onClick={() => setShowAuditLogs(false)}
+                  className="text-sm font-medium text-slate-500 hover:text-slate-700"
+                >
+                  Close
+                </button>
+              </div>
+              {auditLogs.length === 0 ? (
+                <p className="py-4 text-center text-sm text-slate-500">No audit logs found</p>
+              ) : (
+                <div className="space-y-2">
+                  {auditLogs.map((log, index) => {
+                    const details = log.details ? JSON.parse(log.details) : {};
+                    return (
+                      <div key={index} className="rounded-lg border border-slate-200 bg-white p-3">
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className={`rounded px-2 py-0.5 text-xs font-semibold ${
+                            log.action === 'PARENT_CREATED' || log.action === 'COPARENT_CREATED'
+                              ? 'bg-primary-50 text-primary-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}>
+                            {log.action.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {new Date(log.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-700">
+                          {log.action === 'PARENT_CREATED' || log.action === 'COPARENT_CREATED' ? (
+                            <>
+                              <strong>{details.created_parent_name}</strong> created by{' '}
+                              <span className="text-slate-500">{details.created_by_name || log.actor_name}</span>
+                              {details.linked_children_count > 0 && (
+                                <span className="text-slate-400">
+                                  {' '}({details.linked_children_count} children linked)
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <>Settings changed by <strong>{log.actor_name}</strong></>
+                          )}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </SettingsCard>
       )}
     </div>
   );

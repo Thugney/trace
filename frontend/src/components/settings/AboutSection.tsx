@@ -14,6 +14,7 @@ import {
   APP_VERSION,
   APP_WEBSITE
 } from '../../version';
+import { SettingsCard, StatusBadge, secondaryButtonClass } from './SettingsPrimitives';
 
 const highlights = [
   {
@@ -33,9 +34,28 @@ const highlights = [
   }
 ];
 
+const useCases = [
+  {
+    title: 'Daily routines',
+    description: 'Tasks, checklists, and accountability for home routines.'
+  },
+  {
+    title: 'Rewards and motivation',
+    description: 'Points, rewards, approvals, and goal tracking with parent control.'
+  },
+  {
+    title: 'Learning and habits',
+    description: 'Books, quizzes, habits, and structured family learning activities.'
+  },
+  {
+    title: 'Parent oversight',
+    description: 'Approvals, controls, notifications, and family progress visibility.'
+  }
+];
+
 const appFacts = [
   { label: 'App', value: APP_NAME },
-  { label: 'Current Version', value: APP_VERSION },
+  { label: 'Current version', value: APP_VERSION },
   { label: 'Owner', value: APP_OWNER },
   { label: 'Website', value: 'eriteach.com' }
 ];
@@ -43,115 +63,87 @@ const appFacts = [
 export default function AboutSection() {
   return (
     <div className="space-y-6">
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
-        <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.28),_transparent_55%)]" />
-        <div className="relative max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm text-white/80">
-            <Info size={14} />
-            About This App
+      <SettingsCard>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              <Info size={14} />
+              About this app
+            </span>
+            <h3 className="mt-3 text-2xl font-bold text-slate-900">{APP_NAME}</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              {APP_DESCRIPTION}
+            </p>
           </div>
 
-          <h3 className="mt-4 text-3xl font-bold text-white">{APP_NAME}</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
-            {APP_DESCRIPTION}
-          </p>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white/85">
-              Version {APP_VERSION}
-            </span>
-            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-sm font-medium text-emerald-300">
-              Owned by {APP_OWNER}
-            </span>
-            <a
-              href={APP_WEBSITE}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-            >
-              Visit eriteach.com
-              <ExternalLink size={14} />
-            </a>
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+            <StatusBadge tone="neutral">Version {APP_VERSION}</StatusBadge>
+            <StatusBadge tone="success">Owned by {APP_OWNER}</StatusBadge>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+        <a
+          href={APP_WEBSITE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-6 w-full sm:w-auto ${secondaryButtonClass}`}
+        >
+          Visit eriteach.com
+          <ExternalLink size={14} />
+        </a>
+      </SettingsCard>
+
+      <div className="grid gap-4 md:grid-cols-3">
         {highlights.map((highlight) => {
           const Icon = highlight.icon;
           return (
-            <div
-              key={highlight.title}
-              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-            >
+            <SettingsCard key={highlight.title} className="p-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-sky-50 p-3 text-sky-700">
-                  <Icon size={20} />
+                <div className="flex-shrink-0 rounded-xl bg-sky-50 p-2.5 text-sky-600">
+                  <Icon size={18} />
                 </div>
                 <h4 className="font-semibold text-slate-900">{highlight.title}</h4>
               </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">{highlight.description}</p>
-            </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{highlight.description}</p>
+            </SettingsCard>
           );
         })}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-700">
-              <BadgeCheck size={20} />
+        <SettingsCard>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex-shrink-0 rounded-xl bg-emerald-50 p-2.5 text-emerald-600">
+              <BadgeCheck size={18} />
             </div>
             <h4 className="font-semibold text-slate-900">What Families Use It For</h4>
           </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="font-medium text-slate-900">Daily routines</p>
-              <p className="mt-1 text-sm text-slate-600">Tasks, checklists, and accountability for home routines.</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="font-medium text-slate-900">Rewards and motivation</p>
-              <p className="mt-1 text-sm text-slate-600">Points, rewards, approvals, and goal tracking with parent control.</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="font-medium text-slate-900">Learning and habits</p>
-              <p className="mt-1 text-sm text-slate-600">Books, quizzes, habits, and structured family learning activities.</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <p className="font-medium text-slate-900">Parent oversight</p>
-              <p className="mt-1 text-sm text-slate-600">Approvals, controls, notifications, and family progress visibility.</p>
-            </div>
-          </div>
-        </div>
+          <ul className="divide-y divide-slate-100">
+            {useCases.map((useCase) => (
+              <li key={useCase.title} className="py-3 first:pt-0 last:pb-0">
+                <p className="font-medium text-slate-900">{useCase.title}</p>
+                <p className="mt-0.5 text-sm text-slate-600">{useCase.description}</p>
+              </li>
+            ))}
+          </ul>
+        </SettingsCard>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-amber-50 p-3 text-amber-700">
-              <Globe size={20} />
+        <SettingsCard>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex-shrink-0 rounded-xl bg-amber-50 p-2.5 text-amber-600">
+              <Globe size={18} />
             </div>
             <h4 className="font-semibold text-slate-900">App Information</h4>
           </div>
-          <dl className="mt-5 space-y-3">
+          <dl className="divide-y divide-slate-100">
             {appFacts.map((fact) => (
-              <div
-                key={fact.label}
-                className="flex items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3"
-              >
+              <div key={fact.label} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                 <dt className="text-sm text-slate-500">{fact.label}</dt>
-                <dd className="text-sm font-medium text-slate-900">{fact.value}</dd>
+                <dd className="text-right text-sm font-medium text-slate-900">{fact.value}</dd>
               </div>
             ))}
           </dl>
-          <a
-            href={APP_WEBSITE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800"
-          >
-            Open public website
-            <ExternalLink size={14} />
-          </a>
-        </div>
+        </SettingsCard>
       </div>
     </div>
   );
