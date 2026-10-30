@@ -344,6 +344,13 @@ export interface Note {
   tags?: string; // JSON array string
   created_at: string;
   updated_at: string;
+  // Set when written beside a Learn lesson (specs/003-learn-lesson-notes)
+  learn_lesson_id?: number | null;
+  learn_topic_id?: number | null;
+  learn_lesson_title?: string | null;
+  learn_subject_title?: string | null;
+  learn_subject_slug?: string | null;
+  learn_lesson_visible?: boolean;
 }
 
 export interface MonthlyGoal {

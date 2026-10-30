@@ -1,8 +1,10 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useProfile } from '../context/ProfileContext';
-import { notesAPI } from '../services/api';
+import { learnAPI, notesAPI } from '../services/api';
 import { Note } from '../types';
-import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter, Bell, Clock, Tag } from 'lucide-react';
+import type { ParentAssignmentNote } from '../types/learn';
+import { StickyNote, Plus, X, Edit2, Trash2, Save, Pin, Bold, Italic, List, ListOrdered, Heading, Filter, Bell, Clock, Tag, Users } from 'lucide-react';
 import DOMPurify from 'dompurify';
 
 const NOTE_CATEGORIES = [
@@ -237,6 +239,16 @@ export default function Notes() {
     }
   }, [currentProfile, selectedCategory, selectedTag, loadNotes, loadTags]);
 
+  // A child's parent notes on Learn assignments; absent when Learn is off
+  const [assignmentNotes, setAssignmentNotes] = useState<ParentAssignmentNote[]>([]);
+  const isChild = currentProfile?.type === 'child';
+  useEffect(() => {
+    if (!isChild) return;
+    learnAPI.getAssignmentNotes()
+      .then(response => setAssignmentNotes(response.data.notes))
+      .catch(() => setAssignmentNotes([]));
+  }, [isChild, profileId]);
+
   const addTag = (tag: string, isEdit: boolean = false) => {
     const trimmedTag = tag.trim().toLowerCase();
     if (!trimmedTag) return;
@@ -457,6 +469,28 @@ export default function Notes() {
         </div>
       )}
 
+      {/* Parent notes on Learn assignments, read-only */}
+      {assignmentNotes.length > 0 && (
+        <section className="mb-4 rounded-2xl border border-primary-200 bg-primary-50 p-4" aria-labelledby="from-parents">
+          <h2 id="from-parents" className="flex items-center gap-2 text-sm font-semibold text-primary-900">
+            <Users size={16} aria-hidden="true" /> Fra forelder
+          </h2>
+          <ul className="mt-2 flex gap-3 overflow-x-auto pb-1">
+            {assignmentNotes.map(note => (
+              <li key={note.assignment_id} className="w-64 flex-none rounded-xl bg-white p-3 text-sm shadow-sm">
+                <p className="text-xs font-semibold text-primary-800">{note.from_name} · {note.title}</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-gray-900">{note.note}</p>
+                {note.lesson_id && (
+                  <Link to={`/learn/lessons/${note.lesson_id}`} className="mt-1 inline-block text-xs font-medium text-primary-700 underline">
+                    Åpne leksjonen →
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Notes Grid */}
       {sortedNotes.length === 0 ? (
         <div className="card text-center p-12">
@@ -487,6 +521,14 @@ export default function Notes() {
                 </div>
               )}
               <div className="mb-2 flex flex-wrap gap-1">
+                {note.learn_lesson_id && note.learn_lesson_title && (() => {
+                  const label = `📘 ${note.learn_subject_title ? `${note.learn_subject_title} · ` : ''}${note.learn_lesson_title}`;
+                  const chipClass = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white/70 text-primary-800';
+                  // Link only to a lesson the viewer can still open
+                  return note.learn_lesson_visible
+                    ? <Link to={`/learn/lessons/${note.learn_lesson_id}`} className={`${chipClass} hover:underline`}>{label}</Link>
+                    : <span className={chipClass}>{label}</span>;
+                })()}
                 {note.category && (
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                     NOTE_CATEGORIES.find(c => c.name === note.category)?.color || 'bg-gray-100 text-gray-600'

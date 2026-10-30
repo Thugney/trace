@@ -188,7 +188,24 @@ const nb = {
   states: { not_started: 'Ikke startet', reading: 'Påbegynt', practiced: 'Øvd', mastered: 'Mestret' } as Record<LessonState, string>,
   error: 'Noe gikk galt. Prøv igjen.',
   loading: 'Laster …',
-  disabledForProfile: 'Learn er ikke slått på for deg ennå. Spør en forelder om å slå det på.'
+  disabledForProfile: 'Learn er ikke slått på for deg ennå. Spør en forelder om å slå det på.',
+  // Lesson notes (specs/003-learn-lesson-notes)
+  myNotes: 'Mine notater',
+  notesCount: (count: number, limit: number) => `${count} av ${limit}`,
+  newNote: 'Nytt notat',
+  notePlaceholder: 'Skriv et notat til denne leksjonen …',
+  saveNote: 'Lagre',
+  noteColour: 'Farge',
+  editNote: 'Endre',
+  deleteNote: 'Slett',
+  confirmDeleteNote: 'Vil du slette notatet?',
+  notesAlsoOnNotesPage: 'Notatene finner du også under Notater.',
+  notesPaused: 'Notatene er satt på pause mens en prøve pågår. Lever prøven først, så kommer de tilbake.',
+  noteLimitReached: 'Du har nådd grensen for notater i denne leksjonen.',
+  fromParent: (name: string) => `Fra forelder · ${name}`,
+  dueOn: (date: string) => `frist ${date}`,
+  lessonNotes: 'Leksjonsnotater',
+  noChildNotes: 'Ingen leksjonsnotater ennå.'
 };
 
 type LearnCopy = typeof nb;
@@ -305,7 +322,21 @@ const en: LearnCopy = {
   mockOnlyFrom8: 'Practice tests with an indicative grade are only used from Year 8.',
   pointsEarned: (points: number) => `+${points} points`,
   noReviewedForGrade: 'No approved lessons for this year yet. An adult has to approve the content first.',
-  lessonTabs: { read: 'Read', practice: 'Practise', cards: 'Cards', tutor: 'Ask the tutor', exam: 'Test yourself' }
+  lessonTabs: { read: 'Read', practice: 'Practise', cards: 'Cards', tutor: 'Ask the tutor', exam: 'Test yourself' },
+  myNotes: 'My notes',
+  notesCount: (count: number, limit: number) => `${count} of ${limit}`,
+  newNote: 'New note',
+  notePlaceholder: 'Write a note for this lesson …',
+  saveNote: 'Save',
+  noteColour: 'Colour',
+  editNote: 'Edit',
+  deleteNote: 'Delete',
+  confirmDeleteNote: 'Delete this note?',
+  notesAlsoOnNotesPage: 'Your notes are also on the Notes page.',
+  notesPaused: 'Notes are paused while a test is running. Hand in the test first and they will come back.',
+  noteLimitReached: 'You have reached the note limit for this lesson.',
+  fromParent: (name: string) => `From a parent · ${name}`,
+  dueOn: (date: string) => `due ${date}`
 };
 
 export const learnCopy = (locale: LearnLocale | undefined): LearnCopy => (locale === 'en' ? en : nb);

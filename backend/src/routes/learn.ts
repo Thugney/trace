@@ -48,6 +48,19 @@ import {
   type ReviewFeedback,
   type ReviewPaperRow
 } from '../services/learn/reviewPapers';
+import {
+  assignmentNotesForChild,
+  childLessonNotesBySubject,
+  cleanNoteContent,
+  countLessonNotes,
+  createLessonNote,
+  getLessonNote,
+  lessonNotesBlock,
+  LESSON_NOTES_PER_LESSON,
+  noteColor,
+  notesLocked,
+  updateLessonNote
+} from '../services/learn/lessonNotes';
 import { importContentPackage, pilotGrade8Topics } from '../services/learn/contentImport';
 import { loadContentPackage, validateContentPackage } from '../services/learn/contentPackage';
 
@@ -930,6 +943,7 @@ router.get('/lessons/:lessonId', (req: AuthRequest, res: Response) => {
     course_nav: getCourseNavigation(lesson.topic_id, isReviewer(req)),
     review_papers: reviewPapers,
     personal_cards: personalCards,
+    notes: lessonNotesBlock(req.profile!.id, lesson),
     open_responses: presentOpenResponses(lesson, req.profile!.id),
     practice_result: getPracticeResult(lesson.id, req.profile!.id),
     tutor_available: isTutorAvailable(req.profile!),
@@ -1183,6 +1197,89 @@ router.delete('/cards/:cardId', (req: AuthRequest, res: Response) => {
   db.prepare('DELETE FROM learn_flashcard_reviews WHERE profile_id = ? AND lesson_id = ? AND card_key = ?')
     .run(req.profile!.id, card.lesson_id, `personal-${cardId}`);
   res.json({ deleted: true });
+});
+
+// ------------------------------------------------------------ lesson notes (specs/003-learn-lesson-notes)
+
+const notesPaused = (res: Response) =>
+  res.status(423).json({ error: 'Lesson notes are paused during a test', code: 'exam_in_progress' });
+
+router.post('/lessons/:lessonId/notes', (req: AuthRequest, res: Response) => {
+  const lesson = loadVisibleLesson(req, res);
+  if (!lesson) return;
+  if (notesLocked(req.profile!.id)) return notesPaused(res);
+
+  const cleaned = cleanNoteContent(req.body?.content);
+  if ('error' in cleaned) {
+    return res.status(400).json({ error: 'A note needs 1 to 2000 characters', code: cleaned.error });
+  }
+  if (countLessonNotes(req.profile!.id, lesson.id) >= LESSON_NOTES_PER_LESSON) {
+    return res.status(400).json({ error: `You can have at most ${LESSON_NOTES_PER_LESSON} notes per lesson`, code: 'note_limit' });
+  }
+  res.status(201).json(createLessonNote(req.profile!.id, lesson, cleaned.content, noteColor(req.body?.color)));
+});
+
+// Owner only: a parent reads a child's lesson notes through /children/:childId/notes
+function loadOwnLessonNote(req: AuthRequest, res: Response) {
+  const noteId = parseId(req.params.noteId);
+  const note = noteId ? getLessonNote(noteId) : undefined;
+  if (!note || note.profile_id !== req.profile!.id) {
+    res.status(404).json({ error: 'Note not found' });
+    return null;
+  }
+  if (notesLocked(req.profile!.id)) {
+    notesPaused(res);
+    return null;
+  }
+  return note;
+}
+
+router.put('/lesson-notes/:noteId', (req: AuthRequest, res: Response) => {
+  const note = loadOwnLessonNote(req, res);
+  if (!note) return;
+
+  let content = note.content || '';
+  if (req.body?.content !== undefined) {
+    const cleaned = cleanNoteContent(req.body.content);
+    if ('error' in cleaned) {
+      return res.status(400).json({ error: 'A note needs 1 to 2000 characters', code: cleaned.error });
+    }
+    content = cleaned.content;
+  }
+  const color = req.body?.color !== undefined ? noteColor(req.body.color) : note.color;
+  res.json(updateLessonNote(note.id, content, color));
+});
+
+router.delete('/lesson-notes/:noteId', (req: AuthRequest, res: Response) => {
+  const note = loadOwnLessonNote(req, res);
+  if (!note) return;
+  db.prepare('DELETE FROM notes WHERE id = ?').run(note.id);
+  res.json({ deleted: true });
+});
+
+// Parent notes on the viewer's own assignments, for the notes page
+router.get('/me/assignment-notes', (req: AuthRequest, res: Response) => {
+  if (notesLocked(req.profile!.id)) {
+    return res.json({ locked: true, notes: [] });
+  }
+  res.json({ locked: false, notes: assignmentNotesForChild(req.profile!.id) });
+});
+
+router.get('/children/:childId/notes', (req: AuthRequest, res: Response) => {
+  const childId = parseId(req.params.childId);
+  const viewer = req.profile!;
+  const child = childId ? db.prepare('SELECT id, name, type FROM profiles WHERE id = ?').get(childId) as any : null;
+
+  if (!child || child.type !== 'child' || viewer.id === childId || !['parent', 'admin'].includes(viewer.type)
+    || !canAccessOwnOrManagedChild(viewer, childId!)) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  if (viewer.type === 'admin') {
+    audit(req, 'learn.admin_viewed_child_notes', 'profiles', childId);
+  }
+
+  res.json({ child: { id: child.id, name: child.name }, subjects: childLessonNotesBySubject(childId!) });
 });
 
 // ------------------------------------------------------------ progress

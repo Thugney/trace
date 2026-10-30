@@ -53,7 +53,10 @@ import type {
   ReviewQueue,
   ReviewStatus,
   TutorReply,
-  TutorOptions
+  TutorOptions,
+  LessonNote,
+  ParentAssignmentNote,
+  ChildLessonNotes
 } from '../types/learn';
 
 export type { Reward, RewardClaim };
@@ -2857,6 +2860,13 @@ export const learnAPI = {
     api.post(`/learn/lessons/${lessonId}/cards`, data),
   updateCard: (cardId: number, data: { front?: string; back?: string }) => api.put(`/learn/cards/${cardId}`, data),
   deleteCard: (cardId: number) => api.delete(`/learn/cards/${cardId}`),
+  createLessonNote: (lessonId: number, data: { content: string; color?: string }) =>
+    api.post<LessonNote>(`/learn/lessons/${lessonId}/notes`, data),
+  updateLessonNote: (noteId: number, data: { content?: string; color?: string }) =>
+    api.put<LessonNote>(`/learn/lesson-notes/${noteId}`, data),
+  deleteLessonNote: (noteId: number) => api.delete(`/learn/lesson-notes/${noteId}`),
+  getAssignmentNotes: () => api.get<{ locked: boolean; notes: ParentAssignmentNote[] }>('/learn/me/assignment-notes'),
+  getChildNotes: (childId: number) => api.get<ChildLessonNotes>(`/learn/children/${childId}/notes`),
 
   getMyProgress: () => api.get<LearnerProgress>('/learn/me/progress'),
   getChildProgress: (childId: number) => api.get<LearnerProgress>(`/learn/children/${childId}/progress`),

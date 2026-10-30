@@ -2,37 +2,44 @@ import express, { Response } from 'express';
 import db from '../database/init';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireFeature } from '../middleware/feature-access';
+import { canAccessOwnOrManagedChild } from '../services/familyAccess';
+import { notesLocked, selectNotesWithLearnContext } from '../services/learn/lessonNotes';
 
 const router = express.Router();
 router.use(authenticate, requireFeature('notes'));
 
+// Users reach their own notes; parents their managed children's; admins all
+function canAccessNotesOf(req: AuthRequest, ownerId: number): boolean {
+  return Number.isInteger(ownerId) && canAccessOwnOrManagedChild(req.profile!, ownerId);
+}
+
+// A learner's own lesson notes are withheld while their mock exam or review paper runs
+function hideLessonNotes(req: AuthRequest, ownerId: number): boolean {
+  return req.profile!.id === ownerId && notesLocked(ownerId);
+}
+
 // Get all notes for a profile
 router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
     const { category, tag } = req.query;
-    const userProfile = req.profile!;
+    const targetProfileId = parseInt(req.params.profileId);
 
-    // Authorization: users can only access their own notes (or admin/parent can access kids' notes)
-    const targetProfileId = parseInt(profileId);
-    if (userProfile.type !== 'admin' && userProfile.id !== targetProfileId) {
-      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(targetProfileId);
-      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    if (!canAccessNotesOf(req, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
-    let query = 'SELECT * FROM notes WHERE profile_id = ?';
-    const params: any[] = [profileId];
+    let where = 'n.profile_id = ?';
+    const params: any[] = [targetProfileId];
 
     if (category && category !== 'all') {
-      query += ' AND category = ?';
+      where += ' AND n.category = ?';
       params.push(category);
     }
+    if (hideLessonNotes(req, targetProfileId)) {
+      where += ' AND n.learn_lesson_id IS NULL';
+    }
 
-    query += ' ORDER BY is_pinned DESC, updated_at DESC';
-
-    let notes: any[] = db.prepare(query).all(...params);
+    let notes: any[] = selectNotesWithLearnContext(`${where} ORDER BY n.is_pinned DESC, n.updated_at DESC`, params);
 
     // Filter by tag if specified (done in-memory since tags are JSON)
     if (tag && tag !== 'all') {
@@ -56,10 +63,14 @@ router.get('/:profileId', authenticate, (req: AuthRequest, res: Response) => {
 // Get all categories for a profile
 router.get('/:profileId/categories', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const targetProfileId = parseInt(req.params.profileId);
+    if (!canAccessNotesOf(req, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const categories = db.prepare(
-      'SELECT DISTINCT category FROM notes WHERE profile_id = ? AND category IS NOT NULL AND category != "" ORDER BY category'
-    ).all(profileId);
+      "SELECT DISTINCT category FROM notes WHERE profile_id = ? AND category IS NOT NULL AND category != '' ORDER BY category"
+    ).all(targetProfileId);
     res.json(categories.map((c: any) => c.category));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -69,10 +80,15 @@ router.get('/:profileId/categories', authenticate, (req: AuthRequest, res: Respo
 // Get all tags for a profile (extracted from all notes)
 router.get('/:profileId/tags', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
+    const targetProfileId = parseInt(req.params.profileId);
+    if (!canAccessNotesOf(req, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const lessonFilter = hideLessonNotes(req, targetProfileId) ? ' AND learn_lesson_id IS NULL' : '';
     const notes: any[] = db.prepare(
-      'SELECT tags FROM notes WHERE profile_id = ? AND tags IS NOT NULL AND tags != ""'
-    ).all(profileId);
+      `SELECT tags FROM notes WHERE profile_id = ? AND tags IS NOT NULL AND tags != ''${lessonFilter}`
+    ).all(targetProfileId);
 
     // Extract and deduplicate all tags
     const allTags = new Set<string>();
@@ -96,27 +112,21 @@ router.get('/:profileId/tags', authenticate, (req: AuthRequest, res: Response) =
 // Get notes with reminders due today or upcoming
 router.get('/:profileId/reminders', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const { profileId } = req.params;
-    const userProfile = req.profile!;
-    const targetProfileId = parseInt(profileId);
-
-    // Authorization check
-    if (userProfile.type !== 'admin' && userProfile.id !== targetProfileId) {
-      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(targetProfileId);
-      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    const targetProfileId = parseInt(req.params.profileId);
+    if (!canAccessNotesOf(req, targetProfileId)) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Get notes with reminders that are today or in the future
     const today = new Date().toISOString().split('T')[0];
+    const lessonFilter = hideLessonNotes(req, targetProfileId) ? ' AND learn_lesson_id IS NULL' : '';
     const notes = db.prepare(`
       SELECT * FROM notes
       WHERE profile_id = ?
         AND reminder_at IS NOT NULL
-        AND reminder_at >= ?
+        AND reminder_at >= ?${lessonFilter}
       ORDER BY reminder_at ASC
-    `).all(profileId, today);
+    `).all(targetProfileId, today);
 
     res.json(notes);
   } catch (error: any) {
@@ -125,10 +135,11 @@ router.get('/:profileId/reminders', authenticate, (req: AuthRequest, res: Respon
 });
 
 // Get single note
-router.get('/note/:id', (req, res) => {
+router.get('/note/:id', (req: AuthRequest, res: Response) => {
   try {
-    const note = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
-    if (!note) {
+    const note = selectNotesWithLearnContext('n.id = ?', [req.params.id])[0];
+    // Unknown, foreign and test-locked notes look the same
+    if (!note || !canAccessNotesOf(req, note.profile_id) || (note.learn_lesson_id && hideLessonNotes(req, note.profile_id))) {
       return res.status(404).json({ error: 'Note not found' });
     }
     res.json(note);
@@ -140,20 +151,15 @@ router.get('/note/:id', (req, res) => {
 // Create note
 router.post('/', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const userProfile = req.profile!;
     const { profile_id, title, content, color, category, reminder_at, tags } = req.body;
 
     if (!profile_id || !title) {
       return res.status(400).json({ error: 'Profile ID and title are required' });
     }
 
-    // Authorization: users can only create notes for themselves (or admin/parent for kids)
-    const targetProfileId = parseInt(profile_id);
-    if (userProfile.type !== 'admin' && userProfile.id !== targetProfileId) {
-      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(targetProfileId);
-      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    // Lesson notes are only created from a lesson (Learn routes); learn_* body fields are ignored here
+    if (!canAccessNotesOf(req, parseInt(profile_id))) {
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Convert tags array to JSON string
@@ -175,22 +181,19 @@ router.post('/', authenticate, (req: AuthRequest, res: Response) => {
 // Update note
 router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const userProfile = req.profile!;
     const { id } = req.params;
     const { title, content, color, category } = req.body;
 
     // Check note ownership
-    const note: any = db.prepare('SELECT profile_id FROM notes WHERE id = ?').get(id);
+    const note: any = db.prepare('SELECT * FROM notes WHERE id = ?').get(id);
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
-
-    // Authorization
-    if (userProfile.type !== 'admin' && userProfile.id !== note.profile_id) {
-      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(note.profile_id);
-      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    if (!canAccessNotesOf(req, note.profile_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (note.learn_lesson_id && hideLessonNotes(req, note.profile_id)) {
+      return res.status(423).json({ error: 'Lesson notes are paused during a test', code: 'exam_in_progress' });
     }
 
     const updates: string[] = [];
@@ -234,7 +237,7 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
       WHERE id = ?
     `).run(...values);
 
-    const updatedNote = db.prepare('SELECT * FROM notes WHERE id = ?').get(id);
+    const updatedNote = selectNotesWithLearnContext('n.id = ?', [id])[0];
     res.json(updatedNote);
   } catch (error: any) {
     console.error('[Notes] Update error:', error);
@@ -245,20 +248,16 @@ router.put('/:id', authenticate, (req: AuthRequest, res: Response) => {
 // Delete note
 router.delete('/:id', authenticate, (req: AuthRequest, res: Response) => {
   try {
-    const userProfile = req.profile!;
-
     // Check note ownership
-    const note: any = db.prepare('SELECT profile_id FROM notes WHERE id = ?').get(req.params.id);
+    const note: any = db.prepare('SELECT * FROM notes WHERE id = ?').get(req.params.id);
     if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
-
-    // Authorization
-    if (userProfile.type !== 'admin' && userProfile.id !== note.profile_id) {
-      const targetProfile: any = db.prepare('SELECT parent_id FROM profiles WHERE id = ?').get(note.profile_id);
-      if (!targetProfile || (userProfile.type === 'parent' && targetProfile.parent_id !== userProfile.id)) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    if (!canAccessNotesOf(req, note.profile_id)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (note.learn_lesson_id && hideLessonNotes(req, note.profile_id)) {
+      return res.status(423).json({ error: 'Lesson notes are paused during a test', code: 'exam_in_progress' });
     }
 
     const result = db.prepare('DELETE FROM notes WHERE id = ?').run(req.params.id);

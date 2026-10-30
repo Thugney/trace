@@ -1,4 +1,5 @@
 import db from '../../database/init';
+import { migrateNotesLearnLink } from '../../database/noteLearnLink';
 
 /**
  * FamilyHub Learn schema (docs/familyhub-learn-architecture.md §4).
@@ -184,6 +185,8 @@ export function ensureLearnSchema() {
   `);
 
   ensureLearnGradesSchema();
+  // Lesson notes live in the notes table; Learn reads them on every lesson load
+  migrateNotesLearnLink(db);
 }
 
 function addColumnIfMissing(table: string, column: string, definition: string) {

@@ -214,6 +214,7 @@ export interface LearnLesson {
   course_nav?: CourseNav | null;
   review_papers?: ReviewPaperSummary[];
   personal_cards: { id: number; forked_from_card_key: string | null; front: string; back: string }[];
+  notes?: LessonNotesBlock;
   open_responses?: OpenResponse[];
   practice_result: PracticeResult | null;
   tutor_available?: boolean;
@@ -572,4 +573,40 @@ export interface ContentImportStatus {
     stats?: Record<string, unknown>;
     source_hash?: string;
   } | null;
+}
+
+// Learn lesson notes (specs/003-learn-lesson-notes)
+export interface LessonNote {
+  id: number;
+  content: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ParentAssignmentNote {
+  assignment_id: number;
+  note: string;
+  from_name: string;
+  target_kind: AssignmentTargetKind;
+  title: string;
+  lesson_id: number | null;
+  due_at: string | null;
+  state: 'assigned' | 'completed';
+}
+
+export interface LessonNotesBlock {
+  locked: boolean;
+  mine: LessonNote[];
+  from_parents: ParentAssignmentNote[];
+  limit: number;
+}
+
+export interface ChildLessonNotes {
+  child: { id: number; name: string };
+  subjects: {
+    subject_slug: string | null;
+    subject_title: string | null;
+    lessons: { lesson_id: number; lesson_title: string; lesson_visible: boolean; notes: LessonNote[] }[];
+  }[];
 }
